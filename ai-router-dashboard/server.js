@@ -1715,3 +1715,81 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`${C2.gray}  ─────────────────────────────────────${C2.reset}`);
   console.log('');
 });
+// ============================================================
+//  server.js 에 추가할 로또 API
+//  server.js 파일 맨 아래 app.listen() 바로 위에 붙여넣기
+// ============================================================
+
+// ── 로또 당첨 이력 조회 (동행복권 API) ─────────────────────
+app.get('/api/lotto/history', async (req, res) => {
+  try {
+    const rounds = parseInt(req.query.rounds) || 100;
+    const history = [];
+
+    // 최신 회차 조회
+    const latestRes = await fetch(
+      'https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1162'
+    );
+    const latestData = await latestRes.json();
+    const latestRound = latestData.drwNo || 1162;
+
+    // 최근 N회 데이터 병렬 수집
+    const fetchRound = async (no) => {
+      try {
+        const r = await fetch(
+          `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${no}`
+        );
+        const d = await r.json();
+        if (d.returnValue === 'success') {
+          return [d.drwtNo1, d.drwtNo2, d.drwtNo3, d.drwtNo4, d.drwtNo5, d.drwtNo6];
+        }
+      } catch(e) {}
+      return null;
+    };
+
+    const promises = [];
+    for (let i = latestRound; i > latestRound - rounds && i > 0; i--) {
+      promises.push(fetchRound(i));
+    }
+
+    const results = await Promise.all(promises);
+    results.forEach(r => { if (r) history.push(r); });
+
+    res.json({ history, latest_round: latestRound, count: history.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ── 텔레그램 메시지 전송 프록시 ────────────────────────────
+app.post('/api/lotto/telegram', async (req, res) => {
+  const { token, chatid, text } = req.body;
+  if (!token || !chatid || !text) {
+    return res.status(400).json({ ok: false, error: '파라미터 누락' });
+  }
+  try {
+    const r = await fetch(
+      `https://api.telegram.org/bot${token}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatid,
+          text: text,
+          parse_mode: 'Markdown'
+        })
+      }
+    );
+    const data = await r.json();
+    if (data.ok) {
+      res.json({ ok: true });
+    } else {
+      res.json({ ok: false, error: data.description });
+    }
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// ── 로또 페이지 서빙 ────────────────────────────────────────
+app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html')));

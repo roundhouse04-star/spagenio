@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로또 추천</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #222636;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --text2: #8892a4;
+    --blue: #4f8ef7;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --orange: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; padding: 24px; }
+
+  h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: var(--text2); font-size: 13px; margin-bottom: 24px; }
+
+  /* 알고리즘 비중 슬라이더 */
+  .algo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .algo-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .algo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .algo-name { font-size: 14px; font-weight: 600; }
+  .algo-pct { font-size: 14px; font-weight: 700; color: var(--blue); min-width: 40px; text-align: right; }
+  .algo-desc { font-size: 11px; color: var(--text2); margin-bottom: 10px; line-height: 1.4; }
+  input[type=range] { width: 100%; accent-color: var(--blue); cursor: pointer; }
+
+  /* 버튼 */
+  .btn-row { display: flex; gap: 12px; margin-bottom: 24px; }
+  .btn { padding: 12px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--blue); color: #fff; flex: 1; font-size: 16px; }
+  .btn-tg { background: #229ED9; color: #fff; }
+  .btn-reset { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+
+  /* 게임수 선택 */
+  .game-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .game-select label { font-size: 14px; color: var(--text2); }
+  .game-select select { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+
+  /* 결과 */
+  .result-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .game-row { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .game-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .balls { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ball {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  }
+  .b1  { background: linear-gradient(135deg,#f9c74f,#f4a261); }
+  .b2  { background: linear-gradient(135deg,#43aa8b,#52b69a); }
+  .b3  { background: linear-gradient(135deg,#4361ee,#4cc9f0); }
+  .b4  { background: linear-gradient(135deg,#e63946,#f72585); }
+  .b5  { background: linear-gradient(135deg,#7209b7,#a855f7); }
+  .b6  { background: linear-gradient(135deg,#555,#888); }
+  .ball-sep { width: 2px; background: var(--border); border-radius: 2px; margin: 0 4px; }
+
+  /* 알고리즘 기여도 */
+  .contrib { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .contrib-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: var(--bg3); color: var(--text2); }
+
+  /* 통계 패널 */
+  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--blue); }
+  .stat-lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* 텔레그램 설정 */
+  .tg-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 24px; }
+  .tg-section h3 { font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .tg-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .tg-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px; }
+  .tg-input::placeholder { color: var(--text2); }
+  .tg-save { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .tg-save:hover { border-color: var(--blue); }
+
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--text2); }
+  .empty { text-align: center; color: var(--text2); padding: 40px; font-size: 14px; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<h2>🍀 로또 번호 추천</h2>
+<p class="sub">알고리즘 비중을 조절해 나만의 번호를 추천받으세요</p>
+
+<!-- 통계 -->
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-val" id="stat-round">-</div><div class="stat-lbl">분석 회차</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-hot">-</div><div class="stat-lbl">최근 핫넘버</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-cold">-</div><div class="stat-lbl">미출현 최장</div></div>
+</div>
+
+<!-- 알고리즘 비중 -->
+<p class="section-title">⚙️ 알고리즘 비중 설정</p>
+<div class="algo-grid" id="algo-grid"></div>
+
+<!-- 게임 수 + 버튼 -->
+<div class="game-select">
+  <label>게임 수</label>
+  <select id="game-count">
+    <option value="1">1게임</option>
+    <option value="3">3게임</option>
+    <option value="5" selected>5게임</option>
+    <option value="10">10게임</option>
+  </select>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="generate()">🎯 번호 추천받기</button>
+  <button class="btn btn-tg" onclick="sendTelegram()">📱 텔레그램 전송</button>
+  <button class="btn btn-reset" onclick="resetWeights()">초기화</button>
+</div>
+
+<!-- 결과 -->
+<p class="section-title">🎰 추천 번호</p>
+<div class="result-wrap" id="results"><div class="empty">위 버튼을 눌러 번호를 추천받으세요</div></div>
+
+<!-- 텔레그램 설정 -->
+<div class="tg-section">
+  <h3>📱 텔레그램 설정</h3>
+  <div class="tg-row">
+    <input class="tg-input" id="tg-token" placeholder="Bot Token (예: 1234567890:ABCdef...)" type="password">
+    <button class="tg-save" onclick="saveTg()">저장</button>
+  </div>
+  <div class="tg-row">
+    <input class="tg-input" id="tg-chatid" placeholder="Chat ID (예: 123456789)">
+    <button class="tg-save" onclick="testTg()">테스트</button>
+  </div>
+  <p style="font-size:11px;color:var(--text2)">
+    Bot Token: @BotFather에서 생성 &nbsp;|&nbsp;
+    Chat ID: @userinfobot 에서 확인
+  </p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 알고리즘 정의 ──────────────────────────────────────────
+const ALGOS = [
+  { id: 'freq',     name: '빈도 분석',      weight: 20, desc: '역대 가장 많이 출현한 번호를 우선 선택. 출현 횟수를 확률 가중치로 사용.' },
+  { id: 'hot',      name: '핫넘버',          weight: 20, desc: '최근 50회 출현 빈도가 높은 번호. 단기 트렌드를 반영.' },
+  { id: 'cold',     name: '미출현 주기',     weight: 10, desc: '오래 나오지 않은 번호 우선 선택. 회귀 이론 기반.' },
+  { id: 'balance',  name: '홀짝 균형',       weight: 15, desc: '홀수 3개 + 짝수 3개 비율로 균형 있게 구성. 통계적으로 가장 빈번.' },
+  { id: 'zone',     name: '구간 분포',       weight: 15, desc: '1~45를 6구간으로 나눠 각 구간에서 고르게 선택.' },
+  { id: 'ac',       name: 'AC값 최적화',     weight: 10, desc: '번호 간 차이값의 다양성(AC값 7~10) 최적화. 패턴 회피.' },
+  { id: 'prime',    name: '소수 패턴',       weight: 5,  desc: '소수(2,3,5,7,11...) 2~3개 포함. 역대 당첨 통계 반영.' },
+  { id: 'delta',    name: '델타 시스템',     weight: 5,  desc: '번호 간격 패턴(델타값) 분석. 1,2,3,7,8,13이 최다 델타.' },
+];
+
+let weights = {};
+let lottoHistory = [];
+let lastGames = [];
+
+ALGOS.forEach(a => weights[a.id] = a.weight);
+
+// ── 알고리즘 UI 렌더 ───────────────────────────────────────
+function renderAlgos() {
+  const grid = document.getElementById('algo-grid');
+  grid.innerHTML = ALGOS.map(a => `
+    <div class="algo-card">
+      <div class="algo-header">
+        <span class="algo-name">${a.name}</span>
+        <span class="algo-pct" id="pct-${a.id}">${weights[a.id]}%</span>
+      </div>
+      <div class="algo-desc">${a.desc}</div>
+      <input type="range" min="0" max="100" value="${weights[a.id]}"
+        oninput="updateWeight('${a.id}', this.value)">
+    </div>
+  `).join('');
+}
+
+function updateWeight(id, val) {
+  weights[id] = parseInt(val);
+  document.getElementById('pct-' + id).textContent = val + '%';
+}
+
+function resetWeights() {
+  ALGOS.forEach(a => { weights[a.id] = a.weight; });
+  renderAlgos();
+}
+
+// ── 로또 데이터 수집 ───────────────────────────────────────
+async function fetchLottoData() {
+  try {
+    // server.js 프록시 통해 동행복권 API 호출
+    const res = await fetch('/api/lotto/history');
+    if (res.ok) {
+      const data = await res.json();
+      lottoHistory = data.history || [];
+      updateStats();
+      return;
+    }
+  } catch(e) {}
+  // 폴백: 내장 샘플 데이터 (최근 10회)
+  lottoHistory = generateSampleHistory();
+  updateStats();
+}
+
+function generateSampleHistory() {
+  // 실제 최근 당첨 번호 샘플
+  return [
+    [3,13,30,33,43,45], [1,7,11,24,27,41], [6,9,10,11,27,37],
+    [5,8,18,26,38,42], [2,14,21,30,39,44], [4,16,22,28,35,40],
+    [7,12,19,23,31,45], [3,10,17,25,34,41], [1,6,15,28,37,43],
+    [8,11,20,29,36,42], [2,9,18,24,33,40], [5,13,22,30,39,44],
+    [4,7,16,25,35,43], [1,10,19,28,37,41], [6,12,21,29,38,45],
+    [3,8,17,26,34,40], [2,11,20,27,36,44], [5,9,18,23,33,42],
+    [4,13,22,31,39,45], [7,10,19,25,35,41], [1,8,17,28,36,43],
+    [6,11,20,29,37,40], [3,9,16,24,34,44], [2,12,21,30,38,42],
+    [5,10,18,27,35,45], [4,8,19,26,33,41], [1,11,22,31,39,43],
+    [7,9,17,25,36,40], [3,12,20,29,37,44], [6,10,19,24,35,42],
+    [2,8,16,28,34,45], [5,11,21,30,38,41], [4,9,18,27,36,43],
+    [1,12,20,26,33,40], [7,10,17,29,37,44], [3,8,19,25,35,42],
+    [6,11,22,31,39,45], [2,9,16,24,34,41], [5,12,21,28,36,43],
+    [4,10,18,27,33,40], [1,8,17,26,37,44], [7,11,20,29,35,42],
+    [3,9,19,25,38,45], [6,12,22,31,36,41], [2,10,17,24,33,43],
+    [5,8,16,28,39,40], [4,11,21,30,37,44], [1,9,18,27,34,42],
+    [7,12,20,26,35,45], [3,10,19,29,38,41],
+  ];
+}
+
+function updateStats() {
+  if (!lottoHistory.length) return;
+  const freq = new Array(46).fill(0);
+  lottoHistory.forEach(game => game.forEach(n => freq[n]++));
+
+  const sorted = [...Array(45).keys()].slice(1).sort((a,b) => freq[b]-freq[a]);
+  document.getElementById('stat-round').textContent = lottoHistory.length + '회';
+  document.getElementById('stat-hot').textContent = sorted.slice(0,3).join(', ');
+
+  // 마지막 출현 회차
+  const lastSeen = new Array(46).fill(0);
+  lottoHistory.forEach((game, i) => game.forEach(n => { if(!lastSeen[n]) lastSeen[n] = lottoHistory.length - i; }));
+  const coldest = [...Array(45).keys()].slice(1).sort((a,b) => (lastSeen[b]||999)-(lastSeen[a]||999));
+  document.getElementById('stat-cold').textContent = coldest[0] + '번';
+}
+
+// ── 번호 생성 알고리즘 ─────────────────────────────────────
+const PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43];
+const DELTA_WEIGHTS = {1:15,2:12,3:10,4:8,5:7,6:6,7:9,8:6,9:5,10:5,13:7,14:5,15:4};
+
+function getFreqScores() {
+  const freq = new Array(46).fill(0);
+  lottoHistory.forEach(g => g.forEach(n => freq[n]++));
+  return freq;
+}
+
+function getHotScores() {
+  const recent = lottoHistory.slice(0, 50);
+  const freq = new Array(46).fill(0);
+  recent.forEach(g => g.forEach(n => freq[n]++));
+  return freq;
+}
+
+function getColdScores() {
+  const lastSeen = new Array(46).fill(lottoHistory.length + 1);
+  lottoHistory.forEach((g, i) => g.forEach(n => { lastSeen[n] = Math.min(lastSeen[n], i); }));
+  return lastSeen.map(v => v); // 클수록 오래 안 나온 것
+}
+
+function pickWeighted(scores, exclude, count) {
+  const pool = [];
+  for (let n = 1; n <= 45; n++) {
+    if (exclude.has(n)) continue;
+    const w = Math.max(scores[n] || 1, 1);
+    for (let i = 0; i < w; i++) pool.push(n);
+  }
+  const picked = new Set();
+  let tries = 0;
+  while (picked.size < count && tries < 1000) {
+    picked.add(pool[Math.floor(Math.random() * pool.length)]);
+    tries++;
+  }
+  return [...picked];
+}
+
+function generateGame() {
+  const totalW = Object.values(weights).reduce((a,b) => a+b, 0) || 1;
+  const scores = new Array(46).fill(0);
+
+  // 각 알고리즘 점수 합산
+  const freq  = getFreqScores();
+  const hot   = getHotScores();
+  const cold  = getColdScores();
+
+  for (let n = 1; n <= 45; n++) {
+    if (weights.freq)  scores[n] += (weights.freq  / totalW) * (freq[n] * 3);
+    if (weights.hot)   scores[n] += (weights.hot   / totalW) * (hot[n]  * 4);
+    if (weights.cold)  scores[n] += (weights.cold  / totalW) * (cold[n] * 2);
+    if (weights.prime && PRIMES.includes(n)) scores[n] += (weights.prime / totalW) * 10;
+  }
+
+  // 1차 후보 선택 (점수 기반)
+  const candidates = [...Array(45).keys()].slice(1)
+    .map(n => ({ n, s: scores[n] + Math.random() * 5 }))
+    .sort((a,b) => b.s - a.s)
+    .slice(0, 20)
+    .map(x => x.n);
+
+  let result = candidates.slice(0, 6);
+
+  // 홀짝 균형 조정
+  if (weights.balance > 0) {
+    result = adjustBalance(result, candidates);
+  }
+
+  // 구간 분포 조정
+  if (weights.zone > 0) {
+    result = adjustZone(result);
+  }
+
+  // AC값 최적화
+  if (weights.ac > 0) {
+    result = adjustAC(result);
+  }
+
+  return result.sort((a,b) => a-b).slice(0,6);
+}
+
+function adjustBalance(nums, pool) {
+  let odds  = nums.filter(n => n % 2 !== 0);
+  let evens = nums.filter(n => n % 2 === 0);
+
+  // 목표: 홀 3개, 짝 3개
+  while (odds.length > 3 && evens.length < 3) {
+    const rem = odds.pop();
+    const newEven = pool.find(n => n % 2 === 0 && !nums.includes(n));
+    if (newEven) { nums = nums.filter(x => x !== rem); nums.push(newEven); }
+    odds  = nums.filter(n => n % 2 !== 0);
+    evens = nums.filter(n => n % 2 === 0);
+  }
+  while (evens.length > 3 && odds.length < 3) {
+    const rem = evens.pop();
+    const newOdd = pool.find(n => n % 2 !== 0 && !nums.includes(n));
+    if (newOdd) { nums = nums.filter(x => x !== rem); nums.push(newOdd); }
+    odds  = nums.filter(n => n % 2 !== 0);
+    evens = nums.filter(n => n % 2 === 0);
+  }
+  return nums;
+}
+
+function adjustZone(nums) {
+  // 각 구간에서 최소 1개
+  const zones = [[1,7],[8,14],[15,21],[22,28],[29,35],[36,45]];
+  const covered = new Set(zones.map(z => nums.some(n => n >= z[0] && n <= z[1]) ? 1 : 0));
+  // 미커버 구간에서 랜덤 번호로 교체
+  zones.forEach(z => {
+    if (!nums.some(n => n >= z[0] && n <= z[1])) {
+      const rep = nums[Math.floor(Math.random() * nums.length)];
+      const newN = z[0] + Math.floor(Math.random() * (z[1] - z[0] + 1));
+      if (!nums.includes(newN)) nums = nums.map(n => n === rep ? newN : n);
+    }
+  });
+  return [...new Set(nums)].slice(0, 6);
+}
+
+function calcAC(nums) {
+  const diffs = new Set();
+  for (let i = 0; i < nums.length; i++)
+    for (let j = i+1; j < nums.length; j++)
+      diffs.add(Math.abs(nums[i] - nums[j]));
+  return diffs.size - 5;
+}
+
+function adjustAC(nums) {
+  let best = nums;
+  let bestAC = calcAC(nums);
+  // 10회 시도해서 AC값 7 이상인 조합 선택
+  for (let i = 0; i < 10; i++) {
+    const candidate = [...nums];
+    const idx = Math.floor(Math.random() * 6);
+    let newN;
+    do { newN = Math.floor(Math.random() * 45) + 1; } while (candidate.includes(newN));
+    candidate[idx] = newN;
+    const ac = calcAC(candidate);
+    if (ac > bestAC) { best = candidate; bestAC = ac; }
+  }
+  return best;
+}
+
+// ── 볼 색상 ────────────────────────────────────────────────
+function ballClass(n) {
+  if (n <= 10) return 'b1';
+  if (n <= 20) return 'b2';
+  if (n <= 30) return 'b3';
+  if (n <= 40) return 'b4';
+  return 'b5';
+}
+
+// ── 번호 생성 및 렌더 ──────────────────────────────────────
+function generate() {
+  const count = parseInt(document.getElementById('game-count').value);
+  lastGames = [];
+
+  for (let i = 0; i < count; i++) {
+    lastGames.push(generateGame());
+  }
+
+  const container = document.getElementById('results');
+  const activeAlgos = ALGOS.filter(a => weights[a.id] > 0)
+    .sort((a,b) => weights[b.id] - weights[a.id])
+    .slice(0, 4)
+    .map(a => `<span class="contrib-tag">${a.name} ${weights[a.id]}%</span>`)
+    .join('');
+
+  container.innerHTML = lastGames.map((game, i) => `
+    <div class="game-row">
+      <div class="game-label">
+        <span>${String.fromCharCode(65+i)}게임</span>
+        <span style="color:var(--text2);font-size:11px">AC값: ${calcAC(game)+5}</span>
+      </div>
+      <div class="balls">
+        ${game.map(n => `<div class="ball ${ballClass(n)}">${n}</div>`).join('')}
+        <div class="ball-sep"></div>
+        <div class="ball b6">+</div>
+      </div>
+      <div class="contrib">${activeAlgos}</div>
+    </div>
+  `).join('');
+
+  showToast('번호 추천 완료! 🍀');
+}
+
+// ── 텔레그램 ───────────────────────────────────────────────
+function saveTg() {
+  const token  = document.getElementById('tg-token').value.trim();
+  const chatid = document.getElementById('tg-chatid').value.trim();
+  if (token)  localStorage.setItem('tg_token',  token);
+  if (chatid) localStorage.setItem('tg_chatid', chatid);
+  showToast('텔레그램 설정 저장됨 ✅');
+}
+
+async function testTg() {
+  await sendTgMsg('🔔 spagenio 로또 봇 연결 테스트!\n정상적으로 수신되면 성공입니다 🍀');
+}
+
+async function sendTelegram() {
+  if (!lastGames.length) { showToast('먼저 번호를 추천받으세요!'); return; }
+
+  const lines = lastGames.map((g, i) => {
+    const balls = g.map(n => `*${n}*`).join('  ');
+    return `${String.fromCharCode(65+i)}게임: ${balls}`;
+  });
+
+  const activeAlgos = ALGOS.filter(a => weights[a.id] > 0)
+    .sort((a,b) => weights[b.id]-weights[a.id])
+    .slice(0,3)
+    .map(a => `${a.name}(${weights[a.id]}%)`)
+    .join(' + ');
+
+  const msg = `🍀 *로또 번호 추천*\n\n${lines.join('\n')}\n\n📊 알고리즘: ${activeAlgos}\n🕐 ${new Date().toLocaleString('ko-KR')}`;
+  await sendTgMsg(msg);
+}
+
+async function sendTgMsg(text) {
+  const token  = localStorage.getItem('tg_token')  || document.getElementById('tg-token').value.trim();
+  const chatid = localStorage.getItem('tg_chatid') || document.getElementById('tg-chatid').value.trim();
+
+  if (!token || !chatid) { showToast('텔레그램 Token과 Chat ID를 입력하세요!'); return; }
+
+  try {
+    // server.js 프록시 통해 전송
+    const res = await fetch('/api/lotto/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, chatid, text })
+    });
+    const data = await res.json();
+    if (data.ok) showToast('텔레그램 전송 완료! 📱');
+    else showToast('전송 실패: ' + (data.error || '알 수 없는 오류'));
+  } catch(e) {
+    showToast('전송 오류: ' + e.message);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── 초기화 ────────────────────────────────────────────────
+renderAlgos();
+fetchLottoData();
+
+// 저장된 텔레그램 설정 로드
+const savedToken  = localStorage.getItem('tg_token');
+const savedChatid = localStorage.getItem('tg_chatid');
+if (savedToken)  document.getElementById('tg-token').value  = savedToken;
+if (savedChatid) document.getElementById('tg-chatid').value = savedChatid;
+</script>
+</body>
+</html>

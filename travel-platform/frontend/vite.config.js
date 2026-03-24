@@ -2,14 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
-  base: '/travel/',
+  base: '/',
   server: {
-    port: 5173,
+    port: 4173,
     host: '0.0.0.0',
-    allowedHosts: ['travel.spagenio.com'],
+    allowedHosts: ['travel.spagenio.com', 'localhost'],
     hmr: {
       clientPort: 443,
-      path: '/travel/',
+      path: '/',
     },
   },
 })
