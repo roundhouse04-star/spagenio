@@ -1,0 +1,17 @@
+.env
+.env.*.local
+node_modules/
+dist/
+.venv/
+venv/
+__pycache__/
+build/
+.gradle/
+*.db
+*.sqlite
+logs/
+*.log
+*.pid
+.DS_Store
+.idea/
+.vscode/

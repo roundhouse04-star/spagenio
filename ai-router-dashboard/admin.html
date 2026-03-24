@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 - AI Router Dashboard</title>
+  <style>
+    :root {
+      --bg: #09111f; --panel: rgba(14,22,38,0.95); --panel2: #0d1526;
+      --text: #eef2ff; --muted: #9ea8c9; --line: #24314f;
+      --accent: #76a5ff; --success: #7ef0bf; --danger: #ff8f8f; --warn: #ffc86e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #09111f; color: var(--text); min-height: 100vh; }
+
+    /* 레이아웃 */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px; background: var(--panel); border-right: 1px solid var(--line);
+      padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; position: fixed; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-title { font-size: 1rem; font-weight: 800; color: var(--accent); margin-bottom: 16px; padding: 0 8px; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 12px; border: none; background: transparent; color: var(--muted);
+      cursor: pointer; font-size: 0.9rem; font-weight: 600; width: 100%; text-align: left; transition: all 0.15s;
+    }
+    .nav-btn:hover { background: rgba(118,165,255,0.1); color: var(--text); }
+    .nav-btn.active { background: rgba(118,165,255,0.15); color: var(--accent); }
+    .nav-divider { height: 1px; background: var(--line); margin: 8px 0; }
+    .sidebar-bottom { margin-top: auto; }
+    .main { margin-left: 220px; padding: 30px; flex: 1; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 24px; }
+
+    /* 카드 */
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+    /* 통계 그리드 */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .stat-box { background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 800; }
+    .stat-label { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+    .stat-box.accent .stat-num { color: var(--accent); }
+    .stat-box.success .stat-num { color: var(--success); }
+    .stat-box.danger .stat-num { color: var(--danger); }
+    .stat-box.warn .stat-num { color: var(--warn); }
+
+    /* 테이블 */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--panel2); color: var(--muted); font-weight: 700; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(36,49,79,0.5); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(118,165,255,0.04); }
+
+    /* 배지 */
+    .badge { padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; display: inline-block; }
+    .badge.success { background: rgba(126,240,191,0.15); color: var(--success); }
+    .badge.danger { background: rgba(255,143,143,0.15); color: var(--danger); }
+    .badge.warn { background: rgba(255,200,110,0.15); color: var(--warn); }
+    .badge.info { background: rgba(118,165,255,0.15); color: var(--accent); }
+
+    /* 입력 */
+    .search-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    input[type="text"], select {
+      background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
+      padding: 9px 14px; color: var(--text); font-size: 0.9rem; outline: none;
+    }
+    input[type="text"]:focus, select:focus { border-color: var(--accent); }
+    .btn { background: var(--accent); color: #081121; border: none; border-radius: 10px; padding: 9px 18px; font-weight: 700; cursor: pointer; font-size: 0.9rem; }
+    .btn:hover { opacity: 0.9; }
+    .btn.danger { background: var(--danger); color: #1a0000; }
+    .btn.secondary { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* 초대 코드 */
+    .invite-box { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .code-display { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 20px; font-family: monospace; font-size: 1.2rem; font-weight: 800; letter-spacing: 4px; color: var(--success); min-width: 160px; text-align: center; }
+
+    /* 차트 바 */
+    .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-label { color: var(--muted); font-size: 0.82rem; min-width: 80px; text-align: right; }
+    .bar-wrap { flex: 1; background: var(--panel2); border-radius: 6px; height: 20px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 6px; background: var(--accent); transition: width 0.5s; }
+    .bar-val { color: var(--text); font-size: 0.82rem; min-width: 40px; }
+
+    .hourly-chart { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+    .hour-bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-width: 8px; transition: height 0.4s; opacity: 0.8; }
+    .hour-bar:hover { opacity: 1; }
+    .hour-labels { display: flex; gap: 3px; margin-top: 4px; }
+    .hour-label { flex: 1; text-align: center; font-size: 0.65rem; color: var(--muted); }
+
+    .empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 30px; }
+    .tag { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- 사이드바 -->
+    <nav class="sidebar">
+      <div class="sidebar-title">⚙️ 관리자</div>
+      <button class="nav-btn active" onclick="showPage('overview')">📊 개요</button>
+      <button class="nav-btn" onclick="showPage('stats')">📈 접속 통계</button>
+      <button class="nav-btn" onclick="showPage('users')">👥 가입자 관리</button>
+      <button class="nav-btn" onclick="showPage('invite')">🎟️ 초대 코드</button>
+      <button class="nav-btn" onclick="showPage('logs')">📋 접속 로그</button>
+      <button class="nav-btn" onclick="showPage('security')">🛡️ 보안 현황</button>
+      <button class="nav-btn" onclick="showPage('realtime')" id="realtimeBtn">📡 실시간 로그</button>
+      <div class="nav-divider"></div>
+      <div class="sidebar-bottom">
+        <button class="nav-btn" onclick="location.href='/'">← 대시보드</button>
+      </div>
+    </nav>
+
+    <!-- 메인 -->
+    <main class="main">
+
+      <!-- 개요 -->
+      <div class="page active" id="page-overview">
+        <div class="page-title">📊 개요</div>
+        <div class="stat-grid" id="overviewStats">
+          <div class="stat-box accent"><div class="stat-num" id="ov-total">-</div><div class="stat-label">전체 요청</div></div>
+          <div class="stat-box success"><div class="stat-num" id="ov-login">-</div><div class="stat-label">로그인 성공</div></div>
+          <div class="stat-box danger"><div class="stat-num" id="ov-fail">-</div><div class="stat-label">로그인 실패</div></div>
+          <div class="stat-box warn"><div class="stat-num" id="ov-suspicious">-</div><div class="stat-label">의심 접근</div></div>
+          <div class="stat-box accent"><div class="stat-num" id="ov-ips">-</div><div class="stat-label">고유 IP</div></div>
+          <div class="stat-box success"><div class="stat-num" id="ov-users">-</div><div class="stat-label">가입자 수</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⏰ 시간대별 접속 (최근 7일)</div>
+          <div class="hourly-chart" id="hourlyChart"></div>
+          <div class="hour-labels" id="hourLabels"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⚠️ 최근 의심 접근</div>
+          <div id="recentSuspicious"><p class="empty">로딩 중...</p></div>
+        </div>
+      </div>
+
+      <!-- 접속 통계 -->
+      <div class="page" id="page-stats">
+        <div class="page-title">📈 접속 통계</div>
+        <div class="card">
+          <div class="card-title">📅 일별 통계 (최근 30일)</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>날짜</th><th>전체 요청</th><th>고유 IP</th><th>활성 유저</th><th>로그인</th><th>실패</th><th>의심</th></tr></thead>
+              <tbody id="dailyStatsTable"><tr><td colspan="7" class="empty">로딩 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">👤 유저별 접속 통계</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>유저명</th><th>전체 요청</th><th>활동일수</th><th>첫 접속</th><th>마지막 접속</th></tr></thead>
+              <tbody id="userStatsTable"><tr><td colspan="5" class="empty">로딩 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 가입자 관리 -->
+      <div class="page" id="page-users">
+        <div class="page-title">👥 가입자 관리</div>
+        <div class="card">
+          <div class="search-row">
+            <input type="text" id="userSearch" placeholder="아이디 검색..." onkeyup="if(event.key==='Enter') loadUsers()" style="flex:1;" />
+            <button class="btn" onclick="loadUsers()">검색</button>
+            <button class="btn secondary" onclick="document.getElementById('userSearch').value=''; loadUsers()">초기화</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>아이디</th><th>이메일</th><th>가입일</th><th>마지막 로그인</th><th>관리</th></tr></thead>
+              <tbody id="usersTable"><tr><td colspan="6" class="empty">로딩 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 초대 코드 -->
+      <div class="page" id="page-invite">
+        <div class="page-title">🎟️ 초대 코드</div>
+        <div class="card">
+          <div class="card-title">새 초대 코드 생성</div>
+          <div class="invite-box">
+            <button class="btn" onclick="generateInvite()">초대 코드 생성</button>
+            <div class="code-display" id="inviteCode">- - - - - - - -</div>
+            <button class="btn secondary" id="copyBtn" onclick="copyCode()" style="display:none;">복사</button>
+          </div>
+          <p style="color:var(--muted);font-size:0.85rem;margin-top:12px;" id="expiresMsg"></p>
+        </div>
+        <div class="card">
+          <div class="card-title">비밀번호 초기화 요청</div>
+          <div id="requestList"><p class="empty">로딩 중...</p></div>
+        </div>
+      </div>
+
+      <!-- 접속 로그 -->
+      <div class="page" id="page-logs">
+        <div class="page-title">📋 접속 로그</div>
+        <div class="card">
+          <div class="search-row">
+            <select id="logTypeFilter" onchange="loadLogs()">
+              <option value="all">전체</option>
+              <option value="login_success">로그인 성공</option>
+              <option value="login_failed">로그인 실패</option>
+              <option value="suspicious">의심 접근</option>
+              <option value="rate_limit">요청 초과</option>
+              <option value="request">일반 요청</option>
+            </select>
+            <button class="btn" onclick="loadLogs()">새로고침</button>
+          </div>
+          <div id="logList"><p class="empty">로딩 중...</p></div>
+          <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+            <button class="btn secondary" id="prevPage" onclick="changePage(-1)">← 이전</button>
+            <span id="pageInfo" style="color:var(--muted);padding:8px 16px;"></span>
+            <button class="btn secondary" id="nextPage" onclick="changePage(1)">다음 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 보안 현황 -->
+      <div class="page" id="page-security">
+        <div class="page-title">🛡️ 보안 현황</div>
+        <div class="stat-grid" id="secStats">
+          <p class="empty">로딩 중...</p>
+        </div>
+        <div class="card">
+          <div class="card-title">🔝 접속 IP TOP 10</div>
+          <div class="bar-chart" id="topIpsChart"><p class="empty">로딩 중...</p></div>
+        </div>
+        <div class="card">
+          <div class="card-title">❌ 최근 로그인 실패</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>시간</th><th>IP</th><th>경로</th><th>User-Agent</th></tr></thead>
+              <tbody id="recentFailed"><tr><td colspan="4" class="empty">로딩 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      <!-- 실시간 로그 -->
+      <div class="page" id="page-realtime">
+        <div class="page-title">📡 실시간 로그</div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="sseStatus" style="width:10px;height:10px;border-radius:50%;background:#9ca3af;"></div>
+              <span id="sseStatusText" style="color:var(--muted);font-size:0.88rem;">연결 안됨</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <select id="logLevelFilter" onchange="filterLogs()" style="background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--text);font-size:0.85rem;">
+                <option value="all">전체</option>
+                <option value="success">로그인 성공</option>
+                <option value="error">로그인 실패</option>
+                <option value="warn">의심/초과</option>
+                <option value="info">일반 요청</option>
+              </select>
+              <button class="btn" onclick="clearLogs()" style="padding:6px 14px;font-size:0.85rem;background:var(--panel2);color:var(--muted);border:1px solid var(--line);">초기화</button>
+              <button class="btn" id="toggleSSE" onclick="toggleStream()" style="padding:6px 14px;font-size:0.85rem;">▶ 시작</button>
+            </div>
+          </div>
+          <div id="logStream" style="background:#0d1117;border-radius:10px;padding:14px;height:500px;overflow-y:auto;font-family:monospace;font-size:0.82rem;line-height:1.7;"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const token = sessionStorage.getItem('auth_token');
+    if (!token) location.href = '/login';
+
+    let currentLogPage = 1;
+    let totalLogs = 0;
+
+    // 페이지 전환
+    function showPage(name) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      event.currentTarget.classList.add('active');
+
+      // 페이지별 데이터 로드
+      if (name === 'overview') { loadSecurityStats(); loadStats(); }
+      else if (name === 'stats') loadStats();
+      else if (name === 'users') loadUsers();
+      else if (name === 'invite') { loadRequests(); }
+      else if (name === 'logs') { currentLogPage = 1; loadLogs(); }
+      else if (name === 'security') loadSecurityStats();
+    }
+
+    // ===== 개요 =====
+    async function loadSecurityStats() {
+      try {
+        const res = await fetch('/api/admin/security-stats', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.status === 403) { document.body.innerHTML = '<div style="text-align:center;padding:60px;color:var(--danger);"><h2>🚫 관리자만 접근 가능합니다</h2><br/><a href="/" style="color:var(--accent);">대시보드로 이동</a></div>'; return; }
+        const d = await res.json();
+
+        // 개요 통계
+        document.getElementById('ov-total').textContent = d.total_requests.toLocaleString();
+        document.getElementById('ov-login').textContent = d.login_success.toLocaleString();
+        document.getElementById('ov-fail').textContent = d.login_failed.toLocaleString();
+        document.getElementById('ov-suspicious').textContent = d.suspicious.toLocaleString();
+        document.getElementById('ov-ips').textContent = d.unique_ips.toLocaleString();
+
+        // 가입자 수
+        const usersRes = await fetch('/api/admin/users', { headers: { 'Authorization': 'Bearer ' + token } });
+        const usersData = await usersRes.json();
+        document.getElementById('ov-users').textContent = (usersData.users?.length || 0).toLocaleString();
+
+        // 보안 통계
+        document.getElementById('secStats').innerHTML = `
+          <div class="stat-box accent"><div class="stat-num">${d.total_requests.toLocaleString()}</div><div class="stat-label">전체 요청</div></div>
+          <div class="stat-box success"><div class="stat-num">${d.login_success}</div><div class="stat-label">로그인 성공</div></div>
+          <div class="stat-box danger"><div class="stat-num">${d.login_failed}</div><div class="stat-label">로그인 실패</div></div>
+          <div class="stat-box warn"><div class="stat-num">${d.suspicious}</div><div class="stat-label">의심 접근</div></div>
+          <div class="stat-box warn"><div class="stat-num">${d.rate_limited}</div><div class="stat-label">요청 초과</div></div>
+          <div class="stat-box accent"><div class="stat-num">${d.unique_ips}</div><div class="stat-label">고유 IP</div></div>
+        `;
+
+        // IP TOP10 차트
+        const maxCnt = Math.max(...(d.top_ips?.map(i => i.cnt) || [1]));
+        document.getElementById('topIpsChart').innerHTML = (d.top_ips || []).map(ip => `
+          <div class="bar-row">
+            <div class="bar-label">${ip.ip}</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(ip.cnt/maxCnt*100)}%"></div></div>
+            <div class="bar-val">${ip.cnt}</div>
+          </div>
+        `).join('') || '<p class="empty">데이터 없음</p>';
+
+        // 최근 의심 접근
+        document.getElementById('recentSuspicious').innerHTML = (d.recent_suspicious || []).length
+          ? `<div class="table-wrap"><table><thead><tr><th>시간</th><th>IP</th><th>경로</th></tr></thead><tbody>
+            ${d.recent_suspicious.map(l => `<tr><td class="tag">${l.timestamp}</td><td class="tag">${l.ip}</td><td class="tag">${l.method} ${l.path}</td></tr>`).join('')}
+          </tbody></table></div>`
+          : '<p class="empty">의심 접근 없음 ✅</p>';
+
+        // 최근 실패
+        document.getElementById('recentFailed').innerHTML = (d.recent_failed || []).length
+          ? d.recent_failed.map(l => `<tr><td class="tag">${l.timestamp?.slice(0,16)}</td><td class="tag">${l.ip}</td><td class="tag">${l.path}</td><td class="tag" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.user_agent || '-'}</td></tr>`).join('')
+          : '<tr><td colspan="4" class="empty">없음</td></tr>';
+
+      } catch(e) { console.error(e); }
+    }
+
+    // ===== 통계 =====
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+
+        // 시간대 차트
+        const maxH = Math.max(...(d.hourlyStats?.map(h => h.cnt) || [1]));
+        const hours = Array.from({length:24}, (_, i) => i);
+        const hourMap = Object.fromEntries((d.hourlyStats || []).map(h => [parseInt(h.hour), h.cnt]));
+        document.getElementById('hourlyChart').innerHTML = hours.map(h => {
+          const cnt = hourMap[h] || 0;
+          const pct = maxH > 0 ? Math.round(cnt/maxH*100) : 0;
+          return `<div class="hour-bar" style="height:${Math.max(pct,2)}%" title="${h}시: ${cnt}건"></div>`;
+        }).join('');
+        document.getElementById('hourLabels').innerHTML = [0,4,8,12,16,20,23].map(h =>
+          `<span style="flex:${h===0?1:h===23?1:4};font-size:0.65rem;color:var(--muted);">${h}시</span>`
+        ).join('');
+
+        // 일별 통계
+        document.getElementById('dailyStatsTable').innerHTML = (d.dailyStats || []).map(row => `
+          <tr>
+            <td>${row.date}</td>
+            <td>${row.total_requests?.toLocaleString()}</td>
+            <td>${row.unique_ips}</td>
+            <td>${row.unique_users}</td>
+            <td><span class="badge success">${row.logins}</span></td>
+            <td><span class="badge ${row.failed_logins > 0 ? 'danger' : 'info'}">${row.failed_logins}</span></td>
+            <td><span class="badge ${row.suspicious > 0 ? 'warn' : 'info'}">${row.suspicious}</span></td>
+          </tr>
+        `).join('') || '<tr><td colspan="7" class="empty">데이터 없음</td></tr>';
+
+        // 유저별 통계
+        document.getElementById('userStatsTable').innerHTML = (d.userStats || []).map(row => `
+          <tr>
+            <td><strong>${row.username}</strong></td>
+            <td>${row.total_requests?.toLocaleString()}</td>
+            <td>${row.active_days}일</td>
+            <td class="tag">${row.first_seen?.slice(0,16) || '-'}</td>
+            <td class="tag">${row.last_seen?.slice(0,16) || '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="empty">데이터 없음</td></tr>';
+
+      } catch(e) { console.error(e); }
+    }
+
+    // ===== 가입자 관리 =====
+    async function loadUsers() {
+      const search = document.getElementById('userSearch')?.value || '';
+      try {
+        const res = await fetch('/api/admin/users?search=' + encodeURIComponent(search), { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        document.getElementById('usersTable').innerHTML = (data.users || []).map(u => `
+          <tr>
+            <td class="tag">#${u.id}</td>
+            <td><strong>${u.username}</strong>${u.username === 'admin' ? ' <span class="badge info">관리자</span>' : ''}</td>
+            <td class="tag">${u.email || '-'}</td>
+            <td class="tag">${u.created_at?.slice(0,16) || '-'}</td>
+            <td class="tag">${u.last_login?.slice(0,16) || '미접속'}</td>
+            <td>${u.username !== 'admin' ? `<button class="btn danger" style="padding:5px 12px;font-size:0.8rem;" onclick="deleteUser(${u.id}, '${u.username}')">삭제</button>` : '-'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="6" class="empty">가입자 없음</td></tr>';
+      } catch(e) { console.error(e); }
+    }
+
+    async function deleteUser(id, username) {
+      if (!confirm(`'${username}' 계정을 삭제하시겠습니까?`)) return;
+      const res = await fetch('/api/admin/users/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) loadUsers();
+      else alert('삭제 실패');
+    }
+
+    // ===== 초대 코드 =====
+    async function generateInvite() {
+      const res = await fetch('/api/auth/invite', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('inviteCode').textContent = data.code;
+        document.getElementById('copyBtn').style.display = 'inline-block';
+        const exp = new Date(data.expires_at).toLocaleDateString('ko-KR');
+        document.getElementById('expiresMsg').textContent = '유효기간: ' + exp + '까지 (7일)';
+      }
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(document.getElementById('inviteCode').textContent);
+      document.getElementById('copyBtn').textContent = '✅ 복사됨';
+      setTimeout(() => document.getElementById('copyBtn').textContent = '복사', 2000);
+    }
+
+    async function loadRequests() {
+      try {
+        const res = await fetch('/api/admin/reset-requests', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const container = document.getElementById('requestList');
+        if (!data.requests?.length) { container.innerHTML = '<p class="empty">처리할 요청이 없습니다</p>'; return; }
+        container.innerHTML = data.requests.map(r => `
+          <div style="background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+            <div>
+              <div style="font-weight:700;">👤 ${r.username}</div>
+              <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">${r.created_at?.slice(0,16)}</div>
+              <div id="pw-${r.id}" style="display:none;margin-top:8px;background:rgba(126,240,191,0.1);border:1px solid var(--success);border-radius:8px;padding:8px 12px;">
+                <div style="color:var(--muted);font-size:0.78rem;">임시 비밀번호</div>
+                <div id="pwval-${r.id}" style="color:var(--success);font-family:monospace;font-size:1.1rem;font-weight:800;letter-spacing:2px;"></div>
+              </div>
+            </div>
+            <button class="btn" id="issbtn-${r.id}" onclick="issuePassword(${r.id})" style="white-space:nowrap;">발급</button>
+          </div>
+        `).join('');
+      } catch(e) {}
+    }
+
+    async function issuePassword(id) {
+      const res = await fetch('/api/admin/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ request_id: id }) });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('pwval-' + id).textContent = data.temp_password;
+        document.getElementById('pw-' + id).style.display = 'block';
+        document.getElementById('issbtn-' + id).textContent = '✅ 완료';
+        document.getElementById('issbtn-' + id).disabled = true;
+      }
+    }
+
+    // ===== 로그 =====
+    async function loadLogs() {
+      const type = document.getElementById('logTypeFilter')?.value || 'all';
+      const limit = 30;
+      try {
+        const res = await fetch('/api/admin/logs?type=' + type + '&limit=' + limit + '&page=' + currentLogPage, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        totalLogs = data.total || 0;
+
+        const badgeMap = { 'login_success': '<span class="badge success">로그인 성공</span>', 'login_failed': '<span class="badge danger">로그인 실패</span>', 'suspicious': '<span class="badge danger">⚠️ 의심</span>', 'rate_limit': '<span class="badge warn">요청 초과</span>', 'request': '<span class="badge info">요청</span>' };
+
+        document.getElementById('logList').innerHTML = (data.logs || []).map(log => `
+          <div style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:8px;font-size:0.85rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+              <span>${badgeMap[log.event_type] || '<span class="badge info">기타</span>'}</span>
+              <span class="tag">${log.timestamp}</span>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              <span class="tag">🌐 ${log.ip || '-'}</span>
+              <span style="color:var(--accent);font-family:monospace;">${log.method} ${log.path}</span>
+              ${log.username ? '<span style="color:var(--success);">👤 ' + log.username + '</span>' : ''}
+              <span class="tag">HTTP ${log.status_code}</span>
+              <span class="tag">${log.response_time}ms</span>
+            </div>
+            ${log.user_agent ? '<div class="tag" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + log.user_agent + '</div>' : ''}
+          </div>
+        `).join('') || '<p class="empty">로그가 없습니다</p>';
+
+        const totalPages = Math.ceil(totalLogs / limit);
+        document.getElementById('pageInfo').textContent = currentLogPage + ' / ' + (totalPages || 1) + ' 페이지 (총 ' + totalLogs.toLocaleString() + '건)';
+        document.getElementById('prevPage').disabled = currentLogPage <= 1;
+        document.getElementById('nextPage').disabled = currentLogPage >= totalPages;
+      } catch(e) { console.error(e); }
+    }
+
+    function changePage(dir) {
+      currentLogPage += dir;
+      if (currentLogPage < 1) currentLogPage = 1;
+      loadLogs();
+    }
+
+    // 초기 로드
+    loadSecurityStats();
+    loadStats();
+
+    // ===== 실시간 로그 SSE =====
+    let sseSource = null;
+    let allLogs = [];
+    let isStreaming = false;
+
+    function toggleStream() {
+      if (isStreaming) stopStream();
+      else startStream();
+    }
+
+    function startStream() {
+      if (sseSource) sseSource.close();
+      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      sseSource = new EventSource(`/api/admin/logs/stream?token=${token}`);
+
+      sseSource.onopen = () => {
+        isStreaming = true;
+        document.getElementById('sseStatus').style.background = '#10b981';
+        document.getElementById('sseStatusText').textContent = '실시간 연결됨';
+        document.getElementById('toggleSSE').textContent = '⏹ 중지';
+        document.getElementById('toggleSSE').style.background = '#ef4444';
+        document.getElementById('toggleSSE').style.color = '#fff';
+      };
+
+      sseSource.onmessage = (e) => {
+        const log = JSON.parse(e.data);
+        allLogs.push(log);
+        if (allLogs.length > 500) allLogs.shift();
+        renderLog(log);
+      };
+
+      sseSource.onerror = () => {
+        document.getElementById('sseStatus').style.background = '#ef4444';
+        document.getElementById('sseStatusText').textContent = '연결 끊김 - 재연결 중...';
+      };
+    }
+
+    function stopStream() {
+      if (sseSource) { sseSource.close(); sseSource = null; }
+      isStreaming = false;
+      document.getElementById('sseStatus').style.background = '#9ca3af';
+      document.getElementById('sseStatusText').textContent = '중지됨';
+      document.getElementById('toggleSSE').textContent = '▶ 시작';
+      document.getElementById('toggleSSE').style.background = 'var(--accent)';
+      document.getElementById('toggleSSE').style.color = '#081121';
+    }
+
+    function renderLog(log, prepend = false) {
+      const filter = document.getElementById('logLevelFilter')?.value || 'all';
+      if (filter !== 'all' && log.level !== filter) return;
+
+      const colorMap = {
+        success: '#10b981', error: '#ef4444', warn: '#f59e0b',
+        info: '#6b7280', undefined: '#6b7280'
+      };
+      const color = colorMap[log.level] || '#6b7280';
+      const icon = { success: '✅', error: '❌', warn: '⚠️', info: '·' }[log.level] || '·';
+      const hist = log.isHistory ? '<span style="color:#374151;">[이전]</span> ' : '';
+
+      const line = document.createElement('div');
+      line.style.cssText = 'padding:2px 0;border-bottom:1px solid #1f2937;';
+      line.innerHTML = `<span style="color:#4b5563;">${log.time}</span> ${hist}<span style="color:${color};font-weight:700;">${icon} ${log.eventType || log.level}</span> <span style="color:#9ca3af;">${log.ip || ''}</span> <span style="color:#e5e7eb;">${log.message}</span>${log.username && log.username !== '-' ? ` <span style="color:#6366f1;">👤${log.username}</span>` : ''}<span style="color:#4b5563;"> ${log.status || ''} ${log.responseTime || ''}</span>`;
+
+      const container = document.getElementById('logStream');
+      container.appendChild(line);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function filterLogs() {
+      const container = document.getElementById('logStream');
+      container.innerHTML = '';
+      allLogs.forEach(log => renderLog(log));
+    }
+
+    function clearLogs() {
+      allLogs = [];
+      document.getElementById('logStream').innerHTML = '';
+    }
+
+    // 실시간 로그 페이지 진입 시 자동 시작
+    const _origShowPage = showPage;
+    function showPage(name, ev) {
+      _origShowPage.call(this, name, ev || window.event);
+      if (name === 'realtime' && !isStreaming) startStream();
+      if (name !== 'realtime' && isStreaming) stopStream();
+    }
+  </script>
+</body>
+</html>

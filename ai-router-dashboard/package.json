@@ -1,0 +1,25 @@
+{
+  "name": "ai-router-dashboard",
+  "version": "1.0.0",
+  "description": "Local Mac-ready dashboard for choosing n8n/OpenClaw and GPT/Gemini/Claude, with hybrid routing.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.79.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.8.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.3.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.3",
+    "winston": "^3.19.0"
+  }
+}

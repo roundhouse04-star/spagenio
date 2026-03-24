@@ -1,0 +1,1717 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Anthropic from '@anthropic-ai/sdk';
+import Database from 'better-sqlite3';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import cookieParser from 'cookie-parser';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import winston from 'winston';
+import fs from 'fs';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const app = express();
+const port = Number(process.env.PORT || 3000);
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ✅ SQLite DB 초기화
+const dbPath = path.join(__dirname, 'news.db');
+const db = new Database(dbPath);
+
+// 테이블 생성
+db.exec(`
+  CREATE TABLE IF NOT EXISTS news (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL,
+    date TEXT NOT NULL,
+    saved_at TEXT NOT NULL,
+    use_claude INTEGER DEFAULT 0,
+    source TEXT DEFAULT 'rss',
+    content TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_news_date ON news(date);
+  CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
+  CREATE INDEX IF NOT EXISTS idx_news_use_claude ON news(use_claude);
+  CREATE INDEX IF NOT EXISTS idx_news_source ON news(source);
+`);
+
+// users & invite_codes & email_verifications 테이블 추가
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    email TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME
+  );
+  CREATE TABLE IF NOT EXISTS user_broker_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    account_name TEXT NOT NULL DEFAULT '기본 계좌',
+    alpaca_api_key TEXT,
+    alpaca_secret_key TEXT,
+    alpaca_paper INTEGER DEFAULT 1,
+    is_active INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS terms_agreements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    agree_terms INTEGER DEFAULT 0,
+    agree_privacy INTEGER DEFAULT 0,
+    agree_investment INTEGER DEFAULT 0,
+    agree_marketing INTEGER DEFAULT 0,
+    ip TEXT,
+    agreed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS email_verifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    verified INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS invite_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    created_by INTEGER,
+    used_by INTEGER,
+    used_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME
+  );
+`);
+
+// 기본 관리자 계정 생성 (최초 1회)
+const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
+if (!adminExists) {
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'admin1234!';
+  const hash = bcrypt.hashSync(defaultPassword, 12);
+  db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('admin', hash);
+  console.log('✅ 기본 관리자 계정 생성됨 (admin / admin1234!)');
+  console.log('⚠️  보안을 위해 .env에 ADMIN_PASSWORD를 설정하세요!');
+}
+
+console.log('✅ SQLite DB 초기화 완료:', dbPath);
+
+const JWT_SECRET = process.env.JWT_SECRET || 'ai-router-secret-key-change-this';
+
+// ✅ 이메일 AES-256 암호화/복호화
+const ENCRYPT_KEY = process.env.ENCRYPT_KEY || 'ai-router-encrypt-key-32chars!!';
+const ENCRYPT_KEY_BUF = Buffer.from(ENCRYPT_KEY.slice(0, 32).padEnd(32, '0'));
+
+function encryptEmail(email) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPT_KEY_BUF, iv);
+  const encrypted = Buffer.concat([cipher.update(email, 'utf8'), cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+function decryptEmail(encrypted) {
+  try {
+    const [ivHex, dataHex] = encrypted.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const data = Buffer.from(dataHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPT_KEY_BUF, iv);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
+  } catch (e) {
+    return null;
+  }
+}
+
+// 인증 코드 저장 (메모리)
+const verifyCodeStore = new Map();
+
+// ✅ Winston 로거 설정 (파일 + 콘솔)
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+
+// ===== 컬러 터미널 로그 포맷 =====
+const COLORS = {
+  reset: '\x1b[0m', bright: '\x1b[1m', dim: '\x1b[2m',
+  green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m',
+  blue: '\x1b[34m', cyan: '\x1b[36m', magenta: '\x1b[35m',
+  gray: '\x1b[90m', white: '\x1b[37m', bgRed: '\x1b[41m',
+  bgGreen: '\x1b[42m', bgYellow: '\x1b[43m'
+};
+const C = COLORS;
+
+const consoleFormat = winston.format.printf(({ level, message, timestamp, ...meta }) => {
+  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0,8);
+
+  // 레벨별 색상
+  const levelColors = {
+    error: `${C.bright}${C.red}`,
+    warn:  `${C.bright}${C.yellow}`,
+    info:  `${C.cyan}`,
+    debug: `${C.gray}`
+  };
+  const lc = levelColors[level] || C.white;
+  const levelStr = `${lc}${level.toUpperCase().padEnd(5)}${C.reset}`;
+
+  // 이벤트 타입별 아이콘
+  const eventType = meta.event || meta.eventType || '';
+  const iconMap = {
+    'LOGIN_SUCCESS':    `${C.green}✅ 로그인 성공${C.reset}`,
+    'LOGIN_FAILED':     `${C.red}❌ 로그인 실패${C.reset}`,
+    'SUSPICIOUS_REQUEST': `${C.bgRed}${C.white} ⚠️  의심 접근 ${C.reset}`,
+    'RATE_LIMIT_EXCEEDED': `${C.yellow}🚫 요청 초과${C.reset}`,
+    'USER_DELETED':     `${C.magenta}🗑️  유저 삭제${C.reset}`,
+    'ACCESS':           `${C.gray}→${C.reset}`,
+  };
+
+  // 메타 정보 파싱
+  let details = '';
+  if (meta.ip)       details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
+  if (meta.username) details += ` ${C.blue}👤${meta.username}${C.reset}`;
+  if (meta.method && meta.path) details += ` ${C.cyan}${meta.method} ${meta.path}${C.reset}`;
+  if (meta.statusCode) {
+    const sc = meta.statusCode;
+    const scColor = sc >= 500 ? C.red : sc >= 400 ? C.yellow : C.green;
+    details += ` ${scColor}[${sc}]${C.reset}`;
+  }
+  if (meta.responseTime) details += ` ${C.gray}${meta.responseTime}ms${C.reset}`;
+  if (meta.userAgent)  details += ` ${C.gray}${String(meta.userAgent).slice(0,40)}${C.reset}`;
+
+  const icon = iconMap[message] || iconMap[eventType] || '';
+  const msg = icon ? icon : `${C.white}${message}${C.reset}`;
+
+  return `${C.gray}[${time}]${C.reset} ${levelStr} ${msg}${details}`;
+});
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: path.join(logDir, 'access.log'), maxsize: 5242880, maxFiles: 10 }),
+    new winston.transports.File({ filename: path.join(logDir, 'error.log'), level: 'error', maxsize: 5242880, maxFiles: 10 }),
+    new winston.transports.File({ filename: path.join(logDir, 'security.log'), level: 'warn', maxsize: 5242880, maxFiles: 10 }),
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        consoleFormat
+      )
+    })
+  ]
+});
+
+// 서버 시작 배너
+function printBanner() {
+  console.log('');
+  console.log(`${C.bright}${C.magenta}  ╔══════════════════════════════════╗${C.reset}`);
+  console.log(`${C.bright}${C.magenta}  ║   🚀  spagenio  Dashboard        ║${C.reset}`);
+  console.log(`${C.bright}${C.magenta}  ╚══════════════════════════════════╝${C.reset}`);
+  console.log(`  ${C.cyan}포트${C.reset}     : ${C.white}${process.env.PORT || 3000}${C.reset}`);
+  console.log(`  ${C.cyan}환경${C.reset}     : ${C.white}${process.env.NODE_ENV || 'development'}${C.reset}`);
+  console.log(`  ${C.cyan}시작 시각${C.reset}: ${C.white}${new Date().toLocaleString('ko-KR')}${C.reset}`);
+  console.log('');
+  console.log(`  ${C.gray}로그 레벨: ${C.green}✅성공  ${C.yellow}⚠️경고  ${C.red}❌오류  ${C.gray}→일반${C.reset}`);
+  console.log('');
+}
+
+// ✅ 접속 로그 테이블
+db.exec(`
+  CREATE TABLE IF NOT EXISTS access_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ip TEXT,
+    method TEXT,
+    path TEXT,
+    status_code INTEGER,
+    user_id INTEGER,
+    username TEXT,
+    user_agent TEXT,
+    referer TEXT,
+    response_time INTEGER,
+    event_type TEXT DEFAULT 'request'
+  );
+  CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON access_logs(timestamp);
+  CREATE INDEX IF NOT EXISTS idx_logs_ip ON access_logs(ip);
+  CREATE INDEX IF NOT EXISTS idx_logs_event ON access_logs(event_type);
+`);
+
+// DB에 로그 저장 함수
+function saveAccessLog({ ip, method, path, statusCode, userId, username, userAgent, referer, responseTime, eventType = 'request' }) {
+  try {
+    db.prepare(`INSERT INTO access_logs 
+      (ip, method, path, status_code, user_id, username, user_agent, referer, response_time, event_type) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(ip, method, path, statusCode, userId || null, username || null, userAgent, referer, responseTime, eventType);
+
+    // SSE 실시간 브로드캐스트
+    if (typeof logClients !== 'undefined' && logClients.size > 0) {
+      const levelMap = { suspicious: 'warn', login_failed: 'error', login_success: 'success', rate_limit: 'warn', request: 'info' };
+      const entry = {
+        level: levelMap[eventType] || 'info',
+        message: `${method} ${path}`,
+        time: new Date().toISOString().slice(11,19),
+        ip, username: username || '-', status: statusCode,
+        eventType, responseTime: responseTime + 'ms'
+      };
+      const data = `data: ${JSON.stringify(entry)}
+
+`;
+      logClients.forEach(client => {
+        try { client.write(data); } catch(e) { logClients.delete(client); }
+      });
+    }
+  } catch (e) {
+    logger.error('로그 저장 오류:', e.message);
+  }
+}
+
+// ✅ Gmail SMTP 설정
+const mailTransporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD
+  }
+});
+
+async function sendMail({ to, subject, html }) {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.log('⚠️ Gmail 설정 없음 - 메일 발송 스킵');
+    return false;
+  }
+  try {
+    await mailTransporter.sendMail({
+      from: `AI Router Dashboard <${process.env.GMAIL_USER}>`,
+      to, subject, html
+    });
+    return true;
+  } catch (e) {
+    console.error('메일 발송 오류:', e.message);
+    return false;
+  }
+}
+const JWT_EXPIRES = '24h';
+
+// 로그인 시도 횟수 제한 (메모리)
+const loginAttempts = new Map();
+
+// ✅ JWT 인증 미들웨어
+function authMiddleware(req, res, next) {
+  // HTML 페이지는 모두 공개 서빙 (인증은 프론트 JS에서 처리)
+  const publicApis = ['/api/auth/login', '/api/auth/verify', '/api/auth/register',
+    '/api/auth/forgot-password', '/api/auth/send-email-code', '/api/auth/verify-email-code',
+    '/api/auth/check-username', '/api/auth/check-email', '/api/news/save'];
+
+  // HTML 페이지 요청은 모두 통과 (JS에서 인증 체크)
+  if (!req.path.startsWith('/api/')) return next();
+
+  // 공개 API는 통과
+  if (publicApis.some(p => req.path.startsWith(p))) return next();
+
+  // API 요청만 토큰 검증
+  const token = req.headers.authorization?.replace('Bearer ', '') ||
+                req.cookies?.auth_token;
+
+  if (!token) {
+    return res.status(401).json({ error: '인증이 필요합니다.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: '토큰이 만료되었습니다.' });
+  }
+}
+
+const startedAt = Date.now();
+const requestStats = {
+  total: 0,
+  preview: 0,
+  run: 0,
+  errors: 0,
+  lastError: null
+};
+
+const PRESETS = {
+  market_brief: {
+    label: '시장 브리핑',
+    userRequest: '오늘 미국 기술주와 반도체 관련 핵심 뉴스만 요약해서 핵심 포인트와 리스크를 정리해줘.',
+    taskType: 'news',
+    taskComplexity: 'medium',
+    preferredEngine: 'hybrid',
+    preferredModel: 'gemini',
+    optimizationMode: 'balanced',
+    autoMode: true,
+    priorityMode: 'speed'
+  },
+  daily_ops: {
+    label: '반복 업무 자동화',
+    userRequest: '매일 아침 받은 이메일을 요약하고 일정이 있으면 캘린더 후보를 만들어줘.',
+    taskType: 'repeat',
+    taskComplexity: 'medium',
+    preferredEngine: 'n8n',
+    preferredModel: 'gemini',
+    optimizationMode: 'cost',
+    autoMode: true,
+    priorityMode: 'balanced'
+  },
+  executive_report: {
+    label: '중요 보고서',
+    userRequest: '긴 문서와 메모를 합쳐 임원 보고용 1페이지 요약과 실행 항목을 작성해줘.',
+    taskType: 'research',
+    taskComplexity: 'high',
+    preferredEngine: 'hybrid',
+    preferredModel: 'claude',
+    optimizationMode: 'document',
+    autoMode: true,
+    priorityMode: 'quality'
+  },
+  desktop_agent: {
+    label: '비서형 에이전트',
+    userRequest: '복합 작업을 단계별로 계획하고 필요한 도구를 골라 실행 전략을 작성해줘.',
+    taskType: 'desktop',
+    taskComplexity: 'high',
+    preferredEngine: 'openclaw',
+    preferredModel: 'gpt',
+    optimizationMode: 'balanced',
+    autoMode: true,
+    priorityMode: 'quality'
+  }
+};
+
+const CONFIG = {
+  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
+  openclawWebhookUrl: process.env.OPENCLAW_WEBHOOK_URL || '',
+  requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS || 20000),
+  perfProfile: process.env.PERF_PROFILE || 'turbo-local',
+  hasKeys: {
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    gemini: Boolean(process.env.GEMINI_API_KEY),
+    anthropic: Boolean(process.env.ANTHROPIC_API_KEY)
+  },
+  defaults: {
+    engine: process.env.DEFAULT_ENGINE || 'hybrid',
+    model: process.env.DEFAULT_MODEL || 'gemini',
+    priorityMode: process.env.DEFAULT_PRIORITY_MODE || 'balanced'
+  }
+};
+
+app.disable('x-powered-by');
+
+// ✅ Helmet 보안 헤더
+app.use(helmet({
+  contentSecurityPolicy: false, // 대시보드 인라인 스크립트 허용
+  crossOriginEmbedderPolicy: false
+}));
+
+// ✅ Rate Limiting
+const globalLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 300,
+  message: { error: '너무 많은 요청입니다. 잠시 후 다시 시도하세요.' },
+  handler: (req, res, next, options) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    logger.warn('RATE_LIMIT_EXCEEDED', { ip, path: req.path, userAgent: req.headers['user-agent'] });
+    saveAccessLog({ ip, method: req.method, path: req.path, statusCode: 429, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime: 0, eventType: 'rate_limit' });
+    res.status(429).json(options.message);
+  }
+});
+
+const authLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // 로그인 시도 15분에 20회
+  message: { error: '로그인 시도가 너무 많습니다. 15분 후 다시 시도하세요.' }
+});
+
+app.use(globalLimit);
+app.use('/api/auth/login', authLimit);
+app.use('/api/auth/register', authLimit);
+
+// Cloudflare Tunnel 프록시 신뢰 설정
+app.set('trust proxy', 1);
+
+app.use(cors());
+app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
+
+// ✅ 접속 로그 미들웨어
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || '';
+  const referer = req.headers['referer'] || '';
+
+  res.on('finish', () => {
+    const responseTime = Date.now() - startTime;
+    const userId = req.user?.id || null;
+    const username = req.user?.username || null;
+
+    // 파일 로그
+    logger.info('ACCESS', {
+      ip, method: req.method, path: req.path,
+      statusCode: res.statusCode, userId, username,
+      userAgent, referer, responseTime
+    });
+
+    // DB 로그 (정적 파일 제외)
+    if (!req.path.match(/\.(js|css|ico|png|jpg|svg|woff)$/)) {
+      saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userId, username, userAgent, referer, responseTime });
+    }
+
+    // 의심 접근 감지
+    const suspiciousPatterns = ['/etc/passwd', '../', 'eval(', '<script', 'UNION SELECT', 'DROP TABLE', '/admin.php', '/wp-admin', '/shell'];
+    if (suspiciousPatterns.some(p => req.path.toLowerCase().includes(p.toLowerCase()) || JSON.stringify(req.body).toLowerCase().includes(p.toLowerCase()))) {
+      logger.warn('SUSPICIOUS_REQUEST', { ip, method: req.method, path: req.path, body: req.body, userAgent });
+      saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userAgent, referer, responseTime, eventType: 'suspicious' });
+    }
+  });
+
+  next();
+});
+
+// 인증 미들웨어 적용
+app.use(authMiddleware);
+
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  maxAge: 0
+}));
+
+app.use((req, res, next) => {
+  requestStats.total += 1;
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
+// ✅ 인증 관련 페이지 라우트
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+app.get('/register-complete.html', (req, res) => res.sendFile(path.join(__dirname, 'register-complete.html')));
+app.get('/change-password', (req, res) => res.sendFile(path.join(__dirname, 'change-password.html')));
+app.get('/withdraw', (req, res) => res.sendFile(path.join(__dirname, 'withdraw.html')));
+app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'forgot-password.html')));
+app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
+app.get('/admin-login', (req, res) => res.sendFile(path.join(__dirname, 'admin-login.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+
+// ✅ 로그인 API
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  const ip = req.ip;
+  const key = `${ip}_${username}`;
+  const now = Date.now();
+
+  // 브루트포스 방지
+  const attempts = loginAttempts.get(key) || { count: 0, lockUntil: 0 };
+  if (attempts.lockUntil > now) {
+    const remaining = Math.ceil((attempts.lockUntil - now) / 1000);
+    return res.status(429).json({ error: `너무 많은 시도. ${remaining}초 후 다시 시도하세요.` });
+  }
+
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    attempts.count++;
+    if (attempts.count >= 5) {
+      attempts.lockUntil = now + 30 * 1000; // 30초 잠금
+      attempts.count = 0;
+    }
+    loginAttempts.set(key, attempts);
+
+    // 로그인 실패 로그
+    const failIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    logger.warn('LOGIN_FAILED', { ip: failIp, username, attempts: attempts.count, userAgent: req.headers['user-agent'] });
+    saveAccessLog({ ip: failIp, method: 'POST', path: '/api/auth/login', statusCode: 401, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime: 0, eventType: 'login_failed' });
+
+    return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+  }
+
+  // 성공 - 시도 횟수 초기화
+  loginAttempts.delete(key);
+
+  // 마지막 로그인 업데이트
+  db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(new Date().toISOString(), user.id);
+
+  // 로그인 성공 로그
+  const loginIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  logger.info('LOGIN_SUCCESS', { ip: loginIp, username: user.username, userAgent: req.headers['user-agent'] });
+  saveAccessLog({ ip: loginIp, method: 'POST', path: '/api/auth/login', statusCode: 200, userId: user.id, username: user.username, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime: 0, eventType: 'login_success' });
+
+  const token = jwt.sign(
+    { id: user.id, username: user.username },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES }
+  );
+
+  // 쿠키에도 저장
+  res.cookie('auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24시간
+  });
+
+  return res.json({ status: 'ok', token, username: user.username });
+});
+
+// ✅ 토큰 검증 API
+app.get('/api/auth/verify', (req, res) => {
+  return res.json({ status: 'ok', user: req.user });
+});
+
+// ✅ 로그아웃 API
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('auth_token');
+  return res.json({ status: 'ok' });
+});
+
+// ✅ 비밀번호 찾기 요청 API - 이메일로 임시 비밀번호 발송
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { username } = req.body;
+  const user = db.prepare('SELECT id, username, email FROM users WHERE username = ?').get(username);
+
+  // 보안상 존재 여부 노출 안 함
+  if (!user || !user.email) {
+    return res.json({ status: 'ok', message: '등록된 이메일로 임시 비밀번호를 발송했습니다.' });
+  }
+
+  // 이메일 복호화
+  const decryptedEmail = decryptEmail(user.email);
+  if (!decryptedEmail) {
+    return res.json({ status: 'ok', message: '등록된 이메일로 임시 비밀번호를 발송했습니다.' });
+  }
+  user.email = decryptedEmail;
+
+  // 임시 비밀번호 생성
+  const tempPassword = Math.random().toString(36).substring(2, 8).toUpperCase() +
+                       Math.random().toString(36).substring(2, 5) + '!1';
+  const hash = bcrypt.hashSync(tempPassword, 12);
+
+  // DB 업데이트
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user.id);
+
+  // 메일 발송
+  const mailSent = await sendMail({
+    to: user.email,
+    subject: '[AI Router Dashboard] 임시 비밀번호 안내',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#09111f;color:#eef2ff;border-radius:16px;">
+        <h2 style="color:#76a5ff;margin-bottom:16px;">🔑 임시 비밀번호 안내</h2>
+        <p style="color:#9ea8c9;margin-bottom:20px;">안녕하세요, <strong style="color:#eef2ff;">${user.username}</strong>님!</p>
+        <p style="color:#9ea8c9;margin-bottom:20px;">요청하신 임시 비밀번호를 발급했습니다.</p>
+        <div style="background:#0d1526;border:1px solid #24314f;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">
+          <p style="color:#9ea8c9;font-size:0.85rem;margin-bottom:8px;">임시 비밀번호</p>
+          <p style="color:#7ef0bf;font-size:1.6rem;font-weight:800;letter-spacing:4px;font-family:monospace;">${tempPassword}</p>
+        </div>
+        <p style="color:#ff8f8f;font-size:0.85rem;">로그인 후 반드시 비밀번호를 변경해주세요!</p>
+        <p style="color:#9ea8c9;font-size:0.8rem;margin-top:20px;">본인이 요청하지 않은 경우 이 메일을 무시하세요.</p>
+      </div>
+    `
+  });
+
+  return res.json({
+    status: 'ok',
+    message: mailSent
+      ? '등록된 이메일로 임시 비밀번호를 발송했습니다.'
+      : '메일 발송에 실패했습니다. 관리자에게 문의해주세요.'
+  });
+});
+
+// ✅ 비밀번호 초기화 요청 목록 (관리자)
+app.get('/api/admin/reset-requests', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+  db.exec(`CREATE TABLE IF NOT EXISTS password_reset_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    temp_password TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );`);
+  const rows = db.prepare("SELECT * FROM password_reset_requests WHERE status = 'pending' ORDER BY created_at DESC").all();
+  return res.json({ requests: rows });
+});
+
+// ✅ 임시 비밀번호 발급 (관리자)
+app.post('/api/admin/reset-password', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+  const { request_id } = req.body;
+
+  const request = db.prepare('SELECT * FROM password_reset_requests WHERE id = ?').get(request_id);
+  if (!request) return res.status(404).json({ error: '요청을 찾을 수 없습니다.' });
+
+  // 임시 비밀번호 생성
+  const tempPassword = Math.random().toString(36).substring(2, 10) + '!A1';
+  const hash = bcrypt.hashSync(tempPassword, 12);
+
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, request.user_id);
+  db.prepare("UPDATE password_reset_requests SET status = 'done', temp_password = ? WHERE id = ?").run(tempPassword, request_id);
+
+  return res.json({ status: 'ok', username: request.username, temp_password: tempPassword });
+});
+
+// ✅ 아이디 중복 확인 API
+app.post('/api/auth/check-username', (req, res) => {
+  const { username } = req.body;
+  if (!username || username.length < 3) return res.status(400).json({ error: '아이디는 3자 이상이어야 합니다.' });
+  if (username.length > 10) return res.status(400).json({ error: '아이디는 10자 이하여야 합니다.' });
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.status(400).json({ error: '영문, 숫자, 언더바(_)만 사용 가능합니다.' });
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (existing) return res.status(409).json({ error: '이미 사용 중인 아이디입니다.' });
+  return res.json({ status: 'ok', message: '사용 가능한 아이디입니다.' });
+});
+
+// ✅ 이메일 중복 확인 API
+app.post('/api/auth/check-email', (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: '이메일을 입력해주세요.' });
+    const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
+    const used = allUsers.some(u => {
+      try { return decryptEmail(u.email) === email; } catch(e) { return false; }
+    });
+    if (used) return res.status(409).json({ error: '이미 가입된 이메일입니다.' });
+    return res.json({ status: 'ok', message: '사용 가능한 이메일입니다.' });
+  } catch(error) {
+    console.error('check-email 오류:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ 이메일 인증코드 발송 API (가입용)
+app.post('/api/auth/send-email-code', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: '이메일 형식이 올바르지 않습니다.' });
+  }
+
+  // 이미 가입된 이메일 확인 (복호화해서 비교)
+  const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
+  const alreadyUsed = allUsers.some(u => {
+    try { return decryptEmail(u.email) === email; } catch(e) { return false; }
+  });
+  if (alreadyUsed) {
+    return res.status(400).json({ error: '이미 가입된 이메일입니다.' });
+  }
+
+  // 60초 이내 중복 발송 방지
+  const recent = db.prepare(
+    "SELECT id FROM email_verifications WHERE email = ? AND created_at > datetime('now', '-60 seconds') AND verified = 0"
+  ).get(email);
+  if (recent) {
+    return res.status(429).json({ error: '60초 후 다시 시도해주세요.' });
+  }
+
+  // 기존 미인증 코드 삭제 (만료 포함 전체 정리)
+  db.prepare("DELETE FROM email_verifications WHERE email = ?").run(email);
+
+  // 6자리 코드 생성
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 60 * 1000).toISOString(); // 60초
+
+  db.prepare('INSERT INTO email_verifications (email, code, expires_at) VALUES (?, ?, ?)').run(email, code, expiresAt);
+
+  // 메일 발송
+  const mailSent = await sendMail({
+    to: email,
+    subject: '[AI Router Dashboard] 이메일 인증코드',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#09111f;color:#eef2ff;border-radius:16px;">
+        <h2 style="color:#76a5ff;margin-bottom:16px;">📧 이메일 인증</h2>
+        <p style="color:#9ea8c9;margin-bottom:20px;">아래 인증코드를 60초 이내에 입력해주세요.</p>
+        <div style="background:#0d1526;border:1px solid #24314f;border-radius:12px;padding:24px;text-align:center;margin-bottom:20px;">
+          <p style="color:#9ea8c9;font-size:0.85rem;margin-bottom:8px;">인증코드 (60초 유효)</p>
+          <p style="color:#76a5ff;font-size:2.4rem;font-weight:800;letter-spacing:10px;font-family:monospace;">${code}</p>
+        </div>
+        <p style="color:#ff8f8f;font-size:0.85rem;">본인이 요청하지 않은 경우 이 메일을 무시하세요.</p>
+      </div>
+    `
+  });
+
+  if (!mailSent) {
+    db.prepare("DELETE FROM email_verifications WHERE email = ? AND verified = 0").run(email);
+    return res.status(500).json({ error: '메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+  }
+
+  return res.json({ status: 'ok', message: '인증코드를 발송했습니다.' });
+});
+
+// ✅ 이메일 인증코드 확인 API (가입용)
+app.post('/api/auth/verify-email-code', (req, res) => {
+  const { email, code } = req.body;
+
+  const record = db.prepare(
+    "SELECT * FROM email_verifications WHERE email = ? AND code = ? AND verified = 0 AND expires_at > datetime('now')"
+  ).get(email, code);
+
+  if (!record) {
+    return res.status(400).json({ error: '인증코드가 올바르지 않거나 만료됐습니다.' });
+  }
+
+  // 인증 완료 처리
+  db.prepare('UPDATE email_verifications SET verified = 1 WHERE id = ?').run(record.id);
+
+  return res.json({ status: 'ok', message: '이메일 인증이 완료됐습니다.' });
+});
+
+// ✅ 회원가입 API (초대 코드 방식)
+app.post('/api/auth/register', (req, res) => {
+  const { username, password, email, invite_code } = req.body;
+
+  if (!username || !password || !email) {
+    return res.status(400).json({ error: '모든 항목을 입력해주세요.' });
+  }
+  if (username.length < 3) {
+    return res.status(400).json({ error: '아이디는 3자 이상이어야 합니다.' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: '비밀번호는 8자 이상이어야 합니다.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: '이메일 형식이 올바르지 않습니다.' });
+  }
+
+  // 이메일 인증 확인
+  const encEmailForCheck = email;
+  const verified = db.prepare(
+    "SELECT id FROM email_verifications WHERE email = ? AND verified = 1"
+  ).get(encEmailForCheck);
+  if (!verified) {
+    return res.status(400).json({ error: '이메일 인증을 먼저 완료해주세요.' });
+  }
+
+  // 아이디 중복 확인
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (existing) {
+    return res.status(400).json({ error: '이미 사용 중인 아이디입니다.' });
+  }
+
+  // 이메일 중복 확인 (복호화 비교)
+  const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
+  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch(e) { return false; } });
+  if (emailUsed) {
+    return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' });
+  }
+
+  // 사용자 생성
+  const hash = bcrypt.hashSync(password, 12);
+  const encryptedEmail = encryptEmail(email);
+  const result = db.prepare('INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)').run(username, hash, encryptedEmail);
+
+  // 이메일 인증 레코드 정리 (사용 완료)
+  db.prepare('DELETE FROM email_verifications WHERE email = ?').run(email);
+
+  // 약관 동의 저장
+  const { agree_terms, agree_privacy, agree_investment, agree_marketing } = req.body;
+  db.prepare('INSERT INTO terms_agreements (user_id, agree_terms, agree_privacy, agree_investment, agree_marketing, ip) VALUES (?,?,?,?,?,?)')
+    .run(result.lastInsertRowid,
+      agree_terms ? 1 : 0,
+      agree_privacy ? 1 : 0,
+      agree_investment ? 1 : 0,
+      agree_marketing ? 1 : 0,
+      req.ip || ''
+    );
+
+  return res.json({ status: 'ok', message: '가입이 완료됐습니다.' });
+});
+
+// ✅ 초대 코드 생성 API (관리자만)
+app.post('/api/auth/invite', (req, res) => {
+  if (req.user.username !== 'admin') {
+    return res.status(403).json({ error: '관리자만 초대 코드를 생성할 수 있습니다.' });
+  }
+
+  const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7일
+
+  db.prepare('INSERT INTO invite_codes (code, created_by, expires_at) VALUES (?, ?, ?)')
+    .run(code, req.user.id, expiresAt);
+
+  return res.json({ status: 'ok', code, expires_at: expiresAt });
+});
+
+// ✅ 접속 로그 조회 API (관리자)
+app.get('/api/admin/logs', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+
+  const { type, limit = 100, page = 1 } = req.query;
+  const offset = (page - 1) * limit;
+
+  let query = 'SELECT * FROM access_logs WHERE 1=1';
+  const params = [];
+
+  if (type && type !== 'all') { query += ' AND event_type = ?'; params.push(type); }
+
+  query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+  params.push(Number(limit), Number(offset));
+
+  const logs = db.prepare(query).all(...params);
+  const total = db.prepare('SELECT COUNT(*) as cnt FROM access_logs' + (type && type !== 'all' ? ' WHERE event_type = ?' : '')).get(...(type && type !== 'all' ? [type] : []));
+
+  return res.json({ logs, total: total.cnt, page: Number(page), limit: Number(limit) });
+});
+
+// ✅ 실시간 로그 SSE 스트리밍 (관리자)
+const logClients = new Set();
+
+
+app.get('/api/admin/logs/stream', (req, res) => {
+  // SSE는 헤더 인증이 안되므로 쿼리 파라미터로 토큰 받기
+  const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).end();
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.username !== 'admin') return res.status(403).end();
+  } catch(e) { return res.status(401).end(); }
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  // 연결 확인 메시지
+  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11,19) })}
+
+`);
+
+  // 최근 로그 20개 먼저 전송
+  try {
+    const recent = db.prepare('SELECT * FROM access_logs ORDER BY timestamp DESC LIMIT 20').all();
+    recent.reverse().forEach(log => {
+      const entry = {
+        level: log.event_type === 'suspicious' ? 'warn' : log.event_type === 'login_failed' ? 'error' : 'info',
+        message: `[${log.event_type}] ${log.method} ${log.path}`,
+        time: log.timestamp?.slice(11,19) || '',
+        ip: log.ip, username: log.username, status: log.status_code,
+        isHistory: true
+      };
+      res.write(`data: ${JSON.stringify(entry)}
+
+`);
+    });
+  } catch(e) {}
+
+  logClients.add(res);
+
+  // 연결 종료 시 제거
+  req.on('close', () => { logClients.delete(res); });
+});
+
+// ✅ Alpaca 키 유효성 검증
+app.post('/api/alpaca-test', async (req, res) => {
+  const { api_key, secret_key, paper } = req.body;
+  if (!api_key || !secret_key) return res.status(400).json({ error: 'API Key와 Secret Key를 입력해주세요.' });
+  try {
+    const baseUrl = paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+    const response = await fetch(`${baseUrl}/v2/account`, {
+      headers: {
+        'APCA-API-KEY-ID': api_key,
+        'APCA-API-SECRET-KEY': secret_key
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(400).json({ error: data.message || '유효하지 않은 API 키입니다.' });
+    }
+    return res.json({ ok: true, status: data.status });
+  } catch(e) {
+    return res.status(500).json({ error: 'Alpaca 서버 연결 실패: ' + e.message });
+  }
+});
+
+// ✅ 계좌 목록 조회
+app.get('/api/user/broker-keys', (req, res) => {
+  const rows = db.prepare('SELECT id, account_name, alpaca_paper, is_active, updated_at FROM user_broker_keys WHERE user_id = ? ORDER BY created_at ASC').all(req.user.id);
+  if (!rows.length) return res.json({ registered: false, accounts: [] });
+  return res.json({
+    registered: true,
+    accounts: rows.map(r => ({
+      id: r.id,
+      account_name: r.account_name,
+      alpaca_paper: r.alpaca_paper === 1,
+      is_active: r.is_active === 1,
+      updated_at: r.updated_at
+    }))
+  });
+});
+
+// ✅ 계좌 추가
+app.post('/api/user/broker-keys', (req, res) => {
+  const { account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper } = req.body;
+  if (!alpaca_api_key || !alpaca_secret_key) {
+    return res.status(400).json({ error: 'API 키와 Secret 키를 입력해주세요.' });
+  }
+  try {
+    const encKey = encryptEmail(alpaca_api_key);
+    const encSecret = encryptEmail(alpaca_secret_key);
+    const paper = alpaca_paper ? 1 : 0;
+    const name = account_name || (paper ? '페이퍼 트레이딩' : '실거래 계좌');
+    // 첫 계좌면 활성으로 설정
+    const count = db.prepare('SELECT COUNT(*) as cnt FROM user_broker_keys WHERE user_id = ?').get(req.user.id).cnt;
+    const isActive = count === 0 ? 1 : 0;
+    db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active) VALUES (?,?,?,?,?,?)')
+      .run(req.user.id, name, encKey, encSecret, paper, isActive);
+    return res.json({ status: 'ok', message: `'${name}' 계좌가 등록됐습니다.` });
+  } catch(e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ✅ 계좌 삭제
+app.delete('/api/user/broker-keys/:id', (req, res) => {
+  const row = db.prepare('SELECT id, is_active FROM user_broker_keys WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!row) return res.status(404).json({ error: '계좌를 찾을 수 없습니다.' });
+  db.prepare('DELETE FROM user_broker_keys WHERE id = ?').run(req.params.id);
+  // 삭제된 계좌가 활성이었으면 다른 계좌를 활성으로
+  if (row.is_active) {
+    const next = db.prepare('SELECT id FROM user_broker_keys WHERE user_id = ? LIMIT 1').get(req.user.id);
+    if (next) db.prepare('UPDATE user_broker_keys SET is_active = 1 WHERE id = ?').run(next.id);
+  }
+  return res.json({ status: 'ok', message: '계좌가 삭제됐습니다.' });
+});
+
+// ✅ 활성 계좌 전환
+app.post('/api/user/broker-keys/:id/activate', (req, res) => {
+  const row = db.prepare('SELECT id FROM user_broker_keys WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!row) return res.status(404).json({ error: '계좌를 찾을 수 없습니다.' });
+  db.prepare('UPDATE user_broker_keys SET is_active = 0 WHERE user_id = ?').run(req.user.id);
+  db.prepare('UPDATE user_broker_keys SET is_active = 1 WHERE id = ?').run(req.params.id);
+  return res.json({ status: 'ok', message: '활성 계좌가 변경됐습니다.' });
+});
+
+// ✅ 활성 계좌 키 복호화 (내부용)
+function getUserAlpacaKeys(userId, accountId) {
+  let row;
+  if (accountId) {
+    row = db.prepare('SELECT alpaca_api_key, alpaca_secret_key, alpaca_paper FROM user_broker_keys WHERE id = ? AND user_id = ?').get(accountId, userId);
+  } else {
+    row = db.prepare('SELECT alpaca_api_key, alpaca_secret_key, alpaca_paper FROM user_broker_keys WHERE user_id = ? AND is_active = 1').get(userId);
+    if (!row) row = db.prepare('SELECT alpaca_api_key, alpaca_secret_key, alpaca_paper FROM user_broker_keys WHERE user_id = ? LIMIT 1').get(userId);
+  }
+  if (!row) return null;
+  try {
+    return {
+      api_key: decryptEmail(row.alpaca_api_key),
+      secret_key: decryptEmail(row.alpaca_secret_key),
+      paper: row.alpaca_paper === 1
+    };
+  } catch(e) { return null; }
+}
+
+// ✅ Alpaca 프록시 (선택된 계좌 ID로 호출)
+app.all('/api/alpaca-user/*', async (req, res) => {
+  const accountId = req.headers['x-account-id'] || req.query.accountId;
+  const keys = getUserAlpacaKeys(req.user.id, accountId);
+  if (!keys) {
+    return res.status(400).json({ error: 'Alpaca 키가 등록되지 않았습니다. 설정에서 키를 등록해주세요.' });
+  }
+  try {
+    const alpacaPath = req.path.replace('/api/alpaca-user', '');
+    const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+    const query = Object.keys(req.query).filter(k => k !== 'accountId').length
+      ? '?' + new URLSearchParams(Object.fromEntries(Object.entries(req.query).filter(([k]) => k !== 'accountId'))).toString()
+      : '';
+    const url = `${baseUrl}${alpacaPath}${query}`;
+    const response = await fetch(url, {
+      method: req.method,
+      headers: {
+        'APCA-API-KEY-ID': keys.api_key,
+        'APCA-API-SECRET-KEY': keys.secret_key,
+        'Content-Type': 'application/json'
+      },
+      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
+    });
+    const data = await response.json();
+    return res.status(response.status).json(data);
+  } catch(e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ✅ 가입자 목록 조회 (관리자)
+app.get('/api/admin/users', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+  const { search } = req.query;
+  let query = 'SELECT id, username, email, created_at, last_login FROM users WHERE 1=1';
+  const params = [];
+  if (search) { query += ' AND username LIKE ?'; params.push('%' + search + '%'); }
+  query += ' ORDER BY created_at DESC';
+  const users = db.prepare(query).all(...params);
+  // 이메일 복호화
+  const result = users.map(u => ({
+    ...u,
+    email: u.email ? (decryptEmail(u.email) || '(복호화 실패)') : '-'
+  }));
+  return res.json({ users: result });
+});
+
+// ✅ 가입자 삭제 (관리자)
+app.delete('/api/admin/users/:id', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+  const user = db.prepare('SELECT username FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: '사용자 없음' });
+  if (user.username === 'admin') return res.status(400).json({ error: '관리자는 삭제할 수 없습니다.' });
+  db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  logger.warn('USER_DELETED', { adminId: req.user.id, deletedUsername: user.username });
+  return res.json({ status: 'ok' });
+});
+
+// ✅ 접속 통계 API (관리자)
+app.get('/api/admin/stats', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+
+  const dailyStats = db.prepare(`
+    SELECT 
+      DATE(timestamp) as date,
+      COUNT(*) as total_requests,
+      COUNT(DISTINCT ip) as unique_ips,
+      COUNT(DISTINCT username) as unique_users,
+      SUM(CASE WHEN event_type = 'login_success' THEN 1 ELSE 0 END) as logins,
+      SUM(CASE WHEN event_type = 'login_failed' THEN 1 ELSE 0 END) as failed_logins,
+      SUM(CASE WHEN event_type = 'suspicious' THEN 1 ELSE 0 END) as suspicious
+    FROM access_logs
+    WHERE timestamp >= datetime('now', '-30 days')
+    GROUP BY DATE(timestamp)
+    ORDER BY date DESC
+  `).all();
+
+  const userStats = db.prepare(`
+    SELECT 
+      username,
+      COUNT(*) as total_requests,
+      COUNT(DISTINCT DATE(timestamp)) as active_days,
+      MAX(timestamp) as last_seen,
+      MIN(timestamp) as first_seen
+    FROM access_logs
+    WHERE username IS NOT NULL
+    GROUP BY username
+    ORDER BY total_requests DESC
+    LIMIT 20
+  `).all();
+
+  const hourlyStats = db.prepare(`
+    SELECT 
+      strftime('%H', timestamp) as hour,
+      COUNT(*) as cnt
+    FROM access_logs
+    WHERE timestamp >= datetime('now', '-7 days')
+    GROUP BY hour
+    ORDER BY hour
+  `).all();
+
+  return res.json({ dailyStats, userStats, hourlyStats });
+});
+
+// ✅ 보안 통계 API (관리자)
+app.get('/api/admin/security-stats', (req, res) => {
+  if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+
+  const stats = {
+    total_requests: db.prepare("SELECT COUNT(*) as cnt FROM access_logs").get().cnt,
+    login_success: db.prepare("SELECT COUNT(*) as cnt FROM access_logs WHERE event_type = 'login_success'").get().cnt,
+    login_failed: db.prepare("SELECT COUNT(*) as cnt FROM access_logs WHERE event_type = 'login_failed'").get().cnt,
+    suspicious: db.prepare("SELECT COUNT(*) as cnt FROM access_logs WHERE event_type = 'suspicious'").get().cnt,
+    rate_limited: db.prepare("SELECT COUNT(*) as cnt FROM access_logs WHERE event_type = 'rate_limit'").get().cnt,
+    unique_ips: db.prepare("SELECT COUNT(DISTINCT ip) as cnt FROM access_logs").get().cnt,
+    top_ips: db.prepare("SELECT ip, COUNT(*) as cnt FROM access_logs GROUP BY ip ORDER BY cnt DESC LIMIT 10").all(),
+    recent_suspicious: db.prepare("SELECT * FROM access_logs WHERE event_type = 'suspicious' ORDER BY timestamp DESC LIMIT 5").all(),
+    recent_failed: db.prepare("SELECT * FROM access_logs WHERE event_type = 'login_failed' ORDER BY timestamp DESC LIMIT 5").all()
+  };
+
+  return res.json(stats);
+});
+
+// ✅ 회원 탈퇴 API
+app.post('/api/auth/withdraw', (req, res) => {
+  const { password } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+
+  if (!bcrypt.compareSync(password, user.password_hash)) {
+    return res.status(401).json({ error: '비밀번호가 올바르지 않습니다.' });
+  }
+
+  if (user.username === 'admin') {
+    return res.status(400).json({ error: '관리자 계정은 탈퇴할 수 없습니다.' });
+  }
+
+  db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
+  res.clearCookie('auth_token');
+  return res.json({ status: 'ok', message: '탈퇴가 완료됐습니다.' });
+});
+
+// ✅ 비밀번호 변경 인증코드 발송 API
+app.post('/api/auth/change-password/send-code', async (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user.email) return res.status(400).json({ error: '등록된 이메일이 없습니다.' });
+
+  const decryptedEmail = decryptEmail(user.email);
+  if (!decryptedEmail) return res.status(400).json({ error: '이메일 정보를 불러올 수 없습니다.' });
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  verifyCodeStore.set(`pw_change_${user.id}`, { code, expires: Date.now() + 5 * 60 * 1000 });
+
+  const mailSent = await sendMail({
+    to: decryptedEmail,
+    subject: '[AI Router Dashboard] 비밀번호 변경 인증코드',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#09111f;color:#eef2ff;border-radius:16px;">
+        <h2 style="color:#76a5ff;margin-bottom:16px;">🔐 비밀번호 변경 인증</h2>
+        <p style="color:#9ea8c9;margin-bottom:20px;">아래 인증코드를 입력해주세요.</p>
+        <div style="background:#0d1526;border:1px solid #24314f;border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">
+          <p style="color:#9ea8c9;font-size:0.85rem;margin-bottom:8px;">인증코드 (5분 유효)</p>
+          <p style="color:#76a5ff;font-size:2rem;font-weight:800;letter-spacing:8px;font-family:monospace;">${code}</p>
+        </div>
+        <p style="color:#ff8f8f;font-size:0.85rem;">본인이 요청하지 않은 경우 이 메일을 무시하세요.</p>
+      </div>
+    `
+  });
+
+  return res.json({ status: mailSent ? 'ok' : 'error', message: mailSent ? '인증코드를 이메일로 발송했습니다.' : '메일 발송 실패' });
+});
+
+// ✅ 비밀번호 변경 API (인증코드 + 새 비밀번호)
+app.post('/api/auth/change-password', (req, res) => {
+  const { verifyCode, newPassword } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+
+  // 인증코드 확인
+  const stored = verifyCodeStore.get(`pw_change_${user.id}`);
+  if (!stored || stored.code !== verifyCode || Date.now() > stored.expires) {
+    return res.status(401).json({ error: '인증코드가 올바르지 않거나 만료됐습니다.' });
+  }
+
+  // 비밀번호 복잡도 검증
+  const pwCheck = validatePassword(newPassword);
+  if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.message });
+
+  // 이전 비밀번호와 동일 여부 확인
+  if (bcrypt.compareSync(newPassword, user.password_hash)) {
+    return res.status(400).json({ error: '이전 비밀번호와 동일한 비밀번호는 사용할 수 없습니다.' });
+  }
+
+  const newHash = bcrypt.hashSync(newPassword, 12);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
+  verifyCodeStore.delete(`pw_change_${user.id}`);
+  res.clearCookie('auth_token');
+  return res.json({ status: 'ok', message: '비밀번호가 변경됐습니다. 다시 로그인해주세요.' });
+});
+
+// ✅ 비밀번호 복잡도 검증 함수
+function validatePassword(password) {
+  if (password.length < 8) return { valid: false, message: '비밀번호는 8자 이상이어야 합니다.' };
+  if (!/[A-Z]/.test(password)) return { valid: false, message: '대문자를 1자 이상 포함해야 합니다.' };
+  if (!/[a-z]/.test(password)) return { valid: false, message: '소문자를 1자 이상 포함해야 합니다.' };
+  if (!/[0-9]/.test(password)) return { valid: false, message: '숫자를 1자 이상 포함해야 합니다.' };
+  if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) return { valid: false, message: '특수문자를 1자 이상 포함해야 합니다.' };
+  return { valid: true };
+}
+
+function summarizeProviders() {
+  return {
+    n8n: CONFIG.n8nWebhookUrl ? 'connected' : 'simulation',
+    openclaw: CONFIG.openclawWebhookUrl ? 'connected' : 'simulation',
+    gpt: CONFIG.hasKeys.openai ? 'ready' : 'missing-key',
+    gemini: CONFIG.hasKeys.gemini ? 'ready' : 'missing-key',
+    claude: CONFIG.hasKeys.anthropic ? 'ready' : 'missing-key'
+  };
+}
+
+function chooseEngine({ taskType, preferredEngine, autoMode, priorityMode }) {
+  if (!autoMode && preferredEngine !== 'hybrid') {
+    return { engine: preferredEngine, reason: '사용자가 직접 엔진을 선택했습니다.' };
+  }
+
+  const n8nTasks = new Set(['repeat', 'notify', 'email', 'news', 'sheet']);
+  const openclawTasks = new Set(['agent', 'research', 'multistep', 'desktop']);
+
+  if (priorityMode === 'speed' && taskType !== 'desktop') {
+    return { engine: 'n8n', reason: '속도 우선 모드라 지연이 적고 안정적인 n8n을 우선 추천합니다.' };
+  }
+
+  if (preferredEngine === 'hybrid' || autoMode) {
+    if (n8nTasks.has(taskType)) {
+      return { engine: 'n8n', reason: '반복형/연동형 업무라 n8n이 더 안정적입니다.' };
+    }
+    if (openclawTasks.has(taskType)) {
+      return { engine: 'openclaw', reason: '복합 판단형 작업이라 OpenClaw가 더 적합합니다.' };
+    }
+  }
+
+  return {
+    engine: preferredEngine === 'hybrid' ? 'n8n' : preferredEngine,
+    reason: '기본 라우팅 규칙을 적용했습니다.'
+  };
+}
+
+function chooseModel({ taskComplexity, preferredModel, optimizationMode, priorityMode }) {
+  if (optimizationMode === 'manual') {
+    return { model: preferredModel, reason: '사용자가 직접 모델을 선택했습니다.' };
+  }
+
+  if (optimizationMode === 'cost') {
+    return { model: 'gemini', reason: '비용 우선 모드라 Gemini를 추천합니다.' };
+  }
+
+  if (optimizationMode === 'document') {
+    return { model: 'claude', reason: '문서/정리형 작업이라 Claude를 추천합니다.' };
+  }
+
+  if (priorityMode === 'speed' && taskComplexity !== 'high') {
+    return { model: 'gemini', reason: '속도 우선 모드라 빠른 응답과 비용 효율이 좋은 Gemini를 추천합니다.' };
+  }
+
+  if (taskComplexity === 'high' && priorityMode === 'quality') {
+    return { model: preferredModel === 'claude' ? 'claude' : 'gpt', reason: '고난도 + 품질 우선 작업이라 상위 추론 모델을 추천합니다.' };
+  }
+
+  if (taskComplexity === 'high') {
+    return { model: 'gpt', reason: '복잡한 추론 비중이 높아 GPT를 추천합니다.' };
+  }
+
+  return { model: preferredModel, reason: '기본 모델 선택을 유지했습니다.' };
+}
+
+function estimateCostBand({ modelDecision, engineDecision, taskComplexity, priorityMode }) {
+  const modelBase = {
+    gemini: 1,
+    gpt: 3,
+    claude: 3
+  }[modelDecision.model] || 2;
+
+  const engineWeight = engineDecision.engine === 'openclaw' ? 2 : 1;
+  const complexityWeight = taskComplexity === 'high' ? 2 : taskComplexity === 'medium' ? 1.3 : 1;
+  const priorityWeight = priorityMode === 'quality' ? 1.4 : priorityMode === 'speed' ? 0.9 : 1;
+
+  const score = modelBase * engineWeight * complexityWeight * priorityWeight;
+  if (score <= 2) return '낮음';
+  if (score <= 5) return '중간';
+  return '높음';
+}
+
+function buildPayload(body) {
+  const normalized = {
+    userRequest: String(body.userRequest || '').trim(),
+    taskType: body.taskType || 'news',
+    taskComplexity: body.taskComplexity || 'medium',
+    preferredEngine: body.preferredEngine || CONFIG.defaults.engine,
+    preferredModel: body.preferredModel || CONFIG.defaults.model,
+    optimizationMode: body.optimizationMode || 'balanced',
+    autoMode: Boolean(body.autoMode),
+    priorityMode: body.priorityMode || CONFIG.defaults.priorityMode
+  };
+
+  const engineDecision = chooseEngine(normalized);
+  const modelDecision = chooseModel(normalized);
+
+  return {
+    ...normalized,
+    engineDecision,
+    modelDecision,
+    providers: summarizeProviders(),
+    estimatedCostBand: estimateCostBand({
+      modelDecision,
+      engineDecision,
+      taskComplexity: normalized.taskComplexity,
+      priorityMode: normalized.priorityMode
+    }),
+    requestedAt: new Date().toISOString()
+  };
+}
+
+async function forwardToTarget(url, payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CONFIG.requestTimeoutMs);
+  const started = Date.now();
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const durationMs = Date.now() - started;
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`HTTP ${response.status}: ${text.slice(0, 300)}`);
+    }
+
+    if (contentType.includes('application/json')) {
+      const json = await response.json();
+      return { durationMs, body: json };
+    }
+
+    return { durationMs, body: { raw: await response.text() } };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ✅ Claude API 직접 호출 함수
+async function callClaude(userRequest, taskType, taskComplexity) {
+  const started = Date.now();
+
+  const systemPrompt = `당신은 유능한 AI 어시스턴트입니다. 
+작업 유형: ${taskType}
+작업 복잡도: ${taskComplexity}
+한국어로 명확하고 구조적으로 답변해주세요.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [
+      { role: 'user', content: userRequest }
+    ]
+  });
+
+  const durationMs = Date.now() - started;
+  const text = response.content[0]?.text || '';
+
+  return {
+    durationMs,
+    body: {
+      answer: text,
+      model: response.model,
+      usage: response.usage
+    }
+  };
+}
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    ...CONFIG,
+    providers: summarizeProviders(),
+    presets: PRESETS
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+    perfProfile: CONFIG.perfProfile,
+    stats: requestStats,
+    providers: summarizeProviders()
+  });
+});
+
+app.get('/api/presets', (req, res) => {
+  res.json(PRESETS);
+});
+
+app.post('/api/route-decision', (req, res) => {
+  requestStats.preview += 1;
+  const payload = buildPayload(req.body);
+  res.json(payload);
+});
+
+app.post('/api/run', async (req, res) => {
+  requestStats.run += 1;
+  const payload = buildPayload(req.body);
+  const engine = payload.engineDecision.engine;
+  const model = payload.modelDecision.model;
+
+  try {
+    // ✅ Claude 모델 선택 시 Claude API 직접 호출
+    if (model === 'claude' && CONFIG.hasKeys.anthropic) {
+      const result = await callClaude(
+        payload.userRequest,
+        payload.taskType,
+        payload.taskComplexity
+      );
+      return res.json({
+        mode: 'live',
+        target: 'claude',
+        latencyMs: result.durationMs,
+        payload,
+        result: result.body
+      });
+    }
+
+    // n8n으로 포워딩
+    if (engine === 'n8n' && CONFIG.n8nWebhookUrl) {
+      const result = await forwardToTarget(CONFIG.n8nWebhookUrl, payload);
+      return res.json({
+        mode: 'live',
+        target: 'n8n',
+        latencyMs: result.durationMs,
+        payload,
+        result: result.body
+      });
+    }
+
+    // openclaw으로 포워딩
+    if (engine === 'openclaw' && CONFIG.openclawWebhookUrl) {
+      const result = await forwardToTarget(CONFIG.openclawWebhookUrl, payload);
+      return res.json({
+        mode: 'live',
+        target: 'openclaw',
+        latencyMs: result.durationMs,
+        payload,
+        result: result.body
+      });
+    }
+
+    // 시뮬레이션 모드
+    return res.json({
+      mode: 'simulation',
+      target: engine,
+      latencyMs: 0,
+      payload,
+      result: {
+        summary: `현재 ${engine} 실서버 URL이 비어 있어 시뮬레이션으로 응답했습니다.`,
+        nextAction: engine === 'n8n'
+          ? 'n8n webhook URL을 .env에 넣으면 실제 워크플로로 연결됩니다.'
+          : 'OpenClaw webhook URL을 .env에 넣으면 실제 에이전트로 연결됩니다.',
+        performanceTip: payload.priorityMode === 'speed'
+          ? '속도 우선 모드이므로 Gemini + n8n 조합이 기본 추천입니다.'
+          : payload.priorityMode === 'quality'
+            ? '품질 우선 모드이므로 GPT/Claude + Hybrid/OpenClaw 조합을 권장합니다.'
+            : '균형형 모드이므로 하이브리드 분기 기준을 사용합니다.',
+        exampleWebhookPayload: payload
+      }
+    });
+  } catch (error) {
+    requestStats.errors += 1;
+    requestStats.lastError = {
+      message: error.message,
+      at: new Date().toISOString()
+    };
+    return res.status(500).json({
+      error: '실행 중 오류가 발생했습니다.',
+      detail: error.message,
+      payload
+    });
+  }
+});
+
+// ✅ Claude 직접 채팅 API 추가
+app.post('/api/chat', async (req, res) => {
+  const { message, taskType = 'general', taskComplexity = 'medium' } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: '메시지가 필요합니다.' });
+  }
+
+  if (!CONFIG.hasKeys.anthropic) {
+    return res.status(400).json({ error: 'Anthropic API 키가 설정되지 않았습니다.' });
+  }
+
+  try {
+    const result = await callClaude(message, taskType, taskComplexity);
+    return res.json({
+      mode: 'live',
+      target: 'claude',
+      latencyMs: result.durationMs,
+      result: result.body
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Claude API 호출 중 오류가 발생했습니다.',
+      detail: error.message
+    });
+  }
+});
+
+// ✅ 퀀트 서버 프록시 (포트 5002)
+app.all('/proxy/quant/*', async (req, res) => {
+  try {
+    const quantPath = req.path.replace('/proxy/quant', '');
+    const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
+    const url = `http://localhost:5002${quantPath}${query}`;
+    const response = await fetch(url, {
+      method: req.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: '퀀트 서버 연결 실패', detail: error.message });
+  }
+});
+
+// ✅ 주식 서버 프록시 (외부에서 5001 포트 접근 가능하게 중계)
+app.all('/proxy/stock/*', async (req, res) => {
+  try {
+    const stockPath = req.path.replace('/proxy/stock', '');
+    const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
+    const url = `http://localhost:5001${stockPath}${query}`;
+
+    const response = await fetch(url, {
+      method: req.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: '주식 서버 연결 실패', detail: error.message });
+  }
+});
+
+// ✅ 뉴스 수집 트리거 (대시보드에서 호출 → n8n 웹훅으로 전달)
+app.post('/api/news/trigger', async (req, res) => {
+  try {
+    const source = req.body.source || 'rss'; // rss | claude | gpt
+    const use_claude = source === 'claude';
+    const use_gpt = source === 'gpt';
+    const n8nWebhookUrl = process.env.NEWS_WEBHOOK_URL || 'http://127.0.0.1:5678/webhook/news-collect';
+
+    const response = await fetch(n8nWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ use_claude, use_gpt, source })
+    });
+
+    if (response.ok) {
+      return res.json({ status: 'ok', source });
+    } else {
+      return res.status(500).json({ error: 'n8n webhook call failed' });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ 뉴스 저장 API (내용 중복 방지 로직 추가)
+app.post('/api/news/save', (req, res) => {
+  try {
+    const { category, content, use_claude, source } = req.body;
+    const date = new Date().toISOString().slice(0, 10);
+    const savedAt = new Date().toISOString();
+    
+    // source 및 use_claude 설정
+    const src = (source && ['rss','claude','gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
+    const useClaude = (src === 'claude') ? 1 : 0;
+
+    // 내용 정제
+    const cleanContent = (content || '').trim();
+    
+    // 유효성 검사 (내용이 없으면 저장 안 함)
+    if (!cleanContent || cleanContent === '제목없음' || cleanContent === '-' || cleanContent === 'undefined') {
+      return res.json({ status: 'ignored', reason: 'content is empty or invalid' });
+    }
+
+    // ⭐ 핵심: 같은 날짜, 카테고리, 그리고 '내용(content)'이 완전히 같은 데이터가 있는지 조회
+    const existing = db.prepare(
+      'SELECT id FROM news WHERE category = ? AND date = ? AND content = ?'
+    ).get(category, date, cleanContent);
+
+    if (existing) {
+      // 내용이 같으면 중복으로 판단하여 저장하지 않음 (기존 데이터 유지)
+      return res.json({ 
+        status: 'exists', 
+        message: '이미 동일한 내용의 뉴스가 저장되어 있습니다.',
+        id: existing.id 
+      });
+    } else {
+      // 내용이 다르면 새로운 뉴스로 판단하여 INSERT
+      db.prepare(
+        'INSERT INTO news (category, date, saved_at, use_claude, source, content) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(category, date, savedAt, useClaude, src, cleanContent);
+
+      return res.json({ 
+        status: 'ok', 
+        category, 
+        date, 
+        content_length: cleanContent.length,
+        message: '신규 뉴스 저장 완료'
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ 뉴스 목록 조회 - SQLite DB
+app.get('/api/news/list', (req, res) => {
+  try {
+    const { date, category, type, limit = 100 } = req.query;
+
+    let query = 'SELECT * FROM news WHERE 1=1';
+    const params = [];
+
+    if (date && date !== 'all') { query += ' AND date = ?'; params.push(date); }
+    if (category && category !== 'all') { query += ' AND category = ?'; params.push(category); }
+    if (type === 'claude') { query += " AND (source = 'claude' OR (source IS NULL AND use_claude = 1))"; }
+    if (type === 'raw' || type === 'rss') { query += " AND (source = 'rss' OR (source IS NULL AND use_claude = 0))"; }
+    if (type === 'gpt') { query += " AND source = 'gpt'"; }
+
+    query += ' ORDER BY saved_at DESC LIMIT ?';
+    params.push(Number(limit));
+
+    const rows = db.prepare(query).all(...params);
+    const news = rows.map(r => ({
+      id: r.id,
+      category: r.category,
+      date: r.date,
+      savedAt: r.saved_at,
+      use_claude: !!r.use_claude,
+      source: r.source || (r.use_claude ? 'claude' : 'rss') || 'rss',
+      content: r.content
+    }));
+
+    return res.json({ news });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ 뉴스 날짜 목록 조회
+app.get('/api/news/dates', (req, res) => {
+  try {
+    const rows = db.prepare(
+      'SELECT DISTINCT date FROM news ORDER BY date DESC'
+    ).all();
+    return res.json({ dates: rows.map(r => r.date) });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ 뉴스 삭제
+app.delete('/api/news/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM news WHERE id = ?').run(req.params.id);
+    return res.json({ status: 'ok' });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(port, '0.0.0.0', () => {
+  printBanner();
+  const C2 = COLORS;
+  console.log(`  ${C2.cyan}주소${C2.reset}     : ${C2.bright}${C2.white}http://localhost:${port}${C2.reset}`);
+  console.log(`  ${C2.cyan}Claude${C2.reset}   : ${CONFIG.hasKeys.anthropic ? C2.green + '✅ 연결됨' : C2.red + '❌ API 키 없음'}${C2.reset}`);
+  console.log(`  ${C2.cyan}Alpaca${C2.reset}   : ${CONFIG.hasKeys.alpaca ? C2.green + '✅ 연결됨' : C2.yellow + '⚠️  키 없음'}${C2.reset}`);
+  console.log('');
+  console.log(`${C2.gray}  ─────────────────────────────────────${C2.reset}`);
+  console.log(`${C2.gray}  요청 로그가 아래에 실시간 표시됩니다.${C2.reset}`);
+  console.log(`${C2.gray}  ─────────────────────────────────────${C2.reset}`);
+  console.log('');
+});

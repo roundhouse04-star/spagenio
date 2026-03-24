@@ -1,0 +1,213 @@
+{
+  "name": "AI Router Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "ai-router",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook_1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "ai-router-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst payload = {\n  receivedAt: new Date().toISOString(),\n  engine: body.engineDecision?.engine ?? 'n8n',\n  model: body.modelDecision?.model ?? 'gemini',\n  request: body.userRequest ?? '',\n  taskType: body.taskType ?? '',\n  taskComplexity: body.taskComplexity ?? '',\n  optimizationMode: body.optimizationMode ?? '',\n  engineReason: body.engineDecision?.reason ?? '',\n  modelReason: body.modelDecision?.reason ?? '',\n  recommendedNextStep: body.taskType === 'news'\n    ? '여기에 RSS / 뉴스 API / 텔레그램 알림 노드를 붙이면 됩니다.'\n    : body.taskType === 'email'\n      ? '여기에 Gmail / SMTP / 슬랙 노드를 붙이면 됩니다.'\n      : '여기에 원하는 자동화 노드를 이어서 붙이면 됩니다.'\n};\n\nreturn [{ json: payload }];"
+      },
+      "id": "Code_1",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"taskType\"]}}",
+              "operation": "equal",
+              "value2": "news"
+            },
+            {
+              "value1": "={{$json[\"taskType\"]}}",
+              "operation": "equal",
+              "value2": "email"
+            },
+            {
+              "value1": "={{$json[\"taskType\"]}}",
+              "operation": "equal",
+              "value2": "notify"
+            }
+          ]
+        }
+      },
+      "id": "Switch_1",
+      "name": "Task Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  flow: 'news',\n  summary: `뉴스 요약 플로우 예시입니다. 모델: ${$json.model}`,\n  todo: ['RSS/뉴스 API 연결', 'AI 요약 노드 연결', '텔레그램/이메일 전송']\n} }];"
+      },
+      "id": "Code_2",
+      "name": "News Flow Example",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  flow: 'email',\n  summary: `이메일 자동화 플로우 예시입니다. 모델: ${$json.model}`,\n  todo: ['Gmail Trigger 또는 Gmail node 연결', '초안 생성', '검토 후 발송']\n} }];"
+      },
+      "id": "Code_3",
+      "name": "Email Flow Example",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  flow: 'notify',\n  summary: `알림 자동화 플로우 예시입니다. 모델: ${$json.model}`,\n  todo: ['스케줄 또는 이벤트 트리거 연결', '요약 메시지 생성', '텔레그램/슬랙 발송']\n} }];"
+      },
+      "id": "Code_4",
+      "name": "Notify Flow Example",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  flow: 'default',\n  summary: `기본 n8n 라우팅 플로우입니다. 모델: ${$json.model}`,\n  request: $json.request,\n  nextStep: $json.recommendedNextStep\n} }];"
+      },
+      "id": "Code_5",
+      "name": "Default Flow Example",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 560]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "Respond_1",
+      "name": "Respond to Dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Task Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Switch": {
+      "main": [
+        [
+          {
+            "node": "News Flow Example",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email Flow Example",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Flow Example",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Default Flow Example",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "News Flow Example": {
+      "main": [
+        [
+          {
+            "node": "Respond to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Flow Example": {
+      "main": [
+        [
+          {
+            "node": "Respond to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Flow Example": {
+      "main": [
+        [
+          {
+            "node": "Respond to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Flow Example": {
+      "main": [
+        [
+          {
+            "node": "Respond to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

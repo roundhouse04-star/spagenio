@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원 탈퇴 - AI Router Dashboard</title>
+  <style>
+    :root { --bg: #09111f; --panel: rgba(14,22,38,0.92); --text: #eef2ff; --muted: #9ea8c9; --line: #24314f; --accent: #76a5ff; --danger: #ff8f8f; --success: #7ef0bf; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top right, rgba(118,165,255,0.12), transparent 30%),
+                  linear-gradient(180deg, #09111f 0%, #0d1526 100%);
+      color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .box {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+      padding: 40px; width: 100%; max-width: 440px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4); backdrop-filter: blur(12px);
+    }
+    .logo { text-align: center; margin-bottom: 28px; }
+    .logo h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
+    .logo p { color: var(--muted); font-size: 0.9rem; }
+    .warning-box {
+      background: rgba(255,143,143,0.08); border: 1px solid rgba(255,143,143,0.3);
+      border-radius: 12px; padding: 16px; margin-bottom: 24px;
+    }
+    .warning-box p { color: var(--danger); font-size: 0.9rem; line-height: 1.6; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-weight: 700; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; }
+    input {
+      width: 100%; background: #0d1526; border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px 16px; color: var(--text);
+      font-size: 1rem; outline: none; transition: border-color 0.15s;
+    }
+    input:focus { border-color: var(--danger); }
+    .check-group { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .check-group input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .check-group label { font-size: 0.9rem; color: var(--muted); margin-bottom: 0; cursor: pointer; }
+    .btn-danger {
+      width: 100%; background: var(--danger); color: #1a0000;
+      border: none; border-radius: 12px; padding: 14px;
+      font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 8px;
+    }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-outline {
+      width: 100%; background: transparent; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+      font-size: 0.95rem; cursor: pointer; margin-top: 10px;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .msg { border-radius: 10px; padding: 10px 14px; font-size: 0.9rem; margin-bottom: 16px; display: none; }
+    .msg.show { display: block; }
+    .msg.error { background: rgba(255,143,143,0.1); border: 1px solid var(--danger); color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">
+      <h1>⚠️ 회원 탈퇴</h1>
+      <p>탈퇴 전 아래 내용을 확인해주세요</p>
+    </div>
+
+    <div class="warning-box">
+      <p>탈퇴 시 계정 정보가 즉시 삭제되며 복구할 수 없습니다. 탈퇴 후에는 동일한 아이디로 재가입 시 새 초대 코드가 필요합니다.</p>
+    </div>
+
+    <div id="errorMsg" class="msg error"></div>
+
+    <form id="withdrawForm">
+      <div class="form-group">
+        <label>비밀번호 확인</label>
+        <input type="password" id="password" placeholder="현재 비밀번호 입력" required />
+      </div>
+      <div class="check-group">
+        <input type="checkbox" id="confirmCheck" />
+        <label for="confirmCheck">위 내용을 확인했으며 탈퇴에 동의합니다.</label>
+      </div>
+      <button type="submit" class="btn-danger" id="withdrawBtn" disabled>탈퇴하기</button>
+      <button type="button" class="btn-outline" onclick="location.href='/'">취소하고 돌아가기</button>
+    </form>
+  </div>
+
+  <script>
+    const token = sessionStorage.getItem('auth_token');
+    if (!token) location.href = '/login';
+
+    document.getElementById('confirmCheck').addEventListener('change', (e) => {
+      document.getElementById('withdrawBtn').disabled = !e.target.checked;
+    });
+
+    document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('withdrawBtn');
+
+      if (!confirm('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+
+      btn.disabled = true;
+      btn.textContent = '처리 중...';
+
+      try {
+        const res = await fetch('/api/auth/withdraw', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          sessionStorage.removeItem('auth_token');
+          alert('탈퇴가 완료됐습니다.');
+          location.href = '/login';
+        } else {
+          document.getElementById('errorMsg').textContent = data.error || '탈퇴 중 오류가 발생했습니다.';
+          document.getElementById('errorMsg').classList.add('show');
+          btn.disabled = false;
+          btn.textContent = '탈퇴하기';
+        }
+      } catch (e) {
+        document.getElementById('errorMsg').textContent = '서버 연결 오류가 발생했습니다.';
+        document.getElementById('errorMsg').classList.add('show');
+        btn.disabled = false;
+        btn.textContent = '탈퇴하기';
+      }
+    });
+  </script>
+</body>
+</html>

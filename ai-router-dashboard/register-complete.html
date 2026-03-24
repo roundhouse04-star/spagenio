@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>가입 완료 - spagenio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "맑은 고딕", "Segoe UI", sans-serif;
+      background: #f4f5f7; color: #111827;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+    }
+    .box {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+      padding: 40px 36px; width: 100%; max-width: 480px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.08); text-align: center;
+    }
+    .icon { font-size: 4rem; margin-bottom: 16px; }
+    h1 { font-size: 1.5rem; font-weight: 900; color: #111827; margin-bottom: 10px; }
+    .sub { color: #6b7280; font-size: 0.9rem; line-height: 1.6; margin-bottom: 28px; }
+
+    /* 스텝 안내 */
+    .steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; text-align: left; }
+    .step {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: 10px; border: 1px solid #e5e7eb;
+    }
+    .step.done { background: #f0fdf4; border-color: #a7f3d0; }
+    .step.active { background: #eef2ff; border-color: #c7d2fe; }
+    .step.pending { background: #f9fafb; }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .step.done .step-num { background: #10b981; color: #fff; }
+    .step.active .step-num { background: #6366f1; color: #fff; }
+    .step.pending .step-num { background: #e5e7eb; color: #9ca3af; }
+    .step-text { flex: 1; }
+    .step-title { font-weight: 700; font-size: 0.9rem; color: #111827; }
+    .step-desc { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+
+    .btn-primary {
+      width: 100%; background: #6366f1; color: #fff;
+      border: none; border-radius: 8px; padding: 14px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      text-decoration: none; display: block; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-skip {
+      width: 100%; background: transparent; color: #9ca3af;
+      border: none; padding: 10px; font-size: 0.88rem;
+      cursor: pointer; margin-top: 8px; text-decoration: underline;
+    }
+    .footer { margin-top: 20px; color: #9ca3af; font-size: 0.76rem; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">🎉</div>
+    <h1>가입이 완료됐습니다!</h1>
+    <p class="sub">spagenio에 오신 것을 환영합니다.<br/>Alpaca 계좌를 연동하면 주식 자동매매를 시작할 수 있어요!</p>
+
+    <div class="steps">
+      <div class="step done">
+        <div class="step-num">✓</div>
+        <div class="step-text">
+          <div class="step-title">회원가입 완료</div>
+          <div class="step-desc">이메일 인증 및 계정 생성 완료</div>
+        </div>
+      </div>
+      <div class="step active">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <div class="step-title">Alpaca 계좌 연동 (권장)</div>
+          <div class="step-desc">주식 자동매매를 위한 Alpaca API 키 등록</div>
+        </div>
+      </div>
+      <div class="step pending">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <div class="step-title">대시보드 시작</div>
+          <div class="step-desc">뉴스 조회, 퀀트 분석, 자동매매 이용</div>
+        </div>
+      </div>
+    </div>
+
+    <a href="/login?next=alpaca" class="btn-primary">로그인 후 Alpaca 연동하기 →</a>
+    <button class="btn-skip" onclick="location.href='/login'">나중에 연동하기</button>
+  </div>
+  <div class="footer">© 2026 spagenio. All rights reserved.</div>
+</body>
+</html>

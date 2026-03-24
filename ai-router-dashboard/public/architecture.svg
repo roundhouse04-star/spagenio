@@ -1,0 +1,48 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="24" fill="#0D1324"/>
+  <rect x="40" y="40" width="1120" height="680" rx="20" stroke="#263251"/>
+
+  <rect x="80" y="100" width="220" height="110" rx="18" fill="#131A2D" stroke="#7AA2FF"/>
+  <text x="190" y="145" text-anchor="middle" fill="#EEF2FF" font-size="28" font-family="Arial">사용자</text>
+  <text x="190" y="182" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">웹 대시보드 / 메신저</text>
+
+  <rect x="380" y="70" width="440" height="160" rx="20" fill="#131A2D" stroke="#8EF2C2"/>
+  <text x="600" y="115" text-anchor="middle" fill="#EEF2FF" font-size="30" font-family="Arial">AI Router</text>
+  <text x="600" y="150" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">수동 선택 + 자동 추천(Hybrid)</text>
+  <text x="600" y="182" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">작업 유형 / 비용 / 복잡도 기준 분기</text>
+
+  <rect x="320" y="300" width="260" height="140" rx="18" fill="#131A2D" stroke="#7AA2FF"/>
+  <text x="450" y="350" text-anchor="middle" fill="#EEF2FF" font-size="30" font-family="Arial">n8n</text>
+  <text x="450" y="388" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">반복 업무 / 알림 / 연동</text>
+  <text x="450" y="415" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">안정성 우선</text>
+
+  <rect x="620" y="300" width="260" height="140" rx="18" fill="#131A2D" stroke="#FFD479"/>
+  <text x="750" y="350" text-anchor="middle" fill="#EEF2FF" font-size="30" font-family="Arial">OpenClaw</text>
+  <text x="750" y="388" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">비서형 / 복합 판단 / 에이전트</text>
+  <text x="750" y="415" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">실험/고급 작업</text>
+
+  <rect x="200" y="530" width="220" height="110" rx="18" fill="#131A2D" stroke="#263251"/>
+  <text x="310" y="575" text-anchor="middle" fill="#EEF2FF" font-size="28" font-family="Arial">Gemini</text>
+  <text x="310" y="610" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">비용 우선</text>
+
+  <rect x="490" y="530" width="220" height="110" rx="18" fill="#131A2D" stroke="#263251"/>
+  <text x="600" y="575" text-anchor="middle" fill="#EEF2FF" font-size="28" font-family="Arial">ChatGPT</text>
+  <text x="600" y="610" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">균형형</text>
+
+  <rect x="780" y="530" width="220" height="110" rx="18" fill="#131A2D" stroke="#263251"/>
+  <text x="890" y="575" text-anchor="middle" fill="#EEF2FF" font-size="28" font-family="Arial">Claude</text>
+  <text x="890" y="610" text-anchor="middle" fill="#AAB4D6" font-size="18" font-family="Arial">문서/정리형</text>
+
+  <path d="M300 155H380" stroke="#7AA2FF" stroke-width="4"/>
+  <path d="M600 230V270" stroke="#8EF2C2" stroke-width="4"/>
+  <path d="M600 270H450V300" stroke="#7AA2FF" stroke-width="4"/>
+  <path d="M600 270H750V300" stroke="#FFD479" stroke-width="4"/>
+
+  <path d="M450 440V490H310V530" stroke="#7AA2FF" stroke-width="4"/>
+  <path d="M600 230V490H600V530" stroke="#8EF2C2" stroke-width="4"/>
+  <path d="M750 440V490H890V530" stroke="#FFD479" stroke-width="4"/>
+
+  <text x="1020" y="120" fill="#8EF2C2" font-size="20" font-family="Arial">3번 방식 포함</text>
+  <text x="1020" y="152" fill="#AAB4D6" font-size="16" font-family="Arial">Hybrid 자동 추천</text>
+  <text x="1020" y="178" fill="#AAB4D6" font-size="16" font-family="Arial">+ 수동 override</text>
+</svg>

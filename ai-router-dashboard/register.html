@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원가입 - spagenio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "맑은 고딕", "Segoe UI", sans-serif;
+      background: #f4f5f7; color: #111827;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+    }
+    .logo-area { text-align: center; margin-bottom: 20px; }
+    .logo-area h1 { font-size: 1.8rem; font-weight: 900; color: #6366f1; letter-spacing: -1px; }
+    .logo-area p { color: #6b7280; font-size: 0.87rem; margin-top: 4px; }
+    .box {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+      padding: 32px 36px 28px; width: 100%; max-width: 460px;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.08);
+    }
+    .steps { display: flex; align-items: center; justify-content: center; margin-bottom: 28px; }
+    .step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .step-dot {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 2px solid #e5e7eb; color: #9ca3af;
+      font-size: 0.82rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .step-dot.active { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
+    .step-dot.done { border-color: #10b981; background: #10b981; color: #fff; }
+    .step-label { font-size: 0.72rem; color: #9ca3af; white-space: nowrap; }
+    .step-label.active { color: #6366f1; font-weight: 700; }
+    .step-line { width: 48px; height: 2px; background: #e5e7eb; margin: 0 4px; margin-bottom: 18px; }
+    .step-line.done { background: #10b981; }
+    .step-section { display: none; }
+    .step-section.active { display: block; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.83rem; font-weight: 700; color: #374151; margin-bottom: 6px; }
+    .form-group .hint { font-size: 0.78rem; color: #9ca3af; margin-top: 5px; }
+    input[type="text"], input[type="email"], input[type="password"] {
+      width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px;
+      padding: 11px 14px; font-size: 0.92rem; color: #111827;
+      background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    input:disabled { background: #f9fafb; color: #9ca3af; }
+    input.verified { border-color: #10b981; background: #f0fdf4; }
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .btn {
+      width: 100%; background: #6366f1; color: #fff; border: none;
+      border-radius: 8px; padding: 13px; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn:hover { background: #4f46e5; }
+    .btn:disabled { background: #c7d2fe; cursor: not-allowed; }
+    .btn-sm {
+      padding: 10px 14px; background: #6366f1; color: #fff;
+      border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+    }
+    .btn-sm:hover { background: #4f46e5; }
+    .btn-sm:disabled { background: #c7d2fe; cursor: not-allowed; }
+    .btn-sm.secondary { background: #fff; color: #6b7280; border: 1.5px solid #e5e7eb; }
+    .btn-sm.secondary:disabled { opacity: 0.5; }
+    .btn-outline {
+      width: 100%; background: transparent; color: #9ca3af;
+      border: none; padding: 10px; font-size: 0.88rem;
+      cursor: pointer; margin-top: 8px; text-decoration: underline;
+    }
+    .btn-outline:hover { color: #6366f1; }
+    .msg { display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.87rem; margin-bottom: 14px; }
+    .msg.show { display: block; }
+    .msg.error { background: #fff0f0; border: 1px solid #fecaca; color: #dc2626; }
+    .msg.success { background: #f0fdf4; border: 1px solid #a7f3d0; color: #065f46; }
+    .timer { font-size: 0.8rem; margin-top: 5px; }
+    .timer.ok { color: #6366f1; }
+    .timer.expired { color: #ef4444; }
+    .verified-badge {
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px; background: #f0fdf4; border: 1px solid #a7f3d0;
+      border-radius: 8px; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 12px;
+    }
+    .pw-strength-bar { height: 4px; background: #f3f4f6; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+    .pw-strength-fill { height: 100%; width: 0; border-radius: 4px; transition: all 0.3s; }
+    .pw-checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .pw-check { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #9ca3af; }
+    .pw-check .dot { width: 7px; height: 7px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; }
+    .pw-check.pass { color: #10b981; }
+    .pw-check.pass .dot { background: #10b981; }
+    .pw-check.fail { color: #ef4444; }
+    .pw-check.fail .dot { background: #ef4444; }
+    .confirm-msg { font-size: 0.82rem; margin-top: 5px; }
+    .footer { margin-top: 20px; text-align: center; color: #9ca3af; font-size: 0.75rem; }
+
+    @media(max-width:480px) {
+      .box { padding: 24px 18px 20px; margin: 10px; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="logo-area">
+    <h1>🚀 spagenio</h1>
+    <p>회원가입</p>
+  </div>
+  <div class="box">
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-label active" id="label1">이메일 인증</div>
+      </div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-item">
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-label" id="label2">계정 정보</div>
+      </div>
+      <div class="step-line" id="line2"></div>
+      <div class="step-item">
+        <div class="step-dot" id="dot3">3</div>
+        <div class="step-label" id="label3">완료</div>
+      </div>
+    </div>
+
+    <div id="globalMsg" class="msg"></div>
+
+    <!-- Step 1: 이메일 인증 -->
+    <div class="step-section active" id="section1">
+      <div class="form-group">
+        <label>이메일</label>
+        <div class="input-row">
+          <input type="email" id="email" placeholder="example@gmail.com" />
+          <button class="btn-sm" id="sendEmailBtn" onclick="sendEmailCode()">인증코드 발송</button>
+        </div>
+        <p class="hint">비밀번호 찾기 시 사용됩니다</p>
+      </div>
+      <div id="codeSection" style="display:none;">
+        <div class="form-group">
+          <label>인증코드</label>
+          <div class="input-row">
+            <input type="text" id="emailCode" placeholder="6자리 입력" maxlength="6"
+              style="letter-spacing:4px;text-align:center;font-size:1.2rem;" />
+            <button class="btn-sm secondary" id="resendBtn" onclick="sendEmailCode(true)" disabled>재발송</button>
+          </div>
+          <p class="timer ok" id="codeTimer"></p>
+        </div>
+        <button class="btn" onclick="verifyEmailCode()">인증 확인</button>
+      </div>
+      <div id="emailVerifiedMsg" style="display:none;">
+        <div class="verified-badge">✅ 이메일 인증 완료</div>
+        <button class="btn" onclick="goStep(2)">다음 →</button>
+      </div>
+      <button class="btn-outline" onclick="location.href='/login'">← 로그인으로 돌아가기</button>
+    </div>
+
+    <!-- Step 2: 계정 정보 -->
+    <div class="step-section" id="section2">
+      <div class="form-group">
+        <label>아이디</label>
+        <input type="text" id="username" placeholder="영문, 숫자 3자 이상" />
+        <p class="hint">영문, 숫자 3자 이상</p>
+      </div>
+      <div class="form-group">
+        <label>비밀번호</label>
+        <input type="password" id="password" placeholder="비밀번호 입력" oninput="checkStrength()" />
+        <div class="pw-strength-bar"><div class="pw-strength-fill" id="strengthFill"></div></div>
+        <div class="pw-checks">
+          <div class="pw-check" id="chk-len"><div class="dot"></div>8자 이상</div>
+          <div class="pw-check" id="chk-upper"><div class="dot"></div>대문자 포함</div>
+          <div class="pw-check" id="chk-lower"><div class="dot"></div>소문자 포함</div>
+          <div class="pw-check" id="chk-num"><div class="dot"></div>숫자 포함</div>
+          <div class="pw-check" id="chk-special"><div class="dot"></div>특수문자 포함</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>비밀번호 확인</label>
+        <input type="password" id="passwordConfirm" placeholder="비밀번호 재입력" oninput="checkConfirm()" />
+        <p class="confirm-msg" id="confirmMsg"></p>
+      </div>
+      <button class="btn" id="registerBtn" onclick="register()">가입하기</button>
+      <button class="btn-outline" onclick="goStep(1)">← 이전</button>
+    </div>
+  </div>
+  <div class="footer">© 2026 spagenio. All rights reserved.</div>
+
+  <script>
+    let emailVerified = false;
+    let timerInterval = null;
+
+    function goStep(n) {
+      document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('section' + n).classList.add('active');
+      clearMsg();
+      for (let i = 1; i <= 3; i++) {
+        const dot = document.getElementById('dot' + i);
+        const label = document.getElementById('label' + i);
+        if (i < n) { dot.className = 'step-dot done'; dot.textContent = '✓'; }
+        else if (i === n) { dot.className = 'step-dot active'; dot.textContent = i; }
+        else { dot.className = 'step-dot'; dot.textContent = i; }
+        label.className = 'step-label' + (i === n ? ' active' : '');
+        if (i <= 2) document.getElementById('line' + i).className = 'step-line' + (i < n ? ' done' : '');
+      }
+    }
+
+    async function sendEmailCode(resend = false) {
+      const email = document.getElementById('email').value.trim();
+      if (!email) { showMsg('error', '이메일을 입력해주세요.'); return; }
+      const btn = resend ? document.getElementById('resendBtn') : document.getElementById('sendEmailBtn');
+      btn.disabled = true; btn.textContent = '발송 중...';
+      try {
+        const res = await fetch('/api/auth/send-email-code', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('email').disabled = true;
+          document.getElementById('codeSection').style.display = 'block';
+          document.getElementById('emailVerifiedMsg').style.display = 'none';
+          showMsg('success', data.message);
+          startTimer(60);
+          setTimeout(() => { document.getElementById('resendBtn').disabled = false; document.getElementById('resendBtn').textContent = '재발송'; }, 60000);
+          btn.textContent = '재발송';
+        } else {
+          showMsg('error', data.error || '발송 실패');
+          btn.disabled = false; btn.textContent = resend ? '재발송' : '인증코드 발송';
+        }
+      } catch(e) {
+        showMsg('error', '서버 연결 오류');
+        btn.disabled = false; btn.textContent = resend ? '재발송' : '인증코드 발송';
+      }
+    }
+
+    function startTimer(sec) {
+      if (timerInterval) clearInterval(timerInterval);
+      const el = document.getElementById('codeTimer');
+      const update = () => {
+        el.textContent = '남은 시간: ' + sec + '초';
+        el.className = 'timer ' + (sec > 10 ? 'ok' : 'expired');
+        if (sec-- <= 0) {
+          clearInterval(timerInterval);
+          el.textContent = '인증코드가 만료됐습니다. 재발송해주세요.';
+          el.className = 'timer expired';
+        }
+      };
+      update(); timerInterval = setInterval(update, 1000);
+    }
+
+    async function verifyEmailCode() {
+      const email = document.getElementById('email').value.trim();
+      const code = document.getElementById('emailCode').value.trim();
+      if (code.length !== 6) { showMsg('error', '6자리 인증코드를 입력해주세요.'); return; }
+      try {
+        const res = await fetch('/api/auth/verify-email-code', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          clearInterval(timerInterval); emailVerified = true;
+          document.getElementById('codeSection').style.display = 'none';
+          document.getElementById('emailVerifiedMsg').style.display = 'block';
+          document.getElementById('emailCode').classList.add('verified');
+          showMsg('success', '✅ ' + data.message);
+        } else { showMsg('error', data.error || '인증 실패'); }
+      } catch(e) { showMsg('error', '서버 연결 오류'); }
+    }
+
+    function checkStrength() {
+      const pw = document.getElementById('password').value;
+      const c = { len: pw.length >= 8, upper: /[A-Z]/.test(pw), lower: /[a-z]/.test(pw), num: /[0-9]/.test(pw), special: /[!@#$%^&*()_+={}|;<>?]/.test(pw) };
+      Object.entries(c).forEach(([k, v]) => {
+        const el = document.getElementById('chk-' + k);
+        if (el) el.className = 'pw-check' + (v ? ' pass' : pw.length > 0 ? ' fail' : '');
+      });
+      const cnt = Object.values(c).filter(Boolean).length;
+      const fill = document.getElementById('strengthFill');
+      fill.style.width = (cnt / 5 * 100) + '%';
+      fill.style.background = cnt <= 2 ? '#ef4444' : cnt <= 4 ? '#f59e0b' : '#10b981';
+      checkConfirm();
+    }
+
+    function checkConfirm() {
+      const pw = document.getElementById('password').value;
+      const cf = document.getElementById('passwordConfirm').value;
+      const msg = document.getElementById('confirmMsg');
+      if (!cf) { msg.textContent = ''; return; }
+      if (pw === cf) { msg.textContent = '✅ 비밀번호가 일치합니다'; msg.style.color = '#10b981'; }
+      else { msg.textContent = '❌ 비밀번호가 일치하지 않습니다'; msg.style.color = '#ef4444'; }
+    }
+
+    async function register() {
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const passwordConfirm = document.getElementById('passwordConfirm').value;
+      const btn = document.getElementById('registerBtn');
+      if (!username || username.length < 3) { showMsg('error', '아이디는 3자 이상이어야 합니다.'); return; }
+      if (password !== passwordConfirm) { showMsg('error', '비밀번호가 일치하지 않습니다.'); return; }
+      const pwOk = password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[!@#$%^&*()_+={}|;<>?]/.test(password);
+      if (!pwOk) { showMsg('error', '비밀번호 조건을 모두 충족해야 합니다.'); return; }
+      btn.disabled = true; btn.textContent = '처리 중...';
+      try {
+        const termsData = JSON.parse(sessionStorage.getItem('terms_agree') || '{}');
+        const res = await fetch('/api/auth/register', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username, password, email, invite_code: 'SKIP',
+            agree_terms: termsData.agree_terms || false,
+            agree_privacy: termsData.agree_privacy || false,
+            agree_investment: termsData.agree_investment || false,
+            agree_marketing: termsData.agree_marketing || false
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          sessionStorage.removeItem('terms_agree');
+          location.href = '/register-complete.html';
+        } else {
+          showMsg('error', data.error || '가입 중 오류가 발생했습니다.');
+          btn.disabled = false; btn.textContent = '가입하기';
+        }
+      } catch(e) {
+        showMsg('error', '서버 연결 오류');
+        btn.disabled = false; btn.textContent = '가입하기';
+      }
+    }
+
+    function showMsg(type, text) {
+      const el = document.getElementById('globalMsg');
+      el.textContent = text; el.className = 'msg ' + type + ' show';
+    }
+    function clearMsg() { document.getElementById('globalMsg').className = 'msg'; }
+  </script>
+</body>
+</html>

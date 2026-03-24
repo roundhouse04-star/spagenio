@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>spagenio</title>
+  <link rel="stylesheet" href="/style.css?v=20260322" />
+  <!-- Chart.js - MIT License, 완전 무료 오픈소스 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: #f1f3f5; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, "맑은 고딕", "Segoe UI", sans-serif; }
+    .sp-header { height: 58px; display: flex; align-items: stretch; justify-content: space-between; background: #fff; border-bottom: 2px solid #e5e7eb; padding: 0 28px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .sp-header-left { display: flex; align-items: stretch; }
+    .sp-logo { display: flex; align-items: center; gap: 8px; padding: 0 24px 0 0; margin-right: 8px; border-right: 1px solid #e5e7eb; }
+    .sp-logo span { font-size: 1.18rem; font-weight: 900; color: #6366f1; letter-spacing: -0.5px; }
+    .sp-header-right { display: flex; align-items: center; gap: 8px; }
+    .tab-btn { padding: 0 22px; height: 100%; border-radius: 0; font-size: 0.92rem; font-weight: 600; border: none !important; border-bottom: 3px solid transparent !important; background: transparent !important; color: #6b7280 !important; cursor: pointer; transition: color .15s, border-color .15s; }
+    .tab-btn:hover { color: #374151 !important; transform: none; }
+    .tab-btn.active { color: #6366f1 !important; font-weight: 800 !important; border-bottom: 3px solid #6366f1 !important; }
+    .tab-content { display: none; }
+    .sp-page { max-width: 1400px; margin: 0 auto; padding: 28px 24px 48px; }
+    .sp-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 20px; }
+    .sp-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #f3f4f6; flex-wrap: wrap; gap: 10px; }
+    .sp-card-title { font-size: 1.02rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    .sp-badge { font-size: 0.72rem; padding: 3px 10px; border-radius: 999px; font-weight: 700; background: #eef2ff; color: #6366f1; }
+    .sp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .sp-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .sp-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    /* ===== 태블릿 (1024px 이하) ===== */
+    @media(max-width:1024px) {
+      .sp-grid-4 { grid-template-columns: repeat(2,1fr); }
+      .sp-grid-3 { grid-template-columns: 1fr 1fr; }
+      .sp-grid-2 { grid-template-columns: 1fr; }
+      .sp-page { padding: 20px 18px 40px; }
+    }
+
+    /* ===== 모바일 (768px 이하) ===== */
+    @media(max-width:768px) {
+      .sp-grid-2, .sp-grid-3, .sp-grid-4 { grid-template-columns: 1fr; }
+      .sp-page { padding: 14px 12px 32px; }
+      .sp-card { padding: 16px 14px; margin-bottom: 14px; }
+      .sp-card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .sp-card-header > div:last-child { width: 100%; }
+      .sp-header { padding: 0 14px; }
+      .sp-logo span { font-size: 1rem; }
+      .tab-btn { padding: 0 12px; font-size: 0.82rem; }
+      .sp-header-right button { font-size: 0.72rem; padding: 5px 8px; }
+      .sp-header-right span { display: none; }
+      /* 주식 입력 */
+      .sp-card .sp-card-header div[style*="display:flex"] { flex-wrap: wrap; width: 100%; }
+      .sp-card .sp-card-header input { width: 100% !important; }
+      /* 폼 */
+      .sp-form-group textarea { font-size: 0.85rem; }
+      .sp-input, .sp-select { font-size: 0.88rem; padding: 9px 12px; }
+      .sp-btn { padding: 9px 14px; font-size: 0.84rem; }
+      /* 차트 팝업 */
+      #chartPopup > div { width: 96vw !important; max-height: 94vh; overflow-y: auto; }
+      /* 테이블 */
+      .sp-table { font-size: 0.78rem; }
+      .sp-table th, .sp-table td { padding: 8px 10px; }
+      /* Alpaca 폼 */
+      #alpacaKeyForm .sp-grid-2 { grid-template-columns: 1fr; }
+      /* 뉴스탭 */
+      .sp-inner-tabs { gap: 4px; }
+      .sp-inner-tab { padding: 5px 10px; font-size: 0.78rem; }
+    }
+
+    /* ===== 소형 모바일 (480px 이하) ===== */
+    @media(max-width:480px) {
+      .sp-header { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
+      .sp-header-left { width: 100%; justify-content: space-between; }
+      .sp-header-right { width: 100%; justify-content: flex-end; border-top: 1px solid #e5e7eb; padding-top: 6px; }
+      .tab-btn { padding: 6px 10px; font-size: 0.8rem; height: auto; border-bottom: none !important; border-radius: 6px; }
+      .tab-btn.active { background: #eef2ff !important; border-bottom: none !important; }
+      .sp-logo { border-right: none; padding-right: 0; }
+      .sp-card-title { font-size: 0.9rem; }
+      .sp-grid-3 { grid-template-columns: 1fr; }
+      .sp-btn-sm { padding: 5px 10px; font-size: 0.76rem; }
+    }
+    .sp-input { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; color: #111827; background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+    .sp-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .sp-select { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; color: #111827; background: #fff; outline: none; cursor: pointer; }
+    .sp-label { font-size: 0.82rem; font-weight: 700; color: #374151; display: block; margin-bottom: 6px; }
+    .sp-form-group { margin-bottom: 14px; }
+    .sp-btn { padding: 9px 18px; border-radius: 8px; border: none; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .sp-btn:hover { transform: translateY(-1px); }
+    .sp-btn-green { background: #10b981; color: #fff; }
+    .sp-btn-green:hover { background: #059669; }
+    .sp-btn-indigo { background: #6366f1; color: #fff; }
+    .sp-btn-indigo:hover { background: #4f46e5; }
+    .sp-btn-red { background: #ef4444; color: #fff; }
+    .sp-btn-red:hover { background: #dc2626; }
+    .sp-btn-outline { background: #fff; color: #6b7280; border: 1.5px solid #e5e7eb !important; }
+    .sp-btn-outline:hover { border-color: #10b981 !important; color: #10b981; }
+    .sp-btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .sp-result { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; font-size: 0.88rem; color: #374151; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .sp-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    .sp-table th { text-align: left; padding: 10px 14px; border-bottom: 2px solid #f3f4f6; color: #6b7280; font-weight: 700; font-size: 0.8rem; }
+    .sp-table td { padding: 11px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    .sp-table tr:last-child td { border-bottom: none; }
+    .sp-table tr:hover td { background: #f8fafc; }
+    .sp-empty { text-align: center; padding: 32px; color: #9ca3af; font-size: 0.88rem; }
+    .sp-inner-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .sp-inner-tab { padding: 6px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; border: 1.5px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; transition: all 0.15s; }
+    .sp-inner-tab.active, .sp-inner-tab:hover { background: #eef2ff; border-color: #6366f1; color: #6366f1; }
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #e5e7eb; border-radius: 22px; transition: .3s; }
+    .toggle-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+    input:checked + .toggle-slider { background: #10b981; }
+    input:checked + .toggle-slider:before { transform: translateX(18px); }
+    .price-card { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
+    .price-card .sym { font-weight: 800; font-size: 0.95rem; color: #0f172a; }
+    .price-card .prc { font-size: 1.2rem; font-weight: 800; color: #6366f1; margin: 4px 0; }
+    .price-card .chg { font-size: 0.8rem; font-weight: 700; }
+    .price-card .up { color: #10b981; }
+    .price-card .dn { color: #ef4444; }
+    .account-metric { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; text-align: center; }
+    .account-metric .lbl { font-size: 0.76rem; color: #6b7280; font-weight: 600; margin-bottom: 6px; }
+    .account-metric .val { font-size: 1.1rem; font-weight: 800; color: #0f172a; }
+    .signal-buy { background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+    .signal-sell { background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+    .signal-hold { background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+    .sp-divider { border: none; border-top: 2px solid #f3f4f6; margin: 16px 0; }
+    .news-mode-status.on { color: #10b981 !important; }
+    .news-mode-status.off { color: #9ca3af !important; }
+  /* ===== 차트 팝업 ===== */
+  #chartPopup {
+    display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.55); z-index:9999;
+    align-items:center; justify-content:center;
+  }
+  #chartPopup.open { display:flex; }
+  .chart-modal {
+    background:#fff; border-radius:16px; width:92%; max-width:1000px;
+    max-height:90vh; overflow-y:auto; padding:28px 28px 24px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.25);
+    position:relative;
+  }
+  .chart-modal-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid #f3f4f6;
+  }
+  .chart-modal-title { font-size:1.15rem; font-weight:900; color:#0f172a; }
+  .chart-close-btn {
+    width:32px; height:32px; border-radius:50%; background:#f3f4f6;
+    border:none; cursor:pointer; font-size:1.1rem; display:flex;
+    align-items:center; justify-content:center; color:#6b7280;
+  }
+  .chart-close-btn:hover { background:#e5e7eb; }
+  .chart-period-btns { display:flex; gap:6px; margin-bottom:16px; }
+  .chart-period-btn {
+    padding:5px 14px; border-radius:999px; font-size:0.8rem; font-weight:700;
+    border:1.5px solid #e5e7eb; background:#fff; color:#6b7280; cursor:pointer;
+  }
+  .chart-period-btn.active { background:#eef2ff; border-color:#6366f1; color:#6366f1; }
+  .chart-section { margin-bottom:20px; }
+  .chart-section-title { font-size:0.82rem; font-weight:700; color:#6b7280; margin-bottom:8px; }
+
+  /* 차트 모달 모바일 */
+  @media(max-width:768px) {
+    .chart-modal {
+      width: 98vw !important;
+      max-height: 92vh !important;
+      padding: 18px 14px 16px !important;
+      border-radius: 12px !important;
+    }
+    .chart-modal-title { font-size: 0.95rem !important; }
+    .chart-period-btn { padding: 4px 10px; font-size: 0.75rem; }
+  }
+
+  /* 주식 가격 카드 모바일 */
+  @media(max-width:640px) {
+    .price-card .prc { font-size: 1rem; }
+    .account-metric .val { font-size: 0.95rem; }
+  }
+
+  /* 퀀트 테이블 모바일 스크롤 */
+  @media(max-width:768px) {
+    #quantBatchResult, #quantResult, #koreaResult {
+      overflow-x: auto;
+    }
+    #quantBatchResult table, #quantResult table, #koreaResult table {
+      min-width: 500px;
+    }
+    /* 필터 행 세로 정렬 */
+    .sp-filter-row { flex-direction: column; align-items: flex-start; }
+    .sp-filter-row .sp-select { width: 100% !important; }
+  }
+  </style>
+</head>
+<body>
+
+  <!-- 헤더 -->
+  <header class="sp-header">
+    <div class="sp-header-left">
+      <div class="sp-logo">
+        <span style="font-size:1.4rem;">🚀</span>
+        <span>spagenio</span>
+      </div>
+      <button class="tab-btn active" id="tab-btn-ai" data-tab="ai">📰 News</button>
+      <button class="tab-btn" id="tab-btn-stock" data-tab="stock">📈 Stocks</button>
+      <button class="tab-btn" id="tab-btn-quant" data-tab="quant">📊 Quant</button>
+    </div>
+    <div class="sp-header-right">
+      <span id="headerUsername" style="color:#9ca3af;font-size:0.82rem;"></span>
+      <button onclick="location.href='/change-password'" style="background:transparent;border:1px solid #e5e7eb;border-radius:8px;padding:6px 12px;color:#6b7280;cursor:pointer;font-size:0.8rem;font-weight:600;">🔒 Change Password</button>
+      <button onclick="logout()" style="background:#fff0f0;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;color:#ef4444;cursor:pointer;font-size:0.8rem;font-weight:700;">Logout</button>
+    </div>
+  </header>
+
+  <!-- ===== News Tab ===== -->
+  <div id="tab-ai" class="tab-content" style="display:block;">
+    <div class="sp-page">
+
+      <!-- Search Card -->
+      <div class="sp-card">
+        <!-- 헤더: 타이틀 + 버튼들 -->
+        <div class="sp-card-header">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="sp-card-title">🔍 News Search <span class="sp-badge">AI Router</span></div>
+            <!-- 상세조회 버튼 -->
+            <div style="position:relative;">
+              <button onclick="toggleAdvancedFilter()" class="sp-btn sp-btn-outline sp-btn-sm" id="advFilterBtn">⚙️ Filter</button>
+              <!-- 상세조회 드롭다운 -->
+              <div id="advFilterPanel" style="display:none;position:absolute;top:36px;left:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:16px 18px;box-shadow:0 8px 24px rgba(0,0,0,0.1);z-index:200;min-width:280px;">
+                <div style="font-size:0.82rem;font-weight:700;color:#374151;margin-bottom:10px;">📅 Date Range</div>
+                <select id="newsDateFilter" onchange="applyNewsFilter()" class="sp-select" style="margin-bottom:12px;">
+                  <option value="all">All Time</option>
+                </select>
+                <div style="font-size:0.82rem;font-weight:700;color:#374151;margin-bottom:10px;">📋 Source</div>
+                <select id="newsTypeFilter" onchange="applyNewsFilter()" class="sp-select" style="margin-bottom:4px;">
+                  <option value="all">All Sources</option>
+                  <option value="rss">📡 RSS Only</option>
+                  <option value="claude">🤖 Claude</option>
+                  <option value="gpt">🟢 GPT</option>
+                </select>
+                <div style="margin-top:10px;text-align:right;">
+                  <button onclick="toggleAdvancedFilter()" class="sp-btn sp-btn-outline sp-btn-sm">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 우측: 서비스종류 + Search DB + Fetch Today -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <select id="preferredModel" class="sp-select" onchange="onModelChange(this.value)" style="width:130px;">
+              <option value="rss">📡 RSS</option>
+              <option value="claude" selected>🤖 Claude</option>
+              <option value="gpt">🟢 GPT</option>
+            </select>
+            <button onclick="runNewsSearch()" class="sp-btn sp-btn-outline" id="searchBtn">🔍 Search DB</button>
+            <button onclick="fetchTodayNews()" class="sp-btn sp-btn-green" id="fetchTodayBtn">📡 Fetch Today</button>
+          </div>
+        </div>
+
+        <!-- Request + Settings -->
+        <div class="sp-grid-2" style="margin-bottom:16px;">
+          <div id="requestGroup">
+            <label class="sp-label">Request <span id="rssHint" style="display:none;font-size:0.76rem;color:#10b981;font-weight:600;">(RSS mode — no AI)</span></label>
+            <textarea id="userRequest" rows="4" class="sp-input" placeholder="e.g. Summarize today's semiconductor news..." style="resize:vertical;"></textarea>
+            <p style="font-size:0.76rem;color:#9ca3af;margin-top:6px;">⌘/Ctrl + Enter to search instantly.</p>
+          </div>
+          <!-- HIDDEN: Task Type / Complexity / Engine
+          <div>
+            <div class="sp-grid-2" style="margin-bottom:10px;">
+              <div>
+                <label class="sp-label">Task Type</label>
+                <select id="taskType" class="sp-select">...</select>
+              </div>
+              <div>
+                <label class="sp-label">Complexity</label>
+                <select id="taskComplexity" class="sp-select">...</select>
+              </div>
+            </div>
+            <div class="sp-grid-2">
+              <div>
+                <label class="sp-label">Engine</label>
+                <select id="preferredEngine" class="sp-select">...</select>
+              </div>
+            </div>
+          </div>
+          -->
+          <!-- hidden inputs for JS compatibility -->
+          <div style="display:none;">
+            <select id="taskType"><option value="news" selected>News Summary</option></select>
+            <select id="taskComplexity"><option value="medium" selected>Medium</option></select>
+            <select id="preferredEngine"><option value="hybrid" selected>Hybrid Auto</option></select>
+            <span id="newsCount"></span>
+          </div>
+        </div>
+        <!-- hidden: claudeAnalysisToggle 유지 (JS 호환) -->
+        <input type="checkbox" id="claudeAnalysisToggle" style="display:none;" />
+        <span id="claudeAnalysisStatus" style="display:none;"></span>
+      </div>
+
+      <!-- Results Card -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">📋 Results</div>
+          <div class="sp-inner-tabs" style="margin-bottom:0;">
+            <button class="sp-inner-tab active news-tab-btn" onclick="filterNewsByCategory('all', this)">All</button>
+            <button class="sp-inner-tab news-tab-btn" onclick="filterNewsByCategory('global', this)">🌍 Global</button>
+            <button class="sp-inner-tab news-tab-btn" onclick="filterNewsByCategory('korea', this)">🇰🇷 Korea</button>
+            <button class="sp-inner-tab news-tab-btn" onclick="filterNewsByCategory('it', this)">💻 IT</button>
+            <button class="sp-inner-tab news-tab-btn" onclick="filterNewsByCategory('economy', this)">💰 Economy</button>
+          </div>
+        </div>
+
+        <!-- AI 응답 결과 (검색 실행 시) -->
+        <div id="aiResultWrap" style="display:none;margin-bottom:20px;">
+          <div style="font-size:0.82rem;font-weight:700;color:#6b7280;margin-bottom:8px;">🤖 AI Response</div>
+          <pre id="output" class="sp-result" style="min-height:80px;"></pre>
+        </div>
+
+        <!-- 뉴스피드 -->
+        <div id="newsContent">
+          <div class="sp-empty">Click Search to fetch news and AI analysis.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+    <!-- ===== 주식 탭 ===== -->
+  <div id="tab-stock" class="tab-content" style="display:none;">
+    <div class="sp-page">
+
+      <!-- Alpaca 계좌 관리 -->
+      <div class="sp-card" id="alpacaKeyCard">
+        <div class="sp-card-header">
+          <div class="sp-card-title">🔑 Alpaca Account</div>
+          <button onclick="toggleAlpacaKeyForm()" id="alpacaKeyToggleBtn" class="sp-btn sp-btn-indigo sp-btn-sm">+ Add Account</button>
+        </div>
+        <div id="alpacaAccountList"></div>
+        <div id="alpacaKeyForm" style="display:none;margin-top:16px;border-top:1px solid #f3f4f6;padding-top:18px;">
+          <div style="font-weight:800;font-size:0.9rem;color:#374151;margin-bottom:14px;">New Account</div>
+          <div class="sp-grid-2" style="margin-bottom:12px;">
+            <div>
+              <label class="sp-label">Account Name</label>
+              <input type="text" id="inputAccountName" placeholder="e.g. Paper Trading, Live Trading" class="sp-input" />
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:2px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.87rem;font-weight:600;color:#374151;">
+                <input type="checkbox" id="inputAlpacaPaper" checked style="width:16px;height:16px;accent-color:#6366f1;" />
+                Paper Trading (Test Mode)
+              </label>
+            </div>
+          </div>
+          <div class="sp-grid-2" style="margin-bottom:14px;">
+            <div>
+              <label class="sp-label">Alpaca API Key</label>
+              <input type="text" id="inputAlpacaKey" placeholder="PK..." class="sp-input" style="font-size:0.78rem;letter-spacing:0.5px;" />
+            </div>
+            <div>
+              <label class="sp-label">Alpaca Secret Key</label>
+              <input type="password" id="inputAlpacaSecret" placeholder="Secret Key..." class="sp-input" style="font-size:0.78rem;letter-spacing:0.5px;" />
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="saveAlpacaKeys()" class="sp-btn sp-btn-indigo" style="flex:1;">Save</button>
+            <button onclick="toggleAlpacaKeyForm()" class="sp-btn sp-btn-outline">Cancel</button>
+          </div>
+          <div id="alpacaKeyMsg" style="font-size:0.85rem;display:none;margin-top:10px;padding:10px 14px;border-radius:8px;"></div>
+        </div>
+      </div>
+
+      <!-- 계좌 정보 + 가격 Search -->
+      <div class="sp-grid-2">
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">💰 Account Info</div>
+            <button onclick="loadAccount()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+          </div>
+          <div id="accountCards" class="sp-grid-4"></div>
+        </div>
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📊 Stock Prices</div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="stockSymbols" value="AAPL,MSFT,NVDA,TSLA,GOOGL" class="sp-input" style="width:220px;" />
+              <button onclick="loadPrices()" class="sp-btn sp-btn-green">Search</button>
+            </div>
+          </div>
+          <div id="priceCards" class="sp-grid-3"></div>
+          <div id="priceChartWrap" style="display:none;margin-top:16px;">
+            <canvas id="priceChart" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 매수/매도 + 보유Symbol -->
+      <div class="sp-grid-2">
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">🔄 Buy / Sell</div>
+          </div>
+          <div class="sp-grid-2" style="margin-bottom:14px;">
+            <div>
+              <label class="sp-label">Symbol</label>
+              <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" />
+            </div>
+            <div>
+              <label class="sp-label">Qty</label>
+              <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <button onclick="buyStock()" class="sp-btn" style="flex:1;background:#10b981;color:#fff;font-weight:700;">📈 Buy</button>
+            <button onclick="sellStock()" class="sp-btn" style="flex:1;background:#ef4444;color:#fff;font-weight:700;">📉 Sell</button>
+          </div>
+          <label class="sp-label">Trade Result</label>
+          <pre id="tradeResult" class="sp-result" style="min-height:80px;">Waiting for trade...</pre>
+        </div>
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📋 Positions</div>
+            <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+          </div>
+          <div id="positionsTable"></div>
+        </div>
+      </div>
+
+      <!-- 주문 내역 -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">📝 Orders</div>
+          <button onclick="loadOrders()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+        </div>
+        <div id="ordersTable"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 퀀트 탭 ===== -->
+  <div id="tab-quant" class="tab-content" style="display:none;">
+    <div class="sp-page">
+
+      <!-- Symbol 분석 + Batch Analyze -->
+      <div class="sp-grid-2">
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📊 Quant Symbol 분석</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+            <input type="text" id="quantSymbol" placeholder="Symbol (e.g. AAPL)" value="AAPL" class="sp-input" style="flex:1;" />
+            <select id="quantStrategy" class="sp-select" style="width:160px;">
+              <option value="combined">Combined</option>
+              <option value="rsi">RSI</option>
+              <option value="bb">Bollinger Bands</option>
+              <option value="sma">SMA</option>
+              <option value="macd">MACD</option>
+            </select>
+            <button onclick="runQuantAnalysis()" class="sp-btn sp-btn-green">Analyze</button>
+          </div>
+          <div id="quantResult"></div>
+          <div id="quantChartWrap" style="display:none;margin-top:16px;">
+            <canvas id="quantChart" height="180"></canvas>
+          </div>
+        </div>
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">🔍 Batch Analysis</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+            <input type="text" id="quantBatchSymbols" placeholder="Symbols (comma separated)" value="AAPL,NVDA,MSFT,TSLA,GOOGL,QQQ,SPY,AMD,META,AMZN" class="sp-input" style="flex:1;" />
+            <select id="quantBatchStrategy" class="sp-select" style="width:160px;">
+              <option value="combined">Combined</option>
+              <option value="rsi">RSI</option>
+              <option value="bb">Bollinger Bands</option>
+              <option value="sma">SMA</option>
+            </select>
+            <button onclick="runBatchAnalysis()" class="sp-btn sp-btn-green">Batch Analyze</button>
+          </div>
+          <div id="quantBatchResult"></div>
+          <div id="batchChartWrap" style="display:none;margin-top:16px;">
+            <canvas id="batchChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 한국 수급 + 자동매매 -->
+      <div class="sp-grid-2">
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">🇰🇷 Korea Market TOP 10</div>
+            <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-green sp-btn-sm">수급 Analyze</button>
+          </div>
+          <p style="font-size:0.82rem;color:#9ca3af;margin-bottom:14px;">Top picks by Volume + RSI composite score</p>
+          <div id="koreaResult"></div>
+        </div>
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">🤖 Auto Trading</div>
+          </div>
+          <div class="sp-grid-2" style="margin-bottom:12px;">
+            <div>
+              <label class="sp-label">Symbol</label>
+              <input type="text" id="autoSymbol" placeholder="Symbol" value="QQQ" class="sp-input" />
+            </div>
+            <div>
+              <label class="sp-label">Qty</label>
+              <input type="number" id="autoQty" value="1" min="1" class="sp-input" />
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <label class="sp-label">Threshold (0.1 ~ 1.0)</label>
+            <input type="number" id="autoThreshold" value="0.3" min="0.1" max="1" step="0.1" class="sp-input" />
+          </div>
+          <button onclick="runAutoTrade()" class="sp-btn sp-btn-green" style="width:100%;">Run Auto Trade</button>
+          <div id="autoTradeResult" style="margin-top:14px;"></div>
+        </div>
+      </div>
+
+      <!-- 매매 로그 -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">📋 Trade Log</div>
+          <button onclick="loadTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+        </div>
+        <div id="quantTradeLog"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 차트 팝업 ===== -->
+  <div id="chartPopup">
+    <div class="chart-modal">
+      <div class="chart-modal-header">
+        <div class="chart-modal-title" id="chartTitle">📈 차트</div>
+        <button class="chart-close-btn" onclick="closeChart()">✕</button>
+      </div>
+      <div class="chart-period-btns">
+        <button class="chart-period-btn active" onclick="changePeriod('1mo',this)">1M</button>
+        <button class="chart-period-btn" onclick="changePeriod('3mo',this)">3M</button>
+        <button class="chart-period-btn" onclick="changePeriod('6mo',this)">6M</button>
+        <button class="chart-period-btn" onclick="changePeriod('1y',this)">1Y</button>
+      </div>
+      <div class="chart-section">
+        <div class="chart-section-title">📈 주가 (종가 · SMA20 · SMA50 · 볼린저밴드)</div>
+        <canvas id="chartPrice" height="90"></canvas>
+      </div>
+      <div class="chart-section">
+        <div class="chart-section-title">📊 거래량</div>
+        <canvas id="chartVolume" height="40"></canvas>
+      </div>
+      <div class="chart-section">
+        <div class="chart-section-title">🔵 RSI (14)</div>
+        <canvas id="chartRsi" height="40"></canvas>
+      </div>
+      <div class="chart-section">
+        <div class="chart-section-title">📉 MACD</div>
+        <canvas id="chartMacd" height="40"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <footer style="text-align:center;padding:20px;color:#9ca3af;font-size:0.76rem;border-top:1px solid #e5e7eb;background:#fff;">
+    © 2026 spagenio — AI-powered Investment & News Automation Dashboard
+  </footer>
+
+  <script src="/app.js?v=20260322"></script>
+</body>
+</html>
