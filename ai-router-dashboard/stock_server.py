@@ -23,7 +23,7 @@ def get_alpaca_client():
         return None
     return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True)
 
-@app.route('/api/stock/price', methods=['GET'])
+@app.route('/price', methods=['GET'])
 def get_price():
     symbol = request.args.get('symbol', 'AAPL')
     try:
@@ -50,7 +50,7 @@ def get_price():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/stock/prices', methods=['GET'])
+@app.route('/prices', methods=['GET'])
 def get_prices():
     symbols = request.args.get('symbols', 'AAPL,MSFT,GOOGL,NVDA,TSLA')
     symbol_list = [s.strip() for s in symbols.split(',')]
@@ -73,6 +73,7 @@ def get_prices():
         except:
             results.append({'symbol': symbol, 'error': '조회 실패'})
     return jsonify({'stocks': results, 'timestamp': datetime.now().isoformat()})
+
 
 @app.route('/api/alpaca/account', methods=['GET'])
 def get_account():
