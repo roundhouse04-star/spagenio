@@ -153,13 +153,13 @@ const COLORS = {
 const C = COLORS;
 
 const consoleFormat = winston.format.printf(({ level, message, timestamp, ...meta }) => {
-  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0,8);
+  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0, 8);
 
   // 레벨별 색상
   const levelColors = {
     error: `${C.bright}${C.red}`,
-    warn:  `${C.bright}${C.yellow}`,
-    info:  `${C.cyan}`,
+    warn: `${C.bright}${C.yellow}`,
+    info: `${C.cyan}`,
     debug: `${C.gray}`
   };
   const lc = levelColors[level] || C.white;
@@ -168,17 +168,17 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
   // 이벤트 타입별 아이콘
   const eventType = meta.event || meta.eventType || '';
   const iconMap = {
-    'LOGIN_SUCCESS':    `${C.green}✅ 로그인 성공${C.reset}`,
-    'LOGIN_FAILED':     `${C.red}❌ 로그인 실패${C.reset}`,
+    'LOGIN_SUCCESS': `${C.green}✅ 로그인 성공${C.reset}`,
+    'LOGIN_FAILED': `${C.red}❌ 로그인 실패${C.reset}`,
     'SUSPICIOUS_REQUEST': `${C.bgRed}${C.white} ⚠️  의심 접근 ${C.reset}`,
     'RATE_LIMIT_EXCEEDED': `${C.yellow}🚫 요청 초과${C.reset}`,
-    'USER_DELETED':     `${C.magenta}🗑️  유저 삭제${C.reset}`,
-    'ACCESS':           `${C.gray}→${C.reset}`,
+    'USER_DELETED': `${C.magenta}🗑️  유저 삭제${C.reset}`,
+    'ACCESS': `${C.gray}→${C.reset}`,
   };
 
   // 메타 정보 파싱
   let details = '';
-  if (meta.ip)       details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
+  if (meta.ip) details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
   if (meta.username) details += ` ${C.blue}👤${meta.username}${C.reset}`;
   if (meta.method && meta.path) details += ` ${C.cyan}${meta.method} ${meta.path}${C.reset}`;
   if (meta.statusCode) {
@@ -187,7 +187,7 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
     details += ` ${scColor}[${sc}]${C.reset}`;
   }
   if (meta.responseTime) details += ` ${C.gray}${meta.responseTime}ms${C.reset}`;
-  if (meta.userAgent)  details += ` ${C.gray}${String(meta.userAgent).slice(0,40)}${C.reset}`;
+  if (meta.userAgent) details += ` ${C.gray}${String(meta.userAgent).slice(0, 40)}${C.reset}`;
 
   const icon = iconMap[message] || iconMap[eventType] || '';
   const msg = icon ? icon : `${C.white}${message}${C.reset}`;
@@ -263,7 +263,7 @@ function saveAccessLog({ ip, method, path, statusCode, userId, username, userAge
       const entry = {
         level: levelMap[eventType] || 'info',
         message: `${method} ${path}`,
-        time: new Date().toISOString().slice(11,19),
+        time: new Date().toISOString().slice(11, 19),
         ip, username: username || '-', status: statusCode,
         eventType, responseTime: responseTime + 'ms'
       };
@@ -271,7 +271,7 @@ function saveAccessLog({ ip, method, path, statusCode, userId, username, userAge
 
 `;
       logClients.forEach(client => {
-        try { client.write(data); } catch(e) { logClients.delete(client); }
+        try { client.write(data); } catch (e) { logClients.delete(client); }
       });
     }
   } catch (e) {
@@ -324,7 +324,7 @@ function authMiddleware(req, res, next) {
 
   // API 요청만 토큰 검증
   const token = req.headers.authorization?.replace('Bearer ', '') ||
-                req.cookies?.auth_token;
+    req.cookies?.auth_token;
 
   if (!token) {
     return res.status(401).json({ error: '인증이 필요합니다.' });
@@ -488,10 +488,10 @@ app.use((req, res, next) => {
 // 인증 미들웨어 적용
 app.use(authMiddleware);
 
-app.use(express.static(path.join(__dirname, 'public'), {
-  etag: false,
-  maxAge: 0
-}));
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0 })(req, res, next);
+});
 
 app.use((req, res, next) => {
   requestStats.total += 1;
@@ -598,7 +598,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
   // 임시 비밀번호 생성
   const tempPassword = Math.random().toString(36).substring(2, 8).toUpperCase() +
-                       Math.random().toString(36).substring(2, 5) + '!1';
+    Math.random().toString(36).substring(2, 5) + '!1';
   const hash = bcrypt.hashSync(tempPassword, 12);
 
   // DB 업데이트
@@ -642,7 +642,7 @@ app.get('/api/admin/reset-requests', (req, res) => {
     temp_password TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );`);
-  const rows = db.prepare("SELECT * FROM password_reset_requests WHERE status = 'pending' ORDER BY created_at DESC").all();
+  const rows = db.prepare("SELECT * FROM password_reset_requests WHERE status = 'pending' ORDER BY sent_at DESC").all();
   return res.json({ requests: rows });
 });
 
@@ -682,11 +682,11 @@ app.post('/api/auth/check-email', (req, res) => {
     if (!email) return res.status(400).json({ error: '이메일을 입력해주세요.' });
     const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
     const used = allUsers.some(u => {
-      try { return decryptEmail(u.email) === email; } catch(e) { return false; }
+      try { return decryptEmail(u.email) === email; } catch (e) { return false; }
     });
     if (used) return res.status(409).json({ error: '이미 가입된 이메일입니다.' });
     return res.json({ status: 'ok', message: '사용 가능한 이메일입니다.' });
-  } catch(error) {
+  } catch (error) {
     console.error('check-email 오류:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -703,7 +703,7 @@ app.post('/api/auth/send-email-code', async (req, res) => {
   // 이미 가입된 이메일 확인 (복호화해서 비교)
   const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
   const alreadyUsed = allUsers.some(u => {
-    try { return decryptEmail(u.email) === email; } catch(e) { return false; }
+    try { return decryptEmail(u.email) === email; } catch (e) { return false; }
   });
   if (alreadyUsed) {
     return res.status(400).json({ error: '이미 가입된 이메일입니다.' });
@@ -803,7 +803,7 @@ app.post('/api/auth/register', (req, res) => {
 
   // 이메일 중복 확인 (복호화 비교)
   const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
-  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch(e) { return false; } });
+  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch (e) { return false; } });
   if (emailUsed) {
     return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' });
   }
@@ -877,7 +877,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.username !== 'admin') return res.status(403).end();
-  } catch(e) { return res.status(401).end(); }
+  } catch (e) { return res.status(401).end(); }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -885,7 +885,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
   res.flushHeaders();
 
   // 연결 확인 메시지
-  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11,19) })}
+  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11, 19) })}
 
 `);
 
@@ -896,7 +896,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
       const entry = {
         level: log.event_type === 'suspicious' ? 'warn' : log.event_type === 'login_failed' ? 'error' : 'info',
         message: `[${log.event_type}] ${log.method} ${log.path}`,
-        time: log.timestamp?.slice(11,19) || '',
+        time: log.timestamp?.slice(11, 19) || '',
         ip: log.ip, username: log.username, status: log.status_code,
         isHistory: true
       };
@@ -904,7 +904,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
 
 `);
     });
-  } catch(e) {}
+  } catch (e) { }
 
   logClients.add(res);
 
@@ -929,7 +929,7 @@ app.post('/api/alpaca-test', async (req, res) => {
       return res.status(400).json({ error: data.message || '유효하지 않은 API 키입니다.' });
     }
     return res.json({ ok: true, status: data.status });
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: 'Alpaca 서버 연결 실패: ' + e.message });
   }
 });
@@ -967,7 +967,7 @@ app.post('/api/user/broker-keys', (req, res) => {
     db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active) VALUES (?,?,?,?,?,?)')
       .run(req.user.id, name, encKey, encSecret, paper, isActive);
     return res.json({ status: 'ok', message: `'${name}' 계좌가 등록됐습니다.` });
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1010,7 +1010,7 @@ function getUserAlpacaKeys(userId, accountId) {
       secret_key: decryptEmail(row.alpaca_secret_key),
       paper: row.alpaca_paper === 1
     };
-  } catch(e) { return null; }
+  } catch (e) { return null; }
 }
 
 // ✅ Alpaca 프록시 (선택된 계좌 ID로 호출)
@@ -1038,7 +1038,7 @@ app.all('/api/alpaca-user/*', async (req, res) => {
     });
     const data = await response.json();
     return res.status(response.status).json(data);
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1050,7 +1050,7 @@ app.get('/api/admin/users', (req, res) => {
   let query = 'SELECT id, username, email, created_at, last_login FROM users WHERE 1=1';
   const params = [];
   if (search) { query += ' AND username LIKE ?'; params.push('%' + search + '%'); }
-  query += ' ORDER BY created_at DESC';
+  query += ' ORDER BY sent_at DESC';
   const users = db.prepare(query).all(...params);
   // 이메일 복호화
   const result = users.map(u => ({
@@ -1599,14 +1599,14 @@ app.post('/api/news/save', (req, res) => {
     const { category, content, use_claude, source } = req.body;
     const date = new Date().toISOString().slice(0, 10);
     const savedAt = new Date().toISOString();
-    
+
     // source 및 use_claude 설정
-    const src = (source && ['rss','claude','gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
+    const src = (source && ['rss', 'claude', 'gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
     const useClaude = (src === 'claude') ? 1 : 0;
 
     // 내용 정제
     const cleanContent = (content || '').trim();
-    
+
     // 유효성 검사 (내용이 없으면 저장 안 함)
     if (!cleanContent || cleanContent === '제목없음' || cleanContent === '-' || cleanContent === 'undefined') {
       return res.json({ status: 'ignored', reason: 'content is empty or invalid' });
@@ -1619,10 +1619,10 @@ app.post('/api/news/save', (req, res) => {
 
     if (existing) {
       // 내용이 같으면 중복으로 판단하여 저장하지 않음 (기존 데이터 유지)
-      return res.json({ 
-        status: 'exists', 
+      return res.json({
+        status: 'exists',
         message: '이미 동일한 내용의 뉴스가 저장되어 있습니다.',
-        id: existing.id 
+        id: existing.id
       });
     } else {
       // 내용이 다르면 새로운 뉴스로 판단하여 INSERT
@@ -1630,10 +1630,10 @@ app.post('/api/news/save', (req, res) => {
         'INSERT INTO news (category, date, saved_at, use_claude, source, content) VALUES (?, ?, ?, ?, ?, ?)'
       ).run(category, date, savedAt, useClaude, src, cleanContent);
 
-      return res.json({ 
-        status: 'ok', 
-        category, 
-        date, 
+      return res.json({
+        status: 'ok',
+        category,
+        date,
         content_length: cleanContent.length,
         message: '신규 뉴스 저장 완료'
       });
@@ -1699,9 +1699,7 @@ app.delete('/api/news/:id', (req, res) => {
   }
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+
 
 // ============================================================
 //  server.js 에 추가할 로또 전체 API
@@ -1730,6 +1728,23 @@ db.exec(`
     rank INTEGER,
     matched_count INTEGER,
     bonus_match INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS lotto_history (
+    drw_no INTEGER PRIMARY KEY,
+    numbers TEXT NOT NULL,
+    bonus INTEGER,
+    drw_date TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS lotto_schedule_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    days TEXT,
+    hour INTEGER,
+    game_count INTEGER,
+    action TEXT DEFAULT 'update',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
@@ -1871,6 +1886,7 @@ app.post('/api/lotto/schedule', (req, res) => {
   } else {
     db.prepare('INSERT INTO lotto_schedule (user_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, days, hour, game_count);
   }
+  db.prepare('INSERT INTO lotto_schedule_log (user_id, days, hour, game_count) VALUES (?,?,?,?)').run(req.user.id, days || '', hour || 9, game_count || 5);
   res.json({ ok: true });
 });
 
@@ -1914,15 +1930,16 @@ setInterval(async () => {
       // 텔레그램 전송
       const token = sch.bot_token || process.env.TG_BOT_TOKEN;
       if (token && sch.chat_id) {
-        const lines = games.map((g, i) => `${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
-        const dayNames = ['일','월','화','수','목','금','토'];
+        const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const msg = `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`;
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: sch.chat_id, text: msg, parse_mode: 'Markdown' })
-        }).catch(() => {});
+        }).catch(() => { });
       }
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
+      db.prepare('INSERT INTO lotto_schedule_log (user_id, day, hour, game_count) VALUES (?,?,?,?)').run(sch.user_id, currentDay, currentHour, sch.game_count);
     }
   } catch (e) { console.error('스케줄 오류:', e.message); }
 }, 60 * 1000);
@@ -1930,17 +1947,10 @@ setInterval(async () => {
 // ── 동행복권 이력 ─────────────────────────────────────────
 app.get('/api/lotto/history', async (req, res) => {
   try {
-    const rounds = parseInt(req.query.rounds) || 100;
-    const latestRes = await fetch('https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1162');
-    const latestData = await latestRes.json();
-    const latestRound = latestData.drwNo || 1162;
-    const promises = [];
-    for (let i = latestRound; i > latestRound - rounds && i > 0; i--) {
-      promises.push(fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${i}`)
-        .then(r => r.json()).then(d => d.returnValue === 'success' ? [d.drwtNo1,d.drwtNo2,d.drwtNo3,d.drwtNo4,d.drwtNo5,d.drwtNo6] : null).catch(() => null));
-    }
-    const results = (await Promise.all(promises)).filter(Boolean);
-    res.json({ history: results, latest_round: latestRound, count: results.length });
+    const rows = db.prepare('SELECT drw_no, numbers, bonus, drw_date FROM lotto_history ORDER BY drw_no DESC LIMIT 100').all();
+    const history = rows.map(r => JSON.parse(r.numbers));
+    const latest = rows[0]?.drw_no || 0;
+    res.json({ history, latest_round: latest, count: history.length });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1951,6 +1961,17 @@ app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html'))
 //  server.js 에 추가할 로또 전체 API
 //  기존 /api/lotto 관련 코드 전부 교체
 // ============================================================
+
+
+app.get('/api/lotto/schedule/log', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const rows = db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY sent_at DESC LIMIT 50').all(req.user.id);
+  res.json({ logs: rows });
+});
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 
 app.listen(port, '0.0.0.0', () => {
@@ -1969,4 +1990,3 @@ app.listen(port, '0.0.0.0', () => {
 //  server.js 에 추가할 로또 API
 //  server.js 파일 맨 아래 app.listen() 바로 위에 붙여넣기
 // ============================================================
-

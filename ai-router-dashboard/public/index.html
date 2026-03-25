@@ -1160,6 +1160,16 @@
   </div>
 
   <!-- ===== Lotto 탭 ===== -->
+  <!-- 레이어 팝업 -->
+  <div id="lotto-toast-layer" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:32px 40px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div id="lotto-toast-icon" style="font-size:2.5rem;margin-bottom:12px;">🍀</div>
+      <div id="lotto-toast-title" style="font-size:1.1rem;font-weight:800;color:#0f172a;margin-bottom:8px;"></div>
+      <div id="lotto-toast-msg" style="font-size:0.9rem;color:#6b7280;margin-bottom:24px;line-height:1.6;"></div>
+      <button onclick="lottoClearToast()" style="background:#6366f1;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">확인</button>
+    </div>
+  </div>
+
   <div id="tab-lotto" class="tab-content" style="display:none;">
     <div class="sp-page">
 
@@ -1179,34 +1189,32 @@
         </div>
       </div>
 
-      <div class="sp-grid-2" style="margin-bottom:20px;">
-        <!-- 알고리즘 비중 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">⚙️ 알고리즘 비중</div>
-            <button onclick="lottoResetWeights()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">초기화</button>
-          </div>
-          <div id="lotto-algo-grid" style="display:flex;flex-direction:column;gap:12px;"></div>
+      <!-- 알고리즘 비중 -->
+      <div class="sp-card" style="margin-bottom:20px;">
+        <div class="sp-card-header">
+          <div class="sp-card-title">⚙️ 알고리즘 비중</div>
+          <button onclick="lottoResetWeights()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">초기화</button>
         </div>
+        <div id="lotto-algo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+      </div>
 
-        <!-- 번호 추천 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🎰 번호 추천</div>
-            <select id="lotto-game-count" class="sp-select" style="width:100px;">
-              <option value="1">1게임</option>
-              <option value="3">3게임</option>
-              <option value="5" selected>5게임</option>
-              <option value="10">10게임</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:16px;">
-            <button onclick="lottoGenerate()" class="sp-btn sp-btn-primary" style="flex:1;">🎯 번호 추천받기</button>
-            <button onclick="lottoSaveAndSend()" class="sp-btn" style="background:#229ED9;color:#fff;border:none;white-space:nowrap;">💾 저장+전송</button>
-          </div>
-          <div id="lotto-results">
-            <div style="text-align:center;color:#6b7280;padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
-          </div>
+      <!-- 번호 추천 -->
+      <div class="sp-card" style="margin-bottom:20px;">
+        <div class="sp-card-header">
+          <div class="sp-card-title">🎰 번호 추천</div>
+          <select id="lotto-game-count" class="sp-select" style="width:100px;">
+            <option value="1">1게임</option>
+            <option value="3">3게임</option>
+            <option value="5" selected>5게임</option>
+            <option value="10">10게임</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button onclick="lottoGenerate()" class="sp-btn sp-btn-primary" style="flex:1;">🎯 번호 추천받기 (5게임)</button>
+          <button onclick="lottoSaveAndSend()" class="sp-btn" style="background:#229ED9;color:#fff;border:none;white-space:nowrap;">💾 저장+전송</button>
+        </div>
+        <div id="lotto-results">
+          <div style="text-align:center;color:#6b7280;padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
         </div>
       </div>
 
@@ -1232,31 +1240,29 @@
         <div class="sp-card">
           <div class="sp-card-header">
             <div class="sp-card-title">⏰ 자동 발송 설정</div>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;">
-              <input type="checkbox" id="lotto-sch-enabled" onchange="lottoSaveSchedule()"> 활성화
-            </label>
+            <button onclick="lottoSaveSchedule()" class="sp-btn sp-btn-primary" style="font-size:0.82rem;">저장</button>
           </div>
           <div style="margin-bottom:12px;">
-            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:6px;">요일 선택</div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:6px;">요일 선택 (1개만 선택)</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="lotto-day-btn active" data-day="1" onclick="lottoDayToggle(this)">월</button>
-              <button class="lotto-day-btn active" data-day="2" onclick="lottoDayToggle(this)">화</button>
-              <button class="lotto-day-btn active" data-day="3" onclick="lottoDayToggle(this)">수</button>
-              <button class="lotto-day-btn active" data-day="4" onclick="lottoDayToggle(this)">목</button>
-              <button class="lotto-day-btn active" data-day="5" onclick="lottoDayToggle(this)">금</button>
-              <button class="lotto-day-btn active" data-day="6" onclick="lottoDayToggle(this)">토</button>
+              <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)">월</button>
+              <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)">화</button>
+              <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)">수</button>
+              <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)">목</button>
+              <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)">금</button>
+              <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)">토</button>
             </div>
           </div>
           <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
             <div style="flex:1;">
               <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">발송 시각</div>
-              <select id="lotto-sch-hour" class="sp-select" onchange="lottoSaveSchedule()">
+              <select id="lotto-sch-hour" class="sp-select">
                 <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option><option value="3">03시</option><option value="4">04시</option><option value="5">05시</option><option value="6">06시</option><option value="7">07시</option><option value="8">08시</option><option value="9">09시</option><option value="10">10시</option><option value="11">11시</option><option value="12">12시</option><option value="13">13시</option><option value="14">14시</option><option value="15">15시</option><option value="16">16시</option><option value="17">17시</option><option value="18">18시</option><option value="19">19시</option><option value="20">20시</option><option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
               </select>
             </div>
             <div style="flex:1;">
               <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">게임 수</div>
-              <select id="lotto-sch-count" class="sp-select" onchange="lottoSaveSchedule()">
+              <select id="lotto-sch-count" class="sp-select">
                 <option value="1">1게임</option>
                 <option value="3">3게임</option>
                 <option value="5" selected>5게임</option>
@@ -1265,7 +1271,13 @@
             </div>
           </div>
           <div style="font-size:0.78rem;color:#9ca3af;" id="lotto-sch-last"></div>
+          <div style="font-size:0.78rem;color:#9ca3af;" id="lotto-sch-next"></div>
           <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감으로 자동 발송되지 않습니다</div>
+          <div id="lotto-sch-current" style="display:none;margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;">
+            <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
+            <div id="lotto-sch-current-text" style="font-size:0.85rem;color:#374151;"></div>
+          </div>
+
         </div>
       </div>
 
@@ -1277,6 +1289,30 @@
         </div>
         <div id="lotto-history-list">
           <div style="text-align:center;color:#6b7280;padding:24px;">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- 자동발송 이력 + 스케줄 이력 -->
+      <div class="sp-grid-2" style="margin-bottom:20px;">
+        <!-- 자동발송 실행 이력 -->
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">🤖 자동발송 이력</div>
+            <button onclick="lottoLoadAutoHistory()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">새로고침</button>
+          </div>
+          <div id="lotto-auto-history-list">
+            <div style="text-align:center;color:#6b7280;padding:24px;">로딩 중...</div>
+          </div>
+        </div>
+        <!-- 스케줄 설정 변경 이력 -->
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📅 스케줄 이력</div>
+            <button onclick="lottoLoadScheduleLog()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">새로고침</button>
+          </div>
+          <div id="lotto-schedule-log-list">
+            <div style="text-align:center;color:#6b7280;padding:24px;">로딩 중...</div>
+          </div>
         </div>
       </div>
 
@@ -1923,32 +1959,46 @@
         if (chatEl) chatEl.value = localStorage.getItem(LOTTO_TG_CHATID_KEY) || '';
       }
 
+      // 레이어 팝업
+      function lottoShowToast(icon, title, msg) {
+        const layer = $id('lotto-toast-layer');
+        if (!layer) return;
+        $id('lotto-toast-icon').textContent = icon;
+        $id('lotto-toast-title').textContent = title;
+        $id('lotto-toast-msg').textContent = msg;
+        layer.style.display = 'flex';
+      }
+      window.lottoClearToast = function() {
+        const layer = $id('lotto-toast-layer');
+        if (layer) layer.style.display = 'none';
+      };
+
       window.lottoSaveTg = async function lottoSaveTg() {
         const token = ($id('lotto-tg-token')?.value?.trim() || '');
         const chatId = ($id('lotto-tg-chatid')?.value?.trim() || '');
-        if (!chatId) { alert('Chat ID를 입력하세요'); return; }
+        if (!chatId) { lottoShowToast('⚠️', '입력 오류', 'Chat ID를 입력하세요'); return; }
         const cleanToken = token.startsWith('bot') ? token.slice(3) : token;
         localStorage.setItem(LOTTO_TG_TOKEN_KEY, cleanToken);
         localStorage.setItem(LOTTO_TG_CHATID_KEY, chatId);
         try {
           const r = await fetch('/api/lotto/telegram/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,bot_token:cleanToken})});
           const d = await r.json();
-          if (d.ok) { alert('텔레그램 설정 저장 완료 ✅'); lottoLoadTgConfig(); }
-          else alert('저장 실패: ' + (d.error || ''));
-        } catch(e) { alert('저장 오류: ' + e.message); }
+          if (d.ok) { lottoShowToast('✅', '저장 완료', '텔레그램 설정이 저장되었습니다.'); lottoLoadTgConfig(); }
+          else lottoShowToast('❌', '저장 실패', d.error || '알 수 없는 오류');
+        } catch(e) { lottoShowToast('❌', '오류', e.message); }
       };
 
       window.lottoTestTg = async function lottoTestTg() {
         try {
           const res = await fetch('/api/lotto/telegram', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'🔔 spagenio 로또 봇 연결 테스트!\n정상 수신되면 성공입니다 🍀'})});
           const data = await res.json();
-          if (data.ok) alert('테스트 메시지 전송 성공 📱');
-          else alert('테스트 전송 실패: ' + (data.error || ''));
-        } catch(err) { alert('테스트 전송 실패: ' + err.message); }
+          if (data.ok) lottoShowToast('📱', '전송 성공', '텔레그램으로 테스트 메시지가 전송되었습니다!');
+          else lottoShowToast('❌', '전송 실패', data.error || '알 수 없는 오류');
+        } catch(err) { lottoShowToast('❌', '오류', err.message); }
       };
 
       window.lottoSaveAndSend = async function lottoSaveAndSend() {
-        if (!lottoLastGames.length) { alert('먼저 번호를 추천받으세요!'); return; }
+        if (!lottoLastGames.length) { lottoShowToast('⚠️', '번호 없음', '먼저 번호 추천받기를 눌러주세요!'); return; }
         const date = new Date().toISOString().split('T')[0];
         const algosStr = lottoAlgos.filter(a=>a.weight>0).sort((a,b)=>b.weight-a.weight).slice(0,3).map(a=>a.name).join('+');
         try {
@@ -1956,15 +2006,15 @@
             body:JSON.stringify({pick_date:date, games:lottoLastGames.map(g=>g.numbers), algorithms:algosStr})});
           const d = await r.json();
           if (!d.ok) throw new Error(d.error);
-        } catch(e) { alert('저장 실패: '+e.message); return; }
+        } catch(e) { lottoShowToast('❌', '저장 실패', e.message); return; }
         const lines = lottoLastGames.map((g,i)=>String.fromCharCode(65+i)+'게임: '+g.numbers.join(' ')).join('\n');
         const msg = '🍀 *로또 번호 추천* ('+date+')\n\n'+lines+'\n\n📊 '+algosStr+'\n🕐 '+new Date().toLocaleString('ko-KR');
         try {
           const r = await fetch('/api/lotto/telegram', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})});
           const d = await r.json();
-          if (d.ok) alert('저장 및 텔레그램 전송 완료! 🍀');
-          else alert('저장 완료 (텔레그램 실패: '+d.error+')');
-        } catch(e) { alert('저장 완료 (텔레그램 오류)'); }
+          if (d.ok) lottoShowToast('🍀', '전송 완료!', '번호가 저장되고 텔레그램으로 전송되었습니다.');
+          else lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 실패: '+d.error+')');
+        } catch(e) { lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 오류)'); }
         lottoLoadHistory();
       };
 
@@ -1980,32 +2030,64 @@
         } catch(e) {}
       }
 
+      // 요일 단일 선택
       window.lottoDayToggle = function(btn) {
-        btn.classList.toggle('active');
-        lottoSaveSchedule();
+        document.querySelectorAll('.lotto-day-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
       };
 
+      // 저장버튼으로 스케줄 저장 + 일주일에 1번 수정 제한
       window.lottoSaveSchedule = async function() {
-        const enabled = $id('lotto-sch-enabled')?.checked ? 1 : 0;
         const days = [...document.querySelectorAll('.lotto-day-btn.active')].map(b=>b.dataset.day).join(',');
+        if (!days) { lottoShowToast('⚠️', '요일 선택', '발송 요일을 선택해주세요'); return; }
         const hour = parseInt($id('lotto-sch-hour')?.value || 9);
         const game_count = parseInt($id('lotto-sch-count')?.value || 5);
+
+        // 일주일에 1번 수정 제한 체크
+        const lastModKey = 'lotto_sch_last_mod';
+        const lastMod = localStorage.getItem(lastModKey);
+        if (lastMod) {
+          const diff = Date.now() - parseInt(lastMod);
+          const days7 = 7 * 24 * 60 * 60 * 1000;
+          if (diff < days7) {
+            const remain = Math.ceil((days7 - diff) / (24*60*60*1000));
+            lottoShowToast('⚠️', '수정 제한', '자동발송 설정은 일주일에 1번만 수정할 수 있습니다.\n' + remain + '일 후에 다시 시도하세요.');
+            return;
+          }
+        }
+
         try {
-          await fetch('/api/lotto/schedule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,days,hour,game_count})});
-        } catch(e) {}
+          const r = await fetch('/api/lotto/schedule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:1, days, hour, game_count})});
+          const d = await r.json();
+          if (d.ok) {
+            localStorage.setItem(lastModKey, Date.now().toString());
+            const dayNames = ['','월','화','수','목','금','토','일'];
+            lottoShowToast('✅', '저장 완료', '매주 '+dayNames[days]+' '+String(hour).padStart(2,'0')+'시에 자동 발송됩니다.');
+            lottoLoadSchedule();
+          }
+        } catch(e) { lottoShowToast('❌', '오류', e.message); }
       };
 
       async function lottoLoadSchedule() {
         try {
           const r = await fetch('/api/lotto/schedule');
           const d = await r.json();
-          if ($id('lotto-sch-enabled')) $id('lotto-sch-enabled').checked = !!d.enabled;
           if ($id('lotto-sch-hour')) $id('lotto-sch-hour').value = d.hour || 9;
           if ($id('lotto-sch-count')) $id('lotto-sch-count').value = d.game_count || 5;
-          const days = (d.days || '1,2,3,4,5,6').split(',');
+          // 단일 요일 선택 반영
+          const days = (d.days || '').split(',');
           document.querySelectorAll('.lotto-day-btn').forEach(btn => {
             btn.classList.toggle('active', days.includes(btn.dataset.day));
           });
+          // 현재 등록된 스케줄 표시
+          const dayNames = ['','월','화','수','목','금','토','일'];
+          const curEl = $id('lotto-sch-current');
+          const curText = $id('lotto-sch-current-text');
+          if (curEl && curText && d.days) {
+            const dayName = d.days.split(',').map(x=>dayNames[parseInt(x)]||'').filter(Boolean).join(',');
+            curText.textContent = '매주 ' + dayName + '요일 ' + String(d.hour||9).padStart(2,'0') + '시 · ' + (d.game_count||5) + '게임 · ' + (d.enabled ? '✅ 활성' : '⏸ 비활성');
+            curEl.style.display = 'block';
+          }
           if (d.last_sent_at) {
             const el = $id('lotto-sch-last');
             if (el) el.textContent = '마지막 발송: ' + new Date(d.last_sent_at).toLocaleString('ko-KR');
@@ -2053,6 +2135,68 @@
         } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
       };
 
+      const DAY_NAMES = ['일','월','화','수','목','금','토'];
+
+      window.lottoLoadScheduleLog = async function() {
+        const el = $id('lotto-schedule-log-list');
+        if (!el) return;
+        try {
+          const r = await fetch('/api/lotto/schedule/log');
+          const d = await r.json();
+          if (!d.logs?.length) {
+            el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">스케줄 변경 이력이 없습니다</div>';
+            return;
+          }
+          el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
+            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
+            '<th style="padding:8px;text-align:left;">변경일시</th>' +
+            '<th style="padding:8px;text-align:center;">요일</th>' +
+            '<th style="padding:8px;text-align:center;">시각</th>' +
+            '<th style="padding:8px;text-align:center;">게임수</th></tr></thead><tbody>' +
+            d.logs.map(p => {
+              const dt = new Date(p.sent_at || p.created_at);
+              const dateStr = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+              const dayName = (p.days||'').split(',').map(x=>DAY_NAMES[parseInt(x)]||'').filter(Boolean).join(',') + '요일';
+              return '<tr style="border-bottom:1px solid #f3f4f6;">' +
+              '<td style="padding:8px;font-size:0.78rem;">'+dateStr+'</td>' +
+              '<td style="padding:8px;text-align:center;">'+dayName+'</td>' +
+              '<td style="padding:8px;text-align:center;">'+String(p.hour).padStart(2,'0')+':00</td>' +
+              '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
+              '</tr>';
+            }).join('') + '</tbody></table>';
+        } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
+      };
+
+      window.lottoLoadAutoHistory = async function() {
+        const el = $id('lotto-auto-history-list');
+        if (!el) return;
+        try {
+          const r = await fetch('/api/lotto/schedule/log');
+          const d = await r.json();
+          if (!d.logs?.length) {
+            el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동발송 설정 이력이 없습니다</div>';
+            return;
+          }
+          el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
+            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
+            '<th style="padding:8px;text-align:left;">등록/수정일</th>' +
+            '<th style="padding:8px;text-align:center;">요일</th>' +
+            '<th style="padding:8px;text-align:center;">발송시각</th>' +
+            '<th style="padding:8px;text-align:center;">게임수</th></tr></thead><tbody>' +
+            d.logs.map(p => {
+              const dt = new Date(p.created_at);
+              const dateStr = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+              const dayName = (p.days||'').split(',').map(d=>DAY_NAMES[parseInt(d)]||'').filter(Boolean).join(',') + '요일';
+              const timeStr = String(p.hour).padStart(2,'0') + ':00';
+              return '<tr style="border-bottom:1px solid #f3f4f6;">' +
+              '<td style="padding:8px;font-size:0.82rem;">'+dateStr+'</td>' +
+              '<td style="padding:8px;text-align:center;">'+dayName+'</td>' +
+              '<td style="padding:8px;text-align:center;">'+timeStr+'</td>' +
+              '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
+              '</tr>';
+            }).join('') + '</tbody></table>';
+        } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
+      };
       window.lottoShowDetail = async function(date) {
         const card = $id('lotto-detail-card');
         const title = $id('lotto-detail-title');
@@ -2130,14 +2274,18 @@
 
       async function lottoInit() {
         if (lottoInitialized) return;
+        lottoInitialized = true;
 
         lottoLoadWeights();
         lottoRenderAlgos();
         renderGames([]);
         loadTelegramSettings();
         await lottoFetchHistoryData();
-
-        lottoInitialized = true;
+        await lottoLoadTgConfig();
+        await lottoLoadSchedule();
+        lottoLoadHistory();
+        lottoLoadAutoHistory();
+        lottoLoadScheduleLog();
       }
 
       document.addEventListener('DOMContentLoaded', () => {
