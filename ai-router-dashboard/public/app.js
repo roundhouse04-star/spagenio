@@ -57,14 +57,14 @@
 (function preventBackNavigation() {
   // history에 현재 상태 push해서 뒤로가기 시 감지
   history.pushState(null, '', location.href);
-  window.addEventListener('popstate', function() {
+  window.addEventListener('popstate', function () {
     history.pushState(null, '', location.href);
   });
 })();
 
 // ✅ API 요청에 토큰 자동 포함 (checkAuth보다 먼저 선언)
 const originalFetch = window.fetch;
-window.fetch = function(url, options = {}) {
+window.fetch = function (url, options = {}) {
   const token = sessionStorage.getItem('auth_token');
   if (token && !url.includes('/api/auth/')) {
     options.headers = {
@@ -141,7 +141,7 @@ async function fetchTodayNews() {
       const errMsg = data.error || 'Failed';
       if (btn) { btn.textContent = '❌ ' + errMsg; setTimeout(() => { btn.textContent = '📡 Fetch Today'; btn.disabled = false; }, 3000); }
     }
-  } catch(e) {
+  } catch (e) {
     if (btn) { btn.textContent = '❌ Error'; setTimeout(() => { btn.textContent = '📡 Fetch Today'; btn.disabled = false; }, 3000); }
   }
 }
@@ -174,7 +174,7 @@ async function runNewsSearch() {
     // 선택된 서비스 기준으로 DB에서만 조회 (webhook 실행 안 함)
     await loadNews();
 
-  } catch(e) {
+  } catch (e) {
     if (aiWrap) aiWrap.style.display = 'block';
     if (outputEl) outputEl.textContent = 'Error: ' + e.message;
   } finally {
@@ -215,7 +215,7 @@ async function logout() {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('auth_token') }
     });
-  } catch(e) {}
+  } catch (e) { }
   sessionStorage.removeItem('auth_token');
   window.location.href = '/login';
 }
@@ -235,7 +235,7 @@ async function loadUserInfo() {
         el.textContent = data.user.username + ' 님';
       }
     }
-  } catch(e) {}
+  } catch (e) { }
 }
 loadUserInfo();
 
@@ -302,7 +302,7 @@ function renderStatusCards(config, health) {
     ['Uptime', `${health.uptimeSeconds}s`]
   ];
 
-  if(el('statusCards')) el('statusCards').innerHTML = statusCards.map(([name, value]) => `
+  if (el('statusCards')) el('statusCards').innerHTML = statusCards.map(([name, value]) => `
     <div class="status-card ${String(value).includes('ready') || String(value).includes('connected') ? 'ok' : ''}">
       <strong>${name}</strong>
       <span>${value}</span>
@@ -312,7 +312,7 @@ function renderStatusCards(config, health) {
 
 function renderPresets(presets) {
   state.presets = presets;
-  if(el('presetButtons')) el('presetButtons').innerHTML = Object.entries(presets).map(([key, preset]) => `
+  if (el('presetButtons')) el('presetButtons').innerHTML = Object.entries(presets).map(([key, preset]) => `
     <button class="preset-btn" data-preset="${key}">${preset.label}</button>
   `).join('');
 
@@ -433,16 +433,16 @@ async function runRoute() {
 
 async function loadAll() {
   try {
-  const [config, health, presets] = await Promise.all([
-    getJson('/api/config'),
-    getJson('/api/health'),
-    getJson('/api/presets')
-  ]);
-  state.config = config;
-  if (el('configBox')) el('configBox').textContent = JSON.stringify(config, null, 2);
-  renderStatusCards(config, health);
-  renderPresets(presets);
-  } catch(e) { console.warn('loadAll 내부 Error:', e.message); }
+    const [config, health, presets] = await Promise.all([
+      getJson('/api/config'),
+      getJson('/api/health'),
+      getJson('/api/presets')
+    ]);
+    state.config = config;
+    if (el('configBox')) el('configBox').textContent = JSON.stringify(config, null, 2);
+    renderStatusCards(config, health);
+    renderPresets(presets);
+  } catch (e) { console.warn('loadAll 내부 Error:', e.message); }
 }
 
 // previewBtn/runBtn → searchBtn으로 통합됨
@@ -472,17 +472,31 @@ loadAll().catch(e => console.warn('loadAll:', e.message));
 
 // ===== 탭 전환 =====
 function switchTab(tab) {
-  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.style.display = 'none';
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
   const tabEl = document.getElementById('tab-' + tab);
   if (tabEl) tabEl.style.display = 'block';
+
   const activeBtn = document.getElementById('tab-btn-' + tab);
   if (activeBtn) activeBtn.classList.add('active');
+
   if (tab === 'stock') {
     loadAccount();
     loadPrices();
     loadPositions();
     loadOrders();
+  }
+
+  if (tab === 'lotto') {
+    if (typeof lottoInit === 'function') {
+      lottoInit();
+    }
   }
 }
 
@@ -501,7 +515,7 @@ const STOCK_API = isLocal ? 'http://localhost:5001' : '/proxy/stock';
 async function safeJson(res) {
   const text = await res.text();
   try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
-  catch(e) { return { ok: false, status: res.status, data: { error: '서버 응답 오류 (JSON 파싱 실패)' } }; }
+  catch (e) { return { ok: false, status: res.status, data: { error: '서버 응답 오류 (JSON 파싱 실패)' } }; }
 }
 
 async function loadAccount() {
@@ -793,20 +807,18 @@ function renderNews(newsList) {
     <div class="news-item">
       <div class="news-category">
         ${categoryLabels[n.category] || n.category}
-        <span class="news-history-badge ${n.source || (n.use_claude ? 'claude' : 'raw')}" style="${
-          n.source === 'claude' ? 'background:#eef2ff;color:#6366f1;border-color:#c7d2fe;' :
-          n.source === 'gpt'    ? 'background:#f0fdf4;color:#16a34a;border-color:#a7f3d0;' :
-                                  'background:#f9fafb;color:#6b7280;border-color:#e5e7eb;'
-        }">
+        <span class="news-history-badge ${n.source || (n.use_claude ? 'claude' : 'raw')}" style="${n.source === 'claude' ? 'background:#eef2ff;color:#6366f1;border-color:#c7d2fe;' :
+      n.source === 'gpt' ? 'background:#f0fdf4;color:#16a34a;border-color:#a7f3d0;' :
+        'background:#f9fafb;color:#6b7280;border-color:#e5e7eb;'
+    }">
           ${n.source === 'claude' ? '🤖 Claude' : n.source === 'gpt' ? '🟢 GPT' : '📡 RSS'}
         </span>
       </div>
       <div class="news-date">${n.date} · ${n.savedAt?.slice(11, 16)} collected</div>
-      <div class="news-body">${
-        n.content && n.content.trim() && n.content.trim() !== '제목없음' && n.content.trim() !== '-'
-          ? n.content
-          : '<span style="color:#d1d5db;font-style:italic;font-size:0.82rem;">No content</span>'
-      }</div>
+      <div class="news-body">${n.content && n.content.trim() && n.content.trim() !== '제목없음' && n.content.trim() !== '-'
+      ? n.content
+      : '<span style="color:#d1d5db;font-style:italic;font-size:0.82rem;">No content</span>'
+    }</div>
     </div>
   `).join('');
 }
@@ -868,11 +880,11 @@ const QUANT_API = window.location.hostname === 'localhost' || window.location.ho
   : '/proxy/quant';
 
 const signalStyle = {
-  'buy':       { label: '🟢 매수', color: 'var(--accent-2)' },
-  'weak_buy':  { label: '🔵 약매수', color: '#76a5ff' },
-  'hold':      { label: '⚪ 중립', color: 'var(--muted)' },
+  'buy': { label: '🟢 매수', color: 'var(--accent-2)' },
+  'weak_buy': { label: '🔵 약매수', color: '#76a5ff' },
+  'hold': { label: '⚪ 중립', color: 'var(--muted)' },
   'weak_sell': { label: '🟡 약매도', color: 'var(--warn)' },
-  'sell':      { label: '🔴 매도', color: 'var(--accent-danger, #ff8f8f)' }
+  'sell': { label: '🔴 매도', color: 'var(--accent-danger, #ff8f8f)' }
 };
 
 async function runQuantAnalysis() {
@@ -920,7 +932,7 @@ async function runQuantAnalysis() {
     if (typeof renderQuantChart === 'function' && data.indicators) {
       renderQuantChart(document.getElementById('quantSymbol')?.value || '', data.indicators);
     }
-  } catch(e) {
+  } catch (e) {
     el.innerHTML = `<p style="color:var(--accent-danger, #ff8f8f)">Quant server connection failed (port 5002)</p>`;
   }
 }
@@ -959,8 +971,8 @@ async function runBatchAnalysis() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
-  } catch(e) {
-    
+  } catch (e) {
+
     if (typeof renderBatchChart === 'function' && data.results) renderBatchChart(data.results);
     el.innerHTML = `<p style="color:var(--accent-danger, #ff8f8f)">Quant server connection failed (port 5002)</p>`;
   }
@@ -989,8 +1001,8 @@ async function loadKoreaAnalysis() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
-    <p style="color:var(--muted);font-size:0.78rem;margin-top:8px;">업데이트: ${data.updated_at?.slice(0,19) || '-'}</p>`;
-  } catch(e) {
+    <p style="color:var(--muted);font-size:0.78rem;margin-top:8px;">업데이트: ${data.updated_at?.slice(0, 19) || '-'}</p>`;
+  } catch (e) {
     el.innerHTML = `<p style="color:#ff8f8f;">퀀트 서버 연결 실패</p>`;
   }
 }
@@ -1021,7 +1033,7 @@ async function runAutoTrade() {
       </div>`;
     }
     loadTradeLog();
-  } catch(e) {
+  } catch (e) {
     el.innerHTML = `<p style="color:#ff8f8f;">퀀트 서버 연결 실패</p>`;
   }
 }
@@ -1038,7 +1050,7 @@ async function loadTradeLog() {
       <td>${log.qty}주</td>
       <td>$${log.price?.toFixed(2) || '-'}</td>
       <td style="color:var(--muted);font-size:0.8rem;">${log.strategy}</td>
-      <td style="color:var(--muted);font-size:0.78rem;">${log.created_at?.slice(0,16) || '-'}</td>
+      <td style="color:var(--muted);font-size:0.78rem;">${log.created_at?.slice(0, 16) || '-'}</td>
     </tr>`).join('');
     el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="color:var(--muted);font-size:0.82rem;">
@@ -1048,7 +1060,7 @@ async function loadTradeLog() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
-  } catch(e) {}
+  } catch (e) { }
 }
 
 // ===== Alpaca 다계좌 관리 =====
@@ -1094,7 +1106,7 @@ async function loadAlpacaKeyStatus() {
               <span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:${acc.alpaca_paper ? '#fef3c7' : '#d1fae5'};color:${acc.alpaca_paper ? '#92400e' : '#065f46'};font-weight:700;">${mode}</span>
               ${isSelected ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#eef2ff;color:var(--accent);font-weight:700;">Active</span>' : ''}
             </div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">Last updated: ${acc.updated_at?.slice(0,16) || '-'}</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">Last updated: ${acc.updated_at?.slice(0, 16) || '-'}</div>
           </div>
           <div style="display:flex;gap:6px;">
             ${!acc.is_active ? `<button onclick="event.stopPropagation();activateAccount(${acc.id})"
@@ -1109,7 +1121,7 @@ async function loadAlpacaKeyStatus() {
         </div>`;
     }).join('');
 
-  } catch(e) { console.error(e); }
+  } catch (e) { console.error(e); }
 }
 
 async function selectAccount(id) {
@@ -1128,7 +1140,7 @@ async function activateAccount(id) {
     loadAccount();
     loadPositions();
     loadOrders();
-  } catch(e) {}
+  } catch (e) { }
 }
 
 async function deleteAccount(id) {
@@ -1143,7 +1155,7 @@ async function deleteAccount(id) {
     } else {
       alert(data.error);
     }
-  } catch(e) {}
+  } catch (e) { }
 }
 
 function toggleAlpacaKeyForm() {
@@ -1219,7 +1231,7 @@ async function saveAlpacaKeys() {
       hideAlpacaPopup();
       showAlpacaMsg('error', '❌ ' + (data.error || '저장 실패'));
     }
-  } catch(e) {
+  } catch (e) {
     hideAlpacaPopup();
     showAlpacaMsg('error', '서버 연결 Error: ' + e.message);
   }
@@ -1267,14 +1279,14 @@ function clearAlpacaMsg() {
 
 // 주식 탭 진입 시 계좌 목록 로드
 const _origSwitchTab2 = switchTab;
-switchTab = function(tab) {
+switchTab = function (tab) {
   _origSwitchTab2(tab);
   if (tab === 'stock') loadAlpacaKeyStatus();
 };
 
 // fetch에 Select된 계좌 ID 헤더 자동 추가 (alpaca-user 요청)
 const _origFetch2 = window.fetch;
-window.fetch = function(url, options = {}) {
+window.fetch = function (url, options = {}) {
   if (typeof url === 'string' && url.includes('/api/alpaca-user/') && activeAccountId) {
     options.headers = { ...options.headers, 'x-account-id': String(activeAccountId) };
   }
@@ -1316,7 +1328,7 @@ async function loadChartData(symbol, period) {
   const modal = document.getElementById('chartModal');
   try {
     // 로딩 표시
-    ['priceChartEl','volumeChartEl','rsiChartEl','macdChartEl'].forEach(id => {
+    ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:80px;color:#9ca3af;font-size:0.85rem;">Loading...</div>';
     });
@@ -1326,15 +1338,15 @@ async function loadChartData(symbol, period) {
 
     if (data.error) {
       // alert 대신 모달 내 오류 표시
-      ['priceChartEl','volumeChartEl','rsiChartEl','macdChartEl'].forEach(id => {
+      ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = `<div style="padding:16px;background:#fff0f0;border-radius:8px;color:#ef4444;font-size:0.85rem;">⚠️ ${data.error}</div>`;
       });
       return;
     }
     renderCharts(data);
-  } catch(e) {
-    ['priceChartEl','volumeChartEl','rsiChartEl','macdChartEl'].forEach(id => {
+  } catch (e) {
+    ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<div style="padding:16px;background:#fff0f0;border-radius:8px;color:#ef4444;font-size:0.85rem;">⚠️ Server connection failed (port 5002)</div>`;
     });
@@ -1377,17 +1389,17 @@ function drawAllCharts(data) {
       labels: dates,
       datasets: [
         { label: 'Close', data: ohlc.close, borderColor: '#6366f1', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false },
-        { label: 'SMA20', data: sma.sma20, borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [4,2] },
-        { label: 'SMA50', data: sma.sma50, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [6,3] },
-        { label: 'BB 상단', data: bb.upper, borderColor: 'rgba(16,185,129,0.5)', borderWidth: 1, pointRadius: 0, tension: 0.3, fill: false, borderDash: [3,3] },
-        { label: 'BB 하단', data: bb.lower, borderColor: 'rgba(16,185,129,0.5)', borderWidth: 1, pointRadius: 0, tension: 0.3, fill: '+1', backgroundColor: 'rgba(16,185,129,0.05)', borderDash: [3,3] },
+        { label: 'SMA20', data: sma.sma20, borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [4, 2] },
+        { label: 'SMA50', data: sma.sma50, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [6, 3] },
+        { label: 'BB 상단', data: bb.upper, borderColor: 'rgba(16,185,129,0.5)', borderWidth: 1, pointRadius: 0, tension: 0.3, fill: false, borderDash: [3, 3] },
+        { label: 'BB 하단', data: bb.lower, borderColor: 'rgba(16,185,129,0.5)', borderWidth: 1, pointRadius: 0, tension: 0.3, fill: '+1', backgroundColor: 'rgba(16,185,129,0.05)', borderDash: [3, 3] },
       ]
     },
     options: { ...commonOpts }
   });
 
   // 2. Volume 차트
-  const volColors = ohlc.close.map((c, i) => i === 0 ? 'rgba(99,102,241,0.5)' : c >= ohlc.close[i-1] ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)');
+  const volColors = ohlc.close.map((c, i) => i === 0 ? 'rgba(99,102,241,0.5)' : c >= ohlc.close[i - 1] ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)');
   chartInstances.volume = new Chart(document.getElementById('chartVolume'), {
     type: 'bar',
     data: { labels: dates, datasets: [{ label: 'Volume', data: volume, backgroundColor: volColors, borderWidth: 0 }] },
@@ -1401,8 +1413,8 @@ function drawAllCharts(data) {
       labels: dates,
       datasets: [
         { label: 'RSI', data: rsi, borderColor: '#8b5cf6', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: false },
-        { label: 'Overbought(70)', data: Array(dates.length).fill(70), borderColor: 'rgba(239,68,68,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [4,2], fill: false },
-        { label: 'Oversold(30)', data: Array(dates.length).fill(30), borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [4,2], fill: false },
+        { label: 'Overbought(70)', data: Array(dates.length).fill(70), borderColor: 'rgba(239,68,68,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [4, 2], fill: false },
+        { label: 'Oversold(30)', data: Array(dates.length).fill(30), borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, borderDash: [4, 2], fill: false },
       ]
     },
     options: { ...commonOpts, scales: { ...commonOpts.scales, y: { ...commonOpts.scales.y, min: 0, max: 100 } } }
@@ -1456,7 +1468,8 @@ function renderPriceChart(stocks) {
       }]
     },
     options: {
-      responsive: true, plugins: { legend: { display: false },
+      responsive: true, plugins: {
+        legend: { display: false },
         tooltip: { callbacks: { label: ctx => `$${ctx.parsed.y.toLocaleString()}` } }
       },
       scales: { y: { ticks: { callback: v => '$' + v.toLocaleString() }, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
@@ -1518,7 +1531,8 @@ function renderBatchChart(results) {
     },
     options: {
       indexAxis: 'y', responsive: true,
-      plugins: { legend: { display: false },
+      plugins: {
+        legend: { display: false },
         tooltip: { callbacks: { label: ctx => `점수: ${ctx.parsed.x}` } }
       },
       scales: { x: { grid: { color: '#f3f4f6' } }, y: { grid: { display: false } } }

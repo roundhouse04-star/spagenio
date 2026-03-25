@@ -1,0 +1,224 @@
+{
+  "packages" : [ {
+    "id" : 1,
+    "title" : "오사카 벚꽃 시티 브레이크",
+    "location" : "Osaka",
+    "destination" : "Japan / Osaka",
+    "summary" : "도심 관광과 미식 탐방에 최적화된 대표 도시형 패키지",
+    "category" : "city",
+    "categoryLabel" : "도시",
+    "budget" : "economy",
+    "durationDays" : 3,
+    "durationNights" : 2,
+    "pricePerPerson" : 429000,
+    "rating" : 4.8,
+    "minimumTravelers" : 1,
+    "highlights" : [ "왕복 항공 포함", "난바 중심 호텔", "유니버설/도톤보리 옵션" ],
+    "inclusions" : [ "왕복 항공권", "2박 호텔", "공항-호텔 픽업", "1일 자유여행 가이드" ],
+    "exclusions" : [ "개인 경비", "여행자 보험" ],
+    "itinerary" : [ {
+      "day" : 1,
+      "title" : "출국 및 체크인",
+      "description" : "인천 출발 후 오사카 도착, 호텔 체크인 및 도톤보리 자유 일정"
+    }, {
+      "day" : 2,
+      "title" : "도심 핵심 투어",
+      "description" : "오사카성, 우메다, 쇼핑 자유 일정"
+    }, {
+      "day" : 3,
+      "title" : "귀국",
+      "description" : "체크아웃 후 공항 이동 및 귀국"
+    } ],
+    "featured" : true
+  }, {
+    "id" : 2,
+    "title" : "도쿄 프리미엄 아트 & 시티",
+    "location" : "Tokyo",
+    "destination" : "Japan / Tokyo",
+    "summary" : "럭셔리 시티호퍼를 위한 호텔 업그레이드형 상품",
+    "category" : "city",
+    "categoryLabel" : "도시",
+    "budget" : "premium",
+    "durationDays" : 4,
+    "durationNights" : 3,
+    "pricePerPerson" : 890000,
+    "rating" : 4.9,
+    "minimumTravelers" : 1,
+    "highlights" : [ "긴자 5성급", "미술관 패스", "전용 차량 옵션" ],
+    "inclusions" : [ "왕복 항공권", "3박 호텔", "도쿄 메트로 패스", "아트 뮤지엄 패스" ],
+    "exclusions" : [ "개인 쇼핑", "추가 식사" ],
+    "itinerary" : [ {
+      "day" : 1,
+      "title" : "도쿄 도착",
+      "description" : "긴자 호텔 체크인 후 주변 산책"
+    }, {
+      "day" : 2,
+      "title" : "아트 투어",
+      "description" : "모리 미술관과 팀랩 플래닛 방문"
+    }, {
+      "day" : 3,
+      "title" : "도심 자유 일정",
+      "description" : "시부야, 하라주쿠, 오모테산도 일정"
+    }, {
+      "day" : 4,
+      "title" : "귀국",
+      "description" : "체크아웃 후 공항 이동"
+    } ],
+    "featured" : true
+  }, {
+    "id" : 3,
+    "title" : "발리 풀빌라 허니문",
+    "location" : "Bali",
+    "destination" : "Indonesia / Bali",
+    "summary" : "프라이빗 풀빌라와 스파가 포함된 허니문 베스트셀러",
+    "category" : "honeymoon",
+    "categoryLabel" : "허니문",
+    "budget" : "luxury",
+    "durationDays" : 5,
+    "durationNights" : 4,
+    "pricePerPerson" : 1550000,
+    "rating" : 4.95,
+    "minimumTravelers" : 2,
+    "highlights" : [ "풀빌라 2박", "커플 스파", "선셋 디너" ],
+    "inclusions" : [ "왕복 항공권", "리조트 4박", "공항 왕복 픽업", "스파 1회", "선셋 디너" ],
+    "exclusions" : [ "개인 액티비티", "자유일정 식사" ],
+    "itinerary" : [ {
+      "day" : 1,
+      "title" : "발리 도착",
+      "description" : "리조트 체크인 및 휴식"
+    }, {
+      "day" : 2,
+      "title" : "스파 & 디너",
+      "description" : "커플 스파 후 선셋 디너"
+    }, {
+      "day" : 3,
+      "title" : "비치 클럽",
+      "description" : "전일 자유 일정 및 비치 클럽 이용"
+    }, {
+      "day" : 4,
+      "title" : "우붓 투어",
+      "description" : "우붓 투어 및 카페 투어"
+    }, {
+      "day" : 5,
+      "title" : "귀국",
+      "description" : "체크아웃 및 공항 이동"
+    } ],
+    "featured" : true
+  }, {
+    "id" : 4,
+    "title" : "다낭 패밀리 리조트",
+    "location" : "Da Nang",
+    "destination" : "Vietnam / Da Nang",
+    "summary" : "가족여행 고객을 위한 리조트/키즈클럽 패키지",
+    "category" : "family",
+    "categoryLabel" : "가족여행",
+    "budget" : "premium",
+    "durationDays" : 4,
+    "durationNights" : 3,
+    "pricePerPerson" : 670000,
+    "rating" : 4.7,
+    "minimumTravelers" : 3,
+    "highlights" : [ "키즈클럽", "워터파크", "공항 픽업" ],
+    "inclusions" : [ "왕복 항공권", "3박 리조트", "조식", "키즈클럽 1일권" ],
+    "exclusions" : [ "개인 경비", "선택 관광" ],
+    "itinerary" : [ {
+      "day" : 1,
+      "title" : "다낭 도착",
+      "description" : "리조트 체크인 및 휴식"
+    }, {
+      "day" : 2,
+      "title" : "리조트 데이",
+      "description" : "키즈클럽과 수영장 이용"
+    }, {
+      "day" : 3,
+      "title" : "호이안 반일 투어",
+      "description" : "가이드와 함께 호이안 방문"
+    }, {
+      "day" : 4,
+      "title" : "귀국",
+      "description" : "체크아웃 및 귀국"
+    } ],
+    "featured" : false
+  }, {
+    "id" : 5,
+    "title" : "세부 오션 액티비티 스테이",
+    "location" : "Cebu",
+    "destination" : "Philippines / Cebu",
+    "summary" : "스노클링과 리조트 휴양을 모두 잡은 인기 상품",
+    "category" : "resort",
+    "categoryLabel" : "리조트",
+    "budget" : "economy",
+    "durationDays" : 4,
+    "durationNights" : 3,
+    "pricePerPerson" : 590000,
+    "rating" : 4.65,
+    "minimumTravelers" : 2,
+    "highlights" : [ "호핑투어", "오션뷰 객실", "공항 픽업" ],
+    "inclusions" : [ "왕복 항공권", "3박 리조트", "호핑투어", "조식" ],
+    "exclusions" : [ "개인 장비", "추가 해양 액티비티" ],
+    "itinerary" : [ {
+      "day" : 1,
+      "title" : "세부 도착",
+      "description" : "리조트 체크인"
+    }, {
+      "day" : 2,
+      "title" : "호핑투어",
+      "description" : "섬 투어 및 스노클링"
+    }, {
+      "day" : 3,
+      "title" : "자유 일정",
+      "description" : "리조트 스파 또는 자유 일정"
+    }, {
+      "day" : 4,
+      "title" : "귀국",
+      "description" : "체크아웃 후 공항 이동"
+    } ],
+    "featured" : false
+  }, {
+    "id" : 6,
+    "title" : "싱가포르 스마트 시티 쇼트트립",
+    "location" : "Singapore",
+    "destination" : "Singapore",
+    "summary" : "짧은 일정으로 핵심만 즐기는 도시형 패키지",
+    "category" : "city",
+    "categoryLabel" : "도시",
+    "budget" : "premium",
+    "durationDays" : 3,
+    "durationNights" : 2,
+    "pricePerPerson" : 780000,
+    "rating" : 4.75,
+    "minimumTravelers" : 1,
+    "highlights" : [ "마리나베이 관광", "유니버설 옵션", "교통패스" ],
+    "inclusions" : [ "왕복 항공권", "2박 호텔", "교통패스" ],
+    "exclusions" : [ "개인 식사", "선택 투어" ],
+    "itinerary" : [ {
+      "day" : 1,
+      "title" : "싱가포르 도착",
+      "description" : "마리나베이 산책 및 야경"
+    }, {
+      "day" : 2,
+      "title" : "도심 투어",
+      "description" : "가든스바이더베이, 오차드 일정"
+    }, {
+      "day" : 3,
+      "title" : "귀국",
+      "description" : "체크아웃 및 공항 이동"
+    } ],
+    "featured" : false
+  } ],
+  "bookings" : [ {
+    "id" : 1,
+    "bookingCode" : "TRV-00001",
+    "packageId" : 1,
+    "packageTitle" : "오사카 벚꽃 시티 브레이크",
+    "customerName" : "김민준",
+    "email" : "demo@spagenio.com",
+    "phone" : "010-1234-5678",
+    "travelers" : 2,
+    "travelDate" : "2026-04-10",
+    "requests" : "공항 픽업 우선 요청",
+    "totalPrice" : 858000,
+    "status" : "CONFIRMED",
+    "createdAt" : "2026-03-24T03:12:49.066652"
+  } ]
+}

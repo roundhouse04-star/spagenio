@@ -33,22 +33,9 @@ find_java17() {
     local h; h=$(/usr/libexec/java_home -v 17+ 2>/dev/null || true)
     [ -n "$h" ] && { echo "$h"; return; }
   }
-  for p in /opt/homebrew/opt /usr/local/opt; do
-    for d in "$p"/openjdk@*/libexec/openjdk.jdk/Contents/Home \
-              "$p"/openjdk/libexec/openjdk.jdk/Contents/Home; do
-      [ -x "$d/bin/java" ] || continue
-      local v; v=$("$d/bin/java" -version 2>&1 | grep -Eo '[0-9]+' | head -1)
-      [ "${v:-0}" -ge 17 ] && { echo "$d"; return; }
-    done
-  done
-  for d in /usr/lib/jvm/java-{17,21,23}-openjdk* /usr/lib/jvm/temurin-*; do
-    [ -x "$d/bin/java" ] || continue
-    echo "$d"; return
-  done
   echo ""
 }
 
-# ── Python (FastAPI, port 9001) ──────────────────────────
 start_python() {
   local dir="$PROJECT_ROOT/backend/python-service"
   [ -d "$dir" ] || die "backend/python-service 폴더 없음"
@@ -66,7 +53,6 @@ start_python() {
   deactivate
 }
 
-# ── Java Backend (Spring Boot, port 9080) ────────────────
 start_backend() {
   local dir="$PROJECT_ROOT/backend"
   [ -d "$dir" ] || die "backend 폴더 없음"
@@ -76,14 +62,13 @@ start_backend() {
   info "JAVA_HOME: $jh"
   local cmd
   [ -x "./gradlew" ] && cmd="./gradlew bootRun" || cmd="gradle bootRun"
-  kill_port 9080
+  kill_port 19080
   nohup env JAVA_HOME="$jh" PATH="$jh/bin:$PATH" bash -c "$cmd" \
     > "$LOG_DIR/backend.log" 2>&1 &
   echo $! > "$PID_DIR/backend.pid"
-  wait_port 9080 backend 60
+  wait_port 19080 backend 60
 }
 
-# ── Frontend (Vite, port 4173) ───────────────────────────
 start_frontend() {
   local dir="$PROJECT_ROOT/frontend"
   [ -d "$dir" ] || die "frontend 폴더 없음"
@@ -96,24 +81,23 @@ start_frontend() {
   wait_port 4173 frontend 30
 }
 
-# ── 실행 ─────────────────────────────────────────────────
 info "Python 서비스 시작 (port 9001)..."
 start_python
 
-info "Java 백엔드 시작 (port 9080)..."
+info "Java 백엔드 시작 (port 19080)..."
 start_backend
 
 info "프론트엔드 시작 (port 4173)..."
 start_frontend
 
-cat <<EOF
+cat <<EOT
 
 ========================================
   travel-platform 실행 완료
 ----------------------------------------
-  Frontend : http://localhost:4173/travel
-  Backend  : http://localhost:9080
+  Frontend : http://localhost:4173/travel/
+  Backend  : http://localhost:19080
   Python   : http://localhost:9001/docs
 ========================================
 종료: ./stop-all.sh
-EOF
+EOT

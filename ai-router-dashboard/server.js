@@ -1703,6 +1703,256 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ============================================================
+//  server.js 에 추가할 로또 전체 API
+//  기존 /api/lotto 관련 코드 전부 교체
+// ============================================================
+
+// ── 로또 DB 초기화 ─────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_telegram (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    chat_id TEXT NOT NULL,
+    bot_token TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS lotto_picks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    pick_date TEXT NOT NULL,
+    game_index INTEGER NOT NULL,
+    numbers TEXT NOT NULL,
+    algorithms TEXT,
+    drw_no INTEGER,
+    rank INTEGER,
+    matched_count INTEGER,
+    bonus_match INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS lotto_schedule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    enabled INTEGER DEFAULT 0,
+    days TEXT DEFAULT '1,2,3,4,5,6',
+    hour INTEGER DEFAULT 9,
+    game_count INTEGER DEFAULT 5,
+    last_sent_at DATETIME,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`);
+
+// ── 텔레그램 설정 조회 ────────────────────────────────────
+app.get('/api/lotto/telegram/config', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
+  res.json({ chat_id: row?.chat_id || '', has_token: !!row?.bot_token });
+});
+
+// ── 텔레그램 설정 저장 ────────────────────────────────────
+app.post('/api/lotto/telegram/config', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { chat_id } = req.body;
+  let { bot_token } = req.body;
+  if (!chat_id) return res.status(400).json({ error: 'chat_id 필요' });
+  // bot prefix 자동 제거
+  if (bot_token && bot_token.startsWith('bot')) bot_token = bot_token.slice(3);
+  const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.id);
+  if (existing) {
+    db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`)
+      .run(chat_id, bot_token || '', req.user.id);
+  } else {
+    db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.id, chat_id, bot_token || '');
+  }
+  res.json({ ok: true });
+});
+
+// ── 텔레그램 메시지 전송 ──────────────────────────────────
+app.post('/api/lotto/telegram', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  let { token, chatid, text } = req.body;
+  if (!chatid) {
+    const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
+    if (!tg) return res.status(400).json({ ok: false, error: '텔레그램 Chat ID를 먼저 등록하세요.' });
+    chatid = tg.chat_id;
+    token = token || tg.bot_token || process.env.TG_BOT_TOKEN;
+  }
+  if (!token) return res.status(400).json({ ok: false, error: 'Bot Token 없음' });
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatid, text, parse_mode: 'Markdown' })
+    });
+    const data = await r.json();
+    res.json(data.ok ? { ok: true } : { ok: false, error: data.description });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── 추천 번호 저장 ─────────────────────────────────────────
+app.post('/api/lotto/picks', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { pick_date, games, algorithms } = req.body;
+  if (!games?.length) return res.status(400).json({ error: '번호 없음' });
+  db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(req.user.id, pick_date);
+  const stmt = db.prepare('INSERT INTO lotto_picks (user_id, pick_date, game_index, numbers, algorithms) VALUES (?,?,?,?,?)');
+  games.forEach((nums, i) => stmt.run(req.user.id, pick_date, i, JSON.stringify(nums), algorithms || ''));
+  res.json({ ok: true, saved: games.length });
+});
+
+// ── 추천 번호 목록 (날짜별 요약) ─────────────────────────
+app.get('/api/lotto/picks', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { date, limit = 50 } = req.query;
+  if (date) {
+    const rows = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=? ORDER BY game_index').all(req.user.id, date);
+    return res.json({ picks: rows.map(r => ({ ...r, numbers: JSON.parse(r.numbers) })) });
+  }
+  const rows = db.prepare(`
+    SELECT pick_date,
+           COUNT(*) as game_count,
+           MAX(drw_no) as drw_no,
+           MIN(CASE WHEN rank > 0 THEN rank END) as best_rank,
+           MAX(matched_count) as max_match,
+           SUM(CASE WHEN rank > 0 THEN 1 ELSE 0 END) as checked_count
+    FROM lotto_picks WHERE user_id=?
+    GROUP BY pick_date ORDER BY pick_date DESC LIMIT ?
+  `).all(req.user.id, parseInt(limit));
+  res.json({ picks: rows });
+});
+
+// ── 당첨 결과 확인 ────────────────────────────────────────
+app.post('/api/lotto/picks/check', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { pick_date, drw_no } = req.body;
+  try {
+    const apiRes = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drw_no}`);
+    const data = await apiRes.json();
+    if (data.returnValue !== 'success') return res.status(400).json({ error: '회차 정보 없음' });
+    const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+    const bonus = data.bnusNo;
+    const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(req.user.id, pick_date);
+    if (!picks.length) return res.status(404).json({ error: '픽 없음' });
+    const results = picks.map(pick => {
+      const nums = JSON.parse(pick.numbers);
+      const matched = nums.filter(n => winning.includes(n)).length;
+      const hasBonus = nums.includes(bonus);
+      let rank = null;
+      if (matched === 6) rank = 1;
+      else if (matched === 5 && hasBonus) rank = 2;
+      else if (matched === 5) rank = 3;
+      else if (matched === 4) rank = 4;
+      else if (matched === 3) rank = 5;
+      db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?')
+        .run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
+      return { game_index: pick.game_index, numbers: nums, matched, rank, has_bonus: hasBonus };
+    });
+    res.json({ ok: true, winning, bonus, results, drw_no });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── 스케줄 조회/저장 ──────────────────────────────────────
+app.get('/api/lotto/schedule', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const row = db.prepare('SELECT * FROM lotto_schedule WHERE user_id=?').get(req.user.id);
+  res.json(row || { enabled: 0, days: '1,2,3,4,5,6', hour: 9, game_count: 5 });
+});
+
+app.post('/api/lotto/schedule', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { enabled, days, hour, game_count } = req.body;
+  const existing = db.prepare('SELECT id FROM lotto_schedule WHERE user_id=?').get(req.user.id);
+  if (existing) {
+    db.prepare('UPDATE lotto_schedule SET enabled=?,days=?,hour=?,game_count=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      .run(enabled ? 1 : 0, days, hour, game_count, req.user.id);
+  } else {
+    db.prepare('INSERT INTO lotto_schedule (user_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, days, hour, game_count);
+  }
+  res.json({ ok: true });
+});
+
+// ── 스케줄러 (1분마다) ────────────────────────────────────
+setInterval(async () => {
+  try {
+    const now = new Date();
+    if (now.getMinutes() !== 0) return;
+    const currentHour = now.getHours();
+    const currentDay = now.getDay();
+    const today = now.toISOString().split('T')[0];
+
+    // 토요일 20시 이후는 판매 마감 → 발송 안 함
+    if (currentDay === 6 && currentHour >= 20) return;
+
+    const schedules = db.prepare(`
+      SELECT ls.*, ut.chat_id, ut.bot_token
+      FROM lotto_schedule ls
+      JOIN user_telegram ut ON ls.user_id = ut.user_id
+      WHERE ls.enabled=1 AND ls.hour=?
+    `).all(currentHour);
+
+    for (const sch of schedules) {
+      const days = sch.days.split(',').map(Number);
+      if (!days.includes(currentDay)) continue;
+      if (sch.last_sent_at?.startsWith(today)) continue;
+
+      // 랜덤 번호 생성
+      const games = [];
+      for (let g = 0; g < sch.game_count; g++) {
+        const nums = new Set();
+        while (nums.size < 6) nums.add(Math.floor(Math.random() * 45) + 1);
+        games.push([...nums].sort((a, b) => a - b));
+      }
+
+      // DB 저장
+      db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(sch.user_id, today);
+      const stmt = db.prepare('INSERT INTO lotto_picks (user_id,pick_date,game_index,numbers,algorithms) VALUES (?,?,?,?,?)');
+      games.forEach((nums, i) => stmt.run(sch.user_id, today, i, JSON.stringify(nums), '자동발송'));
+
+      // 텔레그램 전송
+      const token = sch.bot_token || process.env.TG_BOT_TOKEN;
+      if (token && sch.chat_id) {
+        const lines = games.map((g, i) => `${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
+        const dayNames = ['일','월','화','수','목','금','토'];
+        const msg = `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`;
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: sch.chat_id, text: msg, parse_mode: 'Markdown' })
+        }).catch(() => {});
+      }
+      db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
+    }
+  } catch (e) { console.error('스케줄 오류:', e.message); }
+}, 60 * 1000);
+
+// ── 동행복권 이력 ─────────────────────────────────────────
+app.get('/api/lotto/history', async (req, res) => {
+  try {
+    const rounds = parseInt(req.query.rounds) || 100;
+    const latestRes = await fetch('https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1162');
+    const latestData = await latestRes.json();
+    const latestRound = latestData.drwNo || 1162;
+    const promises = [];
+    for (let i = latestRound; i > latestRound - rounds && i > 0; i--) {
+      promises.push(fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${i}`)
+        .then(r => r.json()).then(d => d.returnValue === 'success' ? [d.drwtNo1,d.drwtNo2,d.drwtNo3,d.drwtNo4,d.drwtNo5,d.drwtNo6] : null).catch(() => null));
+    }
+    const results = (await Promise.all(promises)).filter(Boolean);
+    res.json({ history: results, latest_round: latestRound, count: results.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html')));
+
+
+// ============================================================
+//  server.js 에 추가할 로또 전체 API
+//  기존 /api/lotto 관련 코드 전부 교체
+// ============================================================
+
+
 app.listen(port, '0.0.0.0', () => {
   printBanner();
   const C2 = COLORS;
@@ -1720,76 +1970,3 @@ app.listen(port, '0.0.0.0', () => {
 //  server.js 파일 맨 아래 app.listen() 바로 위에 붙여넣기
 // ============================================================
 
-// ── 로또 당첨 이력 조회 (동행복권 API) ─────────────────────
-app.get('/api/lotto/history', async (req, res) => {
-  try {
-    const rounds = parseInt(req.query.rounds) || 100;
-    const history = [];
-
-    // 최신 회차 조회
-    const latestRes = await fetch(
-      'https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1162'
-    );
-    const latestData = await latestRes.json();
-    const latestRound = latestData.drwNo || 1162;
-
-    // 최근 N회 데이터 병렬 수집
-    const fetchRound = async (no) => {
-      try {
-        const r = await fetch(
-          `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${no}`
-        );
-        const d = await r.json();
-        if (d.returnValue === 'success') {
-          return [d.drwtNo1, d.drwtNo2, d.drwtNo3, d.drwtNo4, d.drwtNo5, d.drwtNo6];
-        }
-      } catch(e) {}
-      return null;
-    };
-
-    const promises = [];
-    for (let i = latestRound; i > latestRound - rounds && i > 0; i--) {
-      promises.push(fetchRound(i));
-    }
-
-    const results = await Promise.all(promises);
-    results.forEach(r => { if (r) history.push(r); });
-
-    res.json({ history, latest_round: latestRound, count: history.length });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ── 텔레그램 메시지 전송 프록시 ────────────────────────────
-app.post('/api/lotto/telegram', async (req, res) => {
-  const { token, chatid, text } = req.body;
-  if (!token || !chatid || !text) {
-    return res.status(400).json({ ok: false, error: '파라미터 누락' });
-  }
-  try {
-    const r = await fetch(
-      `https://api.telegram.org/bot${token}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatid,
-          text: text,
-          parse_mode: 'Markdown'
-        })
-      }
-    );
-    const data = await r.json();
-    if (data.ok) {
-      res.json({ ok: true });
-    } else {
-      res.json({ ok: false, error: data.description });
-    }
-  } catch (error) {
-    res.status(500).json({ ok: false, error: error.message });
-  }
-});
-
-// ── 로또 페이지 서빙 ────────────────────────────────────────
-app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html')));

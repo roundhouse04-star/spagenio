@@ -19,7 +19,7 @@ stop backend
 stop frontend
 
 # 포트 강제 정리
-for port in 4173 9080 9001; do
+for port in 4173 19080 9001; do
   pids=$(lsof -ti:"$port" 2>/dev/null || true)
   [ -n "$pids" ] && echo "$pids" | xargs kill -9 2>/dev/null || true
 done

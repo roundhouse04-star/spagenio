@@ -55,10 +55,10 @@ start_travel_backend() {
   local jh; jh=$(find_java17)
   [ -n "$jh" ] || die "Java 17+ 를 찾지 못했습니다."
   local cmd; [ -x "./gradlew" ] && cmd="./gradlew bootRun" || cmd="gradle bootRun"
-  kill_port 9080
+  kill_port 19080
   nohup env JAVA_HOME="$jh" PATH="$jh/bin:$PATH" bash -c "$cmd" > "$LOG_DIR/travel-backend.log" 2>&1 &
   echo $! > "$PID_DIR/travel-backend.pid"
-  wait_port 9080 travel-backend 60
+  wait_port 19080 travel-backend 60
 }
 
 start_travel_frontend() {
@@ -150,7 +150,7 @@ echo "  전체 서비스 실행 완료"
 echo "  travel  : https://travel.spagenio.com"
 echo "  ai      : https://ai.spagenio.com"
 echo "  lotto   : https://ai.spagenio.com/lotto"
-echo "  spring  : http://localhost:9080"
+echo "  spring  : http://localhost:19080"
 echo "  fastapi : http://localhost:9001"
 echo "  주식    : http://localhost:5001"
 echo "  퀀트    : http://localhost:5002"
