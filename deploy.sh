@@ -32,7 +32,11 @@ success "두 프로젝트 폴더 확인됨"
 # ── 민감 파일 자동 제거 ────────────────────────────────────
 header "🔒  민감 파일 검사"
 
-# .env 추적 해제
+# .env 추적 해제 (강화)
+git rm --cached --ignore-unmatch "**/.env" 2>/dev/null || true
+git rm --cached --ignore-unmatch ".env" 2>/dev/null || true
+git rm --cached --ignore-unmatch "ai-router-dashboard/.env" 2>/dev/null || true
+git rm --cached --ignore-unmatch "*.zip" 2>/dev/null || true
 ENV_FILES=$(git ls-files | grep -E "^[^/]*\.env$|/\.env$" | grep -v ".env.example" || true)
 if [ -n "$ENV_FILES" ]; then
   warn ".env 파일 추적 해제 중..."
