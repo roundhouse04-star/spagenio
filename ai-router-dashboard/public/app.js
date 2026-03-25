@@ -676,25 +676,30 @@ async function loadPositions() {
     const res = await fetch('/api/alpaca-user/v2/positions');
     const data = await res.json();
     if (!data.positions?.length) {
-      document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">No positions</p>';
+      document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">보유 종목이 없습니다</p>';
       return;
     }
     document.getElementById('positionsTable').innerHTML = `
       <table class="stock-table">
-        <thead><tr><th>Symbol</th><th>Qty</th><th>평균단가</th><th>Current</th><th>평가금액</th><th>손익</th></tr></thead>
+        <thead><tr><th>종목</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>실시간</th></tr></thead>
         <tbody>
-          ${data.positions.map(p => `
+          ${data.positions.map(p => {
+            const pl = parseFloat(p.unrealized_pl) || 0;
+            const plpc = parseFloat(p.unrealized_plpc) || 0;
+            return `
             <tr>
-              <td><strong>${p.symbol}</strong></td>
+              <td><strong style="cursor:pointer;color:#6366f1;" onclick="showRealtimePrice('${p.symbol}')">${p.symbol}</strong></td>
               <td>${p.qty}주</td>
-              <td>$${p.avg_entry_price}</td>
-              <td>$${p.current_price}</td>
-              <td>$${p.market_value?.toLocaleString()}</td>
-              <td class="${p.unrealized_pl >= 0 ? 'text-up' : 'text-down'}">
-                ${p.unrealized_pl >= 0 ? '+' : ''}$${p.unrealized_pl?.toFixed(2)} (${p.unrealized_plpc?.toFixed(2)}%)
+              <td>$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
+              <td>$${parseFloat(p.current_price).toFixed(2)}</td>
+              <td>$${parseFloat(p.market_value).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+              <td class="${pl >= 0 ? 'text-up' : 'text-down'}">
+                ${pl >= 0 ? '+' : ''}$${pl.toFixed(2)}<br>
+                <small>(${plpc >= 0 ? '+' : ''}${(plpc*100).toFixed(2)}%)</small>
               </td>
-            </tr>
-          `).join('')}
+              <td><button class="sp-btn sp-btn-outline sp-btn-sm" onclick="showRealtimePrice('${p.symbol}')">📈 조회</button></td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>`;
   } catch (e) {
@@ -702,29 +707,112 @@ async function loadPositions() {
   }
 }
 
+// 실시간 가격 팝업
+window.showRealtimePrice = async function(symbol) {
+  const modal = document.getElementById('realtimeModal');
+  const title = document.getElementById('realtimeTitle');
+  const body = document.getElementById('realtimeBody');
+  if (!modal) return;
+  title.textContent = `📈 ${symbol} 실시간 정보`;
+  body.innerHTML = '<div style="text-align:center;padding:32px;color:#6b7280;">로딩 중...</div>';
+  modal.style.display = 'flex';
+
+  try {
+    // 현재 포지션 정보
+    const posRes = await fetch('/api/alpaca-user/v2/positions/' + symbol);
+    const posData = await posRes.json();
+
+    // 최근 거래 (latest trade)
+    const tradeRes = await fetch('/api/alpaca-user/v2/stocks/' + symbol + '/trades/latest');
+    const tradeData = await tradeRes.json();
+
+    // 최근 바 (최신 가격)
+    const barRes = await fetch('/api/alpaca-user/v2/stocks/' + symbol + '/bars/latest');
+    const barData = await barRes.json();
+
+    const latestPrice = tradeData?.trade?.p || posData?.current_price || '-';
+    const latestBar = barData?.bar || {};
+    const pl = parseFloat(posData?.unrealized_pl) || 0;
+    const plpc = (parseFloat(posData?.unrealized_plpc) || 0) * 100;
+
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">현재가</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#6366f1;">$${parseFloat(latestPrice).toFixed(2)}</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">평균단가</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#374151;">$${parseFloat(posData?.avg_entry_price||0).toFixed(2)}</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">보유 수량</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#374151;">${posData?.qty || '-'}주</div>
+        </div>
+        <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">평가금액</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#374151;">$${parseFloat(posData?.market_value||0).toFixed(2)}</div>
+        </div>
+      </div>
+      <div style="background:${pl>=0?'#dcfce7':'#fee2e2'};border-radius:10px;padding:16px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">미실현 손익</div>
+        <div style="font-size:1.4rem;font-weight:800;color:${pl>=0?'#065f46':'#991b1b'};">
+          ${pl>=0?'+':''}$${pl.toFixed(2)} (${plpc>=0?'+':''}${plpc.toFixed(2)}%)
+        </div>
+      </div>
+      ${latestBar.o ? `
+      <div style="background:#f8fafc;border-radius:10px;padding:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:8px;">최근 바 데이터</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:0.82rem;text-align:center;">
+          <div><div style="color:#6b7280;">시가</div><div style="font-weight:700;">$${parseFloat(latestBar.o).toFixed(2)}</div></div>
+          <div><div style="color:#6b7280;">고가</div><div style="font-weight:700;color:#065f46;">$${parseFloat(latestBar.h).toFixed(2)}</div></div>
+          <div><div style="color:#6b7280;">저가</div><div style="font-weight:700;color:#991b1b;">$${parseFloat(latestBar.l).toFixed(2)}</div></div>
+          <div><div style="color:#6b7280;">종가</div><div style="font-weight:700;">$${parseFloat(latestBar.c).toFixed(2)}</div></div>
+        </div>
+      </div>` : ''}
+      <div style="margin-top:12px;text-align:right;">
+        <button onclick="showRealtimePrice('${symbol}')" class="sp-btn sp-btn-outline sp-btn-sm" style="margin-right:8px;">🔄 새로고침</button>
+        <button onclick="document.getElementById('realtimeModal').style.display='none'" class="sp-btn sp-btn-indigo sp-btn-sm">닫기</button>
+      </div>`;
+  } catch(e) {
+    body.innerHTML = `<div style="color:#ef4444;padding:16px;">로드 실패: ${e.message}</div>`;
+  }
+};
+
 // ===== 주문 내역 =====
 async function loadOrders() {
   try {
-    const res = await fetch('/api/alpaca-user/v2/orders?status=all&limit=10');
+    const res = await fetch('/api/alpaca-user/v2/orders?status=all&limit=50');
     const data = await res.json();
     if (!data.orders?.length) {
-      document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">No orders</p>';
+      document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">주문 내역이 없습니다</p>';
       return;
     }
+    const statusMap = { filled:'체결', partially_filled:'부분체결', canceled:'취소', pending_new:'대기', new:'접수', expired:'만료' };
     document.getElementById('ordersTable').innerHTML = `
+      <div style="font-size:0.82rem;color:#6b7280;margin-bottom:8px;">최근 ${data.orders.length}건</div>
       <table class="stock-table">
-        <thead><tr><th>Symbol</th><th>구분</th><th>Qty</th><th>상태</th><th>체결가</th><th>체결시간</th></tr></thead>
+        <thead><tr><th>종목</th><th>구분</th><th>수량</th><th>주문유형</th><th>상태</th><th>체결가</th><th>체결금액</th><th>날짜</th></tr></thead>
         <tbody>
-          ${data.orders.map(o => `
+          ${data.orders.map(o => {
+            const isBuy = o.side?.includes('buy');
+            const filled = parseFloat(o.filled_avg_price) || 0;
+            const qty = parseFloat(o.filled_qty || o.qty) || 0;
+            const total = filled * qty;
+            const status = statusMap[o.status] || o.status;
+            const date = o.filled_at && o.filled_at !== 'None' ? o.filled_at.slice(0,10) : (o.submitted_at?.slice(0,10) || '-');
+            return `
             <tr>
               <td><strong>${o.symbol}</strong></td>
-              <td class="${o.side.includes('buy') ? 'text-up' : 'text-down'}">${o.side.includes('buy') ? '매수' : '매도'}</td>
+              <td><span style="padding:2px 8px;border-radius:999px;font-size:0.75rem;font-weight:700;background:${isBuy?'#dcfce7':'#fee2e2'};color:${isBuy?'#065f46':'#991b1b'}">${isBuy?'매수':'매도'}</span></td>
               <td>${o.qty}주</td>
-              <td>${o.status}</td>
-              <td>${o.filled_avg_price ? '$' + o.filled_avg_price : '-'}</td>
-              <td>${o.filled_at !== 'None' ? o.filled_at?.slice(0, 10) : '-'}</td>
-            </tr>
-          `).join('')}
+              <td style="font-size:0.8rem;">${o.order_type||'-'}</td>
+              <td><span style="padding:2px 8px;border-radius:999px;font-size:0.75rem;background:#f3f4f6;color:#374151;">${status}</span></td>
+              <td>${filled ? '$'+filled.toFixed(2) : '-'}</td>
+              <td>${total ? '$'+total.toFixed(2) : '-'}</td>
+              <td style="font-size:0.8rem;">${date}</td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>`;
   } catch (e) {
@@ -1007,36 +1095,173 @@ async function loadKoreaAnalysis() {
   }
 }
 
-async function runAutoTrade() {
-  const symbol = document.getElementById('autoSymbol').value.trim().toUpperCase();
-  const qty = document.getElementById('autoQty').value;
-  const threshold = document.getElementById('autoThreshold').value;
-  const el = document.getElementById('autoTradeResult');
-  el.innerHTML = '<p style="color:var(--muted)">Analyzing...</p>';
-  try {
-    const res = await fetch(`${QUANT_API}/api/quant/auto`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty: parseInt(qty), threshold: parseFloat(threshold) })
-    });
-    const data = await res.json();
-    if (data.traded) {
-      el.innerHTML = `<div style="background:rgba(126,240,191,0.1);border:1px solid var(--accent-2);border-radius:12px;padding:16px;">
-        <div style="color:var(--accent-2);font-weight:700;margin-bottom:8px;">✅ 주문 실행됨</div>
-        <div>Symbol: ${data.trade?.symbol} | 방향: ${data.trade?.side} | Order ID: ${data.trade?.order_id}</div>
-        <div style="color:var(--muted);font-size:0.85rem;margin-top:6px;">${data.analysis?.reason}</div>
-      </div>`;
-    } else {
-      el.innerHTML = `<div style="background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px;">
-        <div style="color:var(--muted);font-weight:700;margin-bottom:8px;">⏸️ 주문 보류</div>
-        <div style="font-size:0.88rem;">${data.reason}</div>
-      </div>`;
-    }
-    loadTradeLog();
-  } catch (e) {
-    el.innerHTML = `<p style="color:#ff8f8f;">퀀트 서버 연결 실패</p>`;
-  }
+// ===== 자동매매 설정 저장 =====
+async function saveAutoTradeSettings(enabled) {
+  const symbols = document.getElementById('atSymbols')?.value?.trim() || 'QQQ,SPY,AAPL';
+  const balanceRatio = parseFloat(document.getElementById('atBalanceRatio')?.value || 10) / 100;
+  const takeProfit = parseFloat(document.getElementById('atTakeProfit')?.value || 5) / 100;
+  const stopLoss = parseFloat(document.getElementById('atStopLoss')?.value || 5) / 100;
+  const signalMode = document.getElementById('atSignalMode')?.value || 'combined';
+  const isEnabled = enabled !== undefined ? enabled : null;
+
+  const body = { symbols, balance_ratio: balanceRatio, take_profit: takeProfit, stop_loss: stopLoss, signal_mode: signalMode };
+  if (isEnabled !== null) body.enabled = isEnabled ? 1 : 0;
+
+  const res = await fetch('/api/auto-trade/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  const d = await res.json();
+  if (d.ok) loadAutoTradeSettings();
 }
+
+window.toggleAutoTrade = async function(enable) {
+  await saveAutoTradeSettings(enable);
+  const el = document.getElementById('autoTradeResult');
+  if (el) el.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:${enable?'#dcfce7':'#fee2e2'};color:${enable?'#065f46':'#991b1b'};font-weight:700;font-size:0.88rem;margin-top:8px;">
+    ${enable ? '✅ 자동매매 활성화됨 — 1분마다 신호 체크' : '⏹ 자동매매 비활성화됨'}
+  </div>`;
+};
+
+window.runAutoTradeNow = async function() {
+  const el = document.getElementById('autoTradeResult');
+  el.innerHTML = '<div style="padding:10px;color:#6b7280;">🔍 분석 중...</div>';
+  try {
+    const res = await fetch('/api/auto-trade/run', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const d = await res.json();
+    const resultHtml = d.results?.length
+      ? d.results.map(r => `<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;">
+          <strong>${r.symbol}</strong> — ${r.action} ${r.qty ? r.qty+'주' : ''} ${r.profit||''} ${r.reason?'('+r.reason+')':''}
+        </div>`).join('')
+      : '<div style="color:#6b7280;">신호 없음 — 매매 조건 미충족</div>';
+    el.innerHTML = `<div style="padding:12px 14px;border-radius:8px;background:#f8fafc;border:1px solid #e5e7eb;margin-top:8px;">
+      <div style="font-weight:700;margin-bottom:8px;">📊 분석 결과: ${d.message}</div>
+      ${resultHtml}
+    </div>`;
+    loadAutoTradeLog();
+  } catch(e) {
+    el.innerHTML = `<div style="color:#ef4444;padding:10px;">오류: ${e.message}</div>`;
+  }
+};
+
+async function loadAutoTradeSettings() {
+  try {
+    const res = await fetch('/api/auto-trade/settings');
+    const d = await res.json();
+    if (document.getElementById('atSymbols')) document.getElementById('atSymbols').value = d.symbols || 'QQQ,SPY,AAPL';
+    if (document.getElementById('atBalanceRatio')) document.getElementById('atBalanceRatio').value = Math.round((d.balance_ratio||0.1)*100);
+    if (document.getElementById('atTakeProfit')) document.getElementById('atTakeProfit').value = Math.round((d.take_profit||0.05)*100);
+    if (document.getElementById('atStopLoss')) document.getElementById('atStopLoss').value = Math.round((d.stop_loss||0.05)*100);
+    if (document.getElementById('atSignalMode')) document.getElementById('atSignalMode').value = d.signal_mode || 'combined';
+    const badge = document.getElementById('autoTradeStatusBadge');
+    if (badge) {
+      badge.textContent = d.enabled ? '✅ 활성' : '비활성';
+      badge.style.background = d.enabled ? '#dcfce7' : '#f1f5f9';
+      badge.style.color = d.enabled ? '#065f46' : '#6b7280';
+    }
+  } catch(e) {}
+}
+
+window.loadAutoPositions = async function() {
+  const el = document.getElementById('autoPositionsList');
+  const countEl = document.getElementById('autoPositionCount');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/auto-trade/positions');
+    const d = await res.json();
+    if (countEl) countEl.textContent = `(${d.total||0}/3종목)`;
+    if (!d.positions?.length) {
+      el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:12px;font-size:0.85rem;">보유 중인 자동매매 종목 없음</div>';
+      return;
+    }
+    el.innerHTML = d.positions.map(p => {
+      const pl = parseFloat(p.unrealized_pl) || 0;
+      const plPct = (parseFloat(p.unrealized_plpc) || 0) * 100;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;">
+        <div>
+          <span style="font-weight:800;font-size:0.95rem;">${p.symbol}</span>
+          <span style="font-size:0.78rem;color:#6b7280;margin-left:8px;">${p.qty}주 · $${parseFloat(p.current_price).toFixed(2)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-weight:700;color:${pl>=0?'#065f46':'#991b1b'};">${pl>=0?'+':''}$${pl.toFixed(2)} (${plPct>=0?'+':''}${plPct.toFixed(2)}%)</span>
+          <button onclick="cancelAutoTrade('${p.symbol}')" class="sp-btn sp-btn-red sp-btn-sm" style="font-size:0.75rem;padding:4px 10px;">취소</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:12px;">로드 실패</div>'; }
+};
+
+window.cancelAutoTrade = async function(symbol) {
+  if (!confirm(`${symbol} 자동매매를 취소하고 포지션을 청산할까요?`)) return;
+  try {
+    const res = await fetch('/api/auto-trade/cancel/' + symbol, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const d = await res.json();
+    if (d.ok) {
+      alert(`${symbol} 포지션 청산 완료!`);
+      loadAutoPositions();
+      loadAutoTradeLog();
+      loadPositions();
+    } else {
+      alert('취소 실패: ' + (d.error || ''));
+    }
+  } catch(e) { alert('오류: ' + e.message); }
+};
+
+window.stopAllAutoTrade = async function() {
+  if (!confirm('모든 자동매매 종목을 청산하고 자동매매를 종료할까요?')) return;
+  try {
+    const res = await fetch('/api/auto-trade/stop-all', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const d = await res.json();
+    if (d.ok) {
+      const msg = d.closed?.length ? `${d.closed.join(', ')} 청산 완료!` : '청산할 포지션 없음';
+      alert('자동매매 전체 종료! ' + msg);
+      loadAutoTradeSettings();
+      loadAutoPositions();
+      loadAutoTradeLog();
+      loadPositions();
+    }
+  } catch(e) { alert('오류: ' + e.message); }
+};
+
+window.loadAutoTradeLog = async function() {
+  const el = document.getElementById('autoTradeLog');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/auto-trade/log');
+    const d = await res.json();
+    if (!d.logs?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동매매 이력이 없습니다</div>'; return; }
+    const actionMap = { BUY:'매수', SELL_PROFIT:'익절 매도', SELL_LOSS:'손절 매도' };
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+      <thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">
+        <th style="padding:8px;text-align:left;">일시</th>
+        <th style="padding:8px;text-align:center;">종목</th>
+        <th style="padding:8px;text-align:center;">구분</th>
+        <th style="padding:8px;text-align:center;">수량</th>
+        <th style="padding:8px;text-align:center;">가격</th>
+        <th style="padding:8px;text-align:center;">손익</th>
+        <th style="padding:8px;text-align:left;">사유</th>
+      </tr></thead><tbody>
+      ${d.logs.map(l => {
+        const isBuy = l.action === 'BUY';
+        const isProfit = l.action === 'SELL_PROFIT';
+        const isLoss = l.action === 'SELL_LOSS';
+        const color = isBuy ? '#1e40af' : isProfit ? '#065f46' : '#991b1b';
+        const bg = isBuy ? '#dbeafe' : isProfit ? '#dcfce7' : '#fee2e2';
+        return `<tr style="border-bottom:1px solid #f3f4f6;">
+          <td style="padding:8px;font-size:0.78rem;">${new Date(l.created_at).toLocaleString('ko-KR')}</td>
+          <td style="padding:8px;text-align:center;font-weight:700;">${l.symbol}</td>
+          <td style="padding:8px;text-align:center;"><span style="padding:2px 8px;border-radius:999px;font-size:0.75rem;font-weight:700;background:${bg};color:${color}">${actionMap[l.action]||l.action}</span></td>
+          <td style="padding:8px;text-align:center;">${l.qty}주</td>
+          <td style="padding:8px;text-align:center;">$${parseFloat(l.price||0).toFixed(2)}</td>
+          <td style="padding:8px;text-align:center;font-weight:700;color:${isProfit?'#065f46':isLoss?'#991b1b':'#374151'}">${l.profit_pct ? (l.profit_pct>0?'+':'')+parseFloat(l.profit_pct).toFixed(2)+'%' : '-'}</td>
+          <td style="padding:8px;font-size:0.78rem;color:#6b7280;">${l.reason||''}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>`;
+  } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">로드 실패</div>'; }
+};
+
+// 기존 runAutoTrade 호환성 유지
+async function runAutoTrade() { await window.runAutoTradeNow(); }
 
 async function loadTradeLog() {
   const el = document.getElementById('quantTradeLog');
@@ -1130,6 +1355,9 @@ async function selectAccount(id) {
   loadAccount();
   loadPositions();
   loadOrders();
+  loadAutoTradeSettings();
+  loadAutoTradeLog();
+  loadAutoPositions();
 }
 
 async function activateAccount(id) {

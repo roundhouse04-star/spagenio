@@ -1044,7 +1044,7 @@
         </div>
         <div class="sp-card">
           <div class="sp-card-header">
-            <div class="sp-card-title">📋 Positions</div>
+            <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#6b7280;">(클릭하면 실시간 가격)</small></div>
             <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
           </div>
           <div id="positionsTable"></div>
@@ -1054,7 +1054,7 @@
       <!-- 주문 내역 -->
       <div class="sp-card">
         <div class="sp-card-header">
-          <div class="sp-card-title">📝 Orders</div>
+          <div class="sp-card-title">📝 매수/매도 이력</div>
           <button onclick="loadOrders()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
         </div>
         <div id="ordersTable"></div>
@@ -1126,24 +1126,60 @@
 
         <div class="sp-card">
           <div class="sp-card-header">
-            <div class="sp-card-title">🤖 Auto Trading</div>
+            <div class="sp-card-title">🤖 자동매매 설정</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span id="autoTradeStatusBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:#6b7280;">비활성</span>
+              <button onclick="saveAutoTradeSettings()" class="sp-btn sp-btn-indigo sp-btn-sm">저장</button>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label class="sp-label">📊 매매 종목 (쉼표로 구분)</label>
+            <input type="text" id="atSymbols" placeholder="QQQ,SPY,AAPL,NVDA" value="QQQ,SPY,AAPL" class="sp-input" />
           </div>
           <div class="sp-grid-2" style="margin-bottom:12px;">
             <div>
-              <label class="sp-label">Symbol</label>
-              <input type="text" id="autoSymbol" placeholder="Symbol" value="QQQ" class="sp-input" />
+              <label class="sp-label">💰 매수 비율 (%)</label>
+              <input type="number" id="atBalanceRatio" value="10" min="1" max="50" class="sp-input" />
+              <div style="font-size:0.75rem;color:#9ca3af;margin-top:4px;">계좌 잔고 대비 %</div>
             </div>
             <div>
-              <label class="sp-label">Qty</label>
-              <input type="number" id="autoQty" value="1" min="1" class="sp-input" />
+              <label class="sp-label">📈 신호 방식</label>
+              <select id="atSignalMode" class="sp-select">
+                <option value="macd">MACD 골든크로스</option>
+                <option value="combined" selected>Combined (MACD+RSI)</option>
+              </select>
             </div>
           </div>
-          <div style="margin-bottom:14px;">
-            <label class="sp-label">Threshold (0.1 ~ 1.0)</label>
-            <input type="number" id="autoThreshold" value="0.3" min="0.1" max="1" step="0.1" class="sp-input" />
+          <div class="sp-grid-2" style="margin-bottom:14px;">
+            <div>
+              <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
+              <input type="number" id="atTakeProfit" value="5" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+            </div>
+            <div>
+              <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
+              <input type="number" id="atStopLoss" value="5" min="1" max="50" class="sp-input" style="border-color:#ef4444;" />
+            </div>
           </div>
-          <button onclick="runAutoTrade()" class="sp-btn sp-btn-green" style="width:100%;">Run Auto Trade</button>
+          <div style="display:flex;gap:8px;">
+            <button onclick="toggleAutoTrade(true)" class="sp-btn sp-btn-green" style="flex:1;">▶ 활성화</button>
+            <button onclick="toggleAutoTrade(false)" class="sp-btn sp-btn-red" style="flex:1;">⏹ 비활성화</button>
+            <button onclick="runAutoTradeNow()" class="sp-btn sp-btn-outline" style="flex:1;">🔍 지금 분석</button>
+          </div>
           <div id="autoTradeResult" style="margin-top:14px;"></div>
+
+          <!-- 자동매매 현황 -->
+          <div style="margin-top:16px;padding-top:16px;border-top:2px solid #f3f4f6;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:0.88rem;font-weight:700;color:#374151;">📊 현재 자동매매 현황 <span id="autoPositionCount" style="font-size:0.75rem;color:#6b7280;"></span></div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄 새로고침</button>
+                <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 전체 종료</button>
+              </div>
+            </div>
+            <div id="autoPositionsList">
+              <div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">로딩 중...</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1154,6 +1190,17 @@
           <button onclick="loadTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
         </div>
         <div id="quantTradeLog"></div>
+      </div>
+
+      <!-- 자동매매 실행 이력 -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">🤖 자동매매 이력</div>
+          <button onclick="loadAutoTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+        </div>
+        <div id="autoTradeLog">
+          <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.9rem;">로딩 중...</div>
+        </div>
       </div>
 
     </div>
@@ -2333,6 +2380,28 @@
         <div class="chart-section-title">📉 MACD</div>
         <canvas id="chartMacd" height="40"></canvas>
       </div>
+    </div>
+  </div>
+
+  <!-- 실시간 주가 모달 -->
+  <div id="realtimeModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;width:90%;max-width:480px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f3f4f6;">
+        <div id="realtimeTitle" style="font-size:1.1rem;font-weight:800;color:#0f172a;"></div>
+        <button onclick="document.getElementById('realtimeModal').style.display='none'" style="background:#f3f4f6;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div id="realtimeBody"></div>
+    </div>
+  </div>
+
+  <!-- 실시간 주가 모달 -->
+  <div id="realtimeModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;width:90%;max-width:480px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f3f4f6;">
+        <div id="realtimeTitle" style="font-size:1.1rem;font-weight:800;color:#0f172a;"></div>
+        <button onclick="document.getElementById('realtimeModal').style.display='none'" style="background:#f3f4f6;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1.1rem;">✕</button>
+      </div>
+      <div id="realtimeBody"></div>
     </div>
   </div>
 

@@ -153,13 +153,13 @@ const COLORS = {
 const C = COLORS;
 
 const consoleFormat = winston.format.printf(({ level, message, timestamp, ...meta }) => {
-  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0, 8);
+  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0,8);
 
   // 레벨별 색상
   const levelColors = {
     error: `${C.bright}${C.red}`,
-    warn: `${C.bright}${C.yellow}`,
-    info: `${C.cyan}`,
+    warn:  `${C.bright}${C.yellow}`,
+    info:  `${C.cyan}`,
     debug: `${C.gray}`
   };
   const lc = levelColors[level] || C.white;
@@ -168,17 +168,17 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
   // 이벤트 타입별 아이콘
   const eventType = meta.event || meta.eventType || '';
   const iconMap = {
-    'LOGIN_SUCCESS': `${C.green}✅ 로그인 성공${C.reset}`,
-    'LOGIN_FAILED': `${C.red}❌ 로그인 실패${C.reset}`,
+    'LOGIN_SUCCESS':    `${C.green}✅ 로그인 성공${C.reset}`,
+    'LOGIN_FAILED':     `${C.red}❌ 로그인 실패${C.reset}`,
     'SUSPICIOUS_REQUEST': `${C.bgRed}${C.white} ⚠️  의심 접근 ${C.reset}`,
     'RATE_LIMIT_EXCEEDED': `${C.yellow}🚫 요청 초과${C.reset}`,
-    'USER_DELETED': `${C.magenta}🗑️  유저 삭제${C.reset}`,
-    'ACCESS': `${C.gray}→${C.reset}`,
+    'USER_DELETED':     `${C.magenta}🗑️  유저 삭제${C.reset}`,
+    'ACCESS':           `${C.gray}→${C.reset}`,
   };
 
   // 메타 정보 파싱
   let details = '';
-  if (meta.ip) details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
+  if (meta.ip)       details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
   if (meta.username) details += ` ${C.blue}👤${meta.username}${C.reset}`;
   if (meta.method && meta.path) details += ` ${C.cyan}${meta.method} ${meta.path}${C.reset}`;
   if (meta.statusCode) {
@@ -187,7 +187,7 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
     details += ` ${scColor}[${sc}]${C.reset}`;
   }
   if (meta.responseTime) details += ` ${C.gray}${meta.responseTime}ms${C.reset}`;
-  if (meta.userAgent) details += ` ${C.gray}${String(meta.userAgent).slice(0, 40)}${C.reset}`;
+  if (meta.userAgent)  details += ` ${C.gray}${String(meta.userAgent).slice(0,40)}${C.reset}`;
 
   const icon = iconMap[message] || iconMap[eventType] || '';
   const msg = icon ? icon : `${C.white}${message}${C.reset}`;
@@ -263,7 +263,7 @@ function saveAccessLog({ ip, method, path, statusCode, userId, username, userAge
       const entry = {
         level: levelMap[eventType] || 'info',
         message: `${method} ${path}`,
-        time: new Date().toISOString().slice(11, 19),
+        time: new Date().toISOString().slice(11,19),
         ip, username: username || '-', status: statusCode,
         eventType, responseTime: responseTime + 'ms'
       };
@@ -271,7 +271,7 @@ function saveAccessLog({ ip, method, path, statusCode, userId, username, userAge
 
 `;
       logClients.forEach(client => {
-        try { client.write(data); } catch (e) { logClients.delete(client); }
+        try { client.write(data); } catch(e) { logClients.delete(client); }
       });
     }
   } catch (e) {
@@ -324,7 +324,7 @@ function authMiddleware(req, res, next) {
 
   // API 요청만 토큰 검증
   const token = req.headers.authorization?.replace('Bearer ', '') ||
-    req.cookies?.auth_token;
+                req.cookies?.auth_token;
 
   if (!token) {
     return res.status(401).json({ error: '인증이 필요합니다.' });
@@ -598,7 +598,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
   // 임시 비밀번호 생성
   const tempPassword = Math.random().toString(36).substring(2, 8).toUpperCase() +
-    Math.random().toString(36).substring(2, 5) + '!1';
+                       Math.random().toString(36).substring(2, 5) + '!1';
   const hash = bcrypt.hashSync(tempPassword, 12);
 
   // DB 업데이트
@@ -682,11 +682,11 @@ app.post('/api/auth/check-email', (req, res) => {
     if (!email) return res.status(400).json({ error: '이메일을 입력해주세요.' });
     const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
     const used = allUsers.some(u => {
-      try { return decryptEmail(u.email) === email; } catch (e) { return false; }
+      try { return decryptEmail(u.email) === email; } catch(e) { return false; }
     });
     if (used) return res.status(409).json({ error: '이미 가입된 이메일입니다.' });
     return res.json({ status: 'ok', message: '사용 가능한 이메일입니다.' });
-  } catch (error) {
+  } catch(error) {
     console.error('check-email 오류:', error);
     return res.status(500).json({ error: error.message });
   }
@@ -703,7 +703,7 @@ app.post('/api/auth/send-email-code', async (req, res) => {
   // 이미 가입된 이메일 확인 (복호화해서 비교)
   const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
   const alreadyUsed = allUsers.some(u => {
-    try { return decryptEmail(u.email) === email; } catch (e) { return false; }
+    try { return decryptEmail(u.email) === email; } catch(e) { return false; }
   });
   if (alreadyUsed) {
     return res.status(400).json({ error: '이미 가입된 이메일입니다.' });
@@ -803,7 +803,7 @@ app.post('/api/auth/register', (req, res) => {
 
   // 이메일 중복 확인 (복호화 비교)
   const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
-  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch (e) { return false; } });
+  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch(e) { return false; } });
   if (emailUsed) {
     return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' });
   }
@@ -877,7 +877,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.username !== 'admin') return res.status(403).end();
-  } catch (e) { return res.status(401).end(); }
+  } catch(e) { return res.status(401).end(); }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -885,7 +885,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
   res.flushHeaders();
 
   // 연결 확인 메시지
-  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11, 19) })}
+  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11,19) })}
 
 `);
 
@@ -896,7 +896,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
       const entry = {
         level: log.event_type === 'suspicious' ? 'warn' : log.event_type === 'login_failed' ? 'error' : 'info',
         message: `[${log.event_type}] ${log.method} ${log.path}`,
-        time: log.timestamp?.slice(11, 19) || '',
+        time: log.timestamp?.slice(11,19) || '',
         ip: log.ip, username: log.username, status: log.status_code,
         isHistory: true
       };
@@ -904,7 +904,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
 
 `);
     });
-  } catch (e) { }
+  } catch(e) {}
 
   logClients.add(res);
 
@@ -929,7 +929,7 @@ app.post('/api/alpaca-test', async (req, res) => {
       return res.status(400).json({ error: data.message || '유효하지 않은 API 키입니다.' });
     }
     return res.json({ ok: true, status: data.status });
-  } catch (e) {
+  } catch(e) {
     return res.status(500).json({ error: 'Alpaca 서버 연결 실패: ' + e.message });
   }
 });
@@ -967,7 +967,7 @@ app.post('/api/user/broker-keys', (req, res) => {
     db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active) VALUES (?,?,?,?,?,?)')
       .run(req.user.id, name, encKey, encSecret, paper, isActive);
     return res.json({ status: 'ok', message: `'${name}' 계좌가 등록됐습니다.` });
-  } catch (e) {
+  } catch(e) {
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1010,7 +1010,7 @@ function getUserAlpacaKeys(userId, accountId) {
       secret_key: decryptEmail(row.alpaca_secret_key),
       paper: row.alpaca_paper === 1
     };
-  } catch (e) { return null; }
+  } catch(e) { return null; }
 }
 
 // ✅ Alpaca 프록시 (선택된 계좌 ID로 호출)
@@ -1038,7 +1038,7 @@ app.all('/api/alpaca-user/*', async (req, res) => {
     });
     const data = await response.json();
     return res.status(response.status).json(data);
-  } catch (e) {
+  } catch(e) {
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1599,14 +1599,14 @@ app.post('/api/news/save', (req, res) => {
     const { category, content, use_claude, source } = req.body;
     const date = new Date().toISOString().slice(0, 10);
     const savedAt = new Date().toISOString();
-
+    
     // source 및 use_claude 설정
-    const src = (source && ['rss', 'claude', 'gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
+    const src = (source && ['rss','claude','gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
     const useClaude = (src === 'claude') ? 1 : 0;
 
     // 내용 정제
     const cleanContent = (content || '').trim();
-
+    
     // 유효성 검사 (내용이 없으면 저장 안 함)
     if (!cleanContent || cleanContent === '제목없음' || cleanContent === '-' || cleanContent === 'undefined') {
       return res.json({ status: 'ignored', reason: 'content is empty or invalid' });
@@ -1619,10 +1619,10 @@ app.post('/api/news/save', (req, res) => {
 
     if (existing) {
       // 내용이 같으면 중복으로 판단하여 저장하지 않음 (기존 데이터 유지)
-      return res.json({
-        status: 'exists',
+      return res.json({ 
+        status: 'exists', 
         message: '이미 동일한 내용의 뉴스가 저장되어 있습니다.',
-        id: existing.id
+        id: existing.id 
       });
     } else {
       // 내용이 다르면 새로운 뉴스로 판단하여 INSERT
@@ -1630,10 +1630,10 @@ app.post('/api/news/save', (req, res) => {
         'INSERT INTO news (category, date, saved_at, use_claude, source, content) VALUES (?, ?, ?, ?, ?, ?)'
       ).run(category, date, savedAt, useClaude, src, cleanContent);
 
-      return res.json({
-        status: 'ok',
-        category,
-        date,
+      return res.json({ 
+        status: 'ok', 
+        category, 
+        date, 
         content_length: cleanContent.length,
         message: '신규 뉴스 저장 완료'
       });
@@ -1886,7 +1886,6 @@ app.post('/api/lotto/schedule', (req, res) => {
   } else {
     db.prepare('INSERT INTO lotto_schedule (user_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, days, hour, game_count);
   }
-  db.prepare('INSERT INTO lotto_schedule_log (user_id, days, hour, game_count) VALUES (?,?,?,?)').run(req.user.id, days || '', hour || 9, game_count || 5);
   res.json({ ok: true });
 });
 
@@ -1930,13 +1929,13 @@ setInterval(async () => {
       // 텔레그램 전송
       const token = sch.bot_token || process.env.TG_BOT_TOKEN;
       if (token && sch.chat_id) {
-        const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
-        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        const lines = games.map((g, i) => `${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
+        const dayNames = ['일','월','화','수','목','금','토'];
         const msg = `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`;
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: sch.chat_id, text: msg, parse_mode: 'Markdown' })
-        }).catch(() => { });
+        }).catch(() => {});
       }
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
       db.prepare('INSERT INTO lotto_schedule_log (user_id, day, hour, game_count) VALUES (?,?,?,?)').run(sch.user_id, currentDay, currentHour, sch.game_count);
@@ -1951,7 +1950,7 @@ app.get('/api/lotto/history', async (req, res) => {
     const history = rows.map(r => JSON.parse(r.numbers));
     const latest = rows[0]?.drw_no || 0;
     res.json({ history, latest_round: latest, count: history.length });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html')));
@@ -1968,10 +1967,371 @@ app.get('/api/lotto/schedule/log', (req, res) => {
   const rows = db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY sent_at DESC LIMIT 50').all(req.user.id);
   res.json({ logs: rows });
 });
+// 자동매매 현황 (현재 보유 중인 자동매매 종목)
+// 자동매매 현황 (현재 보유 중인 자동매매 종목)
+app.get('/api/auto-trade/positions', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const keys = getUserAlpacaKeys(req.user.id, null);
+  if (!keys) return res.json({ positions: [] });
+  try {
+    const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+    const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
+    const posRes = await fetch(`${baseUrl}/v2/positions`, { headers });
+    const posData = await posRes.json();
+    const positions = Array.isArray(posData) ? posData : (posData.positions || []);
+    // 자동매매로 매수한 종목만 필터
+    const autoSymbols = new Set(
+      db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(req.user.id).map(r => r.symbol)
+    );
+    const autoPositions = positions.filter(p => autoSymbols.has(p.symbol));
+    res.json({ positions: autoPositions });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// 개별 종목 자동매매 취소 (포지션 청산)
+app.post('/api/auto-trade/cancel/:symbol', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { symbol } = req.params;
+  const keys = getUserAlpacaKeys(req.user.id, null);
+  if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
+  try {
+    const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+    const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
+    // 포지션 조회
+    const posRes = await fetch(`${baseUrl}/v2/positions/${symbol}`, { headers });
+    const pos = await posRes.json();
+    if (!pos.qty) return res.status(404).json({ error: '포지션 없음' });
+    // 시장가 매도
+    const orderRes = await fetch(`${baseUrl}/v2/orders`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' })
+    });
+    const order = await orderRes.json();
+    // 로그 업데이트
+    const plPct = parseFloat(pos.unrealized_plpc) || 0;
+    db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id||'', plPct*100, 'closed');
+    db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'")
+      .run(req.user.id, symbol);
+    res.json({ ok: true, order });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// 전체 자동매매 종료 (모든 포지션 청산 + 비활성화)
+app.post('/api/auto-trade/stop-all', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const keys = getUserAlpacaKeys(req.user.id, null);
+  if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
+  try {
+    const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+    const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
+    // 자동매매 비활성화
+    db.prepare('UPDATE auto_trade_settings SET enabled=0 WHERE user_id=?').run(req.user.id);
+    // 자동매매 종목 포지션만 청산
+    const autoSymbols = db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(req.user.id);
+    const results = [];
+    for (const { symbol } of autoSymbols) {
+      try {
+        const posRes = await fetch(`${baseUrl}/v2/positions/${symbol}`, { headers });
+        const pos = await posRes.json();
+        if (!pos.qty) continue;
+        const orderRes = await fetch(`${baseUrl}/v2/orders`, {
+          method: 'POST', headers,
+          body: JSON.stringify({ symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' })
+        });
+        const order = await orderRes.json();
+        const plPct = parseFloat(pos.unrealized_plpc) || 0;
+        db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
+          .run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id||'', plPct*100, 'closed');
+        db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'")
+          .run(req.user.id, symbol);
+        results.push(symbol);
+      } catch(e) {}
+    }
+    res.json({ ok: true, closed: results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── MACD 계산 함수 ────────────────────────────────────────
+function calcEMA(prices, period) {
+  const k = 2 / (period + 1);
+  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < prices.length; i++) ema = prices[i] * k + ema * (1 - k);
+  return ema;
+}
+
+function calcMACD(closes) {
+  if (closes.length < 35) return null;
+  const ema12 = calcEMA(closes, 12);
+  const ema26 = calcEMA(closes, 26);
+  const macd = ema12 - ema26;
+  // 시그널: 최근 9일 MACD의 EMA
+  const macdLine = [];
+  for (let i = 26; i <= closes.length; i++) {
+    const e12 = calcEMA(closes.slice(0, i), 12);
+    const e26 = calcEMA(closes.slice(0, i), 26);
+    macdLine.push(e12 - e26);
+  }
+  if (macdLine.length < 9) return null;
+  const signal = calcEMA(macdLine, 9);
+  const prevMacd = macdLine[macdLine.length - 2];
+  const prevSignal = calcEMA(macdLine.slice(0, -1), 9);
+  const goldenCross = prevMacd < prevSignal && macd > signal;
+  const deadCross = prevMacd > prevSignal && macd < signal;
+  return { macd, signal, goldenCross, deadCross };
+}
+
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  const changes = closes.slice(1).map((c, i) => c - closes[i]);
+  const gains = changes.map(c => c > 0 ? c : 0);
+  const losses = changes.map(c => c < 0 ? -c : 0);
+  const avgGain = gains.slice(-period).reduce((a, b) => a + b, 0) / period;
+  const avgLoss = losses.slice(-period).reduce((a, b) => a + b, 0) / period;
+  if (avgLoss === 0) return 100;
+  return 100 - (100 / (1 + avgGain / avgLoss));
+}
+
+// ── 자동매매 핵심 로직 ────────────────────────────────────
+async function runAutoTradeForUser(userId) {
+  const settings = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=? AND enabled=1').get(userId);
+  if (!settings) return { ok: false, message: '자동매매 비활성화 상태' };
+
+  const keys = getUserAlpacaKeys(userId, null);
+  if (!keys) return { ok: false, message: 'Alpaca 키 없음' };
+
+  const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+  const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
+
+  const results = [];
+
+  try {
+    // 1. 계좌 잔고 조회
+    const accountRes = await fetch(`${baseUrl}/v2/account`, { headers });
+    const account = await accountRes.json();
+    const buyingPower = parseFloat(account.buying_power) || 0;
+
+    // 2. 현재 보유 포지션 조회
+    const posRes = await fetch(`${baseUrl}/v2/positions`, { headers });
+    const posData = await posRes.json();
+    const positions = Array.isArray(posData) ? posData : (posData.positions || []);
+
+    // 3. 보유 포지션 익절/손절 체크
+    for (const pos of positions) {
+      const plPct = parseFloat(pos.unrealized_plpc) || 0;
+      const takeProfit = settings.take_profit || 0.05;
+      const stopLoss = settings.stop_loss || 0.05;
+
+      if (plPct >= takeProfit) {
+        // 익절
+        try {
+          const orderRes = await fetch(`${baseUrl}/v2/orders`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' })
+          });
+          const order = await orderRes.json();
+          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
+            .run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct*100).toFixed(2)}%`, order.id||'', plPct*100, 'closed');
+          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
+          results.push({ symbol: pos.symbol, action: '익절 매도', profit: `+${(plPct*100).toFixed(2)}%` });
+        } catch(e) {}
+      } else if (plPct <= -stopLoss) {
+        // 손절
+        try {
+          const orderRes = await fetch(`${baseUrl}/v2/orders`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' })
+          });
+          const order = await orderRes.json();
+          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
+            .run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct*100).toFixed(2)}%`, order.id||'', plPct*100, 'closed');
+          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
+          results.push({ symbol: pos.symbol, action: '손절 매도', profit: `${(plPct*100).toFixed(2)}%` });
+        } catch(e) {}
+      }
+    }
+
+    // 4. 매수 신호 체크 (3종목 유지)
+    const heldSymbols = new Set(positions.map(p => p.symbol));
+    const maxPositions = settings.max_positions || 3;
+    // 자동매매로 보유 중인 종목 수
+    const autoHeld = db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
+    const autoHeldSet = new Set(autoHeld);
+    const currentAutoCount = autoHeld.filter(s => heldSymbols.has(s)).length;
+    const needMore = maxPositions - currentAutoCount;
+
+    // 후보 종목 풀 (설정된 종목 + 후보 종목)
+    const candidatePool = [
+      ...(settings.symbols || 'QQQ,SPY,AAPL').split(',').map(s => s.trim()),
+      ...(settings.candidate_symbols || 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD').split(',').map(s => s.trim())
+    ].filter((s, i, arr) => s && arr.indexOf(s) === i); // 중복 제거
+
+    const buyAmount = buyingPower * (settings.balance_ratio || 0.1);
+    let boughtCount = 0;
+
+    for (const symbol of candidatePool) {
+      if (boughtCount >= needMore) break;
+      if (heldSymbols.has(symbol)) continue; // 이미 보유
+      if (buyAmount < 10) continue;
+
+      try {
+        // 최근 60일 종가 데이터
+        const end = new Date().toISOString().split('T')[0];
+        const start = new Date(Date.now() - 90*24*60*60*1000).toISOString().split('T')[0];
+        const barRes = await fetch(
+          `https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`,
+          { headers }
+        );
+        const barData = await barRes.json();
+        const bars = barData.bars || [];
+        if (bars.length < 35) continue;
+
+        const closes = bars.map(b => b.c);
+        const currentPrice = closes[closes.length - 1];
+        let buySignal = false;
+        let reason = '';
+
+        const mode = settings.signal_mode || 'combined';
+
+        if (mode === 'macd' || mode === 'combined') {
+          const macdResult = calcMACD(closes);
+          if (macdResult?.goldenCross) {
+            buySignal = true;
+            reason = 'MACD 골든크로스';
+          }
+        }
+
+        if (mode === 'combined' && !buySignal) {
+          const rsi = calcRSI(closes);
+          if (rsi && rsi < 40) {
+            buySignal = true;
+            reason = `RSI 과매도 (${rsi.toFixed(1)})`;
+          }
+        }
+
+        if (buySignal && currentPrice > 0) {
+          const qty = Math.floor(buyAmount / currentPrice);
+          if (qty < 1) continue;
+
+          const orderRes = await fetch(`${baseUrl}/v2/orders`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' })
+          });
+          const order = await orderRes.json();
+          if (order.id) {
+            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
+              .run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active');
+            results.push({ symbol, action: '매수', qty, reason });
+            boughtCount++;
+          }
+        }
+      } catch(e) { console.error('자동매매 오류:', symbol, e.message); }
+    }
+  } catch(e) {
+    return { ok: false, message: e.message };
+  }
+
+  return { ok: true, results, message: results.length ? `${results.length}건 실행` : '신호 없음' };
+}
+
+app.get('/api/auto-trade/settings', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const row = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
+  res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined' });
+});
+
+// 자동매매 설정 저장
+app.post('/api/auto-trade/settings', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode } = req.body;
+  const existing = db.prepare('SELECT id FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
+  if (existing) {
+    db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      .run(enabled?1:0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, req.user.id);
+  } else {
+    db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode) VALUES (?,?,?,?,?,?,?)')
+      .run(req.user.id, enabled?1:0, symbols, balance_ratio, take_profit, stop_loss, signal_mode);
+  }
+  res.json({ ok: true });
+});
+
+// 자동매매 로그 조회
+app.get('/api/auto-trade/log', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const rows = db.prepare('SELECT * FROM auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.id);
+  res.json({ logs: rows });
+});
+
+// 수동 자동매매 실행 트리거
+app.post('/api/auto-trade/run', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const result = await runAutoTradeForUser(req.user.id);
+  res.json(result);
+});
+
+// ── 자동매매 스케줄러 (1분마다) ──────────────────────────
+setInterval(async () => {
+  try {
+    const now = new Date();
+    // 미국 주식 시장 시간 (EST 9:30~16:00 = UTC 14:30~21:00)
+    const utcHour = now.getUTCHours();
+    const utcMin = now.getUTCMinutes();
+    const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
+    if (!isMarketHours) return;
+
+    const users = db.prepare('SELECT user_id FROM auto_trade_settings WHERE enabled=1').all();
+    for (const u of users) {
+      await runAutoTradeForUser(u.user_id);
+    }
+  } catch(e) { console.error('[자동매매 스케줄러]', e.message); }
+}, 60 * 1000);
+
+
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+
+// ============================================================
+//  자동매매 엔진 (MACD + Combined, +5% 익절 / -5% 손절)
+// ============================================================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS auto_trade_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    enabled INTEGER DEFAULT 0,
+    symbols TEXT DEFAULT 'QQQ,SPY,AAPL',
+    candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD',
+    max_positions INTEGER DEFAULT 3,
+    balance_ratio REAL DEFAULT 0.1,
+    take_profit REAL DEFAULT 0.05,
+    stop_loss REAL DEFAULT 0.05,
+    signal_mode TEXT DEFAULT 'combined',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE TABLE IF NOT EXISTS auto_trade_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    symbol TEXT NOT NULL,
+    action TEXT NOT NULL,
+    qty REAL,
+    price REAL,
+    reason TEXT,
+    order_id TEXT,
+    profit_pct REAL,
+    status TEXT DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+`);
+try { db.exec("ALTER TABLE auto_trade_log ADD COLUMN status TEXT DEFAULT 'active'"); } catch(e) {}
+
+// 자동매매 설정 조회
+
+
 
 
 app.listen(port, '0.0.0.0', () => {
@@ -1990,3 +2350,4 @@ app.listen(port, '0.0.0.0', () => {
 //  server.js 에 추가할 로또 API
 //  server.js 파일 맨 아래 app.listen() 바로 위에 붙여넣기
 // ============================================================
+
