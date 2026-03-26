@@ -4,4 +4,3 @@ logs/
 news.db
 *.log
 .DS_Store
-.env

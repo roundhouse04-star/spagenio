@@ -53,17 +53,24 @@
   resetTimer();
 })();
 
-// ✅ 뒤로가기 금지 (로그인 후 보안)
-(function preventBackNavigation() {
-  // history에 현재 상태 push해서 뒤로가기 시 감지
-  history.pushState(null, '', location.href);
-  window.addEventListener('popstate', function () {
-    history.pushState(null, '', location.href);
-  });
-})();
+// 뒤로가기 금지는 login.html에서만 처리
 
 // ✅ API 요청에 토큰 자동 포함 (checkAuth보다 먼저 선언)
 const originalFetch = window.fetch;
+
+// 클라이언트 에러 서버 전송 함수
+function sendClientError({ event_type, error_message, stack_trace = '', extra = {} }) {
+  try {
+    const user = (() => { try { return JSON.parse(sessionStorage.getItem('user') || '{}'); } catch { return {}; } })();
+    const meta = { page: 'front', userId: user.id, username: user.username, url: location.href, ...extra };
+    originalFetch('/api/client-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type, error_message, stack_trace, meta })
+    }).catch(() => {});
+  } catch (e) {}
+}
+
 window.fetch = function (url, options = {}) {
   const token = sessionStorage.getItem('auth_token');
   if (token && !url.includes('/api/auth/')) {
@@ -78,9 +85,30 @@ window.fetch = function (url, options = {}) {
       sessionStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
+    // 5xx 에러 수집
+    if (res.status >= 500 && typeof url === 'string' && url.includes('/api/')) {
+      sendClientError({ event_type: 'FRONT_API_SERVER_ERROR', error_message: `${res.status} ${res.statusText} - ${url}` });
+    }
     return res;
+  }).catch(err => {
+    // 네트워크 연결 실패
+    if (typeof url === 'string' && url.includes('/api/')) {
+      sendClientError({ event_type: 'FRONT_FETCH_ERROR', error_message: err.message, stack_trace: err.stack || '', extra: { fetchUrl: url } });
+    }
+    throw err;
   });
 };
+
+// JS 런타임 에러 수집
+window.onerror = function (message, source, lineno, colno, error) {
+  sendClientError({ event_type: 'FRONT_JS_ERROR', error_message: message, stack_trace: error?.stack || `${source}:${lineno}:${colno}` });
+};
+
+// 미처리 Promise rejection 수집
+window.addEventListener('unhandledrejection', function (e) {
+  const msg = e.reason instanceof Error ? e.reason.message : String(e.reason);
+  sendClientError({ event_type: 'FRONT_UNHANDLED_REJECTION', error_message: msg, stack_trace: e.reason?.stack || '' });
+});
 
 // ===== 뉴스 통합 검색 함수 =====
 // ===== 상세조회 필터 토글 =====
@@ -1767,3 +1795,4 @@ function renderBatchChart(results) {
     }
   });
 }
+

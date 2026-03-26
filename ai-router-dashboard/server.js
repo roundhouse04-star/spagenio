@@ -153,13 +153,13 @@ const COLORS = {
 const C = COLORS;
 
 const consoleFormat = winston.format.printf(({ level, message, timestamp, ...meta }) => {
-  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0,8);
+  const time = timestamp ? timestamp.slice(11, 19) : new Date().toTimeString().slice(0, 8);
 
   // 레벨별 색상
   const levelColors = {
     error: `${C.bright}${C.red}`,
-    warn:  `${C.bright}${C.yellow}`,
-    info:  `${C.cyan}`,
+    warn: `${C.bright}${C.yellow}`,
+    info: `${C.cyan}`,
     debug: `${C.gray}`
   };
   const lc = levelColors[level] || C.white;
@@ -168,17 +168,17 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
   // 이벤트 타입별 아이콘
   const eventType = meta.event || meta.eventType || '';
   const iconMap = {
-    'LOGIN_SUCCESS':    `${C.green}✅ 로그인 성공${C.reset}`,
-    'LOGIN_FAILED':     `${C.red}❌ 로그인 실패${C.reset}`,
+    'LOGIN_SUCCESS': `${C.green}✅ 로그인 성공${C.reset}`,
+    'LOGIN_FAILED': `${C.red}❌ 로그인 실패${C.reset}`,
     'SUSPICIOUS_REQUEST': `${C.bgRed}${C.white} ⚠️  의심 접근 ${C.reset}`,
     'RATE_LIMIT_EXCEEDED': `${C.yellow}🚫 요청 초과${C.reset}`,
-    'USER_DELETED':     `${C.magenta}🗑️  유저 삭제${C.reset}`,
-    'ACCESS':           `${C.gray}→${C.reset}`,
+    'USER_DELETED': `${C.magenta}🗑️  유저 삭제${C.reset}`,
+    'ACCESS': `${C.gray}→${C.reset}`,
   };
 
   // 메타 정보 파싱
   let details = '';
-  if (meta.ip)       details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
+  if (meta.ip) details += ` ${C.gray}IP:${C.reset}${C.white}${meta.ip}${C.reset}`;
   if (meta.username) details += ` ${C.blue}👤${meta.username}${C.reset}`;
   if (meta.method && meta.path) details += ` ${C.cyan}${meta.method} ${meta.path}${C.reset}`;
   if (meta.statusCode) {
@@ -187,7 +187,7 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
     details += ` ${scColor}[${sc}]${C.reset}`;
   }
   if (meta.responseTime) details += ` ${C.gray}${meta.responseTime}ms${C.reset}`;
-  if (meta.userAgent)  details += ` ${C.gray}${String(meta.userAgent).slice(0,40)}${C.reset}`;
+  if (meta.userAgent) details += ` ${C.gray}${String(meta.userAgent).slice(0, 40)}${C.reset}`;
 
   const icon = iconMap[message] || iconMap[eventType] || '';
   const msg = icon ? icon : `${C.white}${message}${C.reset}`;
@@ -263,7 +263,7 @@ function saveAccessLog({ ip, method, path, statusCode, userId, username, userAge
       const entry = {
         level: levelMap[eventType] || 'info',
         message: `${method} ${path}`,
-        time: new Date().toISOString().slice(11,19),
+        time: new Date().toISOString().slice(11, 19),
         ip, username: username || '-', status: statusCode,
         eventType, responseTime: responseTime + 'ms'
       };
@@ -271,7 +271,7 @@ function saveAccessLog({ ip, method, path, statusCode, userId, username, userAge
 
 `;
       logClients.forEach(client => {
-        try { client.write(data); } catch(e) { logClients.delete(client); }
+        try { client.write(data); } catch (e) { logClients.delete(client); }
       });
     }
   } catch (e) {
@@ -301,6 +301,7 @@ async function sendMail({ to, subject, html }) {
     return true;
   } catch (e) {
     console.error('메일 발송 오류:', e.message);
+    saveErrorLog({ event_type: 'MAIL_ERROR', error_message: e.message, stack_trace: e.stack, meta: { to, subject } });
     return false;
   }
 }
@@ -311,32 +312,22 @@ const loginAttempts = new Map();
 
 // ✅ JWT 인증 미들웨어
 function authMiddleware(req, res, next) {
-  // HTML 페이지는 모두 공개 서빙 (인증은 프론트 JS에서 처리)
   const publicApis = ['/api/auth/login', '/api/auth/verify', '/api/auth/register',
     '/api/auth/forgot-password', '/api/auth/send-email-code', '/api/auth/verify-email-code',
     '/api/auth/check-username', '/api/auth/check-email', '/api/news/save'];
 
-  // HTML 페이지 요청은 모두 통과 (JS에서 인증 체크)
   if (!req.path.startsWith('/api/')) return next();
 
-  // 공개 API는 통과
+  // ✅ 토큰 파싱 항상 먼저 (공개 API도 req.user 세팅 필요)
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
+  if (token) {
+    try { req.user = jwt.verify(token, JWT_SECRET); } catch (e) {}
+  }
+
   if (publicApis.some(p => req.path.startsWith(p))) return next();
 
-  // API 요청만 토큰 검증
-  const token = req.headers.authorization?.replace('Bearer ', '') ||
-                req.cookies?.auth_token;
-
-  if (!token) {
-    return res.status(401).json({ error: '인증이 필요합니다.' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: '토큰이 만료되었습니다.' });
-  }
+  if (!req.user) return res.status(401).json({ error: '인증이 필요합니다.' });
+  next();
 }
 
 const startedAt = Date.now();
@@ -500,14 +491,13 @@ app.use((req, res, next) => {
 });
 
 // ✅ 인증 관련 페이지 라우트
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
-app.get('/register-complete.html', (req, res) => res.sendFile(path.join(__dirname, 'register-complete.html')));
-app.get('/change-password', (req, res) => res.sendFile(path.join(__dirname, 'change-password.html')));
-app.get('/withdraw', (req, res) => res.sendFile(path.join(__dirname, 'withdraw.html')));
-app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'forgot-password.html')));
-app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
-app.get('/admin-login', (req, res) => res.sendFile(path.join(__dirname, 'admin-login.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+app.get('/register-complete.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register-complete.html')));
+app.get('/change-password', (req, res) => res.sendFile(path.join(__dirname, 'public', 'change-password.html')));
+app.get('/withdraw', (req, res) => res.sendFile(path.join(__dirname, 'public', 'withdraw.html')));
+app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'public', 'forgot-password.html')));
+app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 // ✅ 로그인 API
@@ -598,7 +588,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
   // 임시 비밀번호 생성
   const tempPassword = Math.random().toString(36).substring(2, 8).toUpperCase() +
-                       Math.random().toString(36).substring(2, 5) + '!1';
+    Math.random().toString(36).substring(2, 5) + '!1';
   const hash = bcrypt.hashSync(tempPassword, 12);
 
   // DB 업데이트
@@ -642,7 +632,7 @@ app.get('/api/admin/reset-requests', (req, res) => {
     temp_password TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );`);
-  const rows = db.prepare("SELECT * FROM password_reset_requests WHERE status = 'pending' ORDER BY sent_at DESC").all();
+  const rows = db.prepare("SELECT * FROM password_reset_requests WHERE status = 'pending' ORDER BY created_at DESC").all();
   return res.json({ requests: rows });
 });
 
@@ -682,12 +672,13 @@ app.post('/api/auth/check-email', (req, res) => {
     if (!email) return res.status(400).json({ error: '이메일을 입력해주세요.' });
     const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
     const used = allUsers.some(u => {
-      try { return decryptEmail(u.email) === email; } catch(e) { return false; }
+      try { return decryptEmail(u.email) === email; } catch (e) { return false; }
     });
     if (used) return res.status(409).json({ error: '이미 가입된 이메일입니다.' });
     return res.json({ status: 'ok', message: '사용 가능한 이메일입니다.' });
-  } catch(error) {
+  } catch (error) {
     console.error('check-email 오류:', error);
+    saveErrorLog({ event_type: 'CHECK_EMAIL_ERROR', error_message: error.message, stack_trace: error.stack });
     return res.status(500).json({ error: error.message });
   }
 });
@@ -703,7 +694,7 @@ app.post('/api/auth/send-email-code', async (req, res) => {
   // 이미 가입된 이메일 확인 (복호화해서 비교)
   const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
   const alreadyUsed = allUsers.some(u => {
-    try { return decryptEmail(u.email) === email; } catch(e) { return false; }
+    try { return decryptEmail(u.email) === email; } catch (e) { return false; }
   });
   if (alreadyUsed) {
     return res.status(400).json({ error: '이미 가입된 이메일입니다.' });
@@ -803,7 +794,7 @@ app.post('/api/auth/register', (req, res) => {
 
   // 이메일 중복 확인 (복호화 비교)
   const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
-  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch(e) { return false; } });
+  const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch (e) { return false; } });
   if (emailUsed) {
     return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' });
   }
@@ -877,7 +868,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.username !== 'admin') return res.status(403).end();
-  } catch(e) { return res.status(401).end(); }
+  } catch (e) { return res.status(401).end(); }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -885,7 +876,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
   res.flushHeaders();
 
   // 연결 확인 메시지
-  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11,19) })}
+  res.write(`data: ${JSON.stringify({ level: 'info', message: '🔌 실시간 로그 연결됨', time: new Date().toISOString().slice(11, 19) })}
 
 `);
 
@@ -896,7 +887,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
       const entry = {
         level: log.event_type === 'suspicious' ? 'warn' : log.event_type === 'login_failed' ? 'error' : 'info',
         message: `[${log.event_type}] ${log.method} ${log.path}`,
-        time: log.timestamp?.slice(11,19) || '',
+        time: log.timestamp?.slice(11, 19) || '',
         ip: log.ip, username: log.username, status: log.status_code,
         isHistory: true
       };
@@ -904,7 +895,7 @@ app.get('/api/admin/logs/stream', (req, res) => {
 
 `);
     });
-  } catch(e) {}
+  } catch (e) { }
 
   logClients.add(res);
 
@@ -929,7 +920,7 @@ app.post('/api/alpaca-test', async (req, res) => {
       return res.status(400).json({ error: data.message || '유효하지 않은 API 키입니다.' });
     }
     return res.json({ ok: true, status: data.status });
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: 'Alpaca 서버 연결 실패: ' + e.message });
   }
 });
@@ -967,7 +958,8 @@ app.post('/api/user/broker-keys', (req, res) => {
     db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active) VALUES (?,?,?,?,?,?)')
       .run(req.user.id, name, encKey, encSecret, paper, isActive);
     return res.json({ status: 'ok', message: `'${name}' 계좌가 등록됐습니다.` });
-  } catch(e) {
+  } catch (e) {
+    saveErrorLog({ event_type: 'BROKER_KEY_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId: req.user?.id } });
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1010,7 +1002,7 @@ function getUserAlpacaKeys(userId, accountId) {
       secret_key: decryptEmail(row.alpaca_secret_key),
       paper: row.alpaca_paper === 1
     };
-  } catch(e) { return null; }
+  } catch (e) { return null; }
 }
 
 // ✅ Alpaca 프록시 (선택된 계좌 ID로 호출)
@@ -1038,7 +1030,7 @@ app.all('/api/alpaca-user/*', async (req, res) => {
     });
     const data = await response.json();
     return res.status(response.status).json(data);
-  } catch(e) {
+  } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 });
@@ -1050,7 +1042,7 @@ app.get('/api/admin/users', (req, res) => {
   let query = 'SELECT id, username, email, created_at, last_login FROM users WHERE 1=1';
   const params = [];
   if (search) { query += ' AND username LIKE ?'; params.push('%' + search + '%'); }
-  query += ' ORDER BY sent_at DESC';
+  query += ' ORDER BY created_at DESC';
   const users = db.prepare(query).all(...params);
   // 이메일 복호화
   const result = users.map(u => ({
@@ -1599,14 +1591,14 @@ app.post('/api/news/save', (req, res) => {
     const { category, content, use_claude, source } = req.body;
     const date = new Date().toISOString().slice(0, 10);
     const savedAt = new Date().toISOString();
-    
+
     // source 및 use_claude 설정
-    const src = (source && ['rss','claude','gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
+    const src = (source && ['rss', 'claude', 'gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
     const useClaude = (src === 'claude') ? 1 : 0;
 
     // 내용 정제
     const cleanContent = (content || '').trim();
-    
+
     // 유효성 검사 (내용이 없으면 저장 안 함)
     if (!cleanContent || cleanContent === '제목없음' || cleanContent === '-' || cleanContent === 'undefined') {
       return res.json({ status: 'ignored', reason: 'content is empty or invalid' });
@@ -1619,10 +1611,10 @@ app.post('/api/news/save', (req, res) => {
 
     if (existing) {
       // 내용이 같으면 중복으로 판단하여 저장하지 않음 (기존 데이터 유지)
-      return res.json({ 
-        status: 'exists', 
+      return res.json({
+        status: 'exists',
         message: '이미 동일한 내용의 뉴스가 저장되어 있습니다.',
-        id: existing.id 
+        id: existing.id
       });
     } else {
       // 내용이 다르면 새로운 뉴스로 판단하여 INSERT
@@ -1630,10 +1622,10 @@ app.post('/api/news/save', (req, res) => {
         'INSERT INTO news (category, date, saved_at, use_claude, source, content) VALUES (?, ?, ?, ?, ?, ?)'
       ).run(category, date, savedAt, useClaude, src, cleanContent);
 
-      return res.json({ 
-        status: 'ok', 
-        category, 
-        date, 
+      return res.json({
+        status: 'ok',
+        category,
+        date,
         content_length: cleanContent.length,
         message: '신규 뉴스 저장 완료'
       });
@@ -1929,18 +1921,21 @@ setInterval(async () => {
       // 텔레그램 전송
       const token = sch.bot_token || process.env.TG_BOT_TOKEN;
       if (token && sch.chat_id) {
-        const lines = games.map((g, i) => `${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
-        const dayNames = ['일','월','화','수','목','금','토'];
+        const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const msg = `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`;
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: sch.chat_id, text: msg, parse_mode: 'Markdown' })
-        }).catch(() => {});
+        }).catch(() => { });
       }
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
       db.prepare('INSERT INTO lotto_schedule_log (user_id, day, hour, game_count) VALUES (?,?,?,?)').run(sch.user_id, currentDay, currentHour, sch.game_count);
     }
-  } catch (e) { console.error('스케줄 오류:', e.message); }
+  } catch (e) {
+    console.error('스케줄 오류:', e.message);
+    saveErrorLog({ event_type: 'LOTTO_SCHEDULE_SAVE_ERROR', error_message: e.message, stack_trace: e.stack });
+  }
 }, 60 * 1000);
 
 // ── 동행복권 이력 ─────────────────────────────────────────
@@ -1950,10 +1945,10 @@ app.get('/api/lotto/history', async (req, res) => {
     const history = rows.map(r => JSON.parse(r.numbers));
     const latest = rows[0]?.drw_no || 0;
     res.json({ history, latest_round: latest, count: history.length });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html')));
+app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'public', 'lotto.html')));
 
 
 // ============================================================
@@ -1964,7 +1959,7 @@ app.get('/lotto', (req, res) => res.sendFile(path.join(__dirname, 'lotto.html'))
 
 app.get('/api/lotto/schedule/log', (req, res) => {
   if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-  const rows = db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY sent_at DESC LIMIT 50').all(req.user.id);
+  const rows = db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(req.user.id);
   res.json({ logs: rows });
 });
 // 자동매매 현황 (현재 보유 중인 자동매매 종목)
@@ -1985,7 +1980,7 @@ app.get('/api/auto-trade/positions', async (req, res) => {
     );
     const autoPositions = positions.filter(p => autoSymbols.has(p.symbol));
     res.json({ positions: autoPositions });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // 개별 종목 자동매매 취소 (포지션 청산)
@@ -2010,11 +2005,11 @@ app.post('/api/auto-trade/cancel/:symbol', async (req, res) => {
     // 로그 업데이트
     const plPct = parseFloat(pos.unrealized_plpc) || 0;
     db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
-      .run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id||'', plPct*100, 'closed');
+      .run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
     db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'")
       .run(req.user.id, symbol);
     res.json({ ok: true, order });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // 전체 자동매매 종료 (모든 포지션 청산 + 비활성화)
@@ -2042,14 +2037,14 @@ app.post('/api/auto-trade/stop-all', async (req, res) => {
         const order = await orderRes.json();
         const plPct = parseFloat(pos.unrealized_plpc) || 0;
         db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
-          .run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id||'', plPct*100, 'closed');
+          .run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
         db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'")
           .run(req.user.id, symbol);
         results.push(symbol);
-      } catch(e) {}
+      } catch (e) { }
     }
     res.json({ ok: true, closed: results });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── MACD 계산 함수 ────────────────────────────────────────
@@ -2131,10 +2126,10 @@ async function runAutoTradeForUser(userId) {
           });
           const order = await orderRes.json();
           db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
-            .run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct*100).toFixed(2)}%`, order.id||'', plPct*100, 'closed');
+            .run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
           db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
-          results.push({ symbol: pos.symbol, action: '익절 매도', profit: `+${(plPct*100).toFixed(2)}%` });
-        } catch(e) {}
+          results.push({ symbol: pos.symbol, action: '익절 매도', profit: `+${(plPct * 100).toFixed(2)}%` });
+        } catch (e) { }
       } else if (plPct <= -stopLoss) {
         // 손절
         try {
@@ -2144,10 +2139,10 @@ async function runAutoTradeForUser(userId) {
           });
           const order = await orderRes.json();
           db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)')
-            .run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct*100).toFixed(2)}%`, order.id||'', plPct*100, 'closed');
+            .run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
           db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
-          results.push({ symbol: pos.symbol, action: '손절 매도', profit: `${(plPct*100).toFixed(2)}%` });
-        } catch(e) {}
+          results.push({ symbol: pos.symbol, action: '손절 매도', profit: `${(plPct * 100).toFixed(2)}%` });
+        } catch (e) { }
       }
     }
 
@@ -2177,7 +2172,7 @@ async function runAutoTradeForUser(userId) {
       try {
         // 최근 60일 종가 데이터
         const end = new Date().toISOString().split('T')[0];
-        const start = new Date(Date.now() - 90*24*60*60*1000).toISOString().split('T')[0];
+        const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const barRes = await fetch(
           `https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`,
           { headers }
@@ -2225,9 +2220,12 @@ async function runAutoTradeForUser(userId) {
             boughtCount++;
           }
         }
-      } catch(e) { console.error('자동매매 오류:', symbol, e.message); }
+      } catch (e) {
+        console.error('자동매매 오류:', symbol, e.message);
+        saveErrorLog({ event_type: 'AUTO_TRADE_ERROR', error_message: e.message, stack_trace: e.stack, meta: { symbol, userId } });
+      }
     }
-  } catch(e) {
+  } catch (e) {
     return { ok: false, message: e.message };
   }
 
@@ -2247,10 +2245,10 @@ app.post('/api/auto-trade/settings', (req, res) => {
   const existing = db.prepare('SELECT id FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
   if (existing) {
     db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-      .run(enabled?1:0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, req.user.id);
+      .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, req.user.id);
   } else {
     db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode) VALUES (?,?,?,?,?,?,?)')
-      .run(req.user.id, enabled?1:0, symbols, balance_ratio, take_profit, stop_loss, signal_mode);
+      .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode);
   }
   res.json({ ok: true });
 });
@@ -2283,10 +2281,91 @@ setInterval(async () => {
     for (const u of users) {
       await runAutoTradeForUser(u.user_id);
     }
-  } catch(e) { console.error('[자동매매 스케줄러]', e.message); }
+  } catch (e) {
+    console.error('[자동매매 스케줄러]', e.message);
+    saveErrorLog({ event_type: 'AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack });
+  }
 }, 60 * 1000);
 
 
+
+
+
+// ===== 에러 로그 시스템 =====
+const errorLogDir = path.join(__dirname, 'logs', 'errors');
+if (!fs.existsSync(errorLogDir)) fs.mkdirSync(errorLogDir, { recursive: true });
+
+function saveErrorLog({ event_type, error_message, stack_trace = '', meta = {} }) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const filePath = path.join(errorLogDir, `${today}.jsonl`);
+    const entry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event_type,
+      error_message,
+      stack_trace,
+      meta: typeof meta === 'string' ? meta : JSON.stringify(meta),
+    });
+    fs.appendFileSync(filePath, entry + '\n', 'utf8');
+  } catch (e) {
+    logger.error('saveErrorLog 실패:', e.message);
+  }
+}
+
+// 클라이언트(front/admin) 에러 수신 API
+app.post('/api/client-error', (req, res) => {
+  try {
+    const { event_type, error_message, stack_trace, meta } = req.body;
+    if (!event_type || !error_message) return res.json({ ok: false });
+    saveErrorLog({ event_type, error_message, stack_trace, meta });
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: false });
+  }
+});
+
+// 에러 로그 날짜 목록 조회
+app.get('/api/admin/error-logs/dates', (req, res) => {
+  try {
+    if (!req.user || req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    const { type } = req.query;
+    const files = fs.existsSync(errorLogDir)
+      ? fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl')).sort().reverse()
+      : [];
+    const dates = files.map(f => f.replace('.jsonl', '')).filter(date => {
+      if (!type || type === 'ALL') return true;
+      try {
+        const content = fs.readFileSync(path.join(errorLogDir, `${date}.jsonl`), 'utf8');
+        return content.split('\n').filter(Boolean).some(line => {
+          try { return JSON.parse(line).event_type?.startsWith(type); } catch { return false; }
+        });
+      } catch { return false; }
+    });
+    res.json({ ok: true, dates });
+  } catch (e) {
+    logger.error('ERROR_LOG_DATES', { error: e.message });
+    res.status(500).json({ error: '서버 오류' });
+  }
+});
+
+// 에러 로그 상세 조회
+app.get('/api/admin/error-logs', (req, res) => {
+  try {
+    if (!req.user || req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    const { date, type } = req.query;
+    if (!date) return res.json({ ok: true, logs: [] });
+    const filePath = path.join(errorLogDir, `${date}.jsonl`);
+    if (!fs.existsSync(filePath)) return res.json({ ok: true, logs: [] });
+    const lines = fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean);
+    let logs = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    if (type && type !== 'ALL') logs = logs.filter(l => l.event_type?.startsWith(type));
+    logs.reverse();
+    res.json({ ok: true, logs });
+  } catch (e) {
+    logger.error('ERROR_LOG_FETCH', { error: e.message });
+    res.status(500).json({ error: '서버 오류' });
+  }
+});
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
@@ -2327,12 +2406,32 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 `);
-try { db.exec("ALTER TABLE auto_trade_log ADD COLUMN status TEXT DEFAULT 'active'"); } catch(e) {}
+try { db.exec("ALTER TABLE auto_trade_log ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e) { }
 
 // 자동매매 설정 조회
 
 
 
+
+// ===== 에러 로그 시스템 =====
+// 글로벌 에러 핸들러
+app.use((err, req, res, next) => {
+  logger.error('SERVER_ERROR', { error: err.message, stack: err.stack, path: req.path });
+  saveErrorLog({ event_type: 'SERVER_ERROR', error_message: err.message, stack_trace: err.stack, meta: { path: req.path, method: req.method } });
+  res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+});
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : '';
+  logger.error('UNHANDLED_REJECTION', { error: msg });
+  saveErrorLog({ event_type: 'UNHANDLED_REJECTION', error_message: msg, stack_trace: stack });
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('UNCAUGHT_EXCEPTION', { error: err.message, stack: err.stack });
+  saveErrorLog({ event_type: 'UNCAUGHT_EXCEPTION', error_message: err.message, stack_trace: err.stack });
+});
 
 app.listen(port, '0.0.0.0', () => {
   printBanner();
