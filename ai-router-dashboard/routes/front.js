@@ -124,7 +124,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const keys = getUserAlpacaKeys(req.user.id, accountId);
     if (!keys) return res.status(400).json({ error: 'Alpaca 키가 등록되지 않았습니다.' });
     try {
-      const alpacaPath = req.path.replace('/api/alpaca-user', '');
+      const alpacaPath = req.originalUrl.split('?')[0].replace('/api/alpaca-user', '');
       const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
       const query = Object.keys(req.query).filter(k => k !== 'accountId').length ? '?' + new URLSearchParams(Object.fromEntries(Object.entries(req.query).filter(([k]) => k !== 'accountId'))).toString() : '';
       const response = await fetch(`${baseUrl}${alpacaPath}${query}`, { method: req.method, headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });

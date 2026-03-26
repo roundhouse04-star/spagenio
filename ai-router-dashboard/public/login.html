@@ -148,6 +148,11 @@
         });
         const data = await res.json();
         if (res.ok) {
+          if (data.username === 'admin') {
+            showError('관리자 계정은 관리자 로그인 페이지를 이용해주세요.');
+            btn.disabled = false; btn.textContent = '로그인';
+            return;
+          }
           sessionStorage.setItem('auth_token', data.token);
           location.href = '/';
         } else {
