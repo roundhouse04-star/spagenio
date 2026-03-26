@@ -1217,6 +1217,19 @@
     </div>
   </div>
 
+  <!-- 커스텀 confirm 팝업 -->
+  <div id="lotto-confirm-layer" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:32px 40px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div id="lotto-confirm-icon" style="font-size:2.5rem;margin-bottom:12px;">⚠️</div>
+      <div id="lotto-confirm-title" style="font-size:1.1rem;font-weight:800;color:#0f172a;margin-bottom:8px;"></div>
+      <div id="lotto-confirm-msg" style="font-size:0.9rem;color:#6b7280;margin-bottom:24px;line-height:1.6;"></div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="lotto-confirm-cancel" style="background:#f3f4f6;color:#374151;border:none;padding:10px 28px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">취소</button>
+        <button id="lotto-confirm-ok" style="background:#ef4444;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">확인</button>
+      </div>
+    </div>
+  </div>
+
   <div id="tab-lotto" class="tab-content" style="display:none;">
     <div class="sp-page">
 
@@ -1290,7 +1303,10 @@
         <div class="sp-card">
           <div class="sp-card-header">
             <div class="sp-card-title">⏰ 자동 발송 설정</div>
-            <button onclick="lottoSaveSchedule()" class="sp-btn sp-btn-primary" style="font-size:0.82rem;">저장</button>
+            <div style="display:flex;gap:6px;">
+              <button onclick="lottoResetSchedule()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">초기화</button>
+              <button onclick="lottoSaveSchedule()" class="sp-btn sp-btn-primary" style="font-size:0.82rem;">저장</button>
+            </div>
           </div>
           <div style="margin-bottom:12px;">
             <div style="font-size:0.82rem;color:#6b7280;margin-bottom:6px;">요일 선택 (1개만 선택)</div>
@@ -1307,14 +1323,14 @@
             <div style="flex:1;">
               <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">발송 시각</div>
               <select id="lotto-sch-hour" class="sp-select">
-                <option value="" disabled>시각 선택</option>
+                <option value="" disabled selected>시각 선택</option>
                 <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option><option value="3">03시</option><option value="4">04시</option><option value="5">05시</option><option value="6">06시</option><option value="7">07시</option><option value="8">08시</option><option value="9">09시</option><option value="10">10시</option><option value="11">11시</option><option value="12">12시</option><option value="13">13시</option><option value="14">14시</option><option value="15">15시</option><option value="16">16시</option><option value="17">17시</option><option value="18">18시</option><option value="19">19시</option><option value="20">20시</option><option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
               </select>
             </div>
             <div style="flex:1;">
               <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">게임 수</div>
               <select id="lotto-sch-count" class="sp-select">
-                <option value="" disabled>게임 선택</option>
+                <option value="" disabled selected>게임 선택</option>
                 <option value="1">1게임</option>
                 <option value="3">3게임</option>
                 <option value="5">5게임</option>
@@ -1325,9 +1341,9 @@
           <div style="font-size:0.78rem;color:#9ca3af;" id="lotto-sch-last"></div>
           <div style="font-size:0.78rem;color:#9ca3af;" id="lotto-sch-next"></div>
           <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감으로 자동 발송되지 않습니다</div>
-          <div id="lotto-sch-current" style="display:none;margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;">
+          <div id="lotto-sch-current" style="margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;">
             <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
-            <div id="lotto-sch-current-text" style="font-size:0.85rem;color:#374151;"></div>
+            <div id="lotto-sch-current-text" style="font-size:0.85rem;color:#374151;">스케줄 없음</div>
           </div>
 
         </div>
@@ -2076,6 +2092,17 @@
         if (layer) layer.style.display = 'none';
       };
 
+      function lottoConfirm(icon, title, msg, onOk) {
+        const layer = $id('lotto-confirm-layer');
+        if (!layer) { if (confirm(msg)) onOk(); return; }
+        $id('lotto-confirm-icon').textContent = icon;
+        $id('lotto-confirm-title').textContent = title;
+        $id('lotto-confirm-msg').textContent = msg;
+        layer.style.display = 'flex';
+        $id('lotto-confirm-ok').onclick = () => { layer.style.display = 'none'; onOk(); };
+        $id('lotto-confirm-cancel').onclick = () => { layer.style.display = 'none'; };
+      }
+
       window.lottoSaveTg = async function lottoSaveTg() {
         const token = ($id('lotto-tg-token')?.value?.trim() || '');
         const chatId = ($id('lotto-tg-chatid')?.value?.trim() || '');
@@ -2146,6 +2173,26 @@
       };
 
       // 저장버튼으로 스케줄 저장 + 일주일에 1번 수정 제한
+      window.lottoResetSchedule = async function() {
+        lottoConfirm('⚠️', '초기화 확인', '자동 발송 설정을 초기화하시겠습니까?\n설정이 삭제되고 자동 발송이 중단됩니다.', async () => {
+          try {
+            const r = await fetch('/api/lotto/schedule', { method: 'DELETE' });
+            const d = await r.json();
+            if (d.ok) {
+              document.querySelectorAll('.lotto-day-btn').forEach(btn => btn.classList.remove('active'));
+              if ($id('lotto-sch-hour')) $id('lotto-sch-hour').value = '';
+              if ($id('lotto-sch-count')) $id('lotto-sch-count').value = '';
+              if ($id('lotto-sch-last')) $id('lotto-sch-last').textContent = '';
+              const curText = $id('lotto-sch-current-text');
+              if (curText) { curText.textContent = '자동 발송 설정을 하지 않았습니다'; curText.style.color = '#9ca3af'; }
+              lottoShowToast('✅', '초기화 완료', '자동 발송 설정이 삭제되었습니다.');
+            } else {
+              lottoShowToast('❌', '초기화 실패', d.error || '다시 시도해주세요');
+            }
+          } catch(e) { lottoShowToast('❌', '오류', e.message); }
+        });
+      };
+
       window.lottoSaveSchedule = async function() {
         // ✅ [FIX] 요일 - 반드시 1개만 선택
         const activeDays = [...document.querySelectorAll('.lotto-day-btn.active')].map(b => b.dataset.day);
@@ -2216,9 +2263,10 @@
             if (hasSchedule) {
               const dayName = dayNames[parseInt(safeDay)] || '';
               curText.textContent = '매주 ' + dayName + '요일 ' + String(d.hour||9).padStart(2,'0') + '시 · ' + (d.game_count||5) + '게임 · ' + (d.enabled ? '✅ 활성' : '⏸ 비활성');
-              curEl.style.display = 'block';
+              curText.style.color = '#374151';
             } else {
-              curEl.style.display = 'none';
+              curText.textContent = '자동 발송 설정을 하지 않았습니다';
+              curText.style.color = '#9ca3af';
             }
           }
           if (d.last_sent_at) {

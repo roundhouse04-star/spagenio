@@ -1751,6 +1751,13 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+  CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    weights TEXT NOT NULL DEFAULT '{}',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `);
 
 // ── 텔레그램 설정 조회 ────────────────────────────────────
@@ -1865,19 +1872,37 @@ app.post('/api/lotto/picks/check', async (req, res) => {
 app.get('/api/lotto/schedule', (req, res) => {
   if (!req.user) return res.status(401).json({ error: '로그인 필요' });
   const row = db.prepare('SELECT * FROM lotto_schedule WHERE user_id=?').get(req.user.id);
-  res.json(row || { enabled: 0, days: '1,2,3,4,5,6', hour: 9, game_count: 5 });
+  res.json(row || null);
 });
 
 app.post('/api/lotto/schedule', (req, res) => {
   if (!req.user) return res.status(401).json({ error: '로그인 필요' });
   const { enabled, days, hour, game_count } = req.body;
-  const existing = db.prepare('SELECT id FROM lotto_schedule WHERE user_id=?').get(req.user.id);
+  const existing = db.prepare('SELECT id, updated_at FROM lotto_schedule WHERE user_id=?').get(req.user.id);
+
+  // 일주일 수정 제한 체크 (최초 저장은 제한 없음)
+  if (existing && existing.updated_at) {
+    const lastUpdate = new Date(existing.updated_at);
+    const diffDays = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays < 7) {
+      const remainDays = Math.ceil(7 - diffDays);
+      return res.json({ ok: false, remain_days: remainDays });
+    }
+  }
+
   if (existing) {
     db.prepare('UPDATE lotto_schedule SET enabled=?,days=?,hour=?,game_count=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
       .run(enabled ? 1 : 0, days, hour, game_count, req.user.id);
   } else {
     db.prepare('INSERT INTO lotto_schedule (user_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, days, hour, game_count);
   }
+  res.json({ ok: true });
+});
+
+// ── 스케줄 초기화 ─────────────────────────────────────────
+app.delete('/api/lotto/schedule', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  db.prepare('DELETE FROM lotto_schedule WHERE user_id=?').run(req.user.id);
   res.json({ ok: true });
 });
 
@@ -1905,13 +1930,47 @@ setInterval(async () => {
       if (!days.includes(currentDay)) continue;
       if (sch.last_sent_at?.startsWith(today)) continue;
 
-      // 랜덤 번호 생성
-      const games = [];
-      for (let g = 0; g < sch.game_count; g++) {
-        const nums = new Set();
-        while (nums.size < 6) nums.add(Math.floor(Math.random() * 45) + 1);
-        games.push([...nums].sort((a, b) => a - b));
+      // 유저 알고리즘 비중 로드
+      const DEFAULT_WEIGHTS = { freq: 20, hot: 20, cold: 10, balance: 15, zone: 10, ac: 10, prime: 5, delta: 10 };
+      const wRow = db.prepare('SELECT weights FROM lotto_algorithm_weights WHERE user_id=?').get(sch.user_id);
+      let algos = { ...DEFAULT_WEIGHTS };
+      if (wRow) { try { algos = { ...DEFAULT_WEIGHTS, ...JSON.parse(wRow.weights) }; } catch {} }
+
+      // 알고리즘 기반 번호 생성 함수
+      const HOT_SET = new Set([3, 7, 14, 18, 23, 27, 34, 40, 42]);
+      const COLD_SET = new Set([1, 5, 9, 12, 20, 28, 33, 38, 44]);
+      const PRIME_SET = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
+
+      function getScore(n) {
+        let score = 1;
+        if (algos.freq  > 0) score += algos.freq  * (n % 9 + 1) * 0.01;
+        if (algos.hot   > 0 && HOT_SET.has(n))   score += algos.hot   * 0.08;
+        if (algos.cold  > 0 && COLD_SET.has(n))  score += algos.cold  * 0.07;
+        if (algos.balance > 0 && n % 2 === 0)    score += algos.balance * 0.02;
+        if (algos.zone  > 0) score += algos.zone  * 0.015;
+        if (algos.ac    > 0) score += algos.ac    * ((n * 7) % 11) * 0.005;
+        if (algos.prime > 0 && PRIME_SET.has(n)) score += algos.prime * 0.04;
+        if (algos.delta > 0) score += algos.delta * ((46 - n) % 6) * 0.005;
+        return score;
       }
+
+      function generateAlgoGame() {
+        const picked = new Set();
+        while (picked.size < 6) {
+          const pool = [];
+          for (let n = 1; n <= 45; n++) {
+            if (!picked.has(n)) pool.push({ n, w: getScore(n) });
+          }
+          const total = pool.reduce((s, x) => s + x.w, 0);
+          let r = Math.random() * total;
+          for (const item of pool) { r -= item.w; if (r <= 0) { picked.add(item.n); break; } }
+          if (picked.size < 6 && pool.length > 0) picked.add(pool[pool.length - 1].n);
+        }
+        return [...picked].sort((a, b) => a - b);
+      }
+
+      // 게임 생성
+      const games = Array.from({ length: sch.game_count }, () => generateAlgoGame());
 
       // DB 저장
       db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(sch.user_id, today);
@@ -1961,6 +2020,32 @@ app.get('/api/lotto/schedule/log', (req, res) => {
   if (!req.user) return res.status(401).json({ error: '로그인 필요' });
   const rows = db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(req.user.id);
   res.json({ logs: rows });
+});
+
+// ── 알고리즘 비중 조회 ────────────────────────────────────
+app.get('/api/lotto/algorithm-weights', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  const DEFAULT_WEIGHTS = { freq: 20, hot: 20, cold: 10, balance: 15, zone: 10, ac: 10, prime: 5, delta: 10 };
+  const row = db.prepare('SELECT weights FROM lotto_algorithm_weights WHERE user_id=?').get(req.user.id);
+  if (!row) return res.json(DEFAULT_WEIGHTS);
+  try { res.json({ ...DEFAULT_WEIGHTS, ...JSON.parse(row.weights) }); } catch { res.json(DEFAULT_WEIGHTS); }
+});
+
+// ── 알고리즘 비중 저장 ────────────────────────────────────
+app.post('/api/lotto/algorithm-weights', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const weights = JSON.stringify(req.body);
+    const existing = db.prepare('SELECT id FROM lotto_algorithm_weights WHERE user_id=?').get(req.user.id);
+    if (existing) {
+      db.prepare('UPDATE lotto_algorithm_weights SET weights=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(weights, req.user.id);
+    } else {
+      db.prepare('INSERT INTO lotto_algorithm_weights (user_id, weights) VALUES (?,?)').run(req.user.id, weights);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 // 자동매매 현황 (현재 보유 중인 자동매매 종목)
 // 자동매매 현황 (현재 보유 중인 자동매매 종목)
