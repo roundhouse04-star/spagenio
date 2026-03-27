@@ -159,3 +159,181 @@ def get_orders():
 if __name__ == '__main__':
     print('🚀 주식 서버 시작: http://localhost:5001')
     app.run(host='0.0.0.0', port=5001, debug=True)
+
+# ============================================================
+# 주가 히스토리 DB 저장 (백테스팅용)
+# ============================================================
+import sqlite3
+import schedule
+import threading
+import time as time_module
+
+DB_PATH = os.path.join(os.path.dirname(__file__), 'news.db')
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_stock_price_db():
+    conn = get_db()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS stock_price_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            date TEXT NOT NULL,
+            open REAL, high REAL, low REAL, close REAL, volume INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(symbol, date)
+        )
+    ''')
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_sph_symbol_date ON stock_price_history(symbol, date)')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS backtest_watchlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT UNIQUE NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print('✅ stock_price_history DB 초기화 완료')
+
+def fetch_and_save_history(symbol, period='2y'):
+    """yfinance로 주가 히스토리 가져와서 DB에 저장"""
+    try:
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period=period)
+        if hist.empty:
+            print(f'⚠️ {symbol}: 데이터 없음')
+            return 0
+
+        conn = get_db()
+        saved = 0
+        for date, row in hist.iterrows():
+            date_str = date.strftime('%Y-%m-%d')
+            try:
+                conn.execute('''
+                    INSERT OR IGNORE INTO stock_price_history (symbol, date, open, high, low, close, volume)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (symbol, date_str, round(float(row['Open']), 4), round(float(row['High']), 4),
+                      round(float(row['Low']), 4), round(float(row['Close']), 4), int(row['Volume'])))
+                saved += conn.execute('SELECT changes()').fetchone()[0]
+            except:
+                pass
+        conn.commit()
+        conn.close()
+        print(f'✅ {symbol}: {saved}건 저장')
+        return saved
+    except Exception as e:
+        print(f'❌ {symbol} 오류: {e}')
+        return 0
+
+def daily_update():
+    """매일 저녁 12시 — 워치리스트 종목 최신 데이터 업데이트"""
+    print('🔄 일일 주가 업데이트 시작...')
+    conn = get_db()
+    symbols = [r['symbol'] for r in conn.execute('SELECT symbol FROM backtest_watchlist').fetchall()]
+    conn.close()
+
+    # 기본 종목 항상 포함
+    default_symbols = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'META', 'AMZN', 'AMD', 'QQQ', 'SPY']
+    all_symbols = list(set(symbols + default_symbols))
+
+    for symbol in all_symbols:
+        fetch_and_save_history(symbol, period='5d')  # 최근 5일치만 업데이트
+        time_module.sleep(0.5)  # API 과호출 방지
+    print(f'✅ 일일 업데이트 완료: {len(all_symbols)}개 종목')
+
+# 스케줄 등록 (매일 00:00)
+schedule.every().day.at('00:00').do(daily_update)
+
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time_module.sleep(60)
+
+# ── 주가 히스토리 조회 API ────────────────────────────────
+@app.route('/api/stock/history', methods=['GET'])
+def get_history():
+    symbol = request.args.get('symbol', 'AAPL').upper()
+    start = request.args.get('start', '')
+    end = request.args.get('end', '')
+    try:
+        conn = get_db()
+        query = 'SELECT date, open, high, low, close, volume FROM stock_price_history WHERE symbol = ?'
+        params = [symbol]
+        if start:
+            query += ' AND date >= ?'; params.append(start)
+        if end:
+            query += ' AND date <= ?'; params.append(end)
+        query += ' ORDER BY date ASC'
+        rows = conn.execute(query, params).fetchall()
+        conn.close()
+
+        if not rows:
+            # DB에 없으면 yfinance에서 가져와서 저장
+            fetch_and_save_history(symbol, period='2y')
+            conn = get_db()
+            rows = conn.execute(query, params).fetchall()
+            conn.close()
+
+        return jsonify({
+            'symbol': symbol,
+            'count': len(rows),
+            'data': [{'date': r['date'], 'open': r['open'], 'high': r['high'],
+                      'low': r['low'], 'close': r['close'], 'volume': r['volume']} for r in rows]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ── 워치리스트 관리 API ───────────────────────────────────
+@app.route('/api/stock/watchlist', methods=['GET'])
+def get_watchlist():
+    conn = get_db()
+    rows = conn.execute('SELECT symbol FROM backtest_watchlist ORDER BY symbol').fetchall()
+    conn.close()
+    return jsonify({'symbols': [r['symbol'] for r in rows]})
+
+@app.route('/api/stock/watchlist', methods=['POST'])
+def add_watchlist():
+    symbol = request.json.get('symbol', '').upper()
+    if not symbol:
+        return jsonify({'error': 'symbol 필요'}), 400
+    conn = get_db()
+    try:
+        conn.execute('INSERT OR IGNORE INTO backtest_watchlist (symbol) VALUES (?)', (symbol,))
+        conn.commit()
+        conn.close()
+        # 즉시 히스토리 수집
+        threading.Thread(target=fetch_and_save_history, args=(symbol, '2y'), daemon=True).start()
+        return jsonify({'ok': True, 'symbol': symbol})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stock/watchlist/<symbol>', methods=['DELETE'])
+def remove_watchlist(symbol):
+    conn = get_db()
+    conn.execute('DELETE FROM backtest_watchlist WHERE symbol = ?', (symbol.upper(),))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+# ── 초기 데이터 수집 API (최초 1회) ─────────────────────
+@app.route('/api/stock/init-history', methods=['POST'])
+def init_history():
+    symbols = request.json.get('symbols', ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'QQQ', 'SPY'])
+    def run():
+        for s in symbols:
+            fetch_and_save_history(s, period='2y')
+            time_module.sleep(0.5)
+    threading.Thread(target=run, daemon=True).start()
+    return jsonify({'ok': True, 'message': f'{len(symbols)}개 종목 수집 시작'})
+
+if __name__ == '__main__':
+    init_stock_price_db()
+    # 스케줄러 백그라운드 실행
+    threading.Thread(target=run_scheduler, daemon=True).start()
+    print('🚀 주식 서버 시작: http://localhost:5001')
+    print('📅 매일 00:00 주가 자동 업데이트 예정')
+    app.run(host='0.0.0.0', port=5001, debug=False)

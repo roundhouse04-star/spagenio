@@ -420,6 +420,209 @@ setInterval(async()=>{
 },60*1000);
 
 // ============================================================
+// 백테스팅 API
+// ============================================================
+
+// 주가 히스토리 조회 (stock_server.py 프록시)
+app.get('/api/backtest/history', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const { symbol, start, end } = req.query;
+    const params = new URLSearchParams({ symbol, ...(start && { start }), ...(end && { end }) });
+    const r = await fetch(`http://localhost:5001/api/stock/history?${params}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: '주가 데이터 조회 실패: ' + e.message }); }
+});
+
+// 워치리스트 조회/추가/삭제
+app.get('/api/backtest/watchlist', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const r = await fetch('http://localhost:5001/api/stock/watchlist');
+    res.json(await r.json());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/backtest/watchlist', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const r = await fetch('http://localhost:5001/api/stock/watchlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req.body) });
+    res.json(await r.json());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/backtest/watchlist/:symbol', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const r = await fetch(`http://localhost:5001/api/stock/watchlist/${req.params.symbol}`, { method: 'DELETE' });
+    res.json(await r.json());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 초기 데이터 수집
+app.post('/api/backtest/init', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const r = await fetch('http://localhost:5001/api/stock/init-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req.body) });
+    res.json(await r.json());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 백테스팅 실행 API
+app.post('/api/backtest/run', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+  try {
+    const { symbol, start, end, strategy = 'combined', initialCash = 10000, takeProfit = 0.05, stopLoss = 0.05 } = req.body;
+
+    // 주가 데이터 가져오기
+    const params = new URLSearchParams({ symbol, ...(start && { start }), ...(end && { end }) });
+    const r = await fetch(`http://localhost:5001/api/stock/history?${params}`);
+    const stockData = await r.json();
+    if (!stockData.data || stockData.data.length < 35) return res.status(400).json({ error: '데이터 부족 (최소 35일 필요)' });
+
+    const closes = stockData.data.map(d => d.close);
+    const dates = stockData.data.map(d => d.date);
+
+    // ── 지표 계산 함수 ─────────────────────────────────
+    function calcEMA(prices, period) {
+      const k = 2 / (period + 1);
+      let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+      const result = new Array(period - 1).fill(null);
+      result.push(ema);
+      for (let i = period; i < prices.length; i++) { ema = prices[i] * k + ema * (1 - k); result.push(ema); }
+      return result;
+    }
+
+    function calcMACD(closes) {
+      const ema12 = calcEMA(closes, 12);
+      const ema26 = calcEMA(closes, 26);
+      const macdLine = closes.map((_, i) => ema12[i] !== null && ema26[i] !== null ? ema12[i] - ema26[i] : null);
+      const validMacd = macdLine.filter(v => v !== null);
+      const signalRaw = calcEMA(validMacd, 9);
+      const signal = new Array(macdLine.length).fill(null);
+      let si = 0;
+      for (let i = 0; i < macdLine.length; i++) { if (macdLine[i] !== null) { signal[i] = signalRaw[si++]; } }
+      return { macdLine, signal };
+    }
+
+    function calcRSI(closes, period = 14) {
+      const result = new Array(period).fill(null);
+      for (let i = period; i < closes.length; i++) {
+        const slice = closes.slice(i - period, i + 1);
+        const changes = slice.slice(1).map((c, j) => c - slice[j]);
+        const gains = changes.filter(c => c > 0).reduce((a, b) => a + b, 0) / period;
+        const losses = changes.filter(c => c < 0).reduce((a, b) => a - b, 0) / period;
+        result.push(losses === 0 ? 100 : 100 - (100 / (1 + gains / losses)));
+      }
+      return result;
+    }
+
+    // ── 백테스팅 시뮬레이션 ────────────────────────────
+    const { macdLine, signal } = calcMACD(closes);
+    const rsi = calcRSI(closes);
+
+    let cash = initialCash;
+    let shares = 0;
+    let entryPrice = 0;
+    const trades = [];
+    const equity = [];
+
+    for (let i = 1; i < closes.length; i++) {
+      const price = closes[i];
+      const currentEquity = cash + shares * price;
+      equity.push({ date: dates[i], value: Math.round(currentEquity * 100) / 100 });
+
+      // 매수 신호
+      if (shares === 0) {
+        let buySignal = false;
+        if ((strategy === 'macd' || strategy === 'combined') && macdLine[i] !== null && signal[i] !== null && macdLine[i - 1] !== null && signal[i - 1] !== null) {
+          if (macdLine[i - 1] < signal[i - 1] && macdLine[i] > signal[i]) buySignal = true;
+        }
+        if ((strategy === 'rsi' || strategy === 'combined') && rsi[i] !== null && rsi[i] < 35) buySignal = true;
+
+        if (buySignal && cash > price) {
+          shares = Math.floor(cash / price);
+          entryPrice = price;
+          cash -= shares * price;
+          trades.push({ date: dates[i], type: 'BUY', price, shares, reason: macdLine[i] > signal[i] ? 'MACD 골든크로스' : 'RSI 과매도' });
+        }
+      }
+
+      // 매도 신호 (익절/손절)
+      if (shares > 0) {
+        const plPct = (price - entryPrice) / entryPrice;
+        let sellReason = null;
+        if (plPct >= takeProfit) sellReason = `익절 +${(plPct * 100).toFixed(1)}%`;
+        else if (plPct <= -stopLoss) sellReason = `손절 ${(plPct * 100).toFixed(1)}%`;
+
+        // MACD 데드크로스
+        if (!sellReason && (strategy === 'macd' || strategy === 'combined') && macdLine[i] !== null && signal[i] !== null && macdLine[i - 1] !== null && signal[i - 1] !== null) {
+          if (macdLine[i - 1] > signal[i - 1] && macdLine[i] < signal[i]) sellReason = 'MACD 데드크로스';
+        }
+
+        if (sellReason) {
+          const profit = (price - entryPrice) * shares;
+          cash += shares * price;
+          trades.push({ date: dates[i], type: 'SELL', price, shares, profit: Math.round(profit * 100) / 100, profitPct: Math.round((price - entryPrice) / entryPrice * 10000) / 100, reason: sellReason });
+          shares = 0; entryPrice = 0;
+        }
+      }
+    }
+
+    // 마지막 보유 청산
+    if (shares > 0) {
+      const lastPrice = closes[closes.length - 1];
+      const profit = (lastPrice - entryPrice) * shares;
+      cash += shares * lastPrice;
+      trades.push({ date: dates[dates.length - 1], type: 'SELL', price: lastPrice, shares, profit: Math.round(profit * 100) / 100, profitPct: Math.round((lastPrice - entryPrice) / entryPrice * 10000) / 100, reason: '기간 종료' });
+    }
+
+    // ── 성과 분석 ──────────────────────────────────────
+    const finalValue = cash;
+    const totalReturn = (finalValue - initialCash) / initialCash * 100;
+
+    // MDD 계산
+    let peak = initialCash, mdd = 0;
+    equity.forEach(e => {
+      if (e.value > peak) peak = e.value;
+      const dd = (peak - e.value) / peak * 100;
+      if (dd > mdd) mdd = dd;
+    });
+
+    // 샤프 비율
+    const returns = equity.slice(1).map((e, i) => (e.value - equity[i].value) / equity[i].value);
+    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+    const stdReturn = Math.sqrt(returns.map(r => Math.pow(r - avgReturn, 2)).reduce((a, b) => a + b, 0) / returns.length);
+    const sharpeRatio = stdReturn > 0 ? Math.round((avgReturn / stdReturn) * Math.sqrt(252) * 100) / 100 : 0;
+
+    // 승률
+    const sellTrades = trades.filter(t => t.type === 'SELL' && t.profit !== undefined);
+    const winRate = sellTrades.length > 0 ? Math.round(sellTrades.filter(t => t.profit > 0).length / sellTrades.length * 100) : 0;
+
+    // Buy & Hold 수익률 비교
+    const buyHoldReturn = (closes[closes.length - 1] - closes[0]) / closes[0] * 100;
+
+    res.json({
+      symbol, strategy, start: dates[0], end: dates[dates.length - 1],
+      performance: {
+        initialCash, finalValue: Math.round(finalValue * 100) / 100,
+        totalReturn: Math.round(totalReturn * 100) / 100,
+        mdd: Math.round(mdd * 100) / 100,
+        sharpeRatio,
+        winRate,
+        totalTrades: sellTrades.length,
+        buyHoldReturn: Math.round(buyHoldReturn * 100) / 100
+      },
+      trades,
+      equity
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================
 // 서버 시작
 // ============================================================
 app.listen(port, '0.0.0.0', () => {

@@ -804,10 +804,12 @@
         <span style="font-size:1.4rem;">🚀</span>
         <span>spagenio</span>
       </div>
-      <button class="tab-btn active" id="tab-btn-ai" data-tab="ai">📰 News</button>
-      <button class="tab-btn" id="tab-btn-stock" data-tab="stock">📈 Stocks</button>
-      <button class="tab-btn" id="tab-btn-quant" data-tab="quant">📊 Quant</button>
-      <button class="tab-btn" id="tab-btn-lotto" data-tab="lotto">🍀 Lotto</button>
+      <button class="tab-btn active" id="tab-btn-ai" data-tab="ai">📰 뉴스</button>
+      <button class="tab-btn" id="tab-btn-stock" data-tab="stock">📈 주식</button>
+      <button class="tab-btn" id="tab-btn-datacollect" data-tab="datacollect">📊 데이터 수집</button>
+      <button class="tab-btn" id="tab-btn-quant" data-tab="quant">🤖 퀀트 자동매매</button>
+      <button class="tab-btn" id="tab-btn-backtest" data-tab="backtest">🔬 백테스팅</button>
+      <button class="tab-btn" id="tab-btn-lotto" data-tab="lotto">🍀 로또</button>
     </div>
     <div class="sp-header-right">
       <span id="headerUsername" style="color:#9ca3af;font-size:0.82rem;"></span>
@@ -1064,18 +1066,45 @@
   </div>
 
   <!-- ===== 퀀트 탭 ===== -->
-  <div id="tab-quant" class="tab-content" style="display:none;">
+  <!-- ===== 데이터 수집 탭 ===== -->
+  <div id="tab-datacollect" class="tab-content" style="display:none;">
     <div class="sp-page">
 
-      <!-- Symbol 분석 + Batch Analyze -->
+      <!-- 단계 안내 -->
+      <div class="sp-card" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;margin-bottom:20px;">
+        <div style="font-size:1rem;font-weight:800;color:#0369a1;margin-bottom:12px;">📋 퀀트 트레이딩 시스템 구성 요소</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div style="background:#fff;border-radius:10px;padding:14px;border:2px solid #6366f1;">
+            <div style="font-size:1.2rem;margin-bottom:6px;">1️⃣</div>
+            <div style="font-weight:700;color:#6366f1;margin-bottom:4px;">데이터 수집</div>
+            <div style="font-size:0.78rem;color:#6b7280;">주가, 재무제표, 거시지표 등 과거 데이터를 모읍니다</div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px;border:1px solid #e5e7eb;">
+            <div style="font-size:1.2rem;margin-bottom:6px;">2️⃣</div>
+            <div style="font-weight:700;color:#374151;margin-bottom:4px;">전략 모델링</div>
+            <div style="font-size:0.78rem;color:#6b7280;">특정 조건이 충족되면 매수/매도하는 수학적 규칙을 만듭니다</div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px;border:1px solid #e5e7eb;">
+            <div style="font-size:1.2rem;margin-bottom:6px;">3️⃣</div>
+            <div style="font-weight:700;color:#374151;margin-bottom:4px;">백테스팅</div>
+            <div style="font-size:0.78rem;color:#6b7280;">과거 데이터에 전략을 적용해 성과를 검증합니다</div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px;border:1px solid #e5e7eb;">
+            <div style="font-size:1.2rem;margin-bottom:6px;">4️⃣</div>
+            <div style="font-weight:700;color:#374151;margin-bottom:4px;">자동 실행</div>
+            <div style="font-size:0.78rem;color:#6b7280;">검증된 알고리즘을 통해 자동으로 매매를 수행합니다</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 종목 분석 + Batch -->
       <div class="sp-grid-2">
         <div class="sp-card">
           <div class="sp-card-header">
-            <div class="sp-card-title">📊 Quant Symbol 분석</div>
+            <div class="sp-card-title">🔍 종목 데이터 분석</div>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-            <input type="text" id="quantSymbol" placeholder="Symbol (e.g. AAPL)" value="AAPL" class="sp-input"
-              style="flex:1;" />
+            <input type="text" id="quantSymbol" placeholder="종목 (예: AAPL)" value="AAPL" class="sp-input" style="flex:1;" />
             <select id="quantStrategy" class="sp-select" style="width:160px;">
               <option value="combined">Combined</option>
               <option value="rsi">RSI</option>
@@ -1083,7 +1112,7 @@
               <option value="sma">SMA</option>
               <option value="macd">MACD</option>
             </select>
-            <button onclick="runQuantAnalysis()" class="sp-btn sp-btn-green">Analyze</button>
+            <button onclick="runQuantAnalysis()" class="sp-btn sp-btn-green">분석</button>
           </div>
           <div id="quantResult"></div>
           <div id="quantChartWrap" style="display:none;margin-top:16px;">
@@ -1093,18 +1122,17 @@
 
         <div class="sp-card">
           <div class="sp-card-header">
-            <div class="sp-card-title">🔍 Batch Analysis</div>
+            <div class="sp-card-title">📊 일괄 분석 (Batch)</div>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-            <input type="text" id="quantBatchSymbols" placeholder="Symbols (comma separated)"
-              value="AAPL,NVDA,MSFT,TSLA,GOOGL,QQQ,SPY,AMD,META,AMZN" class="sp-input" style="flex:1;" />
+            <input type="text" id="quantBatchSymbols" placeholder="종목 (쉼표 구분)" value="AAPL,NVDA,MSFT,TSLA,GOOGL,QQQ,SPY,AMD,META,AMZN" class="sp-input" style="flex:1;" />
             <select id="quantBatchStrategy" class="sp-select" style="width:160px;">
               <option value="combined">Combined</option>
               <option value="rsi">RSI</option>
               <option value="bb">Bollinger Bands</option>
               <option value="sma">SMA</option>
             </select>
-            <button onclick="runBatchAnalysis()" class="sp-btn sp-btn-green">Batch Analyze</button>
+            <button onclick="runBatchAnalysis()" class="sp-btn sp-btn-green">일괄 분석</button>
           </div>
           <div id="quantBatchResult"></div>
           <div id="batchChartWrap" style="display:none;margin-top:16px;">
@@ -1113,20 +1141,58 @@
         </div>
       </div>
 
-      <!-- 한국 수급 + 자동매매 -->
-      <div class="sp-grid-2">
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🇰🇷 Korea Market TOP 10</div>
-            <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-green sp-btn-sm">수급 Analyze</button>
-          </div>
-          <p style="font-size:0.82rem;color:#9ca3af;margin-bottom:14px;">Top picks by Volume + RSI composite score</p>
-          <div id="koreaResult"></div>
+      <!-- 주가 히스토리 수집 -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">💾 주가 히스토리 수집 (백테스팅용 DB 저장)</div>
+          <button onclick="initHistoryData()" class="sp-btn sp-btn-primary">초기 수집 시작</button>
         </div>
+        <div style="font-size:0.82rem;color:#6b7280;margin-bottom:14px;">📅 매일 00:00 자동 업데이트 · yfinance 기반 2년치 데이터</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <input type="text" id="dc-symbol" placeholder="종목 추가 (예: AAPL)" class="sp-input" style="flex:1;" />
+          <button onclick="addWatchSymbol()" class="sp-btn sp-btn-indigo">추가</button>
+        </div>
+        <div id="dc-watchlist" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+        <div id="dc-status" style="font-size:0.82rem;color:#6b7280;padding:10px;background:#f8fafc;border-radius:8px;"></div>
+      </div>
 
+      <!-- 한국 수급 -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">🇰🇷 한국 시장 TOP 10</div>
+          <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-green sp-btn-sm">수급 분석</button>
+        </div>
+        <p style="font-size:0.82rem;color:#9ca3af;margin-bottom:14px;">거래량 + RSI 복합 점수 기반 상위 종목</p>
+        <div id="koreaResult"></div>
+      </div>
+
+      <!-- Trade Log -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">📋 거래 로그</div>
+          <button onclick="loadTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
+        </div>
+        <div id="quantTradeLog"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 퀀트 자동매매 탭 ===== -->
+  <div id="tab-quant" class="tab-content" style="display:none;">
+    <div class="sp-page">
+
+      <!-- 전략 안내 -->
+      <div class="sp-card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;margin-bottom:20px;">
+        <div style="font-size:1rem;font-weight:800;color:#15803d;margin-bottom:8px;">🤖 퀀트 자동매매 시스템</div>
+        <div style="font-size:0.85rem;color:#166534;">검증된 알고리즘(MACD + RSI)이 자동으로 매수/매도 신호를 감지하고 Alpaca를 통해 실행합니다. 1분마다 미국 장 시간(EST 9:30~16:00)에 신호를 체크합니다.</div>
+      </div>
+
+      <div class="sp-grid-2">
+        <!-- 자동매매 설정 -->
         <div class="sp-card">
           <div class="sp-card-header">
-            <div class="sp-card-title">🤖 자동매매 설정</div>
+            <div class="sp-card-title">⚙️ 자동매매 설정</div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span id="autoTradeStatusBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#f1f5f9;color:#6b7280;">비활성</span>
               <button onclick="saveAutoTradeSettings()" class="sp-btn sp-btn-indigo sp-btn-sm">저장</button>
@@ -1166,37 +1232,36 @@
             <button onclick="runAutoTradeNow()" class="sp-btn sp-btn-outline" style="flex:1;">🔍 지금 분석</button>
           </div>
           <div id="autoTradeResult" style="margin-top:14px;"></div>
+        </div>
 
-          <!-- 자동매매 현황 -->
-          <div style="margin-top:16px;padding-top:16px;border-top:2px solid #f3f4f6;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <div style="font-size:0.88rem;font-weight:700;color:#374151;">📊 현재 자동매매 현황 <span id="autoPositionCount" style="font-size:0.75rem;color:#6b7280;"></span></div>
-              <div style="display:flex;gap:6px;">
-                <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄 새로고침</button>
-                <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 전체 종료</button>
-              </div>
+        <!-- 현재 현황 -->
+        <div class="sp-card">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📊 현재 자동매매 현황 <span id="autoPositionCount" style="font-size:0.75rem;color:#6b7280;"></span></div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄 새로고침</button>
+              <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 전체 종료</button>
             </div>
-            <div id="autoPositionsList">
-              <div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">로딩 중...</div>
-            </div>
+          </div>
+          <div id="autoPositionsList">
+            <div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">로딩 중...</div>
+          </div>
+
+          <!-- 신호 방식 설명 -->
+          <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:0.8rem;color:#6b7280;">
+            <div style="font-weight:700;color:#374151;margin-bottom:6px;">📖 신호 방식 설명</div>
+            <div style="margin-bottom:4px;">🟢 <strong>MACD 골든크로스</strong> — 단기 이평선이 장기 이평선을 상향 돌파 시 매수</div>
+            <div style="margin-bottom:4px;">🟡 <strong>RSI 과매도</strong> — RSI &lt; 40 구간에서 매수 신호</div>
+            <div>🔴 <strong>익절/손절</strong> — 설정한 % 도달 시 자동 매도</div>
           </div>
         </div>
       </div>
 
-      <!-- 매매 로그 -->
-      <div class="sp-card">
-        <div class="sp-card-header">
-          <div class="sp-card-title">📋 Trade Log</div>
-          <button onclick="loadTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
-        </div>
-        <div id="quantTradeLog"></div>
-      </div>
-
-      <!-- 자동매매 실행 이력 -->
+      <!-- 자동매매 이력 -->
       <div class="sp-card">
         <div class="sp-card-header">
           <div class="sp-card-title">🤖 자동매매 이력</div>
-          <button onclick="loadAutoTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+          <button onclick="loadAutoTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
         </div>
         <div id="autoTradeLog">
           <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.9rem;">로딩 중...</div>
@@ -1413,1076 +1478,119 @@
     .rank-3{background:#dcfce7;color:#166534;} .rank-4{background:#f3e8ff;color:#6b21a8;}
     .rank-5{background:#f1f5f9;color:#475569;} .rank-0{background:#f1f5f9;color:#9ca3af;}
   </style>
+  </div>
 
-  <script>
-    // ── 알고리즘 정의 ──────────────────────────────────────────
-    const ALGOS = [
-      { id: 'freq', name: '빈도 분석', weight: 20, desc: '역대 가장 많이 출현한 번호를 우선 선택. 출현 횟수를 확률 가중치로 사용.' },
-      { id: 'hot', name: '핫넘버', weight: 20, desc: '최근 50회 출현 빈도가 높은 번호. 단기 트렌드를 반영.' },
-      { id: 'cold', name: '미출현 주기', weight: 10, desc: '오래 나오지 않은 번호 우선 선택. 회귀 이론 기반.' },
-      { id: 'balance', name: '홀짝 균형', weight: 15, desc: '홀수 3개 + 짝수 3개 비율로 균형 있게 구성. 통계적으로 가장 빈번.' },
-      { id: 'zone', name: '구간 분포', weight: 15, desc: '1~45를 6구간으로 나눠 각 구간에서 고르게 선택.' },
-      { id: 'ac', name: 'AC값 최적화', weight: 10, desc: '번호 간 차이값의 다양성(AC값 7~10) 최적화. 패턴 회피.' },
-      { id: 'prime', name: '소수 패턴', weight: 5, desc: '소수(2,3,5,7,11...) 2~3개 포함. 역대 당첨 통계 반영.' },
-      { id: 'delta', name: '델타 시스템', weight: 5, desc: '번호 간격 패턴(델타값) 분석. 1,2,3,7,8,13이 최다 델타.' },
-    ];
-
-    let weights = {};
-    let lottoHistory = [];
-    let lastGames = [];
-
-    ALGOS.forEach(a => weights[a.id] = a.weight);
-
-    // ── 알고리즘 UI 렌더 ───────────────────────────────────────
-    function lottoRenderAlgos() {
-      const grid = document.getElementById('lotto-algo-grid');
-      if (!grid) return;
-
-      grid.innerHTML = lottoAlgos.map(a => `
-    <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
-      <div style="display:flex;justify-content:space-between;">
-        <b>${a.name}</b>
-        <span id="lotto-weight-label-${a.id}">${a.weight}%</span>
-      </div>
-
-      <input type="range"
-        min="0"
-        max="100"
-        value="${a.weight}"
-        oninput="lottoUpdateWeight('${a.id}', this.value)"
-        style="width:100%;"
-      />
-    </div>
-  `).join('');
-    }
-
-    function updateWeight(id, val) {
-      weights[id] = parseInt(val);
-      document.getElementById('pct-' + id).textContent = val + '%';
-    }
-
-    function resetWeights() {
-      ALGOS.forEach(a => { weights[a.id] = a.weight; });
-      // renderAlgos();
-    }
-
-    // ── 로또 데이터 수집 ───────────────────────────────────────
-    async function fetchLottoData() {
-      try {
-        // server.js 프록시 통해 동행복권 API 호출
-        const res = await fetch('/api/lotto/history');
-        if (res.ok) {
-          const data = await res.json();
-          lottoHistory = data.history || [];
-          updateStats();
-          return;
-        }
-      } catch (e) { }
-      // 폴백: 내장 샘플 데이터 (최근 10회)
-      lottoHistory = generateSampleHistory();
-      updateStats();
-    }
-
-    function generateSampleHistory() {
-      // 실제 최근 당첨 번호 샘플
-      return [
-        [3, 13, 30, 33, 43, 45], [1, 7, 11, 24, 27, 41], [6, 9, 10, 11, 27, 37],
-        [5, 8, 18, 26, 38, 42], [2, 14, 21, 30, 39, 44], [4, 16, 22, 28, 35, 40],
-        [7, 12, 19, 23, 31, 45], [3, 10, 17, 25, 34, 41], [1, 6, 15, 28, 37, 43],
-        [8, 11, 20, 29, 36, 42], [2, 9, 18, 24, 33, 40], [5, 13, 22, 30, 39, 44],
-        [4, 7, 16, 25, 35, 43], [1, 10, 19, 28, 37, 41], [6, 12, 21, 29, 38, 45],
-        [3, 8, 17, 26, 34, 40], [2, 11, 20, 27, 36, 44], [5, 9, 18, 23, 33, 42],
-        [4, 13, 22, 31, 39, 45], [7, 10, 19, 25, 35, 41], [1, 8, 17, 28, 36, 43],
-        [6, 11, 20, 29, 37, 40], [3, 9, 16, 24, 34, 44], [2, 12, 21, 30, 38, 42],
-        [5, 10, 18, 27, 35, 45], [4, 8, 19, 26, 33, 41], [1, 11, 22, 31, 39, 43],
-        [7, 9, 17, 25, 36, 40], [3, 12, 20, 29, 37, 44], [6, 10, 19, 24, 35, 42],
-        [2, 8, 16, 28, 34, 45], [5, 11, 21, 30, 38, 41], [4, 9, 18, 27, 36, 43],
-        [1, 12, 20, 26, 33, 40], [7, 10, 17, 29, 37, 44], [3, 8, 19, 25, 35, 42],
-        [6, 11, 22, 31, 39, 45], [2, 9, 16, 24, 34, 41], [5, 12, 21, 28, 36, 43],
-        [4, 10, 18, 27, 33, 40], [1, 8, 17, 26, 37, 44], [7, 11, 20, 29, 35, 42],
-        [3, 9, 19, 25, 38, 45], [6, 12, 22, 31, 36, 41], [2, 10, 17, 24, 33, 43],
-        [5, 8, 16, 28, 39, 40], [4, 11, 21, 30, 37, 44], [1, 9, 18, 27, 34, 42],
-        [7, 12, 20, 26, 35, 45], [3, 10, 19, 29, 38, 41],
-      ];
-    }
-
-    function updateStats() {
-      if (!lottoHistory.length) return;
-      const freq = new Array(46).fill(0);
-      lottoHistory.forEach(game => game.forEach(n => freq[n]++));
-
-      const sorted = [...Array(45).keys()].slice(1).sort((a, b) => freq[b] - freq[a]);
-      document.getElementById('stat-round').textContent = lottoHistory.length + '회';
-      document.getElementById('stat-hot').textContent = sorted.slice(0, 3).join(', ');
-
-      // 마지막 출현 회차
-      const lastSeen = new Array(46).fill(0);
-      lottoHistory.forEach((game, i) => game.forEach(n => { if (!lastSeen[n]) lastSeen[n] = lottoHistory.length - i; }));
-      const coldest = [...Array(45).keys()].slice(1).sort((a, b) => (lastSeen[b] || 999) - (lastSeen[a] || 999));
-      document.getElementById('stat-cold').textContent = coldest[0] + '번';
-    }
-
-    // ── 번호 생성 알고리즘 ─────────────────────────────────────
-    const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43];
-    const DELTA_WEIGHTS = { 1: 15, 2: 12, 3: 10, 4: 8, 5: 7, 6: 6, 7: 9, 8: 6, 9: 5, 10: 5, 13: 7, 14: 5, 15: 4 };
-
-    function getFreqScores() {
-      const freq = new Array(46).fill(0);
-      lottoHistory.forEach(g => g.forEach(n => freq[n]++));
-      return freq;
-    }
-
-    function getHotScores() {
-      const recent = lottoHistory.slice(0, 50);
-      const freq = new Array(46).fill(0);
-      recent.forEach(g => g.forEach(n => freq[n]++));
-      return freq;
-    }
-
-    function getColdScores() {
-      const lastSeen = new Array(46).fill(lottoHistory.length + 1);
-      lottoHistory.forEach((g, i) => g.forEach(n => { lastSeen[n] = Math.min(lastSeen[n], i); }));
-      return lastSeen.map(v => v); // 클수록 오래 안 나온 것
-    }
-
-    function pickWeighted(scores, exclude, count) {
-      const pool = [];
-      for (let n = 1; n <= 45; n++) {
-        if (exclude.has(n)) continue;
-        const w = Math.max(scores[n] || 1, 1);
-        for (let i = 0; i < w; i++) pool.push(n);
-      }
-      const picked = new Set();
-      let tries = 0;
-      while (picked.size < count && tries < 1000) {
-        picked.add(pool[Math.floor(Math.random() * pool.length)]);
-        tries++;
-      }
-      return [...picked];
-    }
-
-    function generateGame() {
-      const totalW = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
-      const scores = new Array(46).fill(0);
-
-      // 각 알고리즘 점수 합산
-      const freq = getFreqScores();
-      const hot = getHotScores();
-      const cold = getColdScores();
-
-      for (let n = 1; n <= 45; n++) {
-        if (weights.freq) scores[n] += (weights.freq / totalW) * (freq[n] * 3);
-        if (weights.hot) scores[n] += (weights.hot / totalW) * (hot[n] * 4);
-        if (weights.cold) scores[n] += (weights.cold / totalW) * (cold[n] * 2);
-        if (weights.prime && PRIMES.includes(n)) scores[n] += (weights.prime / totalW) * 10;
-      }
-
-      // 1차 후보 선택 (점수 기반)
-      const candidates = [...Array(45).keys()].slice(1)
-        .map(n => ({ n, s: scores[n] + Math.random() * 5 }))
-        .sort((a, b) => b.s - a.s)
-        .slice(0, 20)
-        .map(x => x.n);
-
-      let result = candidates.slice(0, 6);
-
-      // 홀짝 균형 조정
-      if (weights.balance > 0) {
-        result = adjustBalance(result, candidates);
-      }
-
-      // 구간 분포 조정
-      if (weights.zone > 0) {
-        result = adjustZone(result);
-      }
-
-      // AC값 최적화
-      if (weights.ac > 0) {
-        result = adjustAC(result);
-      }
-
-      return result.sort((a, b) => a - b).slice(0, 6);
-    }
-
-    function adjustBalance(nums, pool) {
-      let odds = nums.filter(n => n % 2 !== 0);
-      let evens = nums.filter(n => n % 2 === 0);
-
-      // 목표: 홀 3개, 짝 3개
-      while (odds.length > 3 && evens.length < 3) {
-        const rem = odds.pop();
-        const newEven = pool.find(n => n % 2 === 0 && !nums.includes(n));
-        if (newEven) { nums = nums.filter(x => x !== rem); nums.push(newEven); }
-        odds = nums.filter(n => n % 2 !== 0);
-        evens = nums.filter(n => n % 2 === 0);
-      }
-      while (evens.length > 3 && odds.length < 3) {
-        const rem = evens.pop();
-        const newOdd = pool.find(n => n % 2 !== 0 && !nums.includes(n));
-        if (newOdd) { nums = nums.filter(x => x !== rem); nums.push(newOdd); }
-        odds = nums.filter(n => n % 2 !== 0);
-        evens = nums.filter(n => n % 2 === 0);
-      }
-      return nums;
-    }
-
-    function adjustZone(nums) {
-      // 각 구간에서 최소 1개
-      const zones = [[1, 7], [8, 14], [15, 21], [22, 28], [29, 35], [36, 45]];
-      const covered = new Set(zones.map(z => nums.some(n => n >= z[0] && n <= z[1]) ? 1 : 0));
-      // 미커버 구간에서 랜덤 번호로 교체
-      zones.forEach(z => {
-        if (!nums.some(n => n >= z[0] && n <= z[1])) {
-          const rep = nums[Math.floor(Math.random() * nums.length)];
-          const newN = z[0] + Math.floor(Math.random() * (z[1] - z[0] + 1));
-          if (!nums.includes(newN)) nums = nums.map(n => n === rep ? newN : n);
-        }
-      });
-      return [...new Set(nums)].slice(0, 6);
-    }
-
-    function calcAC(nums) {
-      const diffs = new Set();
-      for (let i = 0; i < nums.length; i++)
-        for (let j = i + 1; j < nums.length; j++)
-          diffs.add(Math.abs(nums[i] - nums[j]));
-      return diffs.size - 5;
-    }
-
-    function adjustAC(nums) {
-      let best = nums;
-      let bestAC = calcAC(nums);
-      // 10회 시도해서 AC값 7 이상인 조합 선택
-      for (let i = 0; i < 10; i++) {
-        const candidate = [...nums];
-        const idx = Math.floor(Math.random() * 6);
-        let newN;
-        do { newN = Math.floor(Math.random() * 45) + 1; } while (candidate.includes(newN));
-        candidate[idx] = newN;
-        const ac = calcAC(candidate);
-        if (ac > bestAC) { best = candidate; bestAC = ac; }
-      }
-      return best;
-    }
-
-    // ── 볼 색상 ────────────────────────────────────────────────
-    function ballClass(n) {
-      if (n <= 10) return 'b1';
-      if (n <= 20) return 'b2';
-      if (n <= 30) return 'b3';
-      if (n <= 40) return 'b4';
-      return 'b5';
-    }
-
-    // ── 번호 생성 및 렌더 ──────────────────────────────────────
-    function generate() {
-      const count = parseInt(document.getElementById('game-count').value);
-      lastGames = [];
-
-      for (let i = 0; i < count; i++) {
-        lastGames.push(generateGame());
-      }
-
-      const container = document.getElementById('results');
-      const activeAlgos = ALGOS.filter(a => weights[a.id] > 0)
-        .sort((a, b) => weights[b.id] - weights[a.id])
-        .slice(0, 4)
-        .map(a => `<span class="contrib-tag">${a.name} ${weights[a.id]}%</span>`)
-        .join('');
-
-      container.innerHTML = lastGames.map((game, i) => `
-    <div class="game-row">
-      <div class="game-label">
-        <span>${String.fromCharCode(65 + i)}게임</span>
-        <span style="color:var(--text2);font-size:11px">AC값: ${calcAC(game) + 5}</span>
-      </div>
-      <div class="balls">
-        ${game.map(n => `<div class="ball ${ballClass(n)}">${n}</div>`).join('')}
-        <div class="ball-sep"></div>
-        <div class="ball b6">+</div>
-      </div>
-      <div class="contrib">${activeAlgos}</div>
-    </div>
-  `).join('');
-
-      showToast('번호 추천 완료! 🍀');
-    }
-
-    // ── 텔레그램 ───────────────────────────────────────────────
-    function saveTg() {
-      const token = document.getElementById('lotto-tg-token').value.trim();
-      const chatid = document.getElementById('lotto-tg-chatid').value.trim();
-      if (token) localStorage.setItem('tg_token', token);
-      if (chatid) localStorage.setItem('tg_chatid', chatid);
-      showToast('텔레그램 설정 저장됨 ✅');
-    }
-
-    async function testTg() {
-      await sendTgMsg('🔔 spagenio 로또 봇 연결 테스트!\n정상적으로 수신되면 성공입니다 🍀');
-    }
-
-    async function sendTelegram() {
-      if (!lastGames.length) { showToast('먼저 번호를 추천받으세요!'); return; }
-
-      const lines = lastGames.map((g, i) => {
-        const balls = g.map(n => `*${n}*`).join('  ');
-        return `${String.fromCharCode(65 + i)}게임: ${balls}`;
-      });
-
-      const activeAlgos = ALGOS.filter(a => weights[a.id] > 0)
-        .sort((a, b) => weights[b.id] - weights[a.id])
-        .slice(0, 3)
-        .map(a => `${a.name}(${weights[a.id]}%)`)
-        .join(' + ');
-
-      const msg = `🍀 *로또 번호 추천*\n\n${lines.join('\n')}\n\n📊 알고리즘: ${activeAlgos}\n🕐 ${new Date().toLocaleString('ko-KR')}`;
-      await sendTgMsg(msg);
-    }
-
-    async function sendTgMsg(text) {
-      const token = localStorage.getItem('tg_token') || document.getElementById('lotto-tg-token').value.trim();
-      const chatid = localStorage.getItem('tg_chatid') || document.getElementById('lotto-tg-chatid').value.trim();
-
-      if (!token || !chatid) { showToast('텔레그램 Token과 Chat ID를 입력하세요!'); return; }
-
-      try {
-        // server.js 프록시 통해 전송
-        const res = await fetch('/api/lotto/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, chatid, text })
-        });
-        const data = await res.json();
-        if (data.ok) showToast('텔레그램 전송 완료! 📱');
-        else showToast('전송 실패: ' + (data.error || '알 수 없는 오류'));
-      } catch (e) {
-        showToast('전송 오류: ' + e.message);
-      }
-    }
-
-    window.showToast = function(msg) {
-      let t = document.getElementById('lotto-toast-dynamic');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = 'lotto-toast-dynamic';
-        t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#6366f1;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;max-width:320px;';
-        document.body.appendChild(t);
-      }
-      t.textContent = msg;
-      t.style.opacity = '1';
-      clearTimeout(t._timer);
-      t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
-    }
-
-    // ── 초기화 ────────────────────────────────────────────────
-    //renderAlgos();
-    fetchLottoData();
-
-    // 저장된 텔레그램 설정 로드
-    const savedToken = localStorage.getItem('tg_token');
-    const savedChatid = localStorage.getItem('tg_chatid');
-    if (savedToken) document.getElementById('lotto-tg-token').value = savedToken;
-    if (savedChatid) document.getElementById('lotto-tg-chatid').value = savedChatid;
-  </script>
-  <script>
-    // ===== Lotto Module =====
-    (() => {
-      const LOTTO_STORAGE_KEY = 'spagenio_lotto_weights_v1';
-      const LOTTO_TG_TOKEN_KEY = 'spagenio_lotto_tg_token_v1';
-      const LOTTO_TG_CHATID_KEY = 'spagenio_lotto_tg_chatid_v1';
-
-      const DEFAULT_ALGOS = [
-        { id: 'freq', name: '빈도 분석', weight: 20, desc: '역대 많이 출현한 번호 비중 반영' },
-        { id: 'hot', name: '핫넘버', weight: 20, desc: '최근 출현 빈도가 높은 번호 반영' },
-        { id: 'cold', name: '미출현 주기', weight: 10, desc: '오랫동안 안 나온 번호 반영' },
-        { id: 'balance', name: '홀짝 균형', weight: 15, desc: '홀짝 균형 유지' },
-        { id: 'zone', name: '구간 분포', weight: 10, desc: '1~15 / 16~30 / 31~45 분산 반영' },
-        { id: 'ac', name: 'AC값 최적화', weight: 10, desc: '조합 다양성 반영' },
-        { id: 'prime', name: '소수 패턴', weight: 5, desc: '소수 비중 반영' },
-        { id: 'delta', name: '델타 시퀀스', weight: 10, desc: '간격 패턴 반영' }
-      ];
-
-      let lottoInitialized = false;
-      let lottoHistory = [];
-      let lottoLastGames = [];
-      let lottoAlgos = DEFAULT_ALGOS.map(a => ({ ...a }));
-
-      function $id(id) {
-        return document.getElementById(id);
-      }
-
-      async function lottoLoadWeights() {
-        try {
-          // 서버에서 사용자별 비중 로드 시도
-          const res = await fetch('/api/lotto/algorithm-weights');
-          if (res.ok) {
-            const data = await res.json();
-            lottoAlgos = DEFAULT_ALGOS.map(def => ({
-              ...def,
-              weight: data[def.id] !== undefined
-                ? Math.max(0, Math.min(100, Number(data[def.id])))
-                : def.weight
-            }));
-            return;
-          }
-        } catch (e) {
-          // 서버 실패 시 localStorage fallback
-        }
-        try {
-          const raw = localStorage.getItem(LOTTO_STORAGE_KEY);
-          if (!raw) return;
-          const parsed = JSON.parse(raw);
-          if (!Array.isArray(parsed)) return;
-          lottoAlgos = DEFAULT_ALGOS.map(def => {
-            const found = parsed.find(x => x.id === def.id);
-            return {
-              ...def,
-              weight: found && Number.isFinite(Number(found.weight))
-                ? Math.max(0, Math.min(100, Number(found.weight)))
-                : def.weight
-            };
-          });
-        } catch (e) {
-          console.warn('lottoLoadWeights error', e);
-        }
-      }
-
-      function lottoSaveWeights() {
-        // 슬라이더 조작 중 localStorage에만 임시 저장
-        localStorage.setItem(
-          LOTTO_STORAGE_KEY,
-          JSON.stringify(lottoAlgos.map(({ id, weight }) => ({ id, weight })))
-        );
-      }
-
-      window.lottoSaveWeightsToServer = async function() {
-        const total = lottoAlgos.reduce((s, a) => s + Number(a.weight || 0), 0);
-        if (total !== 100) { showToast('⚠️ 비중 합계가 ' + total + '%입니다. 100%로 맞춰주세요.'); return; }
-        const btn = document.getElementById('lotto-save-weights-btn');
-        if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
-        try {
-          const body = {};
-          lottoAlgos.forEach(a => { body[a.id] = a.weight; });
-          const res = await fetch('/api/lotto/algorithm-weights', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-          });
-          const data = await res.json();
-          if (data.ok) {
-            lottoSaveWeights();
-            showToast('알고리즘 비중 저장 완료! ✅');
-          } else {
-            showToast('저장 실패: ' + (data.error || '오류'));
-          }
-        } catch (e) {
-          showToast('저장 오류: ' + e.message);
-        } finally {
-          if (btn) { btn.disabled = false; btn.textContent = '💾 저장'; }
-        }
-      }
-
-      function lottoNormalizeWeights() {
-        const total = lottoAlgos.reduce((sum, a) => sum + Number(a.weight || 0), 0);
-        if (total <= 0) {
-          lottoAlgos = DEFAULT_ALGOS.map(a => ({ ...a }));
-          lottoSaveWeights();
-        }
-      }
-
-      function lottoRenderAlgos() {
-        const wrap = $id('lotto-algo-grid');
-        if (!wrap) return;
-
-        wrap.innerHTML = lottoAlgos.map(algo => `
-        <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;background:#fff;">
-          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;">
-            <div style="font-weight:800;color:#111827;">${algo.name}</div>
-            <div style="font-size:0.82rem;color:#6366f1;font-weight:800;">
-              <span id="lotto-weight-label-${algo.id}">${algo.weight}</span>%
+  <!-- ===== 백테스트 탭 ===== -->
+  <div id="tab-backtest" class="tab-content" style="display:none;">
+    <div class="sp-page">
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <div class="sp-card-title">🔬 백테스팅 설정</div>
+          <button onclick="runBacktest()" class="sp-btn sp-btn-primary" id="bt-run-btn">▶ 실행</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">종목</div>
+            <input type="text" id="bt-symbol" value="AAPL" placeholder="예: AAPL" class="sp-input" style="width:100%;" />
+          </div>
+          <div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">전략</div>
+            <select id="bt-strategy" class="sp-select" style="width:100%;">
+              <option value="combined">Combined (MACD+RSI)</option>
+              <option value="macd">MACD만</option>
+              <option value="rsi">RSI만</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">시작일</div>
+            <input type="date" id="bt-start" class="sp-input" style="width:100%;" />
+          </div>
+          <div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">종료일</div>
+            <input type="date" id="bt-end" class="sp-input" style="width:100%;" />
+          </div>
+          <div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">초기 자금 ($)</div>
+            <input type="number" id="bt-cash" value="10000" class="sp-input" style="width:100%;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">익절 (%)</div>
+              <input type="number" id="bt-tp" value="5" class="sp-input" style="width:100%;" />
+            </div>
+            <div>
+              <div style="font-size:0.82rem;color:#6b7280;margin-bottom:4px;">손절 (%)</div>
+              <input type="number" id="bt-sl" value="5" class="sp-input" style="width:100%;" />
             </div>
           </div>
-          <div style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;">${algo.desc}</div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value="${algo.weight}"
-            oninput="lottoUpdateWeight('${algo.id}', this.value)"
-            style="width:100%;"
-          />
         </div>
-      `).join('');
-      }
+      </div>
 
-      function lottoUpdateWeightInternal(id, value) {
-        const target = lottoAlgos.find(a => a.id === id);
-        if (!target) return;
-
-        target.weight = Number(value);
-        const label = $id(`lotto-weight-label-${id}`);
-        if (label) label.textContent = target.weight;
-        lottoSaveWeights();
-      }
-
-      window.lottoUpdateWeight = lottoUpdateWeightInternal;
-
-      window.lottoResetWeights = function lottoResetWeights() {
-        lottoAlgos = DEFAULT_ALGOS.map(a => ({ ...a }));
-        lottoSaveWeights();
-        lottoRenderAlgos();
-      };
-
-      function randInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
-
-      function pickWeighted(items) {
-        const total = items.reduce((sum, item) => sum + item.weight, 0);
-        if (total <= 0) return items[randInt(0, items.length - 1)];
-
-        let r = Math.random() * total;
-        for (const item of items) {
-          r -= item.weight;
-          if (r <= 0) return item;
-        }
-        return items[items.length - 1];
-      }
-
-      function getNumberScore(n) {
-        let score = 1;
-
-        const hotSet = new Set([3, 7, 14, 18, 23, 27, 34, 40, 42]);
-        const coldSet = new Set([1, 5, 9, 12, 20, 28, 33, 38, 44]);
-        const primeSet = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
-
-        for (const algo of lottoAlgos) {
-          if (algo.weight <= 0) continue;
-
-          switch (algo.id) {
-            case 'freq':
-              score += algo.weight * (n % 9 + 1) * 0.01;
-              break;
-            case 'hot':
-              if (hotSet.has(n)) score += algo.weight * 0.08;
-              break;
-            case 'cold':
-              if (coldSet.has(n)) score += algo.weight * 0.07;
-              break;
-            case 'balance':
-              if ((n % 2) === 0) score += algo.weight * 0.02;
-              break;
-            case 'zone':
-              if (n <= 15 || (n >= 16 && n <= 30) || n >= 31) score += algo.weight * 0.015;
-              break;
-            case 'ac':
-              score += algo.weight * ((n * 7) % 11) * 0.005;
-              break;
-            case 'prime':
-              if (primeSet.has(n)) score += algo.weight * 0.04;
-              break;
-            case 'delta':
-              score += algo.weight * ((46 - n) % 6) * 0.005;
-              break;
-          }
-        }
-
-        return score;
-      }
-
-      function generateOneGame() {
-        const picked = new Set();
-
-        while (picked.size < 6) {
-          const pool = [];
-          for (let n = 1; n <= 45; n++) {
-            if (!picked.has(n)) {
-              pool.push({ number: n, weight: getNumberScore(n) });
-            }
-          }
-          const selected = pickWeighted(pool);
-          picked.add(selected.number);
-        }
-
-        const nums = [...picked].sort((a, b) => a - b);
-
-        const odd = nums.filter(n => n % 2 === 1).length;
-        const low = nums.filter(n => n <= 22).length;
-
-        return {
-          numbers: nums,
-          meta: {
-            oddEven: `${odd}:${6 - odd}`,
-            lowHigh: `${low}:${6 - low}`,
-            sum: nums.reduce((a, b) => a + b, 0)
-          }
-        };
-      }
-
-      function ballColor(n) {
-        if (n <= 10) return '#fbbf24';
-        if (n <= 20) return '#60a5fa';
-        if (n <= 30) return '#ef4444';
-        if (n <= 40) return '#a78bfa';
-        return '#34d399';
-      }
-
-      function renderGames(games) {
-        const wrap = $id('lotto-results');
-        if (!wrap) return;
-
-        if (!games.length) {
-          wrap.innerHTML = `<div style="text-align:center;color:#6b7280;padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>`;
-          return;
-        }
-
-        wrap.innerHTML = games.map((game, idx) => `
-        <div style="border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;background:#fff;margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
-            <div style="font-weight:800;color:#111827;">${idx + 1}번 게임</div>
-            <div style="font-size:0.78rem;color:#6b7280;">
-              홀짝 ${game.meta.oddEven} · 저고 ${game.meta.lowHigh} · 합 ${game.meta.sum}
-            </div>
+      <!-- 성과 분석 -->
+      <div id="bt-performance" style="display:none;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">총 수익률</div>
+            <div id="bt-total-return" style="font-size:1.6rem;font-weight:800;">-</div>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:10px;">
-            ${game.numbers.map(n => `
-              <div style="
-                width:42px;height:42px;border-radius:999px;
-                display:flex;align-items:center;justify-content:center;
-                color:#fff;font-weight:800;background:${ballColor(n)};
-                box-shadow:0 2px 8px rgba(0,0,0,0.08);
-              ">${n}</div>
-            `).join('')}
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">MDD (최대낙폭)</div>
+            <div id="bt-mdd" style="font-size:1.6rem;font-weight:800;color:#ef4444;">-</div>
+          </div>
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">샤프 비율</div>
+            <div id="bt-sharpe" style="font-size:1.6rem;font-weight:800;color:#6366f1;">-</div>
+          </div>
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">승률</div>
+            <div id="bt-winrate" style="font-size:1.6rem;font-weight:800;color:#10b981;">-</div>
           </div>
         </div>
-      `).join('');
-      }
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">최종 자산</div>
+            <div id="bt-final" style="font-size:1.2rem;font-weight:800;">-</div>
+          </div>
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">총 거래 횟수</div>
+            <div id="bt-trades" style="font-size:1.2rem;font-weight:800;">-</div>
+          </div>
+          <div class="sp-card" style="text-align:center;padding:16px;">
+            <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">Buy&Hold 수익률</div>
+            <div id="bt-buyhold" style="font-size:1.2rem;font-weight:800;">-</div>
+          </div>
+        </div>
 
-      function updateStats() {
-        const statRound = $id('stat-round');
-        const statHot = $id('stat-hot');
-        const statCold = $id('stat-cold');
+        <!-- 자산 변화 차트 -->
+        <div class="sp-card" style="margin-bottom:16px;">
+          <div class="sp-card-header"><div class="sp-card-title">📈 자산 변화</div></div>
+          <canvas id="bt-equity-chart" height="80"></canvas>
+        </div>
 
-        if (statRound) statRound.textContent = lottoHistory.length ? lottoHistory.length : 1180;
-        if (statHot) statHot.textContent = '34';
-        if (statCold) statCold.textContent = '44';
-      }
+        <!-- 매매 이력 -->
+        <div class="sp-card">
+          <div class="sp-card-header"><div class="sp-card-title">📋 매매 이력</div></div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="background:#f8fafc;">
+                  <th style="padding:8px 12px;text-align:left;color:#6b7280;font-weight:600;">날짜</th>
+                  <th style="padding:8px 12px;text-align:left;color:#6b7280;font-weight:600;">구분</th>
+                  <th style="padding:8px 12px;text-align:right;color:#6b7280;font-weight:600;">가격</th>
+                  <th style="padding:8px 12px;text-align:right;color:#6b7280;font-weight:600;">수량</th>
+                  <th style="padding:8px 12px;text-align:right;color:#6b7280;font-weight:600;">손익</th>
+                  <th style="padding:8px 12px;text-align:left;color:#6b7280;font-weight:600;">사유</th>
+                </tr>
+              </thead>
+              <tbody id="bt-trades-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-      function loadTelegramSettings() {
-        const tokenEl = $id('lotto-tg-token');
-        const chatEl = $id('lotto-tg-chatid');
-        if (tokenEl) tokenEl.value = localStorage.getItem(LOTTO_TG_TOKEN_KEY) || '';
-        if (chatEl) chatEl.value = localStorage.getItem(LOTTO_TG_CHATID_KEY) || '';
-      }
-
-      // 레이어 팝업
-      function lottoShowToast(icon, title, msg) {
-        const layer = $id('lotto-toast-layer');
-        if (!layer) return;
-        $id('lotto-toast-icon').textContent = icon;
-        $id('lotto-toast-title').textContent = title;
-        // ✅ 줄바꿈(\n) 지원
-        const safeMsg = String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-        $id('lotto-toast-msg').innerHTML = safeMsg;
-        layer.style.display = 'flex';
-      }
-      window.lottoClearToast = function() {
-        const layer = $id('lotto-toast-layer');
-        if (layer) layer.style.display = 'none';
-      };
-
-      function lottoConfirm(icon, title, msg, onOk) {
-        const layer = $id('lotto-confirm-layer');
-        if (!layer) { if (confirm(msg)) onOk(); return; }
-        $id('lotto-confirm-icon').textContent = icon;
-        $id('lotto-confirm-title').textContent = title;
-        $id('lotto-confirm-msg').textContent = msg;
-        layer.style.display = 'flex';
-        $id('lotto-confirm-ok').onclick = () => { layer.style.display = 'none'; onOk(); };
-        $id('lotto-confirm-cancel').onclick = () => { layer.style.display = 'none'; };
-      }
-
-      window.lottoSaveTg = async function lottoSaveTg() {
-        const token = ($id('lotto-tg-token')?.value?.trim() || '');
-        const chatId = ($id('lotto-tg-chatid')?.value?.trim() || '');
-        if (!chatId) { lottoShowToast('⚠️', '입력 오류', 'Chat ID를 입력하세요'); return; }
-        const cleanToken = token.startsWith('bot') ? token.slice(3) : token;
-        localStorage.setItem(LOTTO_TG_TOKEN_KEY, cleanToken);
-        localStorage.setItem(LOTTO_TG_CHATID_KEY, chatId);
-        try {
-          const r = await fetch('/api/lotto/telegram/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,bot_token:cleanToken})});
-          const d = await r.json();
-          if (d.ok) { lottoShowToast('✅', '저장 완료', '텔레그램 설정이 저장되었습니다.'); lottoLoadTgConfig(); }
-          else lottoShowToast('❌', '저장 실패', d.error || '알 수 없는 오류');
-        } catch(e) { lottoShowToast('❌', '오류', e.message); }
-      };
-
-      window.lottoTestTg = async function lottoTestTg() {
-        try {
-          const res = await fetch('/api/lotto/telegram', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'🔔 spagenio 로또 봇 연결 테스트!\n정상 수신되면 성공입니다 🍀'})});
-          const data = await res.json();
-          if (data.ok) lottoShowToast('📱', '전송 성공', '텔레그램으로 테스트 메시지가 전송되었습니다!');
-          else lottoShowToast('❌', '전송 실패', data.error || '알 수 없는 오류');
-        } catch(err) { lottoShowToast('❌', '오류', err.message); }
-      };
-
-      window.lottoSaveAndSend = async function lottoSaveAndSend() {
-        if (!lottoLastGames.length) { lottoShowToast('⚠️', '번호 없음', '먼저 번호 추천받기를 눌러주세요!'); return; }
-        const date = new Date().toISOString().split('T')[0];
-        const algosStr = lottoAlgos.filter(a=>a.weight>0).sort((a,b)=>b.weight-a.weight).slice(0,3).map(a=>a.name).join('+');
-        try {
-          const r = await fetch('/api/lotto/picks', {method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({pick_date:date, games:lottoLastGames.map(g=>g.numbers), algorithms:algosStr})});
-          const d = await r.json();
-          if (!d.ok) throw new Error(d.error);
-        } catch(e) { lottoShowToast('❌', '저장 실패', e.message); return; }
-        const lines = lottoLastGames.map((g,i)=>String.fromCharCode(65+i)+'게임: '+g.numbers.join(' ')).join('\n');
-        const msg = '🍀 *로또 번호 추천* ('+date+')\n\n'+lines+'\n\n📊 '+algosStr+'\n🕐 '+new Date().toLocaleString('ko-KR');
-        try {
-          const r = await fetch('/api/lotto/telegram', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})});
-          const d = await r.json();
-          if (d.ok) lottoShowToast('🍀', '전송 완료!', '번호가 저장되고 텔레그램으로 전송되었습니다.');
-          else lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 실패: '+d.error+')');
-        } catch(e) { lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 오류)'); }
-        lottoLoadHistory();
-      };
-
-      window.lottoSendTelegram = window.lottoSaveAndSend;
-
-      async function lottoLoadTgConfig() {
-        try {
-          const r = await fetch('/api/lotto/telegram/config');
-          const d = await r.json();
-          const chatEl = $id('lotto-tg-chatid');
-          const tokenEl = $id('lotto-tg-token');
-          if (chatEl && d.chat_id) chatEl.value = d.chat_id;
-          if (tokenEl && d.bot_token) tokenEl.value = d.bot_token;
-          const status = $id('lotto-tg-status');
-          if (status) {
-            status.textContent = d.chat_id ? '✅ 등록됨' : '미등록';
-            status.style.color = d.chat_id ? '#10b981' : '#6b7280';
-          }
-        } catch(e) {}
-      }
-
-      // 요일 단일 선택
-      window.lottoDayToggle = function(btn) {
-        document.querySelectorAll('.lotto-day-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      };
-
-      // 저장버튼으로 스케줄 저장 + 일주일에 1번 수정 제한
-      window.lottoResetSchedule = async function() {
-        lottoConfirm('⚠️', '초기화 확인', '자동 발송 설정을 초기화하시겠습니까?\n설정이 삭제되고 자동 발송이 중단됩니다.', async () => {
-          try {
-            const r = await fetch('/api/lotto/schedule', { method: 'DELETE' });
-            const d = await r.json();
-            if (d.ok) {
-              document.querySelectorAll('.lotto-day-btn').forEach(btn => btn.classList.remove('active'));
-              if ($id('lotto-sch-hour')) $id('lotto-sch-hour').value = '';
-              if ($id('lotto-sch-count')) $id('lotto-sch-count').value = '';
-              if ($id('lotto-sch-last')) $id('lotto-sch-last').textContent = '';
-              const curText = $id('lotto-sch-current-text');
-              if (curText) { curText.textContent = '자동 발송 설정을 하지 않았습니다'; curText.style.color = '#9ca3af'; }
-              lottoShowToast('✅', '초기화 완료', '자동 발송 설정이 삭제되었습니다.');
-            } else {
-              lottoShowToast('❌', '초기화 실패', d.error || '다시 시도해주세요');
-            }
-          } catch(e) { lottoShowToast('❌', '오류', e.message); }
-        });
-      };
-
-      window.lottoSaveSchedule = async function() {
-        // ✅ [FIX] 요일 - 반드시 1개만 선택
-        const activeDays = [...document.querySelectorAll('.lotto-day-btn.active')].map(b => b.dataset.day);
-        if (activeDays.length === 0) { lottoShowToast('⚠️', '요일 미선택', '발송 요일을 선택해주세요'); return; }
-        if (activeDays.length > 1)   { lottoShowToast('⚠️', '요일 초과', '요일은 1개만 선택할 수 있습니다'); return; }
-        const days = activeDays[0];
-
-        // ✅ [FIX] 발송 시각 - 반드시 선택
-        const hourVal = $id('lotto-sch-hour')?.value;
-        if (hourVal === '' || hourVal === null || hourVal === undefined) {
-          lottoShowToast('⚠️', '시각 미선택', '발송 시각을 선택해주세요'); return;
-        }
-        const hour = parseInt(hourVal);
-
-        // ✅ [FIX] 게임 수 - 반드시 선택
-        const countVal = $id('lotto-sch-count')?.value;
-        if (countVal === '' || countVal === null || countVal === undefined) {
-          lottoShowToast('⚠️', '게임 수 미선택', '게임 수를 선택해주세요'); return;
-        }
-        const game_count = parseInt(countVal);
-
-        try {
-          // ✅ [FIX] 일주일 수정 제한 - DB(updated_at) 기준, 서버 응답 status로 분기
-          const r = await fetch('/api/lotto/schedule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:1, days, hour, game_count})});
-          const d = await r.json();
-          if (d.remain_days) {
-            // 수정 제한 (일주일 미경과)
-            lottoShowToast('⚠️', '수정 제한', '자동발송 설정은 일주일에 1번만 수정할 수 있습니다.\n' + d.remain_days + '일 후에 다시 시도하세요.');
-          } else if (d.ok) {
-            const dayNames = ['','월','화','수','목','금','토','일'];
-            lottoShowToast('✅', '저장 완료', '매주 ' + dayNames[parseInt(days)] + '요일 ' + String(hour).padStart(2,'0') + '시에 자동 발송됩니다.');
-            lottoLoadSchedule();
-          } else {
-            lottoShowToast('❌', '저장 실패', d.error || '다시 시도해주세요');
-          }
-        } catch(e) { lottoShowToast('❌', '오류', e.message); }
-      };
-
-      async function lottoLoadSchedule() {
-        try {
-          const r = await fetch('/api/lotto/schedule');
-          const d = await r.json();
-
-          // ✅ [FIX] 설정한 적 없는 유저는 요일/시각/게임수 모두 미선택 상태로
-          // ✅ [FIX] DB 직접 수정 등으로 여러 개 저장된 경우 → 첫 번째 값만 사용
-          const rawDays = (d && d.days) ? d.days.split(',').map(x => x.trim()).filter(Boolean) : [];
-          const safeDay = rawDays.length > 0 ? rawDays[0] : null; // 항상 1개만
-          const hasSchedule = safeDay !== null;
-
-          // 요일 버튼 반영 - 설정 없으면 전부 비활성, 있으면 1개만 활성
-          document.querySelectorAll('.lotto-day-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.day === safeDay);
-          });
-
-          // 시각/게임수 - 설정 없으면 placeholder(빈값) 표시
-          if ($id('lotto-sch-hour')) {
-            $id('lotto-sch-hour').value = hasSchedule ? (d.hour ?? '') : '';
-          }
-          if ($id('lotto-sch-count')) {
-            $id('lotto-sch-count').value = hasSchedule ? (d.game_count || '') : '';
-          }
-
-          // 현재 등록된 스케줄 표시
-          const dayNames = ['','월','화','수','목','금','토','일'];
-          const curEl = $id('lotto-sch-current');
-          const curText = $id('lotto-sch-current-text');
-          if (curEl && curText) {
-            if (hasSchedule) {
-              const dayName = dayNames[parseInt(safeDay)] || '';
-              curText.textContent = '매주 ' + dayName + '요일 ' + String(d.hour||9).padStart(2,'0') + '시 · ' + (d.game_count||5) + '게임 · ' + (d.enabled ? '✅ 활성' : '⏸ 비활성');
-              curText.style.color = '#374151';
-            } else {
-              curText.textContent = '자동 발송 설정을 하지 않았습니다';
-              curText.style.color = '#9ca3af';
-            }
-          }
-          if (d.last_sent_at) {
-            const el = $id('lotto-sch-last');
-            if (el) el.textContent = '마지막 발송: ' + new Date(d.last_sent_at).toLocaleString('ko-KR');
-          }
-        } catch(e) {}
-      }
-
-      function lottoBallClass(n) {
-        if (n<=10) return 'lb1'; if (n<=20) return 'lb2';
-        if (n<=30) return 'lb3'; if (n<=40) return 'lb4'; return 'lb5';
-      }
-
-      function lottoRenderBalls(nums, winning=[]) {
-        return nums.map(n => {
-          const hit = winning.length && winning.includes(n);
-          return '<span class="lotto-ball '+lottoBallClass(n)+'" style="'+(hit?'box-shadow:0 0 0 3px #22c55e,0 2px 6px rgba(0,0,0,.3)':'')+'">'+n+'</span>';
-        }).join(' ');
-      }
-
-      window.lottoLoadHistory = async function() {
-        const el = $id('lotto-history-list');
-        if (!el) return;
-        try {
-          const r = await fetch('/api/lotto/picks');
-          const d = await r.json();
-          if (!d.picks?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">추천 이력이 없습니다</div>'; return; }
-          el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
-            '<th style="padding:8px;text-align:left;">날짜</th>' +
-            '<th style="padding:8px;text-align:center;">게임수</th>' +
-            '<th style="padding:8px;text-align:center;">회차</th>' +
-            '<th style="padding:8px;text-align:center;">최고 등수</th>' +
-            '<th style="padding:8px;text-align:center;">최다 일치</th>' +
-            '<th style="padding:8px;text-align:center;">상세</th></tr></thead><tbody>' +
-            d.picks.map(p =>
-              '<tr style="border-bottom:1px solid #f3f4f6;">' +
-              '<td style="padding:8px;">'+p.pick_date+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
-              '<td style="padding:8px;text-align:center;">'+(p.drw_no ? p.drw_no+'회' : '미확인')+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+(p.best_rank ? '<span class="lotto-rank-badge rank-'+p.best_rank+'">'+p.best_rank+'등</span>' : '<span class="lotto-rank-badge rank-0">미확인</span>')+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+(p.max_match != null ? p.max_match+'개' : '-')+'</td>' +
-              '<td style="padding:8px;text-align:center;"><button class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:3px 10px;" data-date="' + p.pick_date + '" onclick="lottoShowDetail(this.dataset.date)">보기</button></td>' +
-              '</tr>'
-            ).join('') + '</tbody></table>';
-        } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
-      };
-
-      const DAY_NAMES = ['일','월','화','수','목','금','토'];
-
-      window.lottoLoadScheduleLog = async function() {
-        const el = $id('lotto-schedule-log-list');
-        if (!el) return;
-        try {
-          const r = await fetch('/api/lotto/schedule/log');
-          const d = await r.json();
-          if (!d.logs?.length) {
-            el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">스케줄 변경 이력이 없습니다</div>';
-            return;
-          }
-          el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
-            '<th style="padding:8px;text-align:left;">변경일시</th>' +
-            '<th style="padding:8px;text-align:center;">요일</th>' +
-            '<th style="padding:8px;text-align:center;">시각</th>' +
-            '<th style="padding:8px;text-align:center;">게임수</th></tr></thead><tbody>' +
-            d.logs.map(p => {
-              const dt = new Date(p.sent_at || p.created_at);
-              const dateStr = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
-              const dayName = (p.days||'').split(',').map(x=>DAY_NAMES[parseInt(x)]||'').filter(Boolean).join(',') + '요일';
-              return '<tr style="border-bottom:1px solid #f3f4f6;">' +
-              '<td style="padding:8px;font-size:0.78rem;">'+dateStr+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+dayName+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+String(p.hour).padStart(2,'0')+':00</td>' +
-              '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
-              '</tr>';
-            }).join('') + '</tbody></table>';
-        } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
-      };
-
-      window.lottoLoadAutoHistory = async function() {
-        const el = $id('lotto-auto-history-list');
-        if (!el) return;
-        try {
-          const r = await fetch('/api/lotto/schedule/log');
-          const d = await r.json();
-          if (!d.logs?.length) {
-            el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동발송 설정 이력이 없습니다</div>';
-            return;
-          }
-          el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
-            '<th style="padding:8px;text-align:left;">등록/수정일</th>' +
-            '<th style="padding:8px;text-align:center;">요일</th>' +
-            '<th style="padding:8px;text-align:center;">발송시각</th>' +
-            '<th style="padding:8px;text-align:center;">게임수</th></tr></thead><tbody>' +
-            d.logs.map(p => {
-              const dt = new Date(p.created_at);
-              const dateStr = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
-              const dayName = (p.days||'').split(',').map(d=>DAY_NAMES[parseInt(d)]||'').filter(Boolean).join(',') + '요일';
-              const timeStr = String(p.hour).padStart(2,'0') + ':00';
-              return '<tr style="border-bottom:1px solid #f3f4f6;">' +
-              '<td style="padding:8px;font-size:0.82rem;">'+dateStr+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+dayName+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+timeStr+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
-              '</tr>';
-            }).join('') + '</tbody></table>';
-        } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
-      };
-      window.lottoShowDetail = async function(date) {
-        const card = $id('lotto-detail-card');
-        const title = $id('lotto-detail-title');
-        const gamesEl = $id('lotto-detail-games');
-        if (!card || !gamesEl) return;
-        card.style.display = 'block';
-        title.textContent = '📅 ' + date + ' 추천 번호';
-        card.dataset.date = date;
-        gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;">로딩 중...</div>';
-        card.scrollIntoView({behavior:'smooth', block:'start'});
-        try {
-          const r = await fetch('/api/lotto/picks?date='+date);
-          const d = await r.json();
-          gamesEl.innerHTML = d.picks.map(p => {
-            const rankLabel = p.rank
-              ? '<span class="lotto-rank-badge rank-'+p.rank+'">'+p.rank+'등 ('+p.matched_count+'개 일치)</span>'
-              : (p.matched_count != null ? '<span class="lotto-rank-badge rank-0">'+p.matched_count+'개 일치</span>' : '<span class="lotto-rank-badge rank-0">미확인</span>');
-            return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-              '<span style="font-weight:700;font-size:0.85rem;">'+String.fromCharCode(65+p.game_index)+'게임</span>'+rankLabel+'</div>' +
-              '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(p.numbers)+'</div></div>';
-          }).join('');
-        } catch(e) { gamesEl.innerHTML = '<div style="color:#ef4444;">로드 실패</div>'; }
-      };
-
-      window.lottoCheckResult = async function() {
-        const card = $id('lotto-detail-card');
-        const date = card?.dataset.date;
-        const drw_no = $id('lotto-check-drwno')?.value;
-        if (!date || !drw_no) { alert('날짜와 회차를 입력하세요'); return; }
-        try {
-          const r = await fetch('/api/lotto/picks/check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pick_date:date, drw_no:parseInt(drw_no)})});
-          const d = await r.json();
-          if (!d.ok) throw new Error(d.error);
-          const gamesEl = $id('lotto-detail-games');
-          gamesEl.innerHTML =
-            '<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:12px;">' +
-            '<span style="font-size:0.82rem;font-weight:700;color:#6b7280;">'+d.drw_no+'회 당첨 번호</span>' +
-            '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(d.winning)+
-            ' <span style="margin-left:4px;font-size:0.82rem;color:#6b7280;">보너스: <span class="lotto-ball lb5">'+d.bonus+'</span></span></div></div>' +
-            d.results.map(res => {
-              const rankLabel = res.rank
-                ? '<span class="lotto-rank-badge rank-'+res.rank+'">'+res.rank+'등!</span>'
-                : '<span class="lotto-rank-badge rank-0">'+res.matched+'개 일치</span>';
-              return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-                '<span style="font-weight:700;font-size:0.85rem;">'+String.fromCharCode(65+res.game_index)+'게임</span>'+rankLabel+'</div>' +
-                '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(res.numbers, d.winning)+'</div></div>';
-            }).join('');
-          lottoLoadHistory();
-        } catch(e) { alert('확인 실패: '+e.message); }
-      };
-
-      window.lottoGenerate = function lottoGenerate() {
-        lottoNormalizeWeights();
-
-        const count = Number($id('lotto-game-count')?.value || 5);
-        const games = Array.from({ length: count }, () => generateOneGame());
-
-        lottoLastGames = games;
-        renderGames(games);
-      };
-
-      async function lottoFetchHistoryData() {
-        try {
-          const res = await fetch('/api/lotto/history');
-          if (!res.ok) throw new Error('history api not available');
-          const data = await res.json();
-          lottoHistory = Array.isArray(data) ? data : [];
-        } catch (e) {
-          lottoHistory = [];
-        }
-        updateStats();
-      }
-
-      async function lottoInit() {
-        if (lottoInitialized) return;
-        lottoInitialized = true;
-
-        await lottoLoadWeights();
-        lottoRenderAlgos();
-        renderGames([]);
-        loadTelegramSettings();
-        await lottoFetchHistoryData();
-        await lottoLoadTgConfig();
-        await lottoLoadSchedule();
-        lottoLoadHistory();
-        lottoLoadAutoHistory();
-        lottoLoadScheduleLog();
-      }
-
-      document.addEventListener('DOMContentLoaded', () => {
-        lottoInit();
-
-        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const tab = btn.dataset.tab;
-            if (tab === 'lotto') {
-              lottoInit();
-            }
-          });
-        });
-      });
-    })();
-  </script>
+      <div id="bt-loading" style="display:none;text-align:center;padding:40px;color:#6b7280;">🔍 백테스팅 실행 중...</div>
+      <div id="bt-error" style="display:none;padding:16px;color:#ef4444;background:#fff5f5;border-radius:8px;margin-top:12px;"></div>
+    </div>
   </div>
 
   <!-- ===== 차트 팝업 ===== -->
@@ -2544,9 +1652,16 @@
     © 2026 spagenio — AI-powered Investment & News Automation Dashboard
   </footer>
 
-
-
-  <script src="/app.js?v=20260326"></script>
+  <script src="/js/common.js?v=20260327"></script>
+  <script src="/js/ai-router.js?v=20260327"></script>
+  <script src="/js/stock.js?v=20260327"></script>
+  <script src="/js/alpaca-keys.js?v=20260327"></script>
+  <script src="/js/news.js?v=20260327"></script>
+  <script src="/js/datacollect.js?v=20260327"></script>
+  <script src="/js/chart.js?v=20260327"></script>
+  <script src="/js/quant-algo.js?v=20260327"></script>
+  <script src="/js/lotto.js?v=20260327"></script>
+  <script src="/js/backtest.js?v=20260327"></script>
 </body>
 
 </html>
