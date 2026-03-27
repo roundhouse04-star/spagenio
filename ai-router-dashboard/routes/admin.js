@@ -137,6 +137,39 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     return res.json({ status: 'ok', username: request.username, temp_password: tempPassword });
   });
 
+  // ✅ RSS 소스 관리
+  router.get('/api/admin/rss/sources', (req, res) => {
+    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    const sources = db.prepare('SELECT * FROM rss_sources ORDER BY category, name').all();
+    return res.json({ sources });
+  });
+
+  router.post('/api/admin/rss/sources', (req, res) => {
+    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    const { name, url, category = 'global' } = req.body;
+    if (!name || !url) return res.status(400).json({ error: 'name, url 필수' });
+    try {
+      const result = db.prepare('INSERT INTO rss_sources (name, url, category) VALUES (?, ?, ?)').run(name, url, category);
+      return res.json({ status: 'ok', id: result.lastInsertRowid });
+    } catch (e) {
+      if (e.message.includes('UNIQUE')) return res.status(400).json({ error: '이미 등록된 URL입니다.' });
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.patch('/api/admin/rss/sources/:id', (req, res) => {
+    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    const { enabled } = req.body;
+    db.prepare('UPDATE rss_sources SET enabled = ? WHERE id = ?').run(enabled ? 1 : 0, req.params.id);
+    return res.json({ status: 'ok' });
+  });
+
+  router.delete('/api/admin/rss/sources/:id', (req, res) => {
+    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    db.prepare('DELETE FROM rss_sources WHERE id = ?').run(req.params.id);
+    return res.json({ status: 'ok' });
+  });
+
   // ✅ 에러 로그 날짜 목록
   router.get('/api/admin/error-logs/dates', (req, res) => {
     try {

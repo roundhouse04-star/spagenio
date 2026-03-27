@@ -147,7 +147,11 @@ async function loadUserInfo() {
       const data = await res.json();
       const el = document.getElementById('headerUsername');
       if (el && data.user?.username) {
-        el.textContent = data.user.username + ' 님';
+        el.textContent = '👤 ' + data.user.username;
+      }
+      const el2 = document.getElementById('headerUsername2');
+      if (el2 && data.user?.username) {
+        el2.textContent = data.user.username + ' 님';
       }
     }
   } catch (e) { }
@@ -402,8 +406,19 @@ function switchTab(tab) {
   if (activeBtn) activeBtn.classList.add('active');
 
   if (tab === 'stock') {
+    // Stock Prices 뱃지 + input 초기화
+    const stockInput = document.getElementById('stockSymbols');
+    if (stockInput) stockInput.value = '';
+    const stockBadge = document.getElementById('stock-symbol-badge');
+    if (stockBadge) {
+      stockBadge.querySelectorAll('.stock-badge-item').forEach(el => el.remove());
+      const ph = document.getElementById('stock-symbol-placeholder');
+      if (ph) ph.style.display = 'inline';
+    }
+    // priceCards 초기화 - 빈 안내 메시지
+    const priceCards = document.getElementById('priceCards');
+    if (priceCards) priceCards.innerHTML = '<div style="color:#9ca3af;font-size:0.88rem;padding:12px 0;">🔍 위에서 종목을 검색하세요 (최대 5종목)</div>';
     loadAccount();
-    loadPrices();
     loadPositions();
     loadOrders();
   }
@@ -414,10 +429,52 @@ function switchTab(tab) {
     }
   }
 
+  if (tab === 'ai') {
+    if (typeof loadNews === 'function') loadNews();
+    if (typeof loadMarketIndicators === 'function') loadMarketIndicators();
+  }
+
+  if (tab === 'quant') {
+    // 자동매매 종목 뱃지 초기화
+    const atBadge = document.getElementById('at-symbol-badge');
+    if (atBadge) atBadge.querySelectorAll('.at-badge-item').forEach(el => el.remove());
+    const atInput = document.getElementById('atSymbols');
+    if (atInput) atInput.value = '';
+    const atPh = document.getElementById('at-symbol-placeholder');
+    if (atPh) atPh.style.display = 'inline';
+  }
+
+  if (tab === 'backtest') {
+    const btInput = document.getElementById('bt-symbol');
+    if (btInput) btInput.value = '';
+    const btDisplay = document.getElementById('bt-symbol-display');
+    if (btDisplay) btDisplay.querySelectorAll('.bt-symbol-text').forEach(e => e.remove());
+    const btPh = document.getElementById('bt-symbol-placeholder');
+    if (btPh) btPh.style.display = 'inline';
+  }
+
   if (tab === 'datacollect') {
-    if (typeof loadQuantAnalysisLog === 'function') {
-      loadQuantAnalysisLog();
+    // 선택 종목 초기화
+    if (typeof _dcSelectedSymbols !== 'undefined') {
+      _dcSelectedSymbols = [];
+      _dcActiveSymbol = '';
     }
+    // 검색창 초기화
+    const searchInput = document.getElementById('dc-search-input');
+    if (searchInput) searchInput.value = '';
+    const searchResult = document.getElementById('dc-search-result');
+    if (searchResult) searchResult.style.display = 'none';
+    // 뱃지 초기화
+    const badge = document.getElementById('dc-symbol-badge');
+    if (badge) badge.innerHTML = '<span style="color:#9ca3af;font-weight:400;font-size:0.85rem;">종목을 검색해서 선택하세요</span>';
+    // 분석 결과 초기화
+    const resultCard = document.getElementById('quantResultCard');
+    if (resultCard) resultCard.style.display = 'none';
+    const quantResult = document.getElementById('quantResult');
+    if (quantResult) quantResult.innerHTML = '';
+    // 히스토리 초기화
+    const historyResult = document.getElementById('dc-history-result');
+    if (historyResult) historyResult.innerHTML = '';
   }
 }
 
@@ -426,6 +483,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
+
+  // 뉴스탭 기본 표시
+  switchTab('ai');
 });
 
 // 외부 접속 시 프록시 사용, 로컬 시 직접 연결

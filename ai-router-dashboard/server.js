@@ -34,11 +34,7 @@ const dbPath = path.join(__dirname, 'news.db');
 const db = new Database(dbPath);
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS news (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, date TEXT NOT NULL, saved_at TEXT NOT NULL, use_claude INTEGER DEFAULT 0, source TEXT DEFAULT 'rss', content TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE INDEX IF NOT EXISTS idx_news_date ON news(date);
-  CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
-  CREATE INDEX IF NOT EXISTS idx_news_use_claude ON news(use_claude);
-  CREATE INDEX IF NOT EXISTS idx_news_source ON news(source);
+
 `);
 
 db.exec(`
@@ -92,6 +88,29 @@ db.exec(`
 // ============================================================
 // DB 메타 코멘트 테이블
 // ============================================================
+// ✅ RSS 소스 관리 테이블
+db.exec(`
+  CREATE TABLE IF NOT EXISTS rss_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL DEFAULT 'global',
+    enabled INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// 기본 RSS 소스 삽입 (없을 때만)
+const insertRss = db.prepare(`INSERT OR IGNORE INTO rss_sources (name, url, category) VALUES (?, ?, ?)`);
+[
+  ['Reuters',        'https://rsshub.app/reuters/world',      'global'],
+  ['BBC News',       'https://rsshub.app/bbc/world',          'global'],
+  ['New York Times', 'https://rsshub.app/nytimes/home',       'global'],
+  ['Al Jazeera',     'https://rsshub.app/aljazeera/news',     'global'],
+  ['The Economist',  'https://rsshub.app/economist/latest',   'economy'],
+  ['Nikkei',         'https://rsshub.app/nikkei/news',        'economy'],
+].forEach(([name, url, category]) => insertRss.run(name, url, category));
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS db_comments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,14 +130,6 @@ const upsertComment = db.prepare(`
 `);
 const comments = [
   // news
-  ['news', 'id',         '자동 증가 PK'],
-  ['news', 'category',   '카테고리 (global/korea/it/economy)'],
-  ['news', 'date',       '뉴스 날짜 (YYYY-MM-DD)'],
-  ['news', 'saved_at',   '수집 저장 시각'],
-  ['news', 'use_claude', 'Claude 분석 여부 (0/1)'],
-  ['news', 'source',     '수집 방식 (rss/claude/gpt)'],
-  ['news', 'content',    '뉴스 본문 또는 요약'],
-  ['news', 'created_at', '레코드 생성 시각'],
   // users
   ['users', 'id',            '자동 증가 PK'],
   ['users', 'username',      '로그인 아이디 (3~10자, 영문/숫자/언더바)'],
@@ -478,7 +489,7 @@ app.use((req, res, next) => {
 });
 
 function authMiddleware(req, res, next) {
-  const publicApis = ['/api/auth/login','/api/auth/verify','/api/auth/register','/api/auth/forgot-password','/api/auth/send-email-code','/api/auth/verify-email-code','/api/auth/check-username','/api/auth/check-email','/api/news/save'];
+  const publicApis = ['/api/auth/login','/api/auth/verify','/api/auth/register','/api/auth/forgot-password','/api/auth/send-email-code','/api/auth/verify-email-code','/api/auth/check-username','/api/auth/check-email'];
   if (!req.path.startsWith('/api/')) return next();
   const token = req.headers.authorization?.replace('Bearer ','') || req.cookies?.auth_token;
   if (token) { try { req.user = jwt.verify(token, JWT_SECRET); } catch(e) {} }

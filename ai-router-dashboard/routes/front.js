@@ -151,60 +151,63 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (error) { res.status(500).json({ error: '주식 서버 연결 실패', detail: error.message }); }
   });
 
-  // ✅ 뉴스 API
-  router.post('/api/news/trigger', async (req, res) => {
-    try {
-      const source = req.body.source || 'rss';
-      const n8nWebhookUrl = process.env.NEWS_WEBHOOK_URL || 'http://127.0.0.1:5678/webhook/news-collect';
-      const response = await fetch(n8nWebhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ use_claude: source === 'claude', use_gpt: source === 'gpt', source }) });
-      if (response.ok) return res.json({ status: 'ok', source });
-      return res.status(500).json({ error: 'n8n webhook call failed' });
-    } catch (error) { return res.status(500).json({ error: error.message }); }
-  });
+  // ✅ 뉴스 API (RSS 실시간 조회 - DB 저장 없음)
 
-  router.post('/api/news/save', (req, res) => {
-    try {
-      const { category, content, use_claude, source } = req.body;
-      const date = new Date().toISOString().slice(0, 10);
-      const savedAt = new Date().toISOString();
-      const src = (source && ['rss', 'claude', 'gpt'].includes(source)) ? source : (use_claude ? 'claude' : 'rss');
-      const cleanContent = (content || '').replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '').replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '').replace(/<!--[\s\S]*?-->/g, '').trim();
-      if (!cleanContent || cleanContent === '제목없음' || cleanContent === '-' || cleanContent === 'undefined') return res.json({ status: 'ignored', reason: 'content is empty or invalid' });
-      const existing = db.prepare('SELECT id FROM news WHERE category = ? AND date = ? AND content = ?').get(category, date, cleanContent);
-      if (existing) return res.json({ status: 'exists', message: '이미 동일한 내용의 뉴스가 저장되어 있습니다.', id: existing.id });
-      db.prepare('INSERT INTO news (category, date, saved_at, use_claude, source, content) VALUES (?, ?, ?, ?, ?, ?)').run(category, date, savedAt, src === 'claude' ? 1 : 0, src, cleanContent);
-      return res.json({ status: 'ok', category, date, content_length: cleanContent.length, message: '신규 뉴스 저장 완료' });
-    } catch (error) { return res.status(500).json({ error: error.message }); }
-  });
+  // RSS XML 파싱 헬퍼
+  async function fetchRss(url) {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; spagenio/1.0)' },
+      signal: AbortSignal.timeout(8000)
+    });
+    const xml = await res.text();
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let m;
+    while ((m = itemRegex.exec(xml)) !== null) {
+      const block = m[1];
+      const get = (tag) => {
+        const r = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i');
+        const hit = r.exec(block);
+        return hit ? hit[1].trim() : '';
+      };
+      const link = get('link') || get('guid');
+      const title = get('title');
+      const pubDate = get('pubDate');
+      if (title && link) items.push({ title, url: link, pubDate });
+    }
+    return items;
+  }
 
-  router.get('/api/news/list', (req, res) => {
+  // 뉴스 조회 (활성화된 RSS 소스 전체 또는 카테고리별)
+  router.get('/api/news/fetch', async (req, res) => {
     try {
-      const { date, category, source, page = 1, limit = 20 } = req.query;
-      const offset = (page - 1) * limit;
-      let query = 'SELECT * FROM news WHERE 1=1';
-      const params = [];
-      if (date) { query += ' AND date = ?'; params.push(date); }
-      if (category && category !== 'ALL') { query += ' AND category = ?'; params.push(category); }
-      if (source) { query += ' AND source = ?'; params.push(source); }
-      query += ' ORDER BY saved_at DESC LIMIT ? OFFSET ?';
-      params.push(Number(limit), Number(offset));
-      const news = db.prepare(query).all(...params);
-      const total = db.prepare('SELECT COUNT(*) as cnt FROM news WHERE 1=1' + (date ? ' AND date = ?' : '') + (category && category !== 'ALL' ? ' AND category = ?' : '') + (source ? ' AND source = ?' : '')).get(...params.slice(0, -2));
-      return res.json({ news, total: total.cnt, page: Number(page), limit: Number(limit) });
-    } catch (error) { return res.status(500).json({ error: error.message }); }
-  });
+      const { category = 'all' } = req.query;
+      let sources = category === 'all'
+        ? db.prepare('SELECT * FROM rss_sources WHERE enabled = 1').all()
+        : db.prepare('SELECT * FROM rss_sources WHERE enabled = 1 AND category = ?').all(category);
 
-  router.get('/api/news/dates', (req, res) => {
-    try {
-      const rows = db.prepare("SELECT DISTINCT date FROM news ORDER BY date DESC LIMIT 30").all();
-      return res.json({ dates: rows.map(r => r.date) });
-    } catch (error) { return res.status(500).json({ error: error.message }); }
-  });
+      if (!sources.length) return res.json({ news: [], total: 0 });
 
-  router.delete('/api/news/:id', (req, res) => {
-    try {
-      db.prepare('DELETE FROM news WHERE id = ?').run(req.params.id);
-      return res.json({ status: 'ok' });
+      // 병렬로 RSS 수집
+      const results = await Promise.allSettled(sources.map(async (s) => {
+        const items = await fetchRss(s.url);
+        return items.map(item => ({
+          title:      item.title,
+          url:        item.url,
+          source:     s.name,
+          category:   s.category,
+          publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null
+        }));
+      }));
+
+      // 성공한 것만 합치고 최신순 정렬
+      const news = results
+        .filter(r => r.status === 'fulfilled')
+        .flatMap(r => r.value)
+        .sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0))
+        .slice(0, 100);
+
+      return res.json({ news, total: news.length });
     } catch (error) { return res.status(500).json({ error: error.message }); }
   });
 

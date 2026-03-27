@@ -158,6 +158,45 @@ def get_orders():
         return jsonify({'error': str(e)}), 500
 
 # ============================================================
+# 시장 지표 API (S&P500, 나스닥, 다우, VIX, 금, 비트코인)
+# ============================================================
+MARKET_INDICATORS = [
+    {'symbol': '^GSPC',  'label': 'S&P 500',     'type': 'index'},
+    {'symbol': '^DJI',   'label': 'Dow 30',       'type': 'index'},
+    {'symbol': '^IXIC',  'label': 'Nasdaq',       'type': 'index'},
+    {'symbol': '^RUT',   'label': 'Russell 2000', 'type': 'index'},
+    {'symbol': '^VIX',   'label': 'VIX',          'type': 'vix'},
+    {'symbol': 'GC=F',   'label': 'Gold',         'type': 'commodity'},
+    {'symbol': 'BTC-USD','label': 'Bitcoin',      'type': 'crypto'},
+    {'symbol': 'DX-Y.NYB','label': 'USD Index',   'type': 'fx'},
+]
+
+@app.route('/api/market/indicators', methods=['GET'])
+def get_market_indicators():
+    results = []
+    for item in MARKET_INDICATORS:
+        try:
+            ticker = yf.Ticker(item['symbol'])
+            hist = ticker.history(period='2d')
+            if hist.empty:
+                continue
+            price = round(float(hist['Close'].iloc[-1]), 2)
+            prev  = round(float(hist['Close'].iloc[-2]), 2) if len(hist) >= 2 else price
+            change = round(price - prev, 2)
+            change_pct = round((change / prev) * 100, 2) if prev else 0
+            results.append({
+                'symbol':     item['symbol'],
+                'label':      item['label'],
+                'type':       item['type'],
+                'price':      price,
+                'change':     change,
+                'change_pct': change_pct,
+            })
+        except Exception as e:
+            results.append({'symbol': item['symbol'], 'label': item['label'], 'error': str(e)})
+    return jsonify({'indicators': results, 'timestamp': datetime.now().isoformat()})
+
+# ============================================================
 # 종목 검색 API (Yahoo Finance)
 # ============================================================
 @app.route('/api/stock/search', methods=['GET'])

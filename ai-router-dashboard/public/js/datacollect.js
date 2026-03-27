@@ -421,34 +421,45 @@ async function dcSearch(query) {
 
 // 선택된 종목 목록
 let _dcSelectedSymbols = [];
+let _dcActiveSymbol = '';
 
 function dcSelectSymbol(symbol, name) {
-  // 드롭다운 닫기
   const resultEl = document.getElementById('dc-search-result');
   if (resultEl) resultEl.style.display = 'none';
-
-  // 검색창 초기화
   const input = document.getElementById('dc-search-input');
   if (input) input.value = '';
 
-  // 이미 선택된 종목이면 무시
   if (_dcSelectedSymbols.find(s => s.symbol === symbol)) {
     spAlert(`${symbol}은 이미 선택된 종목입니다.`, '중복 선택', 'ℹ️');
     return;
   }
-
-  // 5종목 초과 시 경고
   if (_dcSelectedSymbols.length >= 5) {
     spAlert('최대 5종목까지 선택 가능합니다.', '종목 초과', '⚠️');
     return;
   }
 
   _dcSelectedSymbols.push({ symbol, name });
+  // 첫 선택 시 자동 활성화
+  if (_dcSelectedSymbols.length === 1) _dcActiveSymbol = symbol;
   dcRenderSelectedSymbols();
+}
+
+function dcSwitchSymbol(symbol) {
+  _dcActiveSymbol = symbol;
+  const quantSymbol = document.getElementById('quantSymbol');
+  if (quantSymbol) quantSymbol.value = symbol;
+  const dcSymbols = document.getElementById('dc-symbols');
+  if (dcSymbols) dcSymbols.value = symbol;
+  dcRenderSelectedSymbols();
+  // 해당 종목 자동 분석
+  runQuantAnalysis();
 }
 
 function dcRemoveSymbol(symbol) {
   _dcSelectedSymbols = _dcSelectedSymbols.filter(s => s.symbol !== symbol);
+  if (_dcActiveSymbol === symbol) {
+    _dcActiveSymbol = _dcSelectedSymbols[0]?.symbol || '';
+  }
   dcRenderSelectedSymbols();
 }
 
@@ -459,22 +470,24 @@ function dcRenderSelectedSymbols() {
   if (!_dcSelectedSymbols.length) {
     badge.innerHTML = '<span style="color:#9ca3af;font-weight:400;">종목을 검색해서 선택하세요</span>';
   } else {
-    badge.innerHTML = _dcSelectedSymbols.map(s => `
-      <span style="display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#6366f1;font-weight:700;font-size:0.85rem;padding:4px 10px;border-radius:999px;margin:2px;">
+    badge.innerHTML = _dcSelectedSymbols.map(s => {
+      const isActive = s.symbol === _dcActiveSymbol;
+      return `<span style="display:inline-flex;align-items:center;gap:4px;background:${isActive ? '#6366f1' : '#eef2ff'};color:${isActive ? '#fff' : '#6366f1'};font-weight:700;font-size:0.85rem;padding:4px 10px;border-radius:999px;margin:2px;cursor:pointer;transition:all 0.15s;"
+        onclick="dcSwitchSymbol('${s.symbol}')">
         ${s.symbol}
-        <button onclick="dcRemoveSymbol('${s.symbol}')"
-          style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.9rem;padding:0;line-height:1;"
+        <button onclick="event.stopPropagation();dcRemoveSymbol('${s.symbol}')"
+          style="background:none;border:none;cursor:pointer;color:${isActive ? 'rgba(255,255,255,0.7)' : '#9ca3af'};font-size:0.9rem;padding:0;line-height:1;"
           title="제거">✕</button>
-      </span>`).join('');
+      </span>`;
+    }).join('');
   }
 
-  // hidden input 업데이트
   const symbols = _dcSelectedSymbols.map(s => s.symbol);
   const quantSymbol = document.getElementById('quantSymbol');
   const dcSymbols = document.getElementById('dc-symbols');
   const batchInput = document.getElementById('quantBatchSymbols');
-  if (quantSymbol) quantSymbol.value = symbols[0] || '';
-  if (dcSymbols) dcSymbols.value = symbols[0] || '';
+  if (quantSymbol) quantSymbol.value = _dcActiveSymbol || symbols[0] || '';
+  if (dcSymbols) dcSymbols.value = _dcActiveSymbol || symbols[0] || '';
   if (batchInput) batchInput.value = symbols.join(',');
 }
 
@@ -537,6 +550,20 @@ function selectStock(symbol, name) {
   // 뱃지 업데이트
   if (_searchTargetId === 'atSymbols') atRenderSymbolBadge();
   if (_searchTargetId === 'stockSymbols') stockRenderSymbolBadge();
+  if (_searchTargetId === 'bt-symbol') {
+    const display = document.getElementById('bt-symbol-display');
+    const ph = document.getElementById('bt-symbol-placeholder');
+    if (display) {
+      if (ph) ph.style.display = 'none';
+      // 기존 텍스트 노드 제거 후 추가
+      display.querySelectorAll('.bt-symbol-text').forEach(e => e.remove());
+      const span = document.createElement('span');
+      span.className = 'bt-symbol-text';
+      span.style.cssText = 'font-weight:700;color:#6366f1;';
+      span.textContent = symbol;
+      display.appendChild(span);
+    }
+  }
 
   closeStockSearch();
 }
@@ -549,6 +576,7 @@ function stockRenderSymbolBadge() {
   const symbols = input.value.split(',').map(s => s.trim()).filter(Boolean);
   if (placeholder) placeholder.style.display = symbols.length ? 'none' : 'inline';
   badge.querySelectorAll('.stock-badge-item').forEach(el => el.remove());
+  if (!symbols.length) return;
   symbols.forEach(sym => {
     const span = document.createElement('span');
     span.className = 'stock-badge-item';
