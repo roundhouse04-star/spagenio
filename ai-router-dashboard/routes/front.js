@@ -446,5 +446,61 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.json({ ok: false }); }
   });
 
+  // ✅ 퀀트 분석 이력 저장
+  router.post('/api/quant/analysis-log', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const { symbol, strategy, signal, price, value, score, reason, indicators } = req.body;
+      if (!symbol || !strategy) return res.status(400).json({ error: '종목과 전략은 필수입니다.' });
+      db.prepare(`
+        INSERT INTO quant_analysis_log (user_id, symbol, strategy, signal, price, value, score, reason, indicators)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.user.id, symbol.toUpperCase(), strategy,
+        signal || null, price || null, value || null, score || null,
+        reason || null, indicators ? JSON.stringify(indicators) : null
+      );
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ✅ 퀀트 분석 이력 조회
+  router.get('/api/quant/analysis-log', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const { symbol, limit = 50 } = req.query;
+      let rows;
+      if (symbol) {
+        rows = db.prepare(`
+          SELECT * FROM quant_analysis_log
+          WHERE user_id=? AND symbol=?
+          ORDER BY created_at DESC LIMIT ?
+        `).all(req.user.id, symbol.toUpperCase(), parseInt(limit));
+      } else {
+        rows = db.prepare(`
+          SELECT * FROM quant_analysis_log
+          WHERE user_id=?
+          ORDER BY created_at DESC LIMIT ?
+        `).all(req.user.id, parseInt(limit));
+      }
+      res.json({ logs: rows });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ✅ 퀀트 분석 이력 삭제
+  router.delete('/api/quant/analysis-log', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      db.prepare('DELETE FROM quant_analysis_log WHERE user_id=?').run(req.user.id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   return router;
 }

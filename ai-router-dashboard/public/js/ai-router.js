@@ -413,6 +413,12 @@ function switchTab(tab) {
       lottoInit();
     }
   }
+
+  if (tab === 'datacollect') {
+    if (typeof loadQuantAnalysisLog === 'function') {
+      loadQuantAnalysisLog();
+    }
+  }
 }
 
 // 탭 버튼 이벤트 등록 (DOM 준비 후 안전하게)

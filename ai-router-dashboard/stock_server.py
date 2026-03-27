@@ -3,6 +3,7 @@ from flask_cors import CORS
 import yfinance as yf
 from datetime import datetime
 import os
+import urllib.parse
 
 try:
     from alpaca.trading.client import TradingClient
@@ -156,9 +157,39 @@ def get_orders():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    print('🚀 주식 서버 시작: http://localhost:5001')
-    app.run(host='0.0.0.0', port=5001, debug=True)
+# ============================================================
+# 종목 검색 API (Yahoo Finance)
+# ============================================================
+@app.route('/api/stock/search', methods=['GET'])
+def search_stock():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({'results': []})
+    try:
+        import urllib.request, json as json_lib
+        encoded_query = urllib.parse.quote(query)
+        url = f'https://query1.finance.yahoo.com/v1/finance/search?q={encoded_query}&lang=ko-KR&region=KR&quotesCount=10&newsCount=0&listsCount=0'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json', 'Accept-Language': 'ko-KR,ko;q=0.9'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json_lib.loads(resp.read().decode('utf-8'))
+        quotes = data.get('quotes', [])
+        results = []
+        for q in quotes:
+            symbol = q.get('symbol', '')
+            name = q.get('longname') or q.get('shortname') or symbol
+            exchange = q.get('exchange', '')
+            qtype = q.get('quoteType', '')
+            if qtype not in ('EQUITY', 'ETF'):
+                continue
+            results.append({
+                'symbol': symbol,
+                'name': name,
+                'exchange': exchange,
+                'type': qtype
+            })
+        return jsonify({'results': results})
+    except Exception as e:
+        return jsonify({'error': str(e), 'results': []}), 500
 
 # ============================================================
 # 주가 히스토리 DB 저장 (백테스팅용)

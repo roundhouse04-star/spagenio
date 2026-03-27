@@ -79,7 +79,8 @@ async function activateAccount(id) {
 }
 
 async function deleteAccount(id) {
-  if (!confirm('이 계좌를 Delete하시겠습니까?')) return;
+  const ok = await spConfirm('이 계좌를 삭제하시겠습니까?', '계좌 삭제', '🗑️', '삭제', '#ef4444');
+  if (!ok) return;
   try {
     const res = await fetch(`/api/user/broker-keys/${id}`, { method: 'DELETE' });
     const data = await res.json();
@@ -88,7 +89,7 @@ async function deleteAccount(id) {
       await loadAlpacaKeyStatus();
       loadAccount();
     } else {
-      alert(data.error);
+      await spAlert(data.error, '오류', '❌');
     }
   } catch (e) { }
 }

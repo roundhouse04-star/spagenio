@@ -307,7 +307,7 @@
 
       function lottoConfirm(icon, title, msg, onOk) {
         const layer = $id('lotto-confirm-layer');
-        if (!layer) { if (confirm(msg)) onOk(); return; }
+        if (!layer) { spConfirm(msg, title, icon).then(ok => { if (ok) onOk(); }); return; }
         $id('lotto-confirm-icon').textContent = icon;
         $id('lotto-confirm-title').textContent = title;
         $id('lotto-confirm-msg').textContent = msg;
@@ -620,7 +620,7 @@
         const card = $id('lotto-detail-card');
         const date = card?.dataset.date;
         const drw_no = $id('lotto-check-drwno')?.value;
-        if (!date || !drw_no) { alert('날짜와 회차를 입력하세요'); return; }
+        if (!date || !drw_no) { await spAlert('날짜와 회차를 입력하세요', '입력 오류', '⚠️'); return; }
         try {
           const r = await fetch('/api/lotto/picks/check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pick_date:date, drw_no:parseInt(drw_no)})});
           const d = await r.json();
@@ -641,7 +641,7 @@
                 '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(res.numbers, d.winning)+'</div></div>';
             }).join('');
           lottoLoadHistory();
-        } catch(e) { alert('확인 실패: '+e.message); }
+        } catch(e) { await spAlert('확인 실패: '+e.message, '오류', '❌'); }
       };
 
       window.lottoGenerate = function lottoGenerate() {
@@ -683,8 +683,6 @@
       }
 
       document.addEventListener('DOMContentLoaded', () => {
-        lottoInit();
-
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
           btn.addEventListener('click', () => {
             const tab = btn.dataset.tab;

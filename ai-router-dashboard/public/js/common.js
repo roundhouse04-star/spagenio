@@ -111,3 +111,48 @@ window.addEventListener('unhandledrejection', function (e) {
 });
 
 // ===== 뉴스 통합 검색 함수 =====
+
+// ===== 전역 팝업 시스템 =====
+// spAlert(msg, title, icon) — alert() 대체
+// spConfirm(msg, title, icon) — confirm() 대체 → Promise<boolean>
+
+function spAlert(msg, title = '알림', icon = 'ℹ️') {
+  return new Promise(resolve => {
+    const layer = document.getElementById('sp-alert-layer');
+    if (!layer) { alert(msg); resolve(); return; }
+    document.getElementById('sp-alert-icon').textContent = icon;
+    document.getElementById('sp-alert-title').textContent = title;
+    document.getElementById('sp-alert-msg').textContent = msg;
+    layer.style.cssText = 'display:flex;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99998;align-items:center;justify-content:center;';
+    const btn = document.getElementById('sp-alert-ok');
+    const handler = () => {
+      layer.style.display = 'none';
+      btn.removeEventListener('click', handler);
+      resolve();
+    };
+    btn.addEventListener('click', handler);
+  });
+}
+
+function spConfirm(msg, title = '확인', icon = '⚠️', okLabel = '확인', okColor = '#ef4444') {
+  return new Promise(resolve => {
+    const layer = document.getElementById('sp-confirm-layer');
+    if (!layer) { resolve(confirm(msg)); return; }
+    document.getElementById('sp-confirm-icon').textContent = icon;
+    document.getElementById('sp-confirm-title').textContent = title;
+    document.getElementById('sp-confirm-msg').textContent = msg;
+    const okBtn = document.getElementById('sp-confirm-ok');
+    okBtn.textContent = okLabel;
+    okBtn.style.background = okColor;
+    layer.style.cssText = 'display:flex;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;align-items:center;justify-content:center;';
+    const okHandler = () => { cleanup(); resolve(true); };
+    const cancelHandler = () => { cleanup(); resolve(false); };
+    function cleanup() {
+      layer.style.display = 'none';
+      okBtn.removeEventListener('click', okHandler);
+      document.getElementById('sp-confirm-cancel').removeEventListener('click', cancelHandler);
+    }
+    okBtn.addEventListener('click', okHandler);
+    document.getElementById('sp-confirm-cancel').addEventListener('click', cancelHandler);
+  });
+}

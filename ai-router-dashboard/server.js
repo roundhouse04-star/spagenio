@@ -69,6 +69,206 @@ db.exec(`
 
 try { db.exec("ALTER TABLE auto_trade_log ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e) {}
 
+// 퀀트 분석 이력 테이블
+db.exec(`
+  CREATE TABLE IF NOT EXISTS quant_analysis_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    symbol TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    signal TEXT,
+    price REAL,
+    value REAL,
+    score REAL,
+    reason TEXT,
+    indicators TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_quant_log_user ON quant_analysis_log(user_id);
+  CREATE INDEX IF NOT EXISTS idx_quant_log_symbol ON quant_analysis_log(symbol);
+`);
+
+// ============================================================
+// DB 메타 코멘트 테이블
+// ============================================================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS db_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_name TEXT NOT NULL,
+    column_name TEXT NOT NULL,
+    comment TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(table_name, column_name)
+  );
+`);
+
+// 코멘트 데이터 삽입 (upsert)
+const upsertComment = db.prepare(`
+  INSERT INTO db_comments (table_name, column_name, comment)
+  VALUES (?, ?, ?)
+  ON CONFLICT(table_name, column_name) DO UPDATE SET comment=excluded.comment, updated_at=CURRENT_TIMESTAMP
+`);
+const comments = [
+  // news
+  ['news', 'id',         '자동 증가 PK'],
+  ['news', 'category',   '카테고리 (global/korea/it/economy)'],
+  ['news', 'date',       '뉴스 날짜 (YYYY-MM-DD)'],
+  ['news', 'saved_at',   '수집 저장 시각'],
+  ['news', 'use_claude', 'Claude 분석 여부 (0/1)'],
+  ['news', 'source',     '수집 방식 (rss/claude/gpt)'],
+  ['news', 'content',    '뉴스 본문 또는 요약'],
+  ['news', 'created_at', '레코드 생성 시각'],
+  // users
+  ['users', 'id',            '자동 증가 PK'],
+  ['users', 'username',      '로그인 아이디 (3~10자, 영문/숫자/언더바)'],
+  ['users', 'password_hash', 'bcrypt 12라운드 해시'],
+  ['users', 'email',         'AES-256-CBC 암호화 저장'],
+  ['users', 'created_at',    '가입 시각'],
+  ['users', 'last_login',    '마지막 로그인 시각'],
+  // user_broker_keys
+  ['user_broker_keys', 'id',               '자동 증가 PK'],
+  ['user_broker_keys', 'user_id',          'users.id 참조'],
+  ['user_broker_keys', 'account_name',     '계좌 별칭'],
+  ['user_broker_keys', 'alpaca_api_key',   'Alpaca API Key (AES-256 암호화)'],
+  ['user_broker_keys', 'alpaca_secret_key','Alpaca Secret Key (AES-256 암호화)'],
+  ['user_broker_keys', 'alpaca_paper',     '페이퍼 트레이딩 여부 (1=페이퍼, 0=실거래)'],
+  ['user_broker_keys', 'is_active',        '현재 활성 계좌 여부 (1=활성)'],
+  ['user_broker_keys', 'created_at',       '등록 시각'],
+  ['user_broker_keys', 'updated_at',       '최종 수정 시각'],
+  // terms_agreements
+  ['terms_agreements', 'id',               '자동 증가 PK'],
+  ['terms_agreements', 'user_id',          'users.id 참조'],
+  ['terms_agreements', 'agree_terms',      '이용약관 동의 (0/1)'],
+  ['terms_agreements', 'agree_privacy',    '개인정보처리방침 동의 (0/1)'],
+  ['terms_agreements', 'agree_investment', '투자위험고지 동의 (0/1)'],
+  ['terms_agreements', 'agree_marketing',  '마케팅 수신 동의 (0/1)'],
+  ['terms_agreements', 'ip',              '동의 시 IP 주소'],
+  ['terms_agreements', 'agreed_at',        '동의 시각'],
+  // email_verifications
+  ['email_verifications', 'id',         '자동 증가 PK'],
+  ['email_verifications', 'email',      '인증 대상 이메일'],
+  ['email_verifications', 'code',       '6자리 인증코드'],
+  ['email_verifications', 'verified',   '인증 완료 여부 (0/1)'],
+  ['email_verifications', 'created_at', '코드 발급 시각'],
+  ['email_verifications', 'expires_at', '코드 만료 시각 (발급 후 60초)'],
+  // invite_codes
+  ['invite_codes', 'id',         '자동 증가 PK'],
+  ['invite_codes', 'code',       '초대 코드 문자열 (UNIQUE)'],
+  ['invite_codes', 'created_by', '코드 생성 관리자 user_id'],
+  ['invite_codes', 'used_by',    '코드 사용 유저 user_id'],
+  ['invite_codes', 'used_at',    '코드 사용 시각'],
+  ['invite_codes', 'created_at', '코드 생성 시각'],
+  ['invite_codes', 'expires_at', '코드 만료 시각'],
+  // access_logs
+  ['access_logs', 'id',            '자동 증가 PK'],
+  ['access_logs', 'timestamp',     '요청 시각'],
+  ['access_logs', 'ip',            '클라이언트 IP'],
+  ['access_logs', 'method',        'HTTP 메서드 (GET/POST 등)'],
+  ['access_logs', 'path',          '요청 경로'],
+  ['access_logs', 'status_code',   'HTTP 응답 코드'],
+  ['access_logs', 'user_id',       '요청 유저 ID (비로그인 시 NULL)'],
+  ['access_logs', 'username',      '요청 유저명 (비로그인 시 NULL)'],
+  ['access_logs', 'user_agent',    '브라우저/클라이언트 정보'],
+  ['access_logs', 'referer',       '이전 페이지 URL'],
+  ['access_logs', 'response_time', '응답 시간 (ms)'],
+  ['access_logs', 'event_type',    '이벤트 유형 (request/LOGIN_SUCCESS/LOGIN_FAILED 등)'],
+  // user_telegram
+  ['user_telegram', 'id',         '자동 증가 PK'],
+  ['user_telegram', 'user_id',    'users.id 참조 (UNIQUE — 1유저 1계정)'],
+  ['user_telegram', 'chat_id',    '텔레그램 Chat ID'],
+  ['user_telegram', 'bot_token',  '텔레그램 Bot Token (미입력 시 env TG_BOT_TOKEN 사용)'],
+  ['user_telegram', 'created_at', '등록 시각'],
+  ['user_telegram', 'updated_at', '최종 수정 시각'],
+  // lotto_picks
+  ['lotto_picks', 'id',            '자동 증가 PK'],
+  ['lotto_picks', 'user_id',       'users.id 참조'],
+  ['lotto_picks', 'pick_date',     '번호 생성 날짜 (YYYY-MM-DD)'],
+  ['lotto_picks', 'game_index',    '게임 순서 (0부터 시작)'],
+  ['lotto_picks', 'numbers',       '추천 번호 JSON 배열 (예: [1,7,23,33,40,42])'],
+  ['lotto_picks', 'algorithms',    '적용 알고리즘 정보'],
+  ['lotto_picks', 'drw_no',        '대응 당첨 회차 번호'],
+  ['lotto_picks', 'rank',          '당첨 등수 (NULL=미확인, 0=낙첨)'],
+  ['lotto_picks', 'matched_count', '일치 번호 개수'],
+  ['lotto_picks', 'bonus_match',   '보너스 번호 일치 여부 (0/1)'],
+  ['lotto_picks', 'created_at',    '생성 시각'],
+  // lotto_history
+  ['lotto_history', 'drw_no',   '회차 번호 (PK)'],
+  ['lotto_history', 'numbers',  '당첨 번호 JSON 배열'],
+  ['lotto_history', 'bonus',    '보너스 번호'],
+  ['lotto_history', 'drw_date', '추첨 날짜'],
+  ['lotto_history', 'created_at','저장 시각'],
+  // lotto_schedule
+  ['lotto_schedule', 'id',           '자동 증가 PK'],
+  ['lotto_schedule', 'user_id',      'users.id 참조 (UNIQUE — 1유저 1스케줄)'],
+  ['lotto_schedule', 'enabled',      '스케줄 활성 여부 (0/1)'],
+  ['lotto_schedule', 'days',         '발송 요일 (0=일~6=토, 쉼표 구분)'],
+  ['lotto_schedule', 'hour',         '발송 시각 (0~23)'],
+  ['lotto_schedule', 'game_count',   '1회 발송 게임 수'],
+  ['lotto_schedule', 'last_sent_at', '마지막 발송 시각'],
+  ['lotto_schedule', 'updated_at',   '최종 수정 시각'],
+  // lotto_schedule_log
+  ['lotto_schedule_log', 'id',         '자동 증가 PK'],
+  ['lotto_schedule_log', 'user_id',    'users.id 참조'],
+  ['lotto_schedule_log', 'days',       '발송된 요일'],
+  ['lotto_schedule_log', 'hour',       '발송된 시각'],
+  ['lotto_schedule_log', 'game_count', '발송된 게임 수'],
+  ['lotto_schedule_log', 'action',     '액션 유형 (update/send)'],
+  ['lotto_schedule_log', 'created_at', '로그 생성 시각'],
+  // lotto_algorithm_weights
+  ['lotto_algorithm_weights', 'id',         '자동 증가 PK'],
+  ['lotto_algorithm_weights', 'user_id',    'users.id 참조 (UNIQUE)'],
+  ['lotto_algorithm_weights', 'weights',    '알고리즘별 가중치 JSON (freq/hot/cold/balance/zone/ac/prime/delta)'],
+  ['lotto_algorithm_weights', 'updated_at', '최종 수정 시각'],
+  // auto_trade_settings
+  ['auto_trade_settings', 'id',               '자동 증가 PK'],
+  ['auto_trade_settings', 'user_id',          'users.id 참조 (UNIQUE)'],
+  ['auto_trade_settings', 'enabled',          '자동매매 활성 여부 (0/1)'],
+  ['auto_trade_settings', 'symbols',          '매매 대상 종목 (쉼표 구분)'],
+  ['auto_trade_settings', 'candidate_symbols','매수 후보 종목 풀 (쉼표 구분)'],
+  ['auto_trade_settings', 'max_positions',    '최대 동시 보유 종목 수'],
+  ['auto_trade_settings', 'balance_ratio',    '계좌 잔고 대비 매수 비율 (0.1=10%)'],
+  ['auto_trade_settings', 'take_profit',      '익절 기준 수익률 (0.05=5%)'],
+  ['auto_trade_settings', 'stop_loss',        '손절 기준 손실률 (0.05=5%)'],
+  ['auto_trade_settings', 'signal_mode',      '매수 신호 방식 (macd/combined)'],
+  ['auto_trade_settings', 'updated_at',       '최종 수정 시각'],
+  // auto_trade_log
+  ['auto_trade_log', 'id',         '자동 증가 PK'],
+  ['auto_trade_log', 'user_id',    'users.id 참조'],
+  ['auto_trade_log', 'symbol',     '매매 종목 심볼'],
+  ['auto_trade_log', 'action',     '매매 구분 (BUY/SELL_PROFIT/SELL_LOSS)'],
+  ['auto_trade_log', 'qty',        '매매 수량 (주)'],
+  ['auto_trade_log', 'price',      '체결 가격 ($)'],
+  ['auto_trade_log', 'reason',     '매매 사유 (예: MACD 골든크로스, 익절 +5.2%)'],
+  ['auto_trade_log', 'order_id',   'Alpaca 주문 ID'],
+  ['auto_trade_log', 'profit_pct', '수익률 (%) — 매도 시 기록'],
+  ['auto_trade_log', 'status',     '포지션 상태 (active/closed)'],
+  ['auto_trade_log', 'created_at', '체결 시각'],
+  // quant_analysis_log
+  ['quant_analysis_log', 'id',         '자동 증가 PK'],
+  ['quant_analysis_log', 'user_id',    'users.id 참조'],
+  ['quant_analysis_log', 'symbol',     '분석 종목 심볼'],
+  ['quant_analysis_log', 'strategy',   '분석 전략 (combined/rsi/bb/sma/macd)'],
+  ['quant_analysis_log', 'signal',     '매매 신호 (buy/weak_buy/hold/weak_sell/sell)'],
+  ['quant_analysis_log', 'price',      '분석 시점 현재가 ($)'],
+  ['quant_analysis_log', 'value',      '지표값 (전략별 상이)'],
+  ['quant_analysis_log', 'score',      '복합 점수'],
+  ['quant_analysis_log', 'reason',     '분석 요약 텍스트'],
+  ['quant_analysis_log', 'indicators', '세부 지표 JSON'],
+  ['quant_analysis_log', 'created_at', '분석 시각'],
+  // db_comments
+  ['db_comments', 'id',          '자동 증가 PK'],
+  ['db_comments', 'table_name',  '테이블명'],
+  ['db_comments', 'column_name', '컬럼명'],
+  ['db_comments', 'comment',     '컬럼 설명'],
+  ['db_comments', 'updated_at',  '최종 수정 시각'],
+];
+const insertComments = db.transaction(() => {
+  comments.forEach(([table, column, comment]) => upsertComment.run(table, column, comment));
+});
+insertComments();
+console.log('✅ DB 코멘트 초기화 완료');
+
 const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
 if (!adminExists) {
   db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('admin', bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin1234!', 12));
@@ -351,11 +551,42 @@ setInterval(async () => {
       const stmt = db.prepare('INSERT INTO lotto_picks (user_id,pick_date,game_index,numbers,algorithms) VALUES (?,?,?,?,?)');
       games.forEach((nums,i)=>stmt.run(sch.user_id,today,i,JSON.stringify(nums),'자동발송'));
       const token = sch.bot_token||process.env.TG_BOT_TOKEN;
+      const dayNames=['일','월','화','수','목','금','토'];
+      const lines = games.map((g,i)=>`${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
+
+      // 텔레그램 발송
       if (token&&sch.chat_id) {
-        const dayNames=['일','월','화','수','목','금','토'];
-        const lines = games.map((g,i)=>`${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:sch.chat_id,text:`🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`,parse_mode:'Markdown'})}).catch(()=>{});
       }
+
+      // 메일 발송
+      try {
+        const userRow = db.prepare('SELECT email FROM users WHERE id=?').get(sch.user_id);
+        if (userRow?.email) {
+          const htmlLines = games.map((g,i) => `
+            <tr>
+              <td style="padding:8px 14px;font-weight:700;color:#6366f1;font-size:0.95rem;">${String.fromCharCode(65+i)}게임</td>
+              <td style="padding:8px 14px;">
+                ${g.map(n => `<span style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;background:#6366f1;color:#fff;font-weight:700;margin:2px;font-size:0.85rem;">${n}</span>`).join('')}
+              </td>
+            </tr>`).join('');
+          await sendMail({
+            to: userRow.email,
+            subject: `🍀 로또 자동 추천번호 (${today})`,
+            html: `
+              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
+                <div style="background:#6366f1;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;">
+                  <h2 style="margin:0;font-size:1.2rem;">🍀 로또 자동 추천번호</h2>
+                  <p style="margin:6px 0 0;opacity:0.85;font-size:0.88rem;">${today} · ${dayNames[currentDay]}요일 ${currentHour}시 자동발송</p>
+                </div>
+                <div style="background:#fff;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;overflow:hidden;">
+                  <table style="width:100%;border-collapse:collapse;">${htmlLines}</table>
+                </div>
+                <p style="color:#9ca3af;font-size:0.78rem;text-align:center;margin-top:12px;">이 메일은 로또 스케줄에 의해 자동 발송됩니다.</p>
+              </div>`
+          });
+        }
+      } catch(e) { saveErrorLog({event_type:'LOTTO_MAIL_ERROR',error_message:e.message,stack_trace:e.stack,meta:{userId:sch.user_id}}); }
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
       db.prepare('INSERT INTO lotto_schedule_log (user_id,day,hour,game_count) VALUES (?,?,?,?)').run(sch.user_id,currentDay,currentHour,sch.game_count);
     }
@@ -406,6 +637,29 @@ async function runAutoTradeForUser(userId) {
       }catch(e){saveErrorLog({event_type:'AUTO_TRADE_ERROR',error_message:e.message,stack_trace:e.stack,meta:{symbol,userId}});}
     }
   }catch(e){return{ok:false,message:e.message};}
+
+  // 체결 내역 있을 때만 메일 발송
+  if (results.length > 0) {
+    try {
+      const userRow = db.prepare('SELECT email FROM users WHERE id=?').get(userId);
+      if (userRow?.email) {
+        const now = new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
+        const rowsHtml = results.map(r => {
+          const isBuy = r.action === '매수';
+          const isTakeProfit = r.action === '익절 매도';
+          const color = isBuy ? '#10b981' : isTakeProfit ? '#6366f1' : '#ef4444';
+          const icon = isBuy ? '🟢' : isTakeProfit ? '✅' : '🔴';
+          return `<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:10px 14px;font-weight:700;color:${color};">${icon} ${r.action}</td><td style="padding:10px 14px;font-weight:700;">${r.symbol}</td><td style="padding:10px 14px;color:#6b7280;">${r.qty ? r.qty+'주' : '-'}</td><td style="padding:10px 14px;color:#6b7280;font-size:0.85rem;">${r.reason||'-'}</td></tr>`;
+        }).join('');
+        await sendMail({
+          to: userRow.email,
+          subject: `📈 자동매매 체결 알림 — ${results.length}건 (${now})`,
+          html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;"><div style="background:#1e293b;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;"><h2 style="margin:0;font-size:1.15rem;">📈 자동매매 체결 알림</h2><p style="margin:6px 0 0;opacity:0.7;font-size:0.85rem;">${now}</p></div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;"><th style="padding:10px 14px;text-align:left;font-size:0.82rem;color:#6b7280;">구분</th><th style="padding:10px 14px;text-align:left;font-size:0.82rem;color:#6b7280;">종목</th><th style="padding:10px 14px;text-align:left;font-size:0.82rem;color:#6b7280;">수량</th><th style="padding:10px 14px;text-align:left;font-size:0.82rem;color:#6b7280;">사유</th></tr></thead><tbody>${rowsHtml}</tbody></table></div><p style="color:#9ca3af;font-size:0.78rem;text-align:center;margin-top:12px;">이 메일은 자동매매 체결 시 자동 발송됩니다.</p></div>`
+        });
+      }
+    } catch(e) { saveErrorLog({event_type:'AUTO_TRADE_MAIL_ERROR',error_message:e.message,stack_trace:e.stack,meta:{userId}}); }
+  }
+
   return{ok:true,results,message:results.length?`${results.length}건 실행`:'신호 없음'};
 }
 
@@ -620,6 +874,50 @@ app.post('/api/backtest/run', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ============================================================
+// 메일 발송 API
+// ============================================================
+
+// 퀀트 분석 결과 메일 발송
+app.post('/api/mail/quant-result', async (req, res) => {
+  try {
+    const { symbol, signal, price, value, reason, strategy, indicators } = req.body;
+    const userRow = db.prepare('SELECT email FROM users WHERE id=?').get(req.user.id);
+    if (!userRow?.email) return res.status(400).json({ error: '이메일이 등록되지 않은 계정입니다.' });
+    const signalLabels = { buy:'🟢 매수', weak_buy:'🔵 약매수', hold:'⚪ 중립', weak_sell:'🟡 약매도', sell:'🔴 매도' };
+    const signalColors = { buy:'#10b981', weak_buy:'#6366f1', hold:'#9ca3af', weak_sell:'#f59e0b', sell:'#ef4444' };
+    const label = signalLabels[signal] || signal;
+    const color = signalColors[signal] || '#6b7280';
+    const now = new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul'});
+    const indHtml = indicators ? Object.entries(indicators).map(([k,v]) =>
+      `<tr><td style="padding:6px 12px;color:#6b7280;font-size:0.85rem;">${k}</td><td style="padding:6px 12px;font-weight:600;">${typeof v==='number'?v.toFixed(3):v}</td></tr>`
+    ).join('') : '';
+    await sendMail({
+      to: userRow.email,
+      subject: `📊 퀀트 분석 결과 — ${symbol} ${label}`,
+      html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;"><div style="background:#1e293b;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;"><h2 style="margin:0;font-size:1.15rem;">📊 퀀트 분석 결과</h2><p style="margin:6px 0 0;opacity:0.7;font-size:0.85rem;">${now}</p></div><div style="background:#fff;border:1px solid #e5e7eb;padding:20px 24px;border-radius:0 0 12px 12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><span style="font-size:1.4rem;font-weight:800;color:#6366f1;">${symbol}</span><span style="font-size:1.1rem;font-weight:700;color:${color};">${label}</span></div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><tr><td style="padding:6px 0;color:#6b7280;font-size:0.85rem;">전략</td><td style="padding:6px 0;font-weight:600;">${(strategy||'').toUpperCase()}</td></tr><tr><td style="padding:6px 0;color:#6b7280;font-size:0.85rem;">현재가</td><td style="padding:6px 0;font-weight:600;">$${price?.toFixed(2)||'-'}</td></tr><tr><td style="padding:6px 0;color:#6b7280;font-size:0.85rem;">지표값</td><td style="padding:6px 0;font-weight:600;">${value?.toFixed(2)||'-'}</td></tr><tr><td style="padding:6px 0;color:#6b7280;font-size:0.85rem;">분석 요약</td><td style="padding:6px 0;">${reason||'-'}</td></tr></table>${indHtml?`<hr style="border:none;border-top:1px solid #f3f4f6;margin:12px 0;"/><p style="font-size:0.82rem;color:#9ca3af;margin:0 0 8px;">세부 지표</p><table style="width:100%;border-collapse:collapse;">${indHtml}</table>`:''}</div><p style="color:#9ca3af;font-size:0.78rem;text-align:center;margin-top:12px;">이 메일은 퀀트 분석 결과 공유 시 발송됩니다.</p></div>`
+    });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// 로또 번호 수동 메일 발송
+app.post('/api/mail/lotto', async (req, res) => {
+  try {
+    const { games, date } = req.body;
+    const userRow = db.prepare('SELECT email FROM users WHERE id=?').get(req.user.id);
+    if (!userRow?.email) return res.status(400).json({ error: '이메일이 등록되지 않은 계정입니다.' });
+    const today = date || new Date().toISOString().split('T')[0];
+    const htmlLines = games.map((g,i) => `<tr><td style="padding:8px 14px;font-weight:700;color:#6366f1;">${String.fromCharCode(65+i)}게임</td><td style="padding:8px 14px;">${g.map(n=>`<span style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;background:#6366f1;color:#fff;font-weight:700;margin:2px;font-size:0.85rem;">${n}</span>`).join('')}</td></tr>`).join('');
+    await sendMail({
+      to: userRow.email,
+      subject: `🍀 로또 추천번호 (${today})`,
+      html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;"><div style="background:#6366f1;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;"><h2 style="margin:0;font-size:1.2rem;">🍀 로또 추천번호</h2><p style="margin:6px 0 0;opacity:0.85;font-size:0.88rem;">${today}</p></div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;">${htmlLines}</table></div><p style="color:#9ca3af;font-size:0.78rem;text-align:center;margin-top:12px;">이 메일은 수동 발송됩니다.</p></div>`
+    });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ============================================================

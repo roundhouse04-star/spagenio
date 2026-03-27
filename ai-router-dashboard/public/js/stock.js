@@ -94,7 +94,7 @@ async function loadPrices() {
 async function buyStock() {
   const symbol = document.getElementById('tradeSymbol').value.toUpperCase();
   const qty = document.getElementById('tradeQty').value;
-  if (!symbol) return alert('Symbol 심볼을 입력해주세요');
+  if (!symbol) { await spAlert('Symbol 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
   const resultEl = document.getElementById('tradeResult');
   try {
     // 키 등록 여부 먼저 확인
@@ -128,7 +128,7 @@ Order ID: ${data.id}`;
 async function sellStock() {
   const symbol = document.getElementById('tradeSymbol').value.toUpperCase();
   const qty = document.getElementById('tradeQty').value;
-  if (!symbol) return alert('Symbol 심볼을 입력해주세요');
+  if (!symbol) { await spAlert('Symbol 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
   const resultEl = document.getElementById('tradeResult');
   try {
     const keyRes = await fetch('/api/user/broker-keys');
