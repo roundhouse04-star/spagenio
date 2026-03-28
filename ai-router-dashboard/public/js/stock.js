@@ -77,9 +77,12 @@ async function loadPrices() {
     const res = await fetch(`${STOCK_API}/api/stock/prices?symbols=${symbols}`);
     const data = await res.json();
     document.getElementById('priceCards').innerHTML = data.stocks.map(s => `
-      <div class="price-card">
-        <span class="symbol">${s.symbol}</span>
-        <span class="price">$${s.price}</span>
+      <div class="price-card" onclick="openChart('${s.symbol}')" style="cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span class="symbol">${s.symbol}</span>
+          <span style="font-size:0.7rem;color:#4B5563;">📈 차트</span>
+        </div>
+        <span class="price">$${s.price}</span><br>
         <span class="change ${s.change >= 0 ? 'up' : 'down'}">
           ${s.change >= 0 ? '▲' : '▼'} ${Math.abs(s.change)} (${s.change_pct?.toFixed(2)}%)
         </span>

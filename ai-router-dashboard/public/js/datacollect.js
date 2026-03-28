@@ -25,23 +25,23 @@ async function runQuantAnalysis() {
     const data = await res.json();
     const sig = signalStyle[data.signal] || signalStyle['hold'];
     let html = `
-      <div style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;">
+      <div style="background:#161B22;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <span style="font-size:1rem;font-weight:800;color:#6366f1;cursor:pointer;text-decoration:underline;" onclick="openChart('${data.symbol}')">${data.symbol} 📈</span>
           <span style="font-size:0.95rem;font-weight:700;color:${sig.color};">${sig.label}</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
-          <div style="text-align:center;"><div style="color:var(--muted);font-size:0.75rem;">Current</div><div style="font-weight:700;font-size:0.88rem;">$${data.price?.toFixed(2) || '-'}</div></div>
-          <div style="text-align:center;"><div style="color:var(--muted);font-size:0.75rem;">지표값</div><div style="font-weight:700;font-size:0.88rem;">${data.value?.toFixed(2) || data.score?.toFixed(4) || '-'}</div></div>
-          <div style="text-align:center;"><div style="color:var(--muted);font-size:0.75rem;">전략</div><div style="font-weight:700;font-size:0.88rem;">${strategy.toUpperCase()}</div></div>
+          <div style="text-align:center;"><div style="color:#9CA3AF;font-size:0.75rem;">Current</div><div style="font-weight:700;font-size:0.88rem;">$${data.price?.toFixed(2) || '-'}</div></div>
+          <div style="text-align:center;"><div style="color:#9CA3AF;font-size:0.75rem;">지표값</div><div style="font-weight:700;font-size:0.88rem;">${data.value?.toFixed(2) || data.score?.toFixed(4) || '-'}</div></div>
+          <div style="text-align:center;"><div style="color:#9CA3AF;font-size:0.75rem;">전략</div><div style="font-weight:700;font-size:0.88rem;">${strategy.toUpperCase()}</div></div>
         </div>
-        <div style="color:var(--muted);font-size:0.8rem;margin-bottom:4px;">${data.reason || ''}</div>
+        <div style="color:#9CA3AF;font-size:0.8rem;margin-bottom:4px;">${data.reason || ''}</div>
     `;
     if (data.details) {
       html += `<div style="margin-top:8px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;">`;
       for (const [k, v] of Object.entries(data.details)) {
         const ds = signalStyle[v.signal] || signalStyle['hold'];
-        html += `<div style="background:var(--bg);border-radius:8px;padding:8px 10px;">
+        html += `<div style="background:#0D1117;border-radius:8px;padding:8px 10px;">
           <div style="font-size:0.78rem;color:var(--muted);">${k}</div>
           <div style="font-weight:700;font-size:0.85rem;color:${ds.color};">${ds.label}</div>
           <div style="font-size:0.75rem;color:var(--muted);">${v.reason || ''}</div>
@@ -149,13 +149,13 @@ async function loadKoreaAnalysis() {
     const res = await fetch(`${QUANT_API}/api/quant/korea`);
     const data = await res.json();
     if (data.error) { el.innerHTML = `<p style="color:#ff8f8f;">Error: ${data.error}</p>`; return; }
-    const rows = (data.top10 || []).map((item, i) => `<tr>
-      <td style="font-weight:700;color:var(--accent);">${i + 1}</td>
-      <td><div style="font-weight:700;">${item.name}</div><div style="color:var(--muted);font-size:0.78rem;">${item.ticker}</div></td>
+    const rows = (data.top10 || []).map((item, i) => `<tr style="cursor:pointer;" onclick="openChart('${item.ticker.includes('.')?item.ticker:item.ticker+'.KS'}')" onmouseover="this.style.background='rgba(79,143,255,0.05)'" onmouseout="this.style.background=''">
+      <td style="font-weight:700;color:#4f8fff;">${i + 1}</td>
+      <td><div style="font-weight:700;">${item.name}</div><div style="color:#8E8E93;font-size:0.78rem;">${item.ticker}</div></td>
       <td>${item.price?.toLocaleString()}원</td>
       <td>${item.volume?.toLocaleString()}</td>
       <td>${item.short_ratio?.toFixed(2)}%</td>
-      <td style="font-weight:700;color:var(--accent-2);">${item.score?.toFixed(1)}</td>
+      <td style="font-weight:700;color:#4f8fff;">${item.score?.toFixed(1)}</td>
     </tr>`).join('');
     el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="color:var(--muted);font-size:0.82rem;">
@@ -165,7 +165,7 @@ async function loadKoreaAnalysis() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
-    <p style="color:var(--muted);font-size:0.78rem;margin-top:8px;">업데이트: ${data.updated_at?.slice(0, 19) || '-'}</p>`;
+    <p style="color:#9CA3AF;font-size:0.78rem;margin-top:8px;">업데이트: ${data.updated_at?.slice(0, 19) || '-'}</p>`;
   } catch (e) {
     el.innerHTML = `<p style="color:#ff8f8f;">퀀트 서버 연결 실패</p>`;
   }
@@ -352,8 +352,8 @@ async function loadTradeLog() {
       <td style="color:${log.side === 'buy' ? 'var(--accent-2)' : '#ff8f8f'};font-weight:700;">${log.side === 'buy' ? '매수' : '매도'}</td>
       <td>${log.qty}주</td>
       <td>$${log.price?.toFixed(2) || '-'}</td>
-      <td style="color:var(--muted);font-size:0.8rem;">${log.strategy}</td>
-      <td style="color:var(--muted);font-size:0.78rem;">${log.created_at?.slice(0, 16) || '-'}</td>
+      <td style="color:#9CA3AF;font-size:0.8rem;">${log.strategy}</td>
+      <td style="color:#9CA3AF;font-size:0.78rem;">${log.created_at?.slice(0, 16) || '-'}</td>
     </tr>`).join('');
     el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="color:var(--muted);font-size:0.82rem;">

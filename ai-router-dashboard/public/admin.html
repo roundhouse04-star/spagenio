@@ -148,7 +148,14 @@
   <div class="layout">
     <!-- 사이드바 -->
     <nav class="sidebar">
-      <div class="sidebar-title">⚙️ 관리자</div>
+      <!-- 상단 헤더 -->
+      <div style="padding:12px 8px 16px;border-bottom:1px solid var(--line);margin-bottom:12px;">
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">관리자 계정</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:0.95rem;font-weight:800;color:var(--accent);">⚙️ admin</div>
+          <button onclick="adminLogout()" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#ef4444;cursor:pointer;font-weight:600;">🚪 로그아웃</button>
+        </div>
+      </div>
       <button class="nav-btn active" onclick="showPage('overview')">📊 개요</button>
       <button class="nav-btn" onclick="showPage('stats')">📈 접속 통계</button>
       <button class="nav-btn" onclick="showPage('users')">👥 가입자 관리</button>
@@ -163,6 +170,7 @@
       <div class="nav-divider"></div>
       <div class="sidebar-bottom">
         <button class="nav-btn" onclick="location.href='/'">← 대시보드</button>
+
       </div>
     </nav>
 
@@ -1380,6 +1388,12 @@
             </div>
           </div>`;
       } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+    }
+    function adminLogout() {
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('auth_token');
+      document.cookie = 'auth_token=;path=/;max-age=0';
+      location.href = '/admin-login';
     }
   </script>
   <style>

@@ -43,7 +43,7 @@ async function loadChartData(symbol, period) {
       // alert 대신 모달 내 오류 표시
       ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = `<div style="padding:16px;background:#fff0f0;border-radius:8px;color:#ef4444;font-size:0.85rem;">⚠️ ${data.error}</div>`;
+        if (el) el.innerHTML = `<div style="padding:16px;background:rgba(255,59,48,0.12);border-radius:8px;color:#FF3B30;font-size:0.85rem;">⚠️ ${data.error}</div>`;
       });
       return;
     }
@@ -51,7 +51,7 @@ async function loadChartData(symbol, period) {
   } catch (e) {
     ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<div style="padding:16px;background:#fff0f0;border-radius:8px;color:#ef4444;font-size:0.85rem;">⚠️ Server connection failed (port 5002)</div>`;
+      if (el) el.innerHTML = `<div style="padding:16px;background:rgba(255,59,48,0.12);border-radius:8px;color:#FF3B30;font-size:0.85rem;">⚠️ Server connection failed (port 5002)</div>`;
     });
   }
 }
@@ -73,8 +73,8 @@ function drawAllCharts(data) {
   Object.values(chartInstances).forEach(c => c.destroy());
   chartInstances = {};
 
-  const gridColor = 'rgba(0,0,0,0.05)';
-  const fontColor = '#6b7280';
+  const gridColor = 'rgba(255,255,255,0.07)';
+  const fontColor = '#9CA3AF';
   const commonOpts = {
     responsive: true,
     animation: false,
@@ -175,7 +175,7 @@ function renderPriceChart(stocks) {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => `$${ctx.parsed.y.toLocaleString()}` } }
       },
-      scales: { y: { ticks: { callback: v => '$' + v.toLocaleString() }, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
+      scales: { y: { ticks: { callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(255,255,255,0.07)' } }, x: { grid: { display: false } } }
     }
   });
 }
@@ -205,7 +205,7 @@ function renderQuantChart(symbol, indicators) {
     options: {
       responsive: true,
       plugins: { legend: { display: false } },
-      scales: { r: { grid: { color: '#f3f4f6' }, ticks: { display: false } } }
+      scales: { r: { grid: { color: 'rgba(255,255,255,0.07)' }, ticks: { display: false } } }
     }
   });
 }
@@ -238,7 +238,7 @@ function renderBatchChart(results) {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => `점수: ${ctx.parsed.x}` } }
       },
-      scales: { x: { grid: { color: '#f3f4f6' } }, y: { grid: { display: false } } }
+      scales: { x: { grid: { color: 'rgba(255,255,255,0.07)' } }, y: { grid: { display: false } } }
     }
   });
 }
