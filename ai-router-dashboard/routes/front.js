@@ -205,10 +205,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const results = await Promise.allSettled(sources.map(async (s) => {
         const items = await fetchRss(s.url);
         return items.map(item => ({
-          title: item.title,
-          url: item.url,
-          source: s.name,
-          category: s.category,
+          title:      item.title,
+          url:        item.url,
+          source:     s.name,
+          category:   s.category,
           publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null
         }));
       }));
@@ -229,6 +229,27 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
     res.json({ chat_id: row?.chat_id || '', has_token: !!row?.bot_token });
+  });
+
+  // ✅ 텔레그램 설정 공통 API (성과 대시보드용)
+  router.get('/api/user/telegram', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
+    res.json({ chat_id: row?.chat_id || '', bot_token: row?.bot_token || '' });
+  });
+
+  router.post('/api/user/telegram', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    let { chat_id, bot_token } = req.body;
+    if (!chat_id) return res.status(400).json({ error: 'chat_id 필요' });
+    if (bot_token && bot_token.startsWith('bot')) bot_token = bot_token.slice(3);
+    const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.id);
+    if (existing) {
+      db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`).run(chat_id, bot_token || '', req.user.id);
+    } else {
+      db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.id, chat_id, bot_token || '');
+    }
+    res.json({ ok: true });
   });
 
   router.post('/api/lotto/telegram/config', (req, res) => {
@@ -560,10 +581,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
     if (existing) {
       db.prepare('UPDATE auto_strategy_settings SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-        .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter ? 1 : 0, use_macd ? 1 : 0, use_rsi ? 1 : 0, rsi_threshold, use_bb ? 1 : 0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit ? 1 : 0, sma200_exit ? 1 : 0, req.user.id);
+        .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0, req.user.id);
     } else {
       db.prepare('INSERT INTO auto_strategy_settings (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-        .run(req.user.id, market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter ? 1 : 0, use_macd ? 1 : 0, use_rsi ? 1 : 0, rsi_threshold, use_bb ? 1 : 0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit ? 1 : 0, sma200_exit ? 1 : 0);
+        .run(req.user.id, market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0);
     }
     res.json({ ok: true });
   });
@@ -574,9 +595,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const { enabled } = req.body;
     const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_strategy_settings SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled ? 1 : 0, req.user.id);
+      db.prepare('UPDATE auto_strategy_settings SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled?1:0, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_strategy_settings (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled ? 1 : 0);
+      db.prepare('INSERT INTO auto_strategy_settings (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled?1:0);
     }
     res.json({ ok: true, enabled: !!enabled });
   });
@@ -604,7 +625,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { q_period, q_loss, q_return, q_style, q_experience } = req.body;
 
-    const total = (q_period || 2) + (q_loss || 2) + (q_return || 2) + (q_style || 2) + (q_experience || 2);
+    const total = (q_period||2) + (q_loss||2) + (q_return||2) + (q_style||2) + (q_experience||2);
 
     // 성향 분류 + 가중치 결정
     let profile_type, w_momentum, w_value, w_quality, w_news;
@@ -637,7 +658,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
 
     // 초보자 보정 (경험 1점이면 안전하게)
-    if ((q_experience || 2) === 1) {
+    if ((q_experience||2) === 1) {
       profile_type = 'beginner';
       w_momentum = 0.20; w_value = 0.40; w_quality = 0.30; w_news = 0.10;
       risk_take_profit = 0.07; risk_stop_loss = 0.03;
@@ -653,10 +674,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         risk_take_profit=?, risk_stop_loss=?, risk_max_positions=?, risk_balance_ratio=?,
         completed=1, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`)
         .run(q_period, q_loss, q_return, q_style, q_experience,
-          profile_type, total,
-          w_momentum, w_value, w_quality, w_news,
-          risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio,
-          req.user.id);
+             profile_type, total,
+             w_momentum, w_value, w_quality, w_news,
+             risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio,
+             req.user.id);
     } else {
       db.prepare(`INSERT INTO investor_profile
         (user_id, q_period, q_loss, q_return, q_style, q_experience,
@@ -664,16 +685,182 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
          risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio, completed)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`)
         .run(req.user.id, q_period, q_loss, q_return, q_style, q_experience,
-          profile_type, total,
-          w_momentum, w_value, w_quality, w_news,
-          risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio);
+             profile_type, total,
+             w_momentum, w_value, w_quality, w_news,
+             risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio);
     }
 
-    res.json({
-      ok: true, profile_type, profile_score: total,
-      w_momentum, w_value, w_quality, w_news,
-      risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio
-    });
+    res.json({ ok: true, profile_type, profile_score: total,
+               w_momentum, w_value, w_quality, w_news,
+               risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio });
+  });
+
+  // ============================================================
+  // 1. 성과 대시보드 API
+  // ============================================================
+
+  // 성과 스냅샷 저장 (Alpaca 계좌 조회 후 저장)
+  router.post('/api/performance/snapshot', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const keys = getUserAlpacaKeys(req.user.id);
+      if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
+      const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+      const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
+
+      const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+      const equity = parseFloat(account.equity) || 0;
+      const cash = parseFloat(account.cash) || 0;
+      const portfolioValue = parseFloat(account.portfolio_value) || 0;
+
+      // 전날 스냅샷으로 일일 손익 계산
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = db.prepare(`SELECT total_equity, total_pnl, peak_equity, win_count, loss_count FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id);
+
+      const prevEquity = yesterday?.total_equity || equity;
+      const dailyPnl = equity - prevEquity;
+      const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
+
+      // 매매 이력에서 승/패 집계
+      const trades = db.prepare(`SELECT action, profit_pct FROM auto_trade_log WHERE user_id=? AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS')`).all(req.user.id);
+      const winCount = trades.filter(t => t.action.includes('PROFIT')).length;
+      const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS')).length;
+
+      // 초기 자본 (첫 스냅샷 기준)
+      const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date ASC LIMIT 1`).get(req.user.id);
+      const initialEquity = first?.total_equity || equity;
+      const totalPnl = equity - initialEquity;
+      const totalPnlPct = initialEquity > 0 ? (totalPnl / initialEquity * 100) : 0;
+
+      // MDD 계산
+      const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
+      const allPeaks = db.prepare(`SELECT MAX(peak_equity) as peak FROM portfolio_performance WHERE user_id=?`).get(req.user.id);
+      const maxPeak = Math.max(allPeaks?.peak || equity, equity);
+      const maxDrawdown = maxPeak > 0 ? ((maxPeak - equity) / maxPeak * 100) : 0;
+
+      db.prepare(`INSERT OR REPLACE INTO portfolio_performance
+        (user_id, snapshot_date, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(
+          req.user.id,
+          today,
+          equity || 0,
+          cash || 0,
+          portfolioValue || 0,
+          dailyPnl || 0,
+          dailyPnlPct || 0,
+          totalPnl || 0,
+          totalPnlPct || 0,
+          winCount || 0,
+          lossCount || 0,
+          maxDrawdown || 0,
+          peakEquity || equity || 0
+        );
+
+      res.json({ ok: true, equity, cash, portfolioValue, dailyPnl, dailyPnlPct, totalPnl, totalPnlPct, winCount, lossCount, maxDrawdown });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // 성과 이력 조회
+  router.get('/api/performance/history', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const days = parseInt(req.query.days || 30);
+    const rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, days);
+    res.json({ ok: true, history: rows.reverse() });
+  });
+
+  // 성과 요약 (홈 화면용)
+  router.get('/api/performance/summary', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const latest = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id);
+    const weekAgo = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id);
+    const monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id);
+    const maxMdd = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=?`).get(req.user.id);
+    const winRate = latest ? (latest.win_count + latest.loss_count > 0 ? (latest.win_count / (latest.win_count + latest.loss_count) * 100) : 0) : 0;
+    res.json({ ok: true, latest, weekHistory: weekAgo.reverse(), monthPnl: monthPnl?.pnl || 0, maxMdd: maxMdd?.mdd || 0, winRate });
+  });
+
+  // ============================================================
+  // 2. 백테스트 결과 저장/조회 API
+  // ============================================================
+
+  // 결과 저장
+  router.post('/api/backtest/save', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { name, symbol, strategy, start_date, end_date, initial_capital, final_capital,
+            total_return, annual_return, max_drawdown, sharpe_ratio, win_rate,
+            total_trades, win_trades, loss_trades, take_profit, stop_loss, result_json } = req.body;
+    const result = db.prepare(`INSERT INTO backtest_results
+      (user_id, name, symbol, strategy, start_date, end_date, initial_capital, final_capital,
+       total_return, annual_return, max_drawdown, sharpe_ratio, win_rate,
+       total_trades, win_trades, loss_trades, take_profit, stop_loss, result_json)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(req.user.id, name||`${symbol} ${strategy}`, symbol, strategy, start_date, end_date,
+           initial_capital, final_capital, total_return, annual_return, max_drawdown,
+           sharpe_ratio, win_rate, total_trades, win_trades, loss_trades, take_profit, stop_loss,
+           result_json ? JSON.stringify(result_json) : null);
+    res.json({ ok: true, id: result.lastInsertRowid });
+  });
+
+  // 결과 목록 조회
+  router.get('/api/backtest/results', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const rows = db.prepare(`SELECT id, name, symbol, strategy, start_date, end_date,
+      total_return, annual_return, max_drawdown, sharpe_ratio, win_rate, total_trades, created_at
+      FROM backtest_results WHERE user_id=? ORDER BY created_at DESC LIMIT 20`).all(req.user.id);
+    res.json({ ok: true, results: rows });
+  });
+
+  // 결과 상세 조회
+  router.get('/api/backtest/results/:id', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const row = db.prepare(`SELECT * FROM backtest_results WHERE id=? AND user_id=?`).get(req.params.id, req.user.id);
+    if (!row) return res.status(404).json({ error: '없음' });
+    if (row.result_json) try { row.result_json = JSON.parse(row.result_json); } catch(e) {}
+    res.json({ ok: true, result: row });
+  });
+
+  // 결과 삭제
+  router.delete('/api/backtest/results/:id', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    db.prepare(`DELETE FROM backtest_results WHERE id=? AND user_id=?`).run(req.params.id, req.user.id);
+    res.json({ ok: true });
+  });
+
+  // ============================================================
+  // 3. 텔레그램 알림 API
+  // ============================================================
+
+  // 알림 발송 헬퍼
+  async function sendTelegramAlert(userId, message, alertType = 'TRADE') {
+    try {
+      const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id=?').get(userId);
+      if (!tg?.chat_id || !tg?.bot_token) return false;
+      const token = tg.bot_token.startsWith('bot') ? tg.bot_token.slice(3) : tg.bot_token;
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: tg.chat_id, text: message, parse_mode: 'HTML' })
+      });
+      const d = await res.json();
+      if (d.ok) {
+        db.prepare('INSERT INTO telegram_alert_log (user_id, alert_type, message) VALUES (?,?,?)').run(userId, alertType, message);
+      }
+      return d.ok;
+    } catch(e) { return false; }
+  }
+
+  // 수동 테스트 발송
+  router.post('/api/telegram/alert/test', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const ok = await sendTelegramAlert(req.user.id, '🤖 <b>spagenio 알림 테스트</b>\n\n텔레그램 알림이 정상적으로 연결됐어요!', 'TEST');
+    res.json({ ok });
+  });
+
+  // 알림 로그 조회
+  router.get('/api/telegram/alert/log', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const rows = db.prepare('SELECT * FROM telegram_alert_log WHERE user_id=? ORDER BY sent_at DESC LIMIT 50').all(req.user.id);
+    res.json({ ok: true, logs: rows });
   });
 
   return router;
