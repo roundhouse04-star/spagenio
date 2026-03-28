@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 const router = express.Router();
 
-export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, __dirname }) {
+export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, __dirname }) {
 
   // ✅ 페이지 라우트
   router.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -170,7 +170,20 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         const hit = r.exec(block);
         return hit ? hit[1].trim() : '';
       };
-      const link = get('link') || get('guid');
+      // <link> 태그는 RSS에서 특수하게 처리 (텍스트 노드 방식)
+      const getLinkFromBlock = (block) => {
+        // 방법1: <link>URL</link> 형식
+        const r1 = /<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i.exec(block);
+        if (r1 && r1[1].trim().startsWith('http')) return r1[1].trim();
+        // 방법2: <link>뒤에 바로 URL이 오는 형식 (BBC 등)
+        const r2 = /<link\s*\/?>([^<]+)/i.exec(block);
+        if (r2 && r2[1].trim().startsWith('http')) return r2[1].trim();
+        // 방법3: guid가 URL인 경우
+        const r3 = /<guid[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/guid>/i.exec(block);
+        if (r3 && r3[1].trim().startsWith('http')) return r3[1].trim();
+        return '';
+      };
+      const link = getLinkFromBlock(block);
       const title = get('title');
       const pubDate = get('pubDate');
       if (title && link) items.push({ title, url: link, pubDate });
@@ -192,10 +205,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const results = await Promise.allSettled(sources.map(async (s) => {
         const items = await fetchRss(s.url);
         return items.map(item => ({
-          title:      item.title,
-          url:        item.url,
-          source:     s.name,
-          category:   s.category,
+          title: item.title,
+          url: item.url,
+          source: s.name,
+          category: s.category,
           publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : null
         }));
       }));
@@ -415,15 +428,22 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const row = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
-    res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined' });
+    res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined', factor_strategy: 'value_quality', factor_market: 'nasdaq' });
   });
 
   router.post('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode } = req.body;
+    const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market } = req.body;
+    const fs = factor_strategy || 'value_quality';
+    const fm = factor_market || 'nasdaq';
     const existing = db.prepare('SELECT id FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
-    if (existing) { db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, req.user.id); }
-    else { db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode) VALUES (?,?,?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode); }
+    if (existing) {
+      db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, req.user.id);
+    } else {
+      db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market) VALUES (?,?,?,?,?,?,?,?,?)')
+        .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm);
+    }
     res.json({ ok: true });
   });
 
@@ -435,8 +455,25 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.post('/api/auto-trade/run', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const result = await req.runAutoTrade(req.user.id);
-    res.json(result);
+    try {
+      const result = await runAutoTradeForUser(req.user.id);
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ✅ 나스닥100/다우존스30 TOP3 분석
+  router.post('/api/auto-trade/nasdaq-top3', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const { signal_mode = 'combined', market = 'nasdaq' } = req.body;
+      const keys = getUserAlpacaKeys(req.user.id, null);
+      const top3 = await getNasdaqTop3(signal_mode, keys, market);
+      res.json({ ok: true, top3, market });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // ✅ 클라이언트 에러 수신
@@ -503,6 +540,140 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
+  });
+
+  // ============================================================
+  // 완전자동매매 전략 API
+  // ============================================================
+
+  // 설정 조회
+  router.get('/api/auto-strategy/settings', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const row = db.prepare('SELECT * FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    res.json({ ok: true, settings: row || { enabled: 0, market: 'nasdaq', roe_min: 15, debt_max: 100, revenue_min: 10, momentum_top: 30, sma200_filter: 1, use_macd: 1, use_rsi: 1, rsi_threshold: 40, use_bb: 1, balance_ratio: 0.2, max_positions: 5, take_profit1: 0.1, take_profit2: 0.2, stop_loss: 0.05, factor_exit: 1, sma200_exit: 1 } });
+  });
+
+  // 설정 저장
+  router.post('/api/auto-strategy/settings', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter, use_macd, use_rsi, rsi_threshold, use_bb, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit, sma200_exit } = req.body;
+    const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    if (existing) {
+      db.prepare('UPDATE auto_strategy_settings SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter ? 1 : 0, use_macd ? 1 : 0, use_rsi ? 1 : 0, rsi_threshold, use_bb ? 1 : 0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit ? 1 : 0, sma200_exit ? 1 : 0, req.user.id);
+    } else {
+      db.prepare('INSERT INTO auto_strategy_settings (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+        .run(req.user.id, market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter ? 1 : 0, use_macd ? 1 : 0, use_rsi ? 1 : 0, rsi_threshold, use_bb ? 1 : 0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit ? 1 : 0, sma200_exit ? 1 : 0);
+    }
+    res.json({ ok: true });
+  });
+
+  // 활성화 토글
+  router.post('/api/auto-strategy/toggle', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { enabled } = req.body;
+    const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    if (existing) {
+      db.prepare('UPDATE auto_strategy_settings SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled ? 1 : 0, req.user.id);
+    } else {
+      db.prepare('INSERT INTO auto_strategy_settings (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled ? 1 : 0);
+    }
+    res.json({ ok: true, enabled: !!enabled });
+  });
+
+  // 종목 풀 조회
+  router.get('/api/auto-strategy/pool', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const rows = db.prepare('SELECT * FROM auto_strategy_pool WHERE user_id=? ORDER BY factor_score DESC').all(req.user.id);
+    res.json({ ok: true, pool: rows });
+  });
+
+  // ============================================================
+  // 투자 성향 (Investor Profile) API
+  // ============================================================
+
+  // 성향 조회
+  router.get('/api/investor-profile', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const row = db.prepare('SELECT * FROM investor_profile WHERE user_id=?').get(req.user.id);
+    res.json({ ok: true, profile: row || null });
+  });
+
+  // 성향 설문 저장 + 자동 분류
+  router.post('/api/investor-profile', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { q_period, q_loss, q_return, q_style, q_experience } = req.body;
+
+    const total = (q_period || 2) + (q_loss || 2) + (q_return || 2) + (q_style || 2) + (q_experience || 2);
+
+    // 성향 분류 + 가중치 결정
+    let profile_type, w_momentum, w_value, w_quality, w_news;
+    let risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio;
+
+    if (total <= 6) {
+      // 🛡️ 안정형 (conservative)
+      profile_type = 'conservative';
+      w_momentum = 0.15; w_value = 0.45; w_quality = 0.30; w_news = 0.10;
+      risk_take_profit = 0.07; risk_stop_loss = 0.03;
+      risk_max_positions = 5; risk_balance_ratio = 0.15;
+    } else if (total <= 9) {
+      // ⚖️ 안정성장형 (moderate)
+      profile_type = 'moderate';
+      w_momentum = 0.25; w_value = 0.35; w_quality = 0.30; w_news = 0.10;
+      risk_take_profit = 0.10; risk_stop_loss = 0.05;
+      risk_max_positions = 5; risk_balance_ratio = 0.18;
+    } else if (total <= 12) {
+      // 📊 균형형 (balanced)
+      profile_type = 'balanced';
+      w_momentum = 0.35; w_value = 0.30; w_quality = 0.25; w_news = 0.10;
+      risk_take_profit = 0.12; risk_stop_loss = 0.06;
+      risk_max_positions = 5; risk_balance_ratio = 0.20;
+    } else {
+      // 🚀 공격형 (aggressive)
+      profile_type = 'aggressive';
+      w_momentum = 0.50; w_value = 0.15; w_quality = 0.20; w_news = 0.15;
+      risk_take_profit = 0.20; risk_stop_loss = 0.08;
+      risk_max_positions = 7; risk_balance_ratio = 0.25;
+    }
+
+    // 초보자 보정 (경험 1점이면 안전하게)
+    if ((q_experience || 2) === 1) {
+      profile_type = 'beginner';
+      w_momentum = 0.20; w_value = 0.40; w_quality = 0.30; w_news = 0.10;
+      risk_take_profit = 0.07; risk_stop_loss = 0.03;
+      risk_max_positions = 3; risk_balance_ratio = 0.10;
+    }
+
+    const existing = db.prepare('SELECT id FROM investor_profile WHERE user_id=?').get(req.user.id);
+    if (existing) {
+      db.prepare(`UPDATE investor_profile SET
+        q_period=?, q_loss=?, q_return=?, q_style=?, q_experience=?,
+        profile_type=?, profile_score=?,
+        w_momentum=?, w_value=?, w_quality=?, w_news=?,
+        risk_take_profit=?, risk_stop_loss=?, risk_max_positions=?, risk_balance_ratio=?,
+        completed=1, updated_at=CURRENT_TIMESTAMP WHERE user_id=?`)
+        .run(q_period, q_loss, q_return, q_style, q_experience,
+          profile_type, total,
+          w_momentum, w_value, w_quality, w_news,
+          risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio,
+          req.user.id);
+    } else {
+      db.prepare(`INSERT INTO investor_profile
+        (user_id, q_period, q_loss, q_return, q_style, q_experience,
+         profile_type, profile_score, w_momentum, w_value, w_quality, w_news,
+         risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio, completed)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`)
+        .run(req.user.id, q_period, q_loss, q_return, q_style, q_experience,
+          profile_type, total,
+          w_momentum, w_value, w_quality, w_news,
+          risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio);
+    }
+
+    res.json({
+      ok: true, profile_type, profile_score: total,
+      w_momentum, w_value, w_quality, w_news,
+      risk_take_profit, risk_stop_loss, risk_max_positions, risk_balance_ratio
+    });
   });
 
   return router;

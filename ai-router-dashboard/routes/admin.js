@@ -170,6 +170,30 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     return res.json({ status: 'ok' });
   });
 
+  // ✅ RSS 수집 테스트
+  router.get('/api/admin/rss/test', async (req, res) => {
+    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    const sources = db.prepare('SELECT * FROM rss_sources WHERE enabled = 1').all();
+    const results = await Promise.allSettled(sources.map(async (s) => {
+      try {
+        const response = await fetch(s.url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+          },
+          signal: AbortSignal.timeout(12000)
+        });
+        const xml = await response.text();
+        const count = (xml.match(/<item>/g) || []).length;
+        if (count === 0) throw new Error('아이템 없음 (차단 또는 빈 피드)');
+        return { name: s.name, url: s.url, success: true, count };
+      } catch (e) {
+        return { name: s.name, url: s.url, success: false, error: e.message };
+      }
+    }));
+    return res.json({ results: results.map(r => r.value || r.reason) });
+  });
+
   // ✅ 에러 로그 날짜 목록
   router.get('/api/admin/error-logs/dates', (req, res) => {
     try {

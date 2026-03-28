@@ -98,9 +98,53 @@
     .tag { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
     .err-menu-item:hover { background: var(--panel2); }
     .err-menu-item.active { background: rgba(239,68,68,0.08); color: var(--danger) !important; font-weight: 700; }
+  /* ===== 커스텀 모달 ===== */
+  .sp-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+  }
+  .sp-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 28px 20px;
+    width: 360px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    animation: modalIn .15s ease;
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.94); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+  .sp-modal-icon { font-size: 1.8rem; margin-bottom: 10px; }
+  .sp-modal-title { font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+  .sp-modal-msg { font-size: 0.88rem; color: #64748b; line-height: 1.6; margin-bottom: 20px; }
+  .sp-modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .sp-modal-btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 0.88rem;
+    font-weight: 700; cursor: pointer; border: none; transition: all .15s;
+  }
+  .sp-modal-btn.cancel { background: #f1f5f9; color: #64748b; }
+  .sp-modal-btn.cancel:hover { background: #e2e8f0; }
+  .sp-modal-btn.confirm { background: #6366f1; color: #fff; }
+  .sp-modal-btn.confirm:hover { background: #4f46e5; }
+  .sp-modal-btn.danger { background: #ef4444; color: #fff; }
+  .sp-modal-btn.danger:hover { background: #dc2626; }
   </style>
 </head>
 <body>
+  <!-- 커스텀 모달 -->
+  <div id="spModalOverlay" class="sp-modal-overlay" style="display:none;" onclick="if(event.target===this)_spModalReject()">
+    <div class="sp-modal">
+      <div class="sp-modal-icon" id="spModalIcon">⚠️</div>
+      <div class="sp-modal-title" id="spModalTitle"></div>
+      <div class="sp-modal-msg" id="spModalMsg"></div>
+      <div class="sp-modal-btns" id="spModalBtns"></div>
+    </div>
+  </div>
   <div class="layout">
     <!-- 사이드바 -->
     <nav class="sidebar">
@@ -115,6 +159,7 @@
       <button class="nav-btn" onclick="showPage('errorlog')">🔴 에러 로그</button>
       <div class="nav-divider"></div>
       <button class="nav-btn" onclick="showPage('rss')">📡 RSS 소스 관리</button>
+      <button class="nav-btn" onclick="showPage('lotto')">🍀 로또 관리</button>
       <div class="nav-divider"></div>
       <div class="sidebar-bottom">
         <button class="nav-btn" onclick="location.href='/'">← 대시보드</button>
@@ -284,6 +329,15 @@
           </div>
         </div>
 
+        <!-- RSS 수집 테스트 카드 -->
+        <div class="card">
+          <div class="card-title" style="justify-content:space-between;">
+            <span>🔍 RSS 수집 테스트</span>
+            <button onclick="adminTestRss()" class="btn" id="rssTestBtn" style="background:#6366f1;color:#fff;padding:6px 18px;">▶ 전체 수집 테스트</button>
+          </div>
+          <div id="rssTestResult" style="margin-top:12px;font-size:0.85rem;"></div>
+        </div>
+
         <!-- 소스 목록 카드 -->
         <div class="card">
           <div class="card-title" style="justify-content:space-between;">
@@ -307,6 +361,169 @@
             </table>
           </div>
         </div>
+      </div>
+
+            <div class="page" id="page-lotto">
+        <div class="page-title">🍀 로또 관리</div>
+
+        <!-- 통계 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="card" style="text-align:center;padding:18px;">
+            <div style="font-size:1.6rem;font-weight:800;color:#6366f1;" id="stat-round">-</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">분석 회차</div>
+          </div>
+          <div class="card" style="text-align:center;padding:18px;">
+            <div style="font-size:1.4rem;font-weight:800;color:#22c55e;" id="stat-hot">-</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">최근 핫넘버</div>
+          </div>
+          <div class="card" style="text-align:center;padding:18px;">
+            <div style="font-size:1.6rem;font-weight:800;color:#f97316;" id="stat-cold">-</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">미출현 최장</div>
+          </div>
+        </div>
+
+        <!-- 알고리즘 비중 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">⚙️ 알고리즘 비중</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="lottoResetWeights()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
+              <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()" class="btn" style="background:#6366f1;color:#fff;font-size:0.82rem;">💾 저장</button>
+            </div>
+          </div>
+          <div id="lotto-algo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+        </div>
+
+        <!-- 번호 추천 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">🎰 번호 추천</div>
+            <select id="lotto-game-count" class="input-box" style="width:100px;">
+              <option value="1">1게임</option>
+              <option value="3">3게임</option>
+              <option value="5" selected>5게임</option>
+              <option value="10">10게임</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <button onclick="lottoGenerate()" class="btn" style="flex:1;background:#6366f1;color:#fff;">🎯 번호 추천받기</button>
+            <button onclick="lottoSaveAndSend()" class="btn" style="background:#229ED9;color:#fff;white-space:nowrap;">💾 저장+전송</button>
+          </div>
+          <div id="lotto-results">
+            <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <!-- 텔레그램 설정 -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">📱 텔레그램 설정</div>
+              <span id="lotto-tg-status" style="font-size:0.78rem;color:var(--muted);"></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <input id="lotto-tg-chatid" placeholder="Chat ID" class="input-box">
+              <input id="lotto-tg-token" type="password" placeholder="Bot Token" class="input-box">
+              <div style="display:flex;gap:8px;">
+                <button onclick="lottoSaveTg()" class="btn" style="flex:1;background:#6366f1;color:#fff;">저장</button>
+                <button onclick="lottoTestTg()" class="btn" style="background:var(--panel2);color:var(--text);">테스트</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 자동 발송 스케줄 -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">⏰ 자동 발송 설정</div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="lottoResetSchedule()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
+                <button onclick="lottoSaveSchedule()" class="btn" style="background:#6366f1;color:#fff;font-size:0.82rem;">저장</button>
+              </div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">요일 선택</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)">월</button>
+                <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)">화</button>
+                <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)">수</button>
+                <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)">목</button>
+                <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)">금</button>
+                <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)">토</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+              <div style="flex:1;">
+                <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">발송 시각</div>
+                <select id="lotto-sch-hour" class="input-box">
+                  <option value="" disabled selected>시각 선택</option>
+                  <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option>
+                  <option value="3">03시</option><option value="4">04시</option><option value="5">05시</option>
+                  <option value="6">06시</option><option value="7">07시</option><option value="8">08시</option>
+                  <option value="9">09시</option><option value="10">10시</option><option value="11">11시</option>
+                  <option value="12">12시</option><option value="13">13시</option><option value="14">14시</option>
+                  <option value="15">15시</option><option value="16">16시</option><option value="17">17시</option>
+                  <option value="18">18시</option><option value="19">19시</option><option value="20">20시</option>
+                  <option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">게임 수</div>
+                <select id="lotto-sch-count" class="input-box">
+                  <option value="" disabled selected>게임 선택</option>
+                  <option value="1">1게임</option><option value="3">3게임</option>
+                  <option value="5">5게임</option><option value="10">10게임</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-last"></div>
+            <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-next"></div>
+            <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감</div>
+            <div id="lotto-sch-current" style="margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px;">
+              <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
+              <div id="lotto-sch-current-text" style="font-size:0.85rem;">스케줄 없음</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 추천 이력 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">📋 추천 이력</div>
+            <button onclick="lottoLoadHistory()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+          </div>
+          <div id="lotto-history-list"><div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div></div>
+        </div>
+
+        <!-- 자동발송 이력 + 스케줄 이력 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">🤖 자동발송 이력</div>
+              <button onclick="lottoLoadAutoHistory()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+            </div>
+            <div id="lotto-auto-history-list"><div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">📅 스케줄 이력</div>
+              <button onclick="lottoLoadScheduleLog()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+            </div>
+            <div id="lotto-schedule-log-list"><div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div></div>
+          </div>
+        </div>
+
+        <!-- 당첨 확인 -->
+        <div class="card" id="lotto-detail-card" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;" id="lotto-detail-title">📅 상세</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="lotto-check-drwno" type="number" placeholder="회차 (예: 1162)" class="input-box" style="width:140px;">
+              <button onclick="lottoCheckResult()" class="btn" style="background:#6366f1;color:#fff;">당첨 확인</button>
+            </div>
+          </div>
+          <div id="lotto-detail-games"></div>
+        </div>
+
       </div>
 
       <div class="page" id="page-errorlog">
@@ -447,6 +664,36 @@
   </div>
 
   <script>
+    // ===== 커스텀 모달 =====
+    let _spModalResolve = null;
+    function _spModalReject() {
+      const overlay = document.getElementById('spModalOverlay');
+      if (overlay) overlay.style.display = 'none';
+      if (_spModalResolve) { _spModalResolve(false); _spModalResolve = null; }
+    }
+    function spConfirm(msg, title = '확인', icon = '⚠️', confirmText = '확인', confirmClass = 'confirm') {
+      return new Promise(resolve => {
+        _spModalResolve = resolve;
+        document.getElementById('spModalIcon').textContent = icon;
+        document.getElementById('spModalTitle').textContent = title;
+        document.getElementById('spModalMsg').textContent = msg;
+        document.getElementById('spModalBtns').innerHTML = `
+          <button class="sp-modal-btn cancel" onclick="_spModalReject()">취소</button>
+          <button class="sp-modal-btn ${confirmClass}" onclick="document.getElementById('spModalOverlay').style.display='none';_spModalResolve&&(_spModalResolve(true),_spModalResolve=null)">${confirmText}</button>`;
+        document.getElementById('spModalOverlay').style.display = 'flex';
+      });
+    }
+    function spAlert(msg, title = '알림', icon = 'ℹ️') {
+      return new Promise(resolve => {
+        _spModalResolve = resolve;
+        document.getElementById('spModalIcon').textContent = icon;
+        document.getElementById('spModalTitle').textContent = title;
+        document.getElementById('spModalMsg').textContent = msg;
+        document.getElementById('spModalBtns').innerHTML = `
+          <button class="sp-modal-btn confirm" onclick="document.getElementById('spModalOverlay').style.display='none';_spModalResolve&&(_spModalResolve(true),_spModalResolve=null)">확인</button>`;
+        document.getElementById('spModalOverlay').style.display = 'flex';
+      });
+    }
     const token = sessionStorage.getItem('auth_token');
     if (!token) location.href = '/admin-login';
 
@@ -465,6 +712,7 @@
       // 페이지별 데이터 로드
       if (name === 'overview') { loadSecurityStats(); loadStats(); }
       else if (name === 'stats') loadStats();
+      else if (name === 'lotto') { if (typeof lottoInit === 'function') { lottoInitialized = false; lottoInit(); } }
       else if (name === 'users') loadUsers();
       else if (name === 'invite') { loadRequests(); }
       else if (name === 'logs') { currentLogPage = 1; loadLogs(); }
@@ -528,6 +776,7 @@
 
     // ===== 통계 =====
     async function loadStats() {
+      if (!document.getElementById('hourlyChart')) return;
       try {
         const res = await fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } });
         const d = await res.json();
@@ -592,10 +841,10 @@
     }
 
     async function deleteUser(id, username) {
-      if (!confirm(`'${username}' 계정을 삭제하시겠습니까?`)) return;
+      if (!await spConfirm(`'${username}' 계정을 삭제하시겠습니까?`, '계정 삭제', '🗑️', '삭제', 'danger')) return;
       const res = await fetch('/api/admin/users/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
       if (res.ok) loadUsers();
-      else alert('삭제 실패');
+      else await spAlert('삭제 실패', '오류', '❌');
     }
 
     // ===== 초대 코드 =====
@@ -959,7 +1208,7 @@
               </label>
             </td>
             <td style="padding:10px 12px;text-align:center;">
-              <button onclick="adminDeleteRss(${s.id}, '${s.name.replace(/'/g,"\\'")}'')" style="background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:6px;padding:3px 10px;font-size:0.78rem;cursor:pointer;">삭제</button>
+              <button onclick="adminDeleteRss(${s.id}, this.dataset.name)" data-name="${s.name}" style="background:#fef2f2;border:1px solid #fecaca;color:#ef4444;border-radius:6px;padding:3px 10px;font-size:0.78rem;cursor:pointer;">삭제</button>
             </td>
           </tr>`).join('');
       } catch (e) {
@@ -977,7 +1226,7 @@
     }
 
     async function adminDeleteRss(id, name) {
-      if (!confirm(`"${name}" 소스를 삭제할까요?`)) return;
+      if (!await spConfirm(`"${name}" 소스를 삭제할까요?`, 'RSS 소스 삭제', '🗑️', '삭제', 'danger')) return;
       await fetch(`/api/admin/rss/sources/${id}`, { method: 'DELETE' });
       adminLoadRssSources();
     }
@@ -986,18 +1235,55 @@
       const name     = document.getElementById('rssNewName')?.value?.trim();
       const url      = document.getElementById('rssNewUrl')?.value?.trim();
       const category = document.getElementById('rssNewCategory')?.value || 'global';
-      if (!name || !url) { alert('이름과 URL을 모두 입력해주세요.'); return; }
-      if (!url.startsWith('http')) { alert('올바른 URL을 입력해주세요. (http 로 시작)'); return; }
+      if (!name || !url) { await spAlert('이름과 URL을 모두 입력해주세요.', '입력 오류', '⚠️'); return; }
+      if (!url.startsWith('http')) { await spAlert('올바른 URL을 입력해주세요. (http로 시작)', '입력 오류', '⚠️'); return; }
       const res = await fetch('/api/admin/rss/sources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, url, category })
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || '추가 실패'); return; }
+      if (!res.ok) { await spAlert(data.error || '추가 실패', '오류', '❌'); return; }
       document.getElementById('rssNewName').value = '';
       document.getElementById('rssNewUrl').value = '';
       adminLoadRssSources();
+    }
+
+    // ===== RSS 수집 테스트 =====
+    async function adminTestRss() {
+      const btn = document.getElementById('rssTestBtn');
+      const result = document.getElementById('rssTestResult');
+      btn.disabled = true;
+      btn.textContent = '⏳ 수집 중...';
+      result.innerHTML = '<span style="color:var(--muted);">RSS 소스에서 데이터를 가져오는 중...</span>';
+
+      try {
+        const res = await fetch('/api/admin/rss/test');
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || '수집 실패');
+
+        const rows = data.results.map(r => {
+          const icon = r.success ? '✅' : '❌';
+          const color = r.success ? '#16a34a' : '#dc2626';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);">
+            <span style="font-size:1rem;">${icon}</span>
+            <span style="font-weight:600;min-width:140px;">${r.name}</span>
+            <span style="color:${color};font-size:0.83rem;">${r.success ? `${r.count}개 수집됨` : r.error}</span>
+          </div>`;
+        }).join('');
+
+        result.innerHTML = `
+          <div style="margin-bottom:10px;font-weight:700;color:var(--text);">
+            총 ${data.results.filter(r=>r.success).length}/${data.results.length}개 소스 성공
+          </div>
+          ${rows}`;
+      } catch (e) {
+        result.innerHTML = `<span style="color:#dc2626;">오류: ${e.message}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '▶ 전체 수집 테스트';
+      }
     }
 
     // ===== 어드민 에러 수집 =====
@@ -1020,6 +1306,88 @@
       const msg = e.reason instanceof Error ? e.reason.message : String(e.reason);
       sendAdminError({ event_type: 'ADMIN_UNHANDLED_REJECTION', error_message: msg, stack_trace: e.reason?.stack || '' });
     });
+
+    // ===== 로또 관리 =====
+    async function adminGenLotto() {
+      const count = parseInt(document.getElementById('adminLottoCount').value) || 5;
+      const el = document.getElementById('adminLottoResult');
+      el.innerHTML = '생성 중...';
+      try {
+        const res = await fetch('/api/lotto/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sessionStorage.getItem('admin_token') },
+          body: JSON.stringify({ count })
+        });
+        const d = await res.json();
+        if (!d.ok && !d.games) { el.innerHTML = '<span style="color:red;">생성 실패: ' + (d.error||'오류') + '</span>'; return; }
+        const games = d.games || d.numbers || [];
+        el.innerHTML = games.map((g, i) => {
+          const nums = Array.isArray(g) ? g : (g.numbers || []);
+          return `<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:0.78rem;color:var(--muted);width:24px;">${i+1}.</span>
+            ${nums.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${n<=10?'#f59e0b':n<=20?'#3b82f6':n<=30?'#ef4444':n<=40?'#8b5cf6':'#10b981'};color:#fff;font-weight:800;font-size:0.88rem;">${n}</span>`).join('')}
+          </div>`;
+        }).join('');
+      } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+    }
+
+    async function adminLoadLottoHistory() {
+      const el = document.getElementById('adminLottoHistory');
+      el.innerHTML = '불러오는 중...';
+      try {
+        const res = await fetch('/api/lotto/history?limit=5', {
+          headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('admin_token') }
+        });
+        const d = await res.json();
+        const list = d.history || d.results || [];
+        if (!list.length) { el.innerHTML = '당첨 이력이 없어요'; return; }
+        el.innerHTML = list.map(h => {
+          const nums = typeof h.numbers === 'string' ? JSON.parse(h.numbers) : (h.numbers || []);
+          return `<div style="margin-bottom:10px;padding:10px;background:var(--panel2);border-radius:8px;">
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;">${h.drw_no}회 (${h.drw_date||''})</div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              ${nums.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:${n<=10?'#f59e0b':n<=20?'#3b82f6':n<=30?'#ef4444':n<=40?'#8b5cf6':'#10b981'};color:#fff;font-weight:800;font-size:0.82rem;">${n}</span>`).join('')}
+              <span style="font-size:0.78rem;color:var(--muted);margin-left:4px;">+ 보너스</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#6b7280;color:#fff;font-weight:800;font-size:0.82rem;">${h.bonus||'?'}</span>
+            </div>
+          </div>`;
+        }).join('');
+      } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+    }
+
+    async function adminLoadLottoStats() {
+      const el = document.getElementById('adminLottoStats');
+      el.innerHTML = '불러오는 중...';
+      try {
+        const res = await fetch('/api/admin/lotto/stats', {
+          headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('admin_token') }
+        });
+        const d = await res.json();
+        if (!d.ok) { el.innerHTML = '통계 없음'; return; }
+        el.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div style="padding:12px;background:var(--panel2);border-radius:8px;text-align:center;">
+              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_users||0}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">이용자 수</div>
+            </div>
+            <div style="padding:12px;background:var(--panel2);border-radius:8px;text-align:center;">
+              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_picks||0}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">총 발급 게임</div>
+            </div>
+            <div style="padding:12px;background:var(--panel2);border-radius:8px;text-align:center;">
+              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_wins||0}</div>
+              <div style="font-size:0.78rem;color:var(--muted);">당첨 횟수</div>
+            </div>
+          </div>`;
+      } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+    }
   </script>
+  <style>
+    .lotto-day-btn { padding:5px 12px;border-radius:6px;border:1.5px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;transition:all .15s; }
+    .lotto-day-btn.active { background:#eef2ff;border-color:#6366f1;color:#6366f1; }
+    .lotto-ball { display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;font-weight:800;font-size:13px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2); }
+    .lb1{background:#f59e0b}.lb2{background:#3b82f6}.lb3{background:#ef4444}.lb4{background:#8b5cf6}.lb5{background:#10b981}
+  </style>
+  <script src="/js/lotto.js?v=20260331"></script>
 </body>
 </html>

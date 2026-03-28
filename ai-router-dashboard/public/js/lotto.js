@@ -682,6 +682,12 @@
         lottoLoadScheduleLog();
       }
 
+      // 전역 노출 (admin.html에서 호출 가능하게)
+      window.lottoInit = async function() {
+        lottoInitialized = false;
+        await lottoInit();
+      };
+
       document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
           btn.addEventListener('click', () => {
