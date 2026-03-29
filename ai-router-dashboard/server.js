@@ -746,15 +746,19 @@ setInterval(async () => {
 
     const today = now.toISOString().split('T')[0];
 
-    // 1. lotto.oot.kr에서 최신 당첨번호 조회
+    // 1. 날짜 기반으로 최신 회차 계산 후 lotto.oot.kr에서 당첨번호 조회
+    // 1회차: 2002-12-07, 매주 토요일 1회씩 증가
     let winData;
     try {
-      // 최신 회차 조회 (회차 없이 호출하면 최신 반환)
-      const apiRes = await fetch('https://lotto.oot.kr/api/lotto/latest', {
+      const FIRST_DATE = new Date('2002-12-07');
+      const diffDays = Math.floor((now - FIRST_DATE) / (1000 * 60 * 60 * 24));
+      const drwNo = Math.floor(diffDays / 7) + 1;
+
+      const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drwNo}`, {
         headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
         signal: AbortSignal.timeout(10000)
       });
-      if (!apiRes.ok) throw new Error('API 응답 오류');
+      if (!apiRes.ok) throw new Error(`${drwNo}회 API 응답 오류 (${apiRes.status})`);
       winData = await apiRes.json();
       if (!winData?.drwtNo1) throw new Error('당첨번호 없음');
     } catch(e) {
