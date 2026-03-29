@@ -501,13 +501,19 @@
         }).join(' ');
       }
 
-      window.lottoLoadHistory = async function() {
+      let lottoHistoryPage = 1;
+      const LOTTO_PAGE_SIZE = 10;
+
+      window.lottoLoadHistory = async function(page = 1) {
+        lottoHistoryPage = page;
         const el = $id('lotto-history-list');
         if (!el) return;
+        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
         try {
-          const r = await fetch('/api/lotto/picks');
+          const r = await fetch(`/api/lotto/picks?page=${page}&limit=${LOTTO_PAGE_SIZE}`);
           const d = await r.json();
           if (!d.picks?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">추천 이력이 없습니다</div>'; return; }
+
           el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
             '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
             '<th style="padding:8px;text-align:left;">날짜</th>' +
@@ -526,6 +532,17 @@
               '<td style="padding:8px;text-align:center;"><button class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:3px 10px;" data-date="' + p.pick_date + '" onclick="lottoShowDetail(this.dataset.date)">보기</button></td>' +
               '</tr>'
             ).join('') + '</tbody></table>';
+
+          // 페이징 버튼
+          if (d.totalPages > 1) {
+            const totalPages = d.totalPages;
+            let pagingHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;">';
+            pagingHtml += `<button onclick="lottoLoadHistory(${page-1})" ${page<=1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page<=1?'#f9fafb':'#fff'};cursor:${page<=1?'default':'pointer'};font-size:0.82rem;">← 이전</button>`;
+            pagingHtml += `<span style="font-size:0.82rem;color:#6b7280;">${page} / ${totalPages}</span>`;
+            pagingHtml += `<button onclick="lottoLoadHistory(${page+1})" ${page>=totalPages?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page>=totalPages?'#f9fafb':'#fff'};cursor:${page>=totalPages?'default':'pointer'};font-size:0.82rem;">다음 →</button>`;
+            pagingHtml += '</div>';
+            el.innerHTML += pagingHtml;
+          }
         } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
       };
 
@@ -652,7 +669,7 @@
                 '<span style="font-weight:700;font-size:0.85rem;">'+String.fromCharCode(65+res.game_index)+'게임</span>'+rankLabel+'</div>' +
                 '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(res.numbers, d.winning)+'</div></div>';
             }).join('');
-          lottoLoadHistory();
+          lottoLoadHistory(lottoHistoryPage);
         } catch(e) {
           console.error('lottoCheckResult error:', e);
           if (gamesEl) gamesEl.innerHTML = '<div style="color:#ef4444;padding:16px;">❌ ' + e.message + '</div>';

@@ -641,54 +641,6 @@ app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
 app.use('/', frontRoutes(frontDeps));
 
-// 로또 통계 API — 핫/콜드 번호 실계산 (lotto_history 기반)
-app.get('/api/lotto/stats', (req, res) => {
-  try {
-    const rows = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no DESC').all();
-    const totalRounds = rows.length;
-
-    const freqMap = {};
-    for (let n = 1; n <= 45; n++) freqMap[n] = 0;
-    for (const row of rows) {
-      try { const nums = JSON.parse(row.numbers); for (const n of nums) if (n >= 1 && n <= 45) freqMap[n]++; } catch {}
-    }
-
-    const recentRows = rows.slice(0, 20);
-    const recentFreq = {};
-    for (let n = 1; n <= 45; n++) recentFreq[n] = 0;
-    for (const row of recentRows) {
-      try { const nums = JSON.parse(row.numbers); for (const n of nums) if (n >= 1 && n <= 45) recentFreq[n]++; } catch {}
-    }
-
-    const hotNumber = Number(Object.entries(recentFreq).sort((a,b)=>b[1]-a[1])[0]?.[0] || 34);
-
-    const lastSeenMap = {};
-    for (let n = 1; n <= 45; n++) lastSeenMap[n] = totalRounds;
-    rows.forEach((row, idx) => {
-      try {
-        const nums = JSON.parse(row.numbers);
-        for (const n of nums) { if (lastSeenMap[n] === totalRounds || lastSeenMap[n] > idx) lastSeenMap[n] = idx; }
-      } catch {}
-    });
-    const coldNumber = Number(Object.entries(lastSeenMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || 44);
-
-    const top5 = Object.entries(freqMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([num,cnt])=>({num:Number(num),cnt}));
-    res.json({ ok: true, totalRounds, hotNumber, coldNumber, top5 });
-  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
-});
-
-// 관리자 전용: 로또 전체 통계
-app.get('/api/admin/lotto/stats', (req, res) => {
-  try {
-    if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
-    const total_users  = db.prepare('SELECT COUNT(DISTINCT user_id) as cnt FROM lotto_picks').get()?.cnt || 0;
-    const total_picks  = db.prepare('SELECT COUNT(*) as cnt FROM lotto_picks').get()?.cnt || 0;
-    const total_wins   = db.prepare('SELECT COUNT(*) as cnt FROM lotto_picks WHERE rank IS NOT NULL AND rank > 0').get()?.cnt || 0;
-    const total_rounds = db.prepare('SELECT COUNT(*) as cnt FROM lotto_history').get()?.cnt || 0;
-    res.json({ ok: true, total_users, total_picks, total_wins, total_rounds });
-  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
-});
-
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error:'Not found' });
   res.sendFile(path.join(__dirname,'public','index.html'));
@@ -776,9 +728,79 @@ setInterval(async () => {
         }
       } catch(e) { saveErrorLog({event_type:'LOTTO_MAIL_ERROR',error_message:e.message,stack_trace:e.stack,meta:{userId:sch.user_id}}); }
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
-      db.prepare('INSERT INTO lotto_schedule_log (user_id,day,hour,game_count) VALUES (?,?,?,?)').run(sch.user_id,currentDay,currentHour,sch.game_count);
+      db.prepare('INSERT INTO lotto_schedule_log (user_id,days,hour,game_count) VALUES (?,?,?,?)').run(sch.user_id,String(currentDay),currentHour,sch.game_count);
     }
   } catch(e) { saveErrorLog({event_type:'LOTTO_SCHEDULE_SAVE_ERROR',error_message:e.message,stack_trace:e.stack}); }
+}, 60*1000);
+
+// ============================================================
+// 🍀 토요일 9시 자동 당첨확인 스케줄러
+// ============================================================
+setInterval(async () => {
+  try {
+    const now = new Date();
+    if (now.getMinutes() !== 0) return;
+    const currentHour = now.getHours();
+    const currentDay = now.getDay(); // 6 = 토요일
+    if (currentDay !== 6 || currentHour !== 21) return; // 토요일 21시 (추첨 후)
+
+    const today = now.toISOString().split('T')[0];
+
+    // 1. lotto.oot.kr에서 최신 당첨번호 조회
+    let winData;
+    try {
+      // 최신 회차 조회 (회차 없이 호출하면 최신 반환)
+      const apiRes = await fetch('https://lotto.oot.kr/api/lotto/latest', {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!apiRes.ok) throw new Error('API 응답 오류');
+      winData = await apiRes.json();
+      if (!winData?.drwtNo1) throw new Error('당첨번호 없음');
+    } catch(e) {
+      saveErrorLog({ event_type: 'LOTTO_WIN_FETCH_ERROR', error_message: e.message });
+      return;
+    }
+
+    const drw_no = winData.drwNo;
+    const winning = [winData.drwtNo1, winData.drwtNo2, winData.drwtNo3, winData.drwtNo4, winData.drwtNo5, winData.drwtNo6];
+    const bonus = winData.bnusNo;
+    const drw_date = winData.drwNoDate || today;
+
+    // 2. lotto_history에 저장 (이미 있으면 스킵)
+    const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
+    if (!existing) {
+      db.prepare('INSERT INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
+        .run(drw_no, JSON.stringify(winning), bonus, drw_date);
+    }
+
+    // 3. 이번 주 추첨일 기준 최근 7일 내 픽 자동 당첨확인
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+
+    const allPicks = db.prepare(
+      'SELECT DISTINCT user_id, pick_date FROM lotto_picks WHERE pick_date >= ? AND (drw_no IS NULL OR drw_no = 0) GROUP BY user_id, pick_date'
+    ).all(weekAgoStr);
+
+    for (const { user_id, pick_date } of allPicks) {
+      const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(user_id, pick_date);
+      for (const pick of picks) {
+        const nums = JSON.parse(pick.numbers);
+        const matched = nums.filter(n => winning.includes(n)).length;
+        const hasBonus = nums.includes(bonus);
+        let rank = null;
+        if (matched === 6) rank = 1;
+        else if (matched === 5 && hasBonus) rank = 2;
+        else if (matched === 5) rank = 3;
+        else if (matched === 4) rank = 4;
+        else if (matched === 3) rank = 5;
+        db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?')
+          .run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
+      }
+    }
+
+  } catch(e) { saveErrorLog({ event_type: 'LOTTO_AUTO_CHECK_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60*1000);
 
 // ============================================================
