@@ -273,8 +273,11 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     const existingUser = db.prepare('SELECT id FROM users WHERE username=?').get(username);
     if (existingUser) return res.status(400).json({ error: '이미 일반 회원으로 등록된 아이디입니다.' });
     const hash = bcrypt.hashSync(password, 12);
+    // admins 테이블에 등록
     const result = db.prepare('INSERT INTO admins (username, password_hash, email, role_id) VALUES (?,?,?,?)').run(username, hash, email || null, role_id || 1);
-    return res.json({ ok: true, id: result.lastInsertRowid });
+    // users 테이블에도 자동 등록 (created_type=1: 관리자생성, 일반 로그인 불가)
+    const userResult = db.prepare('INSERT OR IGNORE INTO users (username, password_hash, email, created_type) VALUES (?,?,?,?)').run(username, hash, email || null, 1);
+    return res.json({ ok: true, id: result.lastInsertRowid, user_id: userResult.lastInsertRowid });
   });
 
   // 관리자 수정

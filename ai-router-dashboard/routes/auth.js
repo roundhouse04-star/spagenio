@@ -27,6 +27,11 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
 
+    // 관리자가 생성한 계정(created_type=1)은 일반 로그인 불가
+    if (user.created_type === 1) {
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+
     loginAttempts.delete(key);
     db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(new Date().toISOString(), user.id);
 
@@ -195,7 +200,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
 
     const hash = bcrypt.hashSync(password, 12);
     const encryptedEmail = encryptEmail(email);
-    const result = db.prepare('INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)').run(username, hash, encryptedEmail);
+    const result = db.prepare('INSERT INTO users (username, password_hash, email, created_type) VALUES (?, ?, ?, ?)').run(username, hash, encryptedEmail, 2);
     db.prepare('DELETE FROM email_verifications WHERE email = ?').run(email);
     db.prepare('INSERT INTO terms_agreements (user_id, agree_terms, agree_privacy, agree_investment, agree_marketing, ip) VALUES (?,?,?,?,?,?)')
       .run(result.lastInsertRowid, agree_terms ? 1 : 0, agree_privacy ? 1 : 0, agree_investment ? 1 : 0, agree_marketing ? 1 : 0, req.ip || '');

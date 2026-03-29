@@ -38,7 +38,8 @@ db.exec(`
 `);
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
+  CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, created_type INTEGER DEFAULT 2, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
+  -- created_type: 1=관리자생성(일반로그인 불가), 2=일반가입
   CREATE TABLE IF NOT EXISTS admin_roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role_name TEXT UNIQUE NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, role_id INTEGER, is_active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, FOREIGN KEY (role_id) REFERENCES admin_roles(id));
   CREATE TABLE IF NOT EXISTS user_broker_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, account_name TEXT NOT NULL DEFAULT '기본 계좌', alpaca_api_key TEXT, alpaca_secret_key TEXT, alpaca_paper INTEGER DEFAULT 1, is_active INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
@@ -418,6 +419,9 @@ if (!superAdminRole) {
   db.prepare("INSERT INTO admin_roles (role_name, description) VALUES ('manager','매니저 - 일반 관리 권한')").run();
 }
 // admins 테이블에 기본 admin 계정 생성
+// created_by 컬럼 없으면 추가 (기존 DB 마이그레이션)
+try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch(e) {}
+
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
 if (!adminExists) {
   const roleId = db.prepare("SELECT id FROM admin_roles WHERE role_name='superadmin'").get()?.id || 1;
@@ -648,7 +652,11 @@ function authMiddleware(req, res, next) {
       if (isAdminToken) {
         // admins 테이블 조회
         const admin = db.prepare('SELECT a.id, a.username, a.email, r.role_name, 1 as is_admin FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.id=? AND a.is_active=1').get(decoded.id);
-        if (admin) req.user = { ...decoded, ...admin };
+        if (admin) {
+          // users 테이블에도 같은 username이 있으면 그 id를 user_id로 사용 (lotto_picks 등 FK 호환)
+          const userRow = db.prepare('SELECT id FROM users WHERE username=?').get(admin.username);
+          req.user = { ...decoded, ...admin, user_id: userRow?.id || null };
+        }
       } else {
         // users 테이블 조회 (일반 유저만)
         const user = db.prepare('SELECT id, username, email, 0 as is_admin FROM users WHERE id = ?').get(decoded.id);
