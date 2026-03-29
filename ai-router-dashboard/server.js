@@ -430,6 +430,7 @@ console.log('✅ SQLite DB 초기화 완료:', dbPath);
 // 공통 설정
 // ============================================================
 const JWT_SECRET = process.env.JWT_SECRET || 'ai-router-secret-key-change-this';
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'ai-router-admin-secret-key-change-this';
 const JWT_EXPIRES = '24h';
 const ENCRYPT_KEY_BUF = Buffer.from((process.env.ENCRYPT_KEY || 'ai-router-encrypt-key-32chars!!').slice(0, 32).padEnd(32, '0'));
 
@@ -633,14 +634,26 @@ function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ','') || req.cookies?.auth_token;
   if (token) {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      // admins 테이블 먼저 확인 (관리자 토큰)
-      let user = db.prepare('SELECT a.id, a.username, a.email, r.role_name, 1 as is_admin FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.id=? AND a.is_active=1').get(decoded.id);
-      if (!user) {
-        // 일반 유저 확인
-        user = db.prepare('SELECT id, username, email, 0 as is_admin FROM users WHERE id = ?').get(decoded.id);
+      // admin 토큰 먼저 시도 (ADMIN_JWT_SECRET)
+      let decoded = null;
+      let isAdminToken = false;
+      try {
+        decoded = jwt.verify(token, ADMIN_JWT_SECRET);
+        isAdminToken = true;
+      } catch(e) {
+        // admin 토큰 아님 → 일반 토큰 시도
+        decoded = jwt.verify(token, JWT_SECRET);
       }
-      if (user) req.user = { ...decoded, ...user };
+
+      if (isAdminToken) {
+        // admins 테이블 조회
+        const admin = db.prepare('SELECT a.id, a.username, a.email, r.role_name, 1 as is_admin FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.id=? AND a.is_active=1').get(decoded.id);
+        if (admin) req.user = { ...decoded, ...admin };
+      } else {
+        // users 테이블 조회 (일반 유저만)
+        const user = db.prepare('SELECT id, username, email, 0 as is_admin FROM users WHERE id = ?').get(decoded.id);
+        if (user) req.user = { ...decoded, ...user };
+      }
     } catch(e) {}
   }
   if (publicApis.some(p => req.path.startsWith(p))) return next();
@@ -655,7 +668,7 @@ app.use((req, res, next) => { requestStats.total+=1; res.setHeader('Cache-Contro
 // ============================================================
 // 라우트 연결
 // ============================================================
-const deps = { db, bcrypt, jwt, JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
+const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
 const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3 };
 
 app.use('/api/auth', authRoutes(deps));

@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 
-export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog }) {
+export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog }) {
 
   // ✅ 로그인
   router.post('/login', (req, res) => {
@@ -58,7 +58,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, JWT_EXPIRES, s
     db.prepare('UPDATE admins SET last_login=? WHERE id=?').run(new Date().toISOString(), admin.id);
     logger.info('ADMIN_LOGIN_SUCCESS', { ip, username: admin.username });
 
-    const token = jwt.sign({ id: admin.id, username: admin.username, is_admin: true, role: admin.role_name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ id: admin.id, username: admin.username, is_admin: true, role: admin.role_name }, ADMIN_JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 });
     return res.json({ status: 'ok', token, username: admin.username, role: admin.role_name, is_admin: true });
   });
