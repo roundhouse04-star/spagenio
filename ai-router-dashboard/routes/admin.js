@@ -250,6 +250,9 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     if (!username || !password) return res.status(400).json({ error: 'username, password 필수' });
     const existing = db.prepare('SELECT id FROM admins WHERE username=?').get(username);
     if (existing) return res.status(400).json({ error: '이미 사용 중인 아이디입니다.' });
+    // 일반 유저 테이블과도 중복 체크
+    const existingUser = db.prepare('SELECT id FROM users WHERE username=?').get(username);
+    if (existingUser) return res.status(400).json({ error: '이미 일반 회원으로 등록된 아이디입니다.' });
     const hash = bcrypt.hashSync(password, 12);
     const result = db.prepare('INSERT INTO admins (username, password_hash, email, role_id) VALUES (?,?,?,?)').run(username, hash, email || null, role_id || 1);
     return res.json({ ok: true, id: result.lastInsertRowid });

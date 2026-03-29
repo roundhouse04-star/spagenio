@@ -108,6 +108,8 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
     if (!/^[a-zA-Z0-9_]+$/.test(username)) return res.status(400).json({ error: '영문, 숫자, 언더바(_)만 사용 가능합니다.' });
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (existing) return res.status(409).json({ error: '이미 사용 중인 아이디입니다.' });
+    const existingAdmin = db.prepare('SELECT id FROM admins WHERE username = ?').get(username);
+    if (existingAdmin) return res.status(409).json({ error: '이미 사용 중인 아이디입니다.' });
     return res.json({ status: 'ok', message: '사용 가능한 아이디입니다.' });
   });
 
@@ -183,6 +185,9 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
 
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (existing) return res.status(400).json({ error: '이미 사용 중인 아이디입니다.' });
+    // 관리자 테이블과도 중복 체크
+    const existingAdmin = db.prepare('SELECT id FROM admins WHERE username = ?').get(username);
+    if (existingAdmin) return res.status(400).json({ error: '이미 사용 중인 아이디입니다.' });
 
     const allUsers = db.prepare('SELECT email FROM users WHERE email IS NOT NULL').all();
     const emailUsed = allUsers.some(u => { try { return decryptEmail(u.email) === email; } catch (e) { return false; } });
