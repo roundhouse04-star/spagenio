@@ -216,7 +216,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
   // ✅ 에러 로그 날짜 목록
   router.get('/api/admin/error-logs/dates', (req, res) => {
     try {
-      if (!req.user || req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+      if (!req.user || !req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
       const { type } = req.query;
       const files = fs.existsSync(errorLogDir) ? fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl')).sort().reverse() : [];
       const dates = files.map(f => f.replace('.jsonl', '')).filter(date => {
@@ -236,7 +236,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
   // ✅ 에러 로그 상세 조회
   router.get('/api/admin/error-logs', (req, res) => {
     try {
-      if (!req.user || req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+      if (!req.user || !req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
       const { date, type } = req.query;
       if (!date) return res.json({ ok: true, logs: [] });
       const filePath = path.join(errorLogDir, `${date}.jsonl`);
