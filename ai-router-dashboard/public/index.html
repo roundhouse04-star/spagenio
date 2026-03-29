@@ -48,6 +48,35 @@
     }
 
     /* ===== 사이드바 (다크) ===== */
+    /* 사이드바 서브메뉴 */
+    .sp-sub-menu {
+      display: none;
+      margin: 2px 0 4px 0;
+    }
+    .sp-sub-menu.open { display: block; }
+    .sp-sub-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 7px 12px 7px 32px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #6B7280;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sp-sub-btn:hover { background: #1E242C; color: #E5E7EB; }
+    .sp-sub-btn.active { background: #1E242C; color: #6366f1; }
+    .sp-parent-arrow {
+      float: right;
+      font-size: 0.7rem;
+      transition: transform 0.2s;
+      margin-top: 2px;
+    }
+    .sp-parent-btn.open .sp-parent-arrow { transform: rotate(90deg); }
     .sp-sidebar {
       position: fixed;
       top: 0;
@@ -1272,28 +1301,11 @@
 
   <!-- ===== 사이드바 ===== -->
   <aside class="sp-sidebar">
-
-    <nav class="sp-nav">
+    <nav class="sp-nav" id="sidebarNav">
+      <!-- 동적으로 렌더링 -->
       <div class="sp-nav-label">메인</div>
       <button class="tab-btn active" id="tab-btn-ai" data-tab="ai">
         <span class="nav-icon">📰</span> 뉴스
-      </button>
-      <div class="sp-nav-label" style="margin-top:8px;">트레이딩</div>
-      <button class="tab-btn" id="tab-btn-stock" data-tab="stock">
-        <span class="nav-icon">📈</span> 주식
-      </button>
-      <button class="tab-btn" id="tab-btn-datacollect" data-tab="datacollect">
-        <span class="nav-icon">📊</span> 데이터 수집
-      </button>
-      <button class="tab-btn" id="tab-btn-quant" data-tab="quant">
-        <span class="nav-icon">🤖</span> 자동매매
-      </button>
-      <button class="tab-btn" id="tab-btn-backtest" data-tab="backtest">
-        <span class="nav-icon">🔬</span> 백테스팅
-      </button>
-      <div class="sp-nav-label" style="margin-top:8px;">분석</div>
-      <button class="tab-btn" id="tab-btn-performance" data-tab="performance">
-        <span class="nav-icon">💹</span> 성과 대시보드
       </button>
     </nav>
   </aside>
@@ -4124,47 +4136,182 @@
     };
 
     // 페이지 로드 시 실행
+    // ============================================================
+    // 사이드바 동적 렌더링
+    // ============================================================
+    let _currentTab = 'ai';
+    let _currentSubTab = null;
+    let _menuData = [];
+
+    async function loadSidebarMenus() {
+      try {
+        const res = await fetch('/api/menus');
+        const d = await res.json();
+        if (!d.ok) return;
+        _menuData = d.menus;
+        renderSidebar(d.menus);
+        // 첫 번째 메뉴 활성화
+        if (d.menus.length > 0) {
+          const first = d.menus[0];
+          activateMenu(first.tab_key, first.sub_key, first.id);
+        }
+      } catch(e) {
+        // 폴백: 기본 사이드바 렌더링
+        renderDefaultSidebar();
+      }
+    }
+
+    function renderSidebar(menus) {
+      const nav = document.getElementById('sidebarNav');
+      if (!nav) return;
+
+      // 그룹 레이블 매핑
+      const groupLabels = {
+        'ai': '메인',
+        'stock': '트레이딩',
+        'datacollect': '트레이딩',
+        'quant': '트레이딩',
+        'backtest': '트레이딩',
+        'performance': '분석'
+      };
+
+      let html = '';
+      let lastGroup = '';
+
+      menus.forEach(menu => {
+        const group = groupLabels[menu.tab_key] || '';
+        if (group && group !== lastGroup) {
+          html += `<div class="sp-nav-label" style="margin-top:8px;">${group}</div>`;
+          lastGroup = group;
+        }
+
+        const hasChildren = menu.children && menu.children.length > 0;
+
+        if (hasChildren) {
+          // 부모 메뉴 (서브메뉴 있음)
+          html += `
+            <button class="tab-btn sp-parent-btn" id="tab-btn-${menu.tab_key}" data-tab="${menu.tab_key}" data-id="${menu.id}"
+              onclick="toggleSubMenu(${menu.id}, '${menu.tab_key}')">
+              <span class="nav-icon">${menu.icon}</span> ${menu.name}
+              <span class="sp-parent-arrow">▶</span>
+            </button>
+            <div class="sp-sub-menu" id="sub-menu-${menu.id}">
+              ${menu.children.map(child => `
+                <button class="sp-sub-btn" id="sub-btn-${child.id}" data-tab="${child.tab_key}" data-sub="${child.sub_key}" data-id="${child.id}"
+                  onclick="activateMenu('${child.tab_key}', '${child.sub_key}', ${child.id})">
+                  <span>${child.icon}</span> ${child.name}
+                </button>`).join('')}
+            </div>`;
+        } else {
+          // 일반 메뉴
+          html += `
+            <button class="tab-btn" id="tab-btn-${menu.tab_key}-${menu.id}" data-tab="${menu.tab_key}" data-id="${menu.id}"
+              onclick="activateMenu('${menu.tab_key}', null, ${menu.id})">
+              <span class="nav-icon">${menu.icon}</span> ${menu.name}
+            </button>`;
+        }
+      });
+
+      nav.innerHTML = html;
+    }
+
+    function toggleSubMenu(menuId, tabKey) {
+      const subMenu = document.getElementById(`sub-menu-${menuId}`);
+      const parentBtn = document.querySelector(`[data-id="${menuId}"]`);
+      if (!subMenu) return;
+      const isOpen = subMenu.classList.contains('open');
+      // 모든 서브메뉴 닫기
+      document.querySelectorAll('.sp-sub-menu').forEach(m => m.classList.remove('open'));
+      document.querySelectorAll('.sp-parent-btn').forEach(b => b.classList.remove('open'));
+      if (!isOpen) {
+        subMenu.classList.add('open');
+        if (parentBtn) parentBtn.classList.add('open');
+        // 첫 번째 자식 자동 선택
+        const firstChild = subMenu.querySelector('.sp-sub-btn');
+        if (firstChild) firstChild.click();
+      }
+    }
+
+    function activateMenu(tabKey, subKey, menuId) {
+      _currentTab = tabKey;
+      _currentSubTab = subKey;
+
+      // 탭 전환
+      const allTabs = document.querySelectorAll('.tab-content');
+      allTabs.forEach(t => { t.style.display = 'none'; t.classList.remove('active-tab'); });
+      const targetTab = document.getElementById(`tab-${tabKey}`);
+      if (targetTab) { targetTab.style.display = 'block'; targetTab.classList.add('active-tab'); }
+
+      // 버튼 활성화 상태
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.sp-sub-btn').forEach(b => b.classList.remove('active'));
+      const parentBtn = document.querySelector(`.sp-parent-btn[data-tab="${tabKey}"]`);
+      if (parentBtn) parentBtn.classList.add('active');
+      const subBtn = document.getElementById(`sub-btn-${menuId}`);
+      if (subBtn) subBtn.classList.add('active');
+      const directBtn = document.getElementById(`tab-btn-${tabKey}-${menuId}`);
+      if (directBtn) directBtn.classList.add('active');
+
+      // 서브메뉴 열기
+      if (subKey) {
+        const parentId = _menuData.find(m => m.tab_key === tabKey && !m.parent_id)?.id;
+        if (parentId) {
+          const subMenu = document.getElementById(`sub-menu-${parentId}`);
+          const parentBtnEl = document.querySelector(`[data-id="${parentId}"]`);
+          if (subMenu) subMenu.classList.add('open');
+          if (parentBtnEl) parentBtnEl.classList.add('open');
+        }
+        // switchQuantTab 호출
+        if (typeof switchQuantTab === 'function') switchQuantTab(subKey);
+      }
+
+      // 탭별 초기화
+      if (tabKey === 'performance') {
+        const perfTab = document.getElementById('tab-performance');
+        if (perfTab) { perfTab.style.display = 'block'; }
+        setTimeout(() => {
+          if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+          if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
+          if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
+          if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+          if (typeof loadTradeHistory === 'function') loadTradeHistory();
+          if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
+          if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
+          if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
+        }, 100);
+      }
+      if (tabKey === 'quant' && !subKey) {
+        setTimeout(() => { if (typeof checkInvestorProfile === 'function') checkInvestorProfile(); }, 50);
+      }
+    }
+
+    function renderDefaultSidebar() {
+      const nav = document.getElementById('sidebarNav');
+      if (!nav) return;
+      nav.innerHTML = `
+        <div class="sp-nav-label">메인</div>
+        <button class="tab-btn active" id="tab-btn-ai-0" onclick="activateMenu('ai',null,0)"><span class="nav-icon">📰</span> 뉴스</button>
+        <div class="sp-nav-label" style="margin-top:8px;">트레이딩</div>
+        <button class="tab-btn" id="tab-btn-stock-0" onclick="activateMenu('stock',null,0)"><span class="nav-icon">📈</span> 주식</button>
+        <button class="tab-btn" id="tab-btn-datacollect-0" onclick="activateMenu('datacollect',null,0)"><span class="nav-icon">📊</span> 데이터 수집</button>
+        <button class="tab-btn" id="tab-btn-quant-0" onclick="activateMenu('quant',null,0)"><span class="nav-icon">🤖</span> 자동매매</button>
+        <button class="tab-btn" id="tab-btn-backtest-0" onclick="activateMenu('backtest',null,0)"><span class="nav-icon">🔬</span> 백테스팅</button>
+        <div class="sp-nav-label" style="margin-top:8px;">분석</div>
+        <button class="tab-btn" id="tab-btn-performance-0" onclick="activateMenu('performance',null,0)"><span class="nav-icon">💹</span> 성과 대시보드</button>`;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(renderAtSavedSettings, 800);
 
-      // 퀀트 탭 버튼 클릭 시 성향 체크 인터셉트
-      const quantBtn = document.getElementById('tab-btn-quant');
-      if (quantBtn) {
-        quantBtn.addEventListener('click', function (e) {
-          setTimeout(() => { checkInvestorProfile(); }, 50);
-        }, true);
-      }
+      // 퀀트 탭바 숨기기 (사이드바 서브메뉴로 대체)
+      const quantTabBar = document.getElementById('quantTabBar');
+      if (quantTabBar) quantTabBar.style.display = 'none';
 
-      // 성과 대시보드 탭 클릭 시 자동 로드
-      const perfBtn = document.getElementById('tab-btn-performance');
-      if (perfBtn) {
-        perfBtn.addEventListener('click', function() {
-          // active-tab 클래스 직접 처리 (common.js가 performance 탭을 모를 수 있으므로)
-          document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
-          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          const tabEl = document.getElementById('tab-performance');
-          if (tabEl) { tabEl.style.display = 'block'; tabEl.classList.add('active-tab'); }
-          perfBtn.classList.add('active');
-          setTimeout(() => {
-            loadPerformanceSummary();
-            loadPerformanceHistory();
-            loadAssetPieChart();
-            loadPositionPieChart();
-            loadTradeHistory();
-            loadSavedBacktests();
-            loadTelegramSettings();
-            loadTelegramAlertLog();
-          }, 100);
-        });
-      }
+      // 사이드바 동적 렌더링 (로그인 후 메뉴 로드)
+      loadSidebarMenus();
 
-      // 다른 탭 클릭 시 성과 탭 숨기기
-      document.querySelectorAll('.tab-btn:not(#tab-btn-performance)').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const perfTab = document.getElementById('tab-performance');
-          if (perfTab) { perfTab.style.display = 'none'; perfTab.classList.remove('active-tab'); }
-        });
-      });
+      // 기존 common.js의 탭 전환 오버라이드
+      // (common.js가 data-tab 기반으로 탭 전환하므로 유지)
     });
 
     // ============================================================

@@ -334,5 +334,54 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json({ ok: true });
   });
 
+  // ===== 메뉴 관리 API =====
+
+  // 메뉴 전체 조회 (관리자용 - disabled 포함)
+  router.get('/api/admin/menus', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const menus = db.prepare('SELECT * FROM menus ORDER BY parent_id ASC, sort_order ASC').all();
+    res.json({ ok: true, menus });
+  });
+
+  // 메뉴 추가
+  router.post('/api/admin/menus', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { name, icon = '', parent_id = null, sort_order = 0, tab_key = '', sub_key = null, enabled = 1 } = req.body;
+    if (!name) return res.status(400).json({ error: 'name 필수' });
+    const result = db.prepare('INSERT INTO menus (name, icon, parent_id, sort_order, tab_key, sub_key, enabled) VALUES (?,?,?,?,?,?,?)')
+      .run(name, icon, parent_id, sort_order, tab_key, sub_key, enabled);
+    res.json({ ok: true, id: result.lastInsertRowid });
+  });
+
+  // 메뉴 수정
+  router.put('/api/admin/menus/:id', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { name, icon, parent_id, sort_order, tab_key, sub_key, enabled } = req.body;
+    const menu = db.prepare('SELECT * FROM menus WHERE id=?').get(req.params.id);
+    if (!menu) return res.status(404).json({ error: '메뉴 없음' });
+    db.prepare('UPDATE menus SET name=?,icon=?,parent_id=?,sort_order=?,tab_key=?,sub_key=?,enabled=? WHERE id=?')
+      .run(name??menu.name, icon??menu.icon, parent_id??menu.parent_id, sort_order??menu.sort_order, tab_key??menu.tab_key, sub_key??menu.sub_key, enabled??menu.enabled, req.params.id);
+    res.json({ ok: true });
+  });
+
+  // 메뉴 삭제
+  router.delete('/api/admin/menus/:id', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    // 자식 메뉴도 같이 삭제
+    db.prepare('DELETE FROM menus WHERE parent_id=?').run(req.params.id);
+    db.prepare('DELETE FROM menus WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  });
+
+  // 메뉴 순서 변경 (드래그 앤 드롭용)
+  router.post('/api/admin/menus/reorder', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { orders } = req.body; // [{ id, sort_order }]
+    const stmt = db.prepare('UPDATE menus SET sort_order=? WHERE id=?');
+    const reorder = db.transaction(() => orders.forEach(o => stmt.run(o.sort_order, o.id)));
+    reorder();
+    res.json({ ok: true });
+  });
+
   return router;
 }

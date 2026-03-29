@@ -554,6 +554,7 @@
       <button class="nav-btn" onclick="showPage('lotto')">🍀 로또 관리</button>
       <div class="nav-divider"></div>
       <button class="nav-btn" onclick="showPage('admin-mgmt')">👤 관리자 관리</button>
+      <button class="nav-btn" onclick="showPage('menu-mgmt')">📋 메뉴 관리</button>
       <div class="sidebar-bottom">
         <button class="nav-btn" onclick="location.href='/'">← 대시보드</button>
 
@@ -843,6 +844,42 @@
         </div>
       </div>
 
+
+
+      <!-- 메뉴 관리 -->
+      <div class="page" id="page-menu-mgmt">
+        <div class="page-title">📋 메뉴 관리</div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">📋 메뉴 목록</div>
+            <button class="btn" onclick="showAddMenuForm()">+ 메뉴 추가</button>
+          </div>
+
+          <!-- 메뉴 추가 폼 -->
+          <div id="addMenuForm" style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+              <input type="text" id="newMenuName" placeholder="메뉴 이름" />
+              <input type="text" id="newMenuIcon" placeholder="아이콘 (예: 📊)" />
+              <input type="text" id="newMenuTabKey" placeholder="탭 키 (예: quant)" />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+              <input type="text" id="newMenuSubKey" placeholder="서브 키 (서브메뉴만, 예: us)" />
+              <select id="newMenuParent" style="padding:8px;border-radius:8px;border:1px solid var(--line);">
+                <option value="">최상위 메뉴</option>
+              </select>
+              <input type="number" id="newMenuSort" placeholder="순서" value="0" />
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn secondary" onclick="document.getElementById('addMenuForm').style.display='none'">취소</button>
+              <button class="btn" onclick="addMenu()">추가</button>
+            </div>
+          </div>
+
+          <!-- 메뉴 트리 -->
+          <div id="menuTree"><p class="empty">로딩 중...</p></div>
+        </div>
+      </div>
 
       <!-- 관리자 관리 -->
       <div class="page" id="page-admin-mgmt">
@@ -1386,6 +1423,7 @@
       else if (name === 'stats') loadStats();
       else if (name === 'lotto') { if (typeof lottoInit === 'function') { lottoInitialized = false; lottoInit(); } }
       else if (name === 'admin-mgmt') { loadRoles(); loadAdmins(); }
+      else if (name === 'menu-mgmt') { loadMenus(); }
       else if (name === 'users') loadUsers();
       else if (name === 'invite') { loadRequests(); }
       else if (name === 'logs') { currentLogPage = 1; loadLogs(); }
@@ -1881,7 +1919,7 @@
       const tbody = document.getElementById('rssSourceBody');
       if (!tbody) return;
       try {
-        const res = await fetch('/api/admin/rss/sources');
+        const res = await fetch('/api/admin/rss/sources', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         const sources = data.sources || [];
         if (!sources.length) {
@@ -2280,6 +2318,109 @@
         btn.disabled = false;
         btn.textContent = '🎯 전체 당첨확인';
       }
+    }
+
+    // ===== 메뉴 관리 JS =====
+    async function loadMenus() {
+      const el = document.getElementById('menuTree');
+      if (!el) return;
+      try {
+        const res = await fetch('/api/admin/menus', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+        if (!d.menus?.length) { el.innerHTML = '<p class="empty">메뉴가 없습니다.</p>'; return; }
+
+        // 부모 셀렉트 업데이트
+        const parentSel = document.getElementById('newMenuParent');
+        if (parentSel) {
+          const tops = d.menus.filter(m => !m.parent_id);
+          parentSel.innerHTML = '<option value="">최상위 메뉴</option>' + tops.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+        }
+
+        // 트리 렌더링
+        const tops = d.menus.filter(m => !m.parent_id);
+        const children = d.menus.filter(m => m.parent_id);
+
+        el.innerHTML = tops.map(m => {
+          const kids = children.filter(c => c.parent_id === m.id);
+          return `
+            <div style="border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel2);">
+                <span style="font-size:1.1rem;">${m.icon}</span>
+                <span style="font-weight:700;flex:1;">${m.name}</span>
+                <span style="font-size:0.75rem;color:var(--muted);">tab:${m.tab_key}</span>
+                <label style="display:flex;align-items:center;gap:4px;font-size:0.8rem;cursor:pointer;">
+                  <input type="checkbox" ${m.enabled ? 'checked' : ''} onchange="updateMenuEnabled(${m.id}, this.checked)" />
+                  <span>${m.enabled ? '활성' : '비활성'}</span>
+                </label>
+                <button onclick="deleteMenu(${m.id})" class="btn danger" style="padding:3px 10px;font-size:0.75rem;">삭제</button>
+              </div>
+              ${kids.length ? `<div style="padding:8px 14px 8px 32px;">
+                ${kids.map(k => `
+                  <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);">
+                    <span>${k.icon}</span>
+                    <span style="flex:1;font-size:0.88rem;">${k.name}</span>
+                    <span style="font-size:0.72rem;color:var(--muted);">sub:${k.sub_key||'-'}</span>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;cursor:pointer;">
+                      <input type="checkbox" ${k.enabled ? 'checked' : ''} onchange="updateMenuEnabled(${k.id}, this.checked)" />
+                      <span>${k.enabled ? '활성' : '비활성'}</span>
+                    </label>
+                    <button onclick="deleteMenu(${k.id})" class="btn danger" style="padding:2px 8px;font-size:0.72rem;">삭제</button>
+                  </div>`).join('')}
+              </div>` : ''}
+            </div>`;
+        }).join('');
+      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+    }
+
+    function showAddMenuForm() {
+      const f = document.getElementById('addMenuForm');
+      if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+      loadMenus(); // 부모 셀렉트 업데이트
+    }
+
+    async function addMenu() {
+      const name = document.getElementById('newMenuName')?.value?.trim();
+      const icon = document.getElementById('newMenuIcon')?.value?.trim() || '';
+      const tab_key = document.getElementById('newMenuTabKey')?.value?.trim();
+      const sub_key = document.getElementById('newMenuSubKey')?.value?.trim() || null;
+      const parent_id = document.getElementById('newMenuParent')?.value || null;
+      const sort_order = parseInt(document.getElementById('newMenuSort')?.value || 0);
+      if (!name || !tab_key) { await spAlert('이름과 탭 키를 입력하세요.', '입력 오류', '⚠️'); return; }
+      try {
+        const res = await fetch('/api/admin/menus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ name, icon, tab_key, sub_key, parent_id: parent_id ? parseInt(parent_id) : null, sort_order })
+        });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        document.getElementById('newMenuName').value = '';
+        document.getElementById('newMenuIcon').value = '';
+        document.getElementById('newMenuSubKey').value = '';
+        document.getElementById('addMenuForm').style.display = 'none';
+        loadMenus();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function updateMenuEnabled(id, enabled) {
+      try {
+        await fetch(`/api/admin/menus/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ enabled: enabled ? 1 : 0 })
+        });
+        loadMenus();
+      } catch(e) { await spAlert('변경 실패', '오류', '❌'); }
+    }
+
+    async function deleteMenu(id) {
+      if (!await spConfirm('이 메뉴를 삭제할까요? (서브메뉴도 같이 삭제됩니다)', '메뉴 삭제', '🗑️', '삭제', 'danger')) return;
+      try {
+        const res = await fetch(`/api/admin/menus/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        loadMenus();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     function adminLogout() {

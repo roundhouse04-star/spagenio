@@ -64,6 +64,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT NOT NULL, action TEXT NOT NULL, qty REAL, price REAL, reason TEXT, order_id TEXT, profit_pct REAL, status TEXT DEFAULT 'active', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
 `);
@@ -425,6 +426,26 @@ if (!superAdminRole) {
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch(e) {}
 try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch(e) {}
 try { db.prepare("ALTER TABLE auto_trade_settings ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch(e) {}
+try { db.exec("CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+
+// 기본 메뉴 데이터 삽입
+const menuCount = db.prepare("SELECT COUNT(*) as cnt FROM menus").get();
+if (menuCount.cnt === 0) {
+  const insertMenu = db.prepare("INSERT INTO menus (name, icon, parent_id, sort_order, tab_key, sub_key, enabled) VALUES (?,?,?,?,?,?,?)");
+  // 최상위 메뉴
+  const news = insertMenu.run('뉴스', '📰', null, 1, 'ai', null, 1);
+  const stock = insertMenu.run('주식', '📈', null, 2, 'stock', null, 1);
+  const datacollect = insertMenu.run('데이터 수집', '📊', null, 3, 'datacollect', null, 1);
+  const quant = insertMenu.run('자동매매', '🤖', null, 4, 'quant', null, 1);
+  const backtest = insertMenu.run('백테스팅', '🔬', null, 5, 'backtest', null, 1);
+  const perf = insertMenu.run('성과 대시보드', '💹', null, 6, 'performance', null, 1);
+  // 자동매매 서브메뉴
+  insertMenu.run('미국 자동매매', '🇺🇸', quant.lastInsertRowid, 1, 'quant', 'us', 1);
+  insertMenu.run('한국 종목 분석', '🇰🇷', quant.lastInsertRowid, 2, 'quant', 'kr', 1);
+  insertMenu.run('완전자동매매', '🤖', quant.lastInsertRowid, 3, 'quant', 'auto', 1);
+  insertMenu.run('일반 자동매매', '⚡', quant.lastInsertRowid, 4, 'quant', 'day', 1);
+}
+
 try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch(e) {}
 try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch(e) {}
 

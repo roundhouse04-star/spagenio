@@ -480,12 +480,24 @@ function switchTab(tab) {
 
 // 탭 버튼 이벤트 등록 (DOM 준비 후 안전하게)
 document.addEventListener('DOMContentLoaded', () => {
+  // 동적 사이드바 사용 시 이벤트 등록 생략 (activateMenu에서 처리)
+  // 단, data-tab 버튼이 있으면 등록
   document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      if (typeof activateMenu === 'function') {
+        // 동적 메뉴 시스템 사용 시
+        activateMenu(tab, null, btn.dataset.id || 0);
+      } else {
+        switchTab(tab);
+      }
+    });
   });
 
-  // 뉴스탭 기본 표시
-  switchTab('ai');
+  // 뉴스탭 기본 표시 (동적 메뉴가 없을 때 폴백)
+  if (typeof loadSidebarMenus === 'undefined') {
+    switchTab('ai');
+  }
 });
 
 // 외부 접속 시 프록시 사용, 로컬 시 직접 연결

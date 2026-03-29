@@ -652,6 +652,19 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 나스닥100/다우존스30 TOP3 분석
+  // ✅ 메뉴 조회 API (프론트용)
+  router.get('/api/menus', (req, res) => {
+    try {
+      const menus = db.prepare('SELECT * FROM menus WHERE enabled=1 ORDER BY sort_order').all();
+      const topLevel = menus.filter(m => m.parent_id === null);
+      const result = topLevel.map(m => ({
+        ...m,
+        children: menus.filter(c => c.parent_id === m.id).sort((a,b) => a.sort_order - b.sort_order)
+      }));
+      res.json({ ok: true, menus: result });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ✅ 단순 자동매매 API
   router.get('/api/simple-auto-trade/state', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
