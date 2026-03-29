@@ -165,6 +165,10 @@ async function loadPositions() {
   try {
     const res = await fetch('/api/alpaca-user/v2/positions');
     const data = await res.json();
+    if (data.no_account || !res.ok) {
+      document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">🔑 Alpaca 계좌를 먼저 등록해주세요.</p>';
+      return;
+    }
     if (!data.positions?.length) {
       document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">보유 종목이 없습니다</p>';
       return;
@@ -274,6 +278,10 @@ async function loadOrders() {
   try {
     const res = await fetch('/api/alpaca-user/v2/orders?status=all&limit=50');
     const data = await res.json();
+    if (data.no_account || !res.ok) {
+      document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">🔑 Alpaca 계좌를 먼저 등록해주세요.</p>';
+      return;
+    }
     if (!data.orders?.length) {
       document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">주문 내역이 없습니다</p>';
       return;

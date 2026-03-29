@@ -122,7 +122,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.all('/api/alpaca-user/*', async (req, res) => {
     const accountId = req.headers['x-account-id'] || req.query.accountId;
     const keys = getUserAlpacaKeys(req.user.id, accountId);
-    if (!keys) return res.status(400).json({ error: 'Alpaca 키가 등록되지 않았습니다.' });
+    if (!keys) return res.status(200).json({ ok: false, no_account: true, error: 'Alpaca 계좌를 먼저 등록해주세요.', positions: [], orders: [] });
     try {
       const alpacaPath = req.originalUrl.split('?')[0].replace('/api/alpaca-user', '');
       const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
