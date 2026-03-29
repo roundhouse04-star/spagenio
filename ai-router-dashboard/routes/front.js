@@ -336,7 +336,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         return { game_index: pick.game_index, numbers: nums, matched, rank, has_bonus: hasBonus };
       });
       res.json({ ok: true, winning, bonus, results, drw_no });
-    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+    } catch (e) { res.json({ ok: false, skipped: true, error: e.message }); }
   });
 
   router.post('/api/lotto/picks', (req, res) => {
