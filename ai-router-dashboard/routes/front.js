@@ -416,6 +416,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
     if (existing) { db.prepare('UPDATE lotto_schedule SET enabled=?,days=?,hour=?,game_count=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled ? 1 : 0, days, hour, game_count, req.user.id); }
     else { db.prepare('INSERT INTO lotto_schedule (user_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, days, hour, game_count); }
+    // 스케줄 변경 이력 저장 (현재 날짜 기준 회차 계산)
+    const today = new Date().toISOString().split('T')[0];
+    const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
+    const userId = req.user.user_id || req.user.id;
+    db.prepare('INSERT INTO lotto_schedule_log (user_id, days, hour, game_count, drw_no) VALUES (?,?,?,?,?)').run(userId, days, hour, game_count, drw_no);
     res.json({ ok: true });
   });
 
