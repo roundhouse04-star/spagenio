@@ -627,28 +627,13 @@
 
         if (btn) { btn.disabled = true; btn.textContent = '확인 중...'; }
         const gamesEl = $id('lotto-detail-games');
-        if (gamesEl) gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;text-align:center;">⏳ 동행복권 당첨번호 확인 중...</div>';
+        if (gamesEl) gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;text-align:center;">⏳ 당첨번호 확인 중...</div>';
 
         try {
-          // 1단계: 브라우저에서 직접 동행복권 API 호출
-          let winning, bonus;
-          try {
-            const lottoRes = await fetch(
-              `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${parseInt(drw_no)}`
-            );
-            const lottoData = await lottoRes.json();
-            if (lottoData.returnValue !== 'success') throw new Error(`${drw_no}회 당첨 정보가 없습니다.`);
-            winning = [lottoData.drwtNo1, lottoData.drwtNo2, lottoData.drwtNo3, lottoData.drwtNo4, lottoData.drwtNo5, lottoData.drwtNo6];
-            bonus = lottoData.bnusNo;
-          } catch(fetchErr) {
-            throw new Error('동행복권 조회 실패: ' + fetchErr.message);
-          }
-
-          // 2단계: 당첨번호를 서버로 전달 → DB 픽과 대조 + 저장
           const r = await fetch('/api/lotto/picks/check', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pick_date: date, drw_no: parseInt(drw_no), winning, bonus })
+            body: JSON.stringify({ pick_date: date, drw_no: parseInt(drw_no) })
           });
           const d = await r.json();
           if (!d.ok) throw new Error(d.error || '확인 실패');

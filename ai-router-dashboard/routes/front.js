@@ -304,15 +304,24 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.post('/api/lotto/picks/check', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    // winning/bonus는 브라우저에서 동행복권 API 직접 호출 후 전달받음
-    const { pick_date, drw_no, winning, bonus } = req.body;
+    const { pick_date, drw_no } = req.body;
     if (!pick_date || !drw_no) return res.status(400).json({ error: 'pick_date, drw_no 필수' });
-    if (!Array.isArray(winning) || winning.length !== 6 || bonus == null) {
-      return res.status(400).json({ error: '당첨번호(winning, bonus)가 전달되지 않았습니다.' });
-    }
     try {
+      // lotto.oot.kr JSON API로 당첨번호 조회 (동행복권 데이터 기반)
+      const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!apiRes.ok) return res.status(400).json({ ok: false, error: `${drw_no}회 당첨 정보를 가져올 수 없습니다.` });
+      const data = await apiRes.json();
+      if (!data.drwtNo1) return res.status(400).json({ ok: false, error: `${drw_no}회 당첨 정보가 없습니다.` });
+
+      const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+      const bonus = data.bnusNo;
+
       const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(req.user.id, pick_date);
-      if (!picks.length) return res.status(404).json({ error: '해당 날짜의 추천 번호가 없습니다.' });
+      if (!picks.length) return res.status(404).json({ ok: false, error: '해당 날짜의 추천 번호가 없습니다.' });
+
       const results = picks.map(pick => {
         const nums = JSON.parse(pick.numbers);
         const matched = nums.filter(n => winning.includes(n)).length;
@@ -327,7 +336,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         return { game_index: pick.game_index, numbers: nums, matched, rank, has_bonus: hasBonus };
       });
       res.json({ ok: true, winning, bonus, results, drw_no });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
   router.get('/api/lotto/schedule', (req, res) => {
