@@ -288,9 +288,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     // admin은 users 테이블 id(user_id) 사용, 없으면 저장 불가
     const userId = req.user.user_id || req.user.id;
     if (!userId) return res.status(400).json({ error: '저장 가능한 유저 계정이 없습니다.' });
+    // 날짜 기반으로 로또 회차 미리 계산 (2002-12-07 = 1회차)
+    const estimatedDrwNo = Math.floor((new Date(pick_date) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
     db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(userId, pick_date);
-    const stmt = db.prepare('INSERT INTO lotto_picks (user_id, pick_date, game_index, numbers, algorithms) VALUES (?,?,?,?,?)');
-    games.forEach((nums, i) => stmt.run(userId, pick_date, i, JSON.stringify(nums), algorithms || ''));
+    const stmt = db.prepare('INSERT INTO lotto_picks (user_id, pick_date, game_index, numbers, algorithms, drw_no) VALUES (?,?,?,?,?,?)');
+    games.forEach((nums, i) => stmt.run(userId, pick_date, i, JSON.stringify(nums), algorithms || '', estimatedDrwNo));
     res.json({ ok: true, saved: games.length });
   });
 
@@ -340,18 +342,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/lotto/picks/unconfirmed', (req, res) => {
     if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
     try {
-      // 당첨 회차가 없는 픽을 날짜+유저별로 그룹화
-      // 날짜 기준으로 해당 로또 회차 계산 (2002-12-07 = 1회차)
-      const rows = db.prepare(`
-        SELECT DISTINCT lp.pick_date, lp.user_id,
-          (CAST((julianday(lp.pick_date) - julianday('2002-12-07')) / 7 AS INTEGER) + 1) as drw_no
-        FROM lotto_picks lp
-        WHERE lp.drw_no IS NULL OR lp.drw_no = 0
-        ORDER BY lp.pick_date DESC
-      `).all();
-      // 미래 날짜 또는 오늘 제외 (아직 추첨 안 됐을 수 있음)
       const today = new Date().toISOString().split('T')[0];
-      const unconfirmed = rows.filter(r => r.pick_date < today && r.drw_no > 0);
+      // rank가 없고 오늘 이전 픽만 조회 (drw_no는 저장 시 이미 계산됨)
+      const unconfirmed = db.prepare(`
+        SELECT DISTINCT pick_date, drw_no
+        FROM lotto_picks
+        WHERE rank IS NULL AND pick_date < ?
+        ORDER BY pick_date DESC
+      `).all(today);
       res.json({ ok: true, unconfirmed });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
