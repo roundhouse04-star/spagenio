@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 const router = express.Router();
 
-export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decryptEmail, saveErrorLog, errorLogDir, fs, logClients, __dirname }) {
+export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, logger, decryptEmail, saveErrorLog, errorLogDir, fs, logClients, __dirname }) {
 
   // ✅ 어드민 페이지
   router.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
@@ -104,8 +104,12 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).end();
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const streamUser = db.prepare('SELECT a.id, 1 as is_admin FROM admins a WHERE a.id=? AND a.is_active=1').get(decoded.id); if (!streamUser?.is_admin) return res.status(403).end();
+      // ADMIN_JWT_SECRET으로 먼저 검증, 실패 시 JWT_SECRET 시도
+      let decoded;
+      try { decoded = jwt.verify(token, ADMIN_JWT_SECRET); }
+      catch(e) { decoded = jwt.verify(token, JWT_SECRET); }
+      const streamUser = db.prepare('SELECT a.id, 1 as is_admin FROM admins a WHERE a.id=? AND a.is_active=1').get(decoded.id);
+      if (!streamUser?.is_admin) return res.status(403).end();
     } catch (e) { return res.status(401).end(); }
 
     res.setHeader('Content-Type', 'text/event-stream');
