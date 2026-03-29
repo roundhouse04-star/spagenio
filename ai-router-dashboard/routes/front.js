@@ -366,9 +366,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
         signal: AbortSignal.timeout(10000)
       });
-      if (!apiRes.ok) return res.status(400).json({ ok: false, error: `${drw_no}회 당첨 정보를 가져올 수 없습니다.` });
+      // 당첨 정보 없으면 에러 말고 스킵
+      if (!apiRes.ok) return res.json({ ok: false, skipped: true, error: `${drw_no}회 당첨 정보 없음 (아직 추첨 전)` });
       const data = await apiRes.json();
-      if (!data.drwtNo1) return res.status(400).json({ ok: false, error: `${drw_no}회 당첨 정보가 없습니다.` });
+      if (!data.drwtNo1) return res.json({ ok: false, skipped: true, error: `${drw_no}회 당첨 정보 없음` });
 
       const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
       const bonus = data.bnusNo;

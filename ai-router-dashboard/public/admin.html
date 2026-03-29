@@ -1677,6 +1677,7 @@
             });
             const result = await res.json();
             if (result.ok) success++;
+            else if (result.skipped) {} // 당첨 정보 없으면 스킵
             else fail++;
           } catch(e) { fail++; }
           btn.textContent = `확인 중... (${i+1}/${total})`;
