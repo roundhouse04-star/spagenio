@@ -1,143 +1,526 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>관리자 - AI Router Dashboard</title>
   <style>
     :root {
-      --bg: #f1f3f5; --panel: #ffffff; --panel2: #f8f9fa;
-      --text: #0f172a; --muted: #6b7280; --line: #e5e7eb;
-      --accent: #6366f1; --success: #10b981; --danger: #ef4444; --warn: #f59e0b;
+      --bg: #f1f3f5;
+      --panel: #ffffff;
+      --panel2: #f8f9fa;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #6366f1;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warn: #f59e0b;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
 
     /* 레이아웃 */
-    .layout { display: flex; min-height: 100vh; }
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
     .sidebar {
-      width: 220px; background: var(--panel); border-right: 1px solid var(--line);
-      padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; position: fixed; height: 100vh; overflow-y: auto;
+      width: 220px;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
     }
-    .sidebar-title { font-size: 1rem; font-weight: 800; color: var(--accent); margin-bottom: 16px; padding: 0 8px; }
+
+    .sidebar-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 16px;
+      padding: 0 8px;
+    }
+
     .nav-btn {
-      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-      border-radius: 12px; border: none; background: transparent; color: var(--muted);
-      cursor: pointer; font-size: 0.9rem; font-weight: 600; width: 100%; text-align: left; transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s;
     }
-    .nav-btn:hover { background: rgba(99,102,241,0.08); color: var(--text); }
-    .nav-btn.active { background: rgba(99,102,241,0.12); color: var(--accent); }
-    .nav-divider { height: 1px; background: var(--line); margin: 8px 0; }
-    .sidebar-bottom { margin-top: auto; }
-    .main { margin-left: 220px; padding: 30px; flex: 1; }
-    .page { display: none; }
-    .page.active { display: block; }
-    .page-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 24px; color: var(--text); }
+
+    .nav-btn:hover {
+      background: rgba(99, 102, 241, 0.08);
+      color: var(--text);
+    }
+
+    .nav-btn.active {
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent);
+    }
+
+    .nav-divider {
+      height: 1px;
+      background: var(--line);
+      margin: 8px 0;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+    }
+
+    .main {
+      margin-left: 220px;
+      padding: 30px;
+      flex: 1;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .page-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
 
     /* 카드 */
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-    .card-title { font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     /* 통계 그리드 */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
-    .stat-box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .stat-num { font-size: 2rem; font-weight: 800; }
-    .stat-label { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
-    .stat-box.accent .stat-num { color: var(--accent); }
-    .stat-box.success .stat-num { color: var(--success); }
-    .stat-box.danger .stat-num { color: var(--danger); }
-    .stat-box.warn .stat-num { color: var(--warn); }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+
+    .stat-box.accent .stat-num {
+      color: var(--accent);
+    }
+
+    .stat-box.success .stat-num {
+      color: var(--success);
+    }
+
+    .stat-box.danger .stat-num {
+      color: var(--danger);
+    }
+
+    .stat-box.warn .stat-num {
+      color: var(--warn);
+    }
 
     /* 테이블 */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th { background: var(--panel2); color: var(--muted); font-weight: 700; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
-    td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; color: var(--text); }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(99,102,241,0.03); }
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      background: var(--panel2);
+      color: var(--muted);
+      font-weight: 700;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      color: var(--text);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(99, 102, 241, 0.03);
+    }
 
     /* 배지 */
-    .badge { padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; display: inline-block; }
-    .badge.success { background: rgba(16,185,129,0.12); color: var(--success); }
-    .badge.danger { background: rgba(239,68,68,0.12); color: var(--danger); }
-    .badge.warn { background: rgba(245,158,11,0.12); color: var(--warn); }
-    .badge.info { background: rgba(99,102,241,0.12); color: var(--accent); }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .badge.success {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+    }
+
+    .badge.danger {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+    }
+
+    .badge.warn {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warn);
+    }
+
+    .badge.info {
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent);
+    }
 
     /* 입력 */
-    .search-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-    input[type="text"], select {
-      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-      padding: 9px 14px; color: var(--text); font-size: 0.9rem; outline: none;
+    .search-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
     }
-    input[type="text"]:focus, select:focus { border-color: var(--accent); }
-    .btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-weight: 700; cursor: pointer; font-size: 0.9rem; }
-    .btn:hover { opacity: 0.9; }
-    .btn.danger { background: var(--danger); color: #fff; }
-    .btn.secondary { background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
-    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    input[type="text"],
+    select {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 14px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn.danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn.secondary {
+      background: var(--panel2);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .btn.secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     /* 초대 코드 */
-    .invite-box { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .code-display { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 20px; font-family: monospace; font-size: 1.2rem; font-weight: 800; letter-spacing: 4px; color: var(--success); min-width: 160px; text-align: center; }
+    .invite-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .code-display {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 4px;
+      color: var(--success);
+      min-width: 160px;
+      text-align: center;
+    }
 
     /* 차트 바 */
-    .bar-chart { display: flex; flex-direction: column; gap: 8px; }
-    .bar-row { display: flex; align-items: center; gap: 10px; }
-    .bar-label { color: var(--muted); font-size: 0.82rem; min-width: 80px; text-align: right; }
-    .bar-wrap { flex: 1; background: var(--panel2); border-radius: 6px; height: 20px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 6px; background: var(--accent); transition: width 0.5s; }
-    .bar-val { color: var(--text); font-size: 0.82rem; min-width: 40px; }
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-    .hourly-chart { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
-    .hour-bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-width: 8px; transition: height 0.4s; opacity: 0.7; }
-    .hour-bar:hover { opacity: 1; }
-    .hour-labels { display: flex; gap: 3px; margin-top: 4px; }
-    .hour-label { flex: 1; text-align: center; font-size: 0.65rem; color: var(--muted); }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-    .empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 30px; }
-    .tag { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
-    .err-menu-item:hover { background: var(--panel2); }
-    .err-menu-item.active { background: rgba(239,68,68,0.08); color: var(--danger) !important; font-weight: 700; }
-  /* ===== 커스텀 모달 ===== */
-  .sp-modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.35);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999;
-    backdrop-filter: blur(2px);
-  }
-  .sp-modal {
-    background: #fff;
-    border-radius: 16px;
-    padding: 28px 28px 20px;
-    width: 360px;
-    max-width: 90vw;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    animation: modalIn .15s ease;
-  }
-  @keyframes modalIn {
-    from { transform: scale(0.94); opacity: 0; }
-    to   { transform: scale(1);    opacity: 1; }
-  }
-  .sp-modal-icon { font-size: 1.8rem; margin-bottom: 10px; }
-  .sp-modal-title { font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
-  .sp-modal-msg { font-size: 0.88rem; color: #64748b; line-height: 1.6; margin-bottom: 20px; }
-  .sp-modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .sp-modal-btn {
-    padding: 8px 20px; border-radius: 8px; font-size: 0.88rem;
-    font-weight: 700; cursor: pointer; border: none; transition: all .15s;
-  }
-  .sp-modal-btn.cancel { background: #f1f5f9; color: #64748b; }
-  .sp-modal-btn.cancel:hover { background: #e2e8f0; }
-  .sp-modal-btn.confirm { background: #6366f1; color: #fff; }
-  .sp-modal-btn.confirm:hover { background: #4f46e5; }
-  .sp-modal-btn.danger { background: #ef4444; color: #fff; }
-  .sp-modal-btn.danger:hover { background: #dc2626; }
+    .bar-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .bar-wrap {
+      flex: 1;
+      background: var(--panel2);
+      border-radius: 6px;
+      height: 20px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: var(--accent);
+      transition: width 0.5s;
+    }
+
+    .bar-val {
+      color: var(--text);
+      font-size: 0.82rem;
+      min-width: 40px;
+    }
+
+    .hourly-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 80px;
+    }
+
+    .hour-bar {
+      flex: 1;
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+      min-width: 8px;
+      transition: height 0.4s;
+      opacity: 0.7;
+    }
+
+    .hour-bar:hover {
+      opacity: 1;
+    }
+
+    .hour-labels {
+      display: flex;
+      gap: 3px;
+      margin-top: 4px;
+    }
+
+    .hour-label {
+      flex: 1;
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .tag {
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .err-menu-item:hover {
+      background: var(--panel2);
+    }
+
+    .err-menu-item.active {
+      background: rgba(239, 68, 68, 0.08);
+      color: var(--danger) !important;
+      font-weight: 700;
+    }
+
+    /* ===== 커스텀 모달 ===== */
+    .sp-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(2px);
+    }
+
+    .sp-modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 28px 20px;
+      width: 360px;
+      max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      animation: modalIn .15s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        transform: scale(0.94);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .sp-modal-icon {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    .sp-modal-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .sp-modal-msg {
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .sp-modal-btns {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .sp-modal-btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all .15s;
+    }
+
+    .sp-modal-btn.cancel {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .sp-modal-btn.cancel:hover {
+      background: #e2e8f0;
+    }
+
+    .sp-modal-btn.confirm {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .sp-modal-btn.confirm:hover {
+      background: #4f46e5;
+    }
+
+    .sp-modal-btn.danger {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .sp-modal-btn.danger:hover {
+      background: #dc2626;
+    }
   </style>
 </head>
+
 <body>
   <!-- 커스텀 모달 -->
-  <div id="spModalOverlay" class="sp-modal-overlay" style="display:none;" onclick="if(event.target===this)_spModalReject()">
+  <div id="spModalOverlay" class="sp-modal-overlay" style="display:none;"
+    onclick="if(event.target===this)_spModalReject()">
     <div class="sp-modal">
       <div class="sp-modal-icon" id="spModalIcon">⚠️</div>
       <div class="sp-modal-title" id="spModalTitle"></div>
@@ -153,7 +536,9 @@
         <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">관리자 계정</div>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:0.95rem;font-weight:800;color:var(--accent);" id="adminUsernameDisplay">⚙️ ...</div>
-          <button onclick="adminLogout()" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#ef4444;cursor:pointer;font-weight:600;">🚪 로그아웃</button>
+          <button onclick="adminLogout()"
+            style="font-size:0.75rem;padding:4px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#ef4444;cursor:pointer;font-weight:600;">🚪
+            로그아웃</button>
         </div>
       </div>
       <button class="nav-btn active" onclick="showPage('overview')">📊 개요</button>
@@ -182,12 +567,30 @@
       <div class="page active" id="page-overview">
         <div class="page-title">📊 개요</div>
         <div class="stat-grid" id="overviewStats">
-          <div class="stat-box accent"><div class="stat-num" id="ov-total">-</div><div class="stat-label">전체 요청</div></div>
-          <div class="stat-box success"><div class="stat-num" id="ov-login">-</div><div class="stat-label">로그인 성공</div></div>
-          <div class="stat-box danger"><div class="stat-num" id="ov-fail">-</div><div class="stat-label">로그인 실패</div></div>
-          <div class="stat-box warn"><div class="stat-num" id="ov-suspicious">-</div><div class="stat-label">의심 접근</div></div>
-          <div class="stat-box accent"><div class="stat-num" id="ov-ips">-</div><div class="stat-label">고유 IP</div></div>
-          <div class="stat-box success"><div class="stat-num" id="ov-users">-</div><div class="stat-label">가입자 수</div></div>
+          <div class="stat-box accent">
+            <div class="stat-num" id="ov-total">-</div>
+            <div class="stat-label">전체 요청</div>
+          </div>
+          <div class="stat-box success">
+            <div class="stat-num" id="ov-login">-</div>
+            <div class="stat-label">로그인 성공</div>
+          </div>
+          <div class="stat-box danger">
+            <div class="stat-num" id="ov-fail">-</div>
+            <div class="stat-label">로그인 실패</div>
+          </div>
+          <div class="stat-box warn">
+            <div class="stat-num" id="ov-suspicious">-</div>
+            <div class="stat-label">의심 접근</div>
+          </div>
+          <div class="stat-box accent">
+            <div class="stat-num" id="ov-ips">-</div>
+            <div class="stat-label">고유 IP</div>
+          </div>
+          <div class="stat-box success">
+            <div class="stat-num" id="ov-users">-</div>
+            <div class="stat-label">가입자 수</div>
+          </div>
         </div>
 
         <div class="card">
@@ -198,7 +601,9 @@
 
         <div class="card">
           <div class="card-title">⚠️ 최근 의심 접근</div>
-          <div id="recentSuspicious"><p class="empty">로딩 중...</p></div>
+          <div id="recentSuspicious">
+            <p class="empty">로딩 중...</p>
+          </div>
         </div>
       </div>
 
@@ -209,8 +614,22 @@
           <div class="card-title">📅 일별 통계 (최근 30일)</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>날짜</th><th>전체 요청</th><th>고유 IP</th><th>활성 유저</th><th>로그인</th><th>실패</th><th>의심</th></tr></thead>
-              <tbody id="dailyStatsTable"><tr><td colspan="7" class="empty">로딩 중...</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>날짜</th>
+                  <th>전체 요청</th>
+                  <th>고유 IP</th>
+                  <th>활성 유저</th>
+                  <th>로그인</th>
+                  <th>실패</th>
+                  <th>의심</th>
+                </tr>
+              </thead>
+              <tbody id="dailyStatsTable">
+                <tr>
+                  <td colspan="7" class="empty">로딩 중...</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -218,8 +637,20 @@
           <div class="card-title">👤 유저별 접속 통계</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>유저명</th><th>전체 요청</th><th>활동일수</th><th>첫 접속</th><th>마지막 접속</th></tr></thead>
-              <tbody id="userStatsTable"><tr><td colspan="5" class="empty">로딩 중...</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>유저명</th>
+                  <th>전체 요청</th>
+                  <th>활동일수</th>
+                  <th>첫 접속</th>
+                  <th>마지막 접속</th>
+                </tr>
+              </thead>
+              <tbody id="userStatsTable">
+                <tr>
+                  <td colspan="5" class="empty">로딩 중...</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -230,14 +661,29 @@
         <div class="page-title">👥 가입자 관리</div>
         <div class="card">
           <div class="search-row">
-            <input type="text" id="userSearch" placeholder="아이디 검색..." onkeyup="if(event.key==='Enter') loadUsers()" style="flex:1;" />
+            <input type="text" id="userSearch" placeholder="아이디 검색..." onkeyup="if(event.key==='Enter') loadUsers()"
+              style="flex:1;" />
             <button class="btn" onclick="loadUsers()">검색</button>
-            <button class="btn secondary" onclick="document.getElementById('userSearch').value=''; loadUsers()">초기화</button>
+            <button class="btn secondary"
+              onclick="document.getElementById('userSearch').value=''; loadUsers()">초기화</button>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>아이디</th><th>이메일</th><th>가입일</th><th>마지막 로그인</th><th>관리</th></tr></thead>
-              <tbody id="usersTable"><tr><td colspan="6" class="empty">로딩 중...</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>아이디</th>
+                  <th>이메일</th>
+                  <th>가입일</th>
+                  <th>마지막 로그인</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="usersTable">
+                <tr>
+                  <td colspan="6" class="empty">로딩 중...</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -257,7 +703,9 @@
         </div>
         <div class="card">
           <div class="card-title">비밀번호 초기화 요청</div>
-          <div id="requestList"><p class="empty">로딩 중...</p></div>
+          <div id="requestList">
+            <p class="empty">로딩 중...</p>
+          </div>
         </div>
       </div>
 
@@ -276,7 +724,9 @@
             </select>
             <button class="btn" onclick="loadLogs()">새로고침</button>
           </div>
-          <div id="logList"><p class="empty">로딩 중...</p></div>
+          <div id="logList">
+            <p class="empty">로딩 중...</p>
+          </div>
           <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
             <button class="btn secondary" id="prevPage" onclick="changePage(-1)">← 이전</button>
             <span id="pageInfo" style="color:var(--muted);padding:8px 16px;"></span>
@@ -293,14 +743,27 @@
         </div>
         <div class="card">
           <div class="card-title">🔝 접속 IP TOP 10</div>
-          <div class="bar-chart" id="topIpsChart"><p class="empty">로딩 중...</p></div>
+          <div class="bar-chart" id="topIpsChart">
+            <p class="empty">로딩 중...</p>
+          </div>
         </div>
         <div class="card">
           <div class="card-title">❌ 최근 로그인 실패</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>시간</th><th>IP</th><th>경로</th><th>User-Agent</th></tr></thead>
-              <tbody id="recentFailed"><tr><td colspan="4" class="empty">로딩 중...</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>IP</th>
+                  <th>경로</th>
+                  <th>User-Agent</th>
+                </tr>
+              </thead>
+              <tbody id="recentFailed">
+                <tr>
+                  <td colspan="4" class="empty">로딩 중...</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -316,11 +779,13 @@
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
             <div style="flex:1;min-width:140px;">
               <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;">소스 이름</div>
-              <input id="rssNewName" type="text" placeholder="예: Reuters" class="input-box" style="width:100%;box-sizing:border-box;" />
+              <input id="rssNewName" type="text" placeholder="예: Reuters" class="input-box"
+                style="width:100%;box-sizing:border-box;" />
             </div>
             <div style="flex:2;min-width:200px;">
               <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;">RSS URL</div>
-              <input id="rssNewUrl" type="text" placeholder="예: https://rsshub.app/reuters/world" class="input-box" style="width:100%;box-sizing:border-box;" />
+              <input id="rssNewUrl" type="text" placeholder="예: https://rsshub.app/reuters/world" class="input-box"
+                style="width:100%;box-sizing:border-box;" />
             </div>
             <div style="flex:0 0 auto;">
               <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;">카테고리</div>
@@ -331,10 +796,12 @@
                 <option value="korea">🇰🇷 한국</option>
               </select>
             </div>
-            <button onclick="adminAddRssSource()" class="btn" style="flex:0 0 auto;height:42px;padding:0 20px;">추가</button>
+            <button onclick="adminAddRssSource()" class="btn"
+              style="flex:0 0 auto;height:42px;padding:0 20px;">추가</button>
           </div>
           <div style="margin-top:12px;font-size:0.8rem;color:var(--muted);">
-            💡 RSSHub 경로 예시: <code style="background:var(--panel2);padding:2px 6px;border-radius:4px;">https://rsshub.app/reuters/world</code>
+            💡 RSSHub 경로 예시: <code
+              style="background:var(--panel2);padding:2px 6px;border-radius:4px;">https://rsshub.app/reuters/world</code>
           </div>
         </div>
 
@@ -342,7 +809,8 @@
         <div class="card">
           <div class="card-title" style="justify-content:space-between;">
             <span>🔍 RSS 수집 테스트</span>
-            <button onclick="adminTestRss()" class="btn" id="rssTestBtn" style="background:#6366f1;color:#fff;padding:6px 18px;">▶ 전체 수집 테스트</button>
+            <button onclick="adminTestRss()" class="btn" id="rssTestBtn"
+              style="background:#6366f1;color:#fff;padding:6px 18px;">▶ 전체 수집 테스트</button>
           </div>
           <div id="rssTestResult" style="margin-top:12px;font-size:0.85rem;"></div>
         </div>
@@ -351,7 +819,8 @@
         <div class="card">
           <div class="card-title" style="justify-content:space-between;">
             <span>📋 등록된 RSS 소스</span>
-            <button onclick="adminLoadRssSources()" class="btn" style="font-size:0.78rem;padding:4px 12px;">🔄 새로고침</button>
+            <button onclick="adminLoadRssSources()" class="btn" style="font-size:0.78rem;padding:4px 12px;">🔄
+              새로고침</button>
           </div>
           <div class="table-wrap">
             <table id="rssSourceTable">
@@ -365,7 +834,9 @@
                 </tr>
               </thead>
               <tbody id="rssSourceBody">
-                <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted);">로딩 중...</td></tr>
+                <tr>
+                  <td colspan="5" style="padding:20px;text-align:center;color:var(--muted);">로딩 중...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -383,15 +854,19 @@
             <div class="card-title" style="margin-bottom:0;">🎭 관리자 롤</div>
             <button class="btn" onclick="showAddRoleForm()">+ 롤 추가</button>
           </div>
-          <div id="addRoleForm" style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
+          <div id="addRoleForm"
+            style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <input type="text" id="newRoleName" placeholder="롤 이름 (예: manager)" style="flex:1;" />
               <input type="text" id="newRoleDesc" placeholder="설명" style="flex:2;" />
               <button class="btn" onclick="addRole()">추가</button>
-              <button class="btn secondary" onclick="document.getElementById('addRoleForm').style.display='none'">취소</button>
+              <button class="btn secondary"
+                onclick="document.getElementById('addRoleForm').style.display='none'">취소</button>
             </div>
           </div>
-          <div id="roleList"><p class="empty">로딩 중...</p></div>
+          <div id="roleList">
+            <p class="empty">로딩 중...</p>
+          </div>
         </div>
 
         <!-- 관리자 목록 -->
@@ -400,28 +875,46 @@
             <div class="card-title" style="margin-bottom:0;">👤 관리자 목록</div>
             <button class="btn" onclick="showAddAdminForm()">+ 관리자 추가</button>
           </div>
-          <div id="addAdminForm" style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
+          <div id="addAdminForm"
+            style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
               <input type="text" id="newAdminUsername" placeholder="아이디" />
               <input type="password" id="newAdminPassword" placeholder="비밀번호" />
               <input type="email" id="newAdminEmail" placeholder="이메일 (선택)" />
-              <select id="newAdminRole"><option value="">롤 선택...</option></select>
+              <select id="newAdminRole">
+                <option value="">롤 선택...</option>
+              </select>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn secondary" onclick="document.getElementById('addAdminForm').style.display='none'">취소</button>
+              <button class="btn secondary"
+                onclick="document.getElementById('addAdminForm').style.display='none'">취소</button>
               <button class="btn" onclick="addAdmin()">추가</button>
             </div>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>아이디</th><th>이메일</th><th>롤</th><th>상태</th><th>마지막 로그인</th><th>관리</th></tr></thead>
-              <tbody id="adminList"><tr><td colspan="7" class="empty">로딩 중...</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>아이디</th>
+                  <th>이메일</th>
+                  <th>롤</th>
+                  <th>상태</th>
+                  <th>마지막 로그인</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="adminList">
+                <tr>
+                  <td colspan="7" class="empty">로딩 중...</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
       </div>
 
-            <div class="page" id="page-lotto">
+      <div class="page" id="page-lotto">
         <div class="page-title">🍀 로또 관리</div>
 
         <!-- 통계 -->
@@ -445,11 +938,14 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div style="font-weight:700;">⚙️ 알고리즘 비중</div>
             <div style="display:flex;gap:8px;">
-              <button onclick="lottoResetWeights()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
-              <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()" class="btn" style="background:#6366f1;color:#fff;font-size:0.82rem;">💾 저장</button>
+              <button onclick="lottoResetWeights()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
+              <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()" class="btn"
+                style="background:#6366f1;color:#fff;font-size:0.82rem;">💾 저장</button>
             </div>
           </div>
-          <div id="lotto-algo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+          <div id="lotto-algo-grid"
+            style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
         </div>
 
         <!-- 번호 추천 -->
@@ -464,8 +960,10 @@
             </select>
           </div>
           <div style="display:flex;gap:8px;margin-bottom:16px;">
-            <button onclick="lottoGenerate()" class="btn" style="flex:1;background:#6366f1;color:#fff;">🎯 번호 추천받기</button>
-            <button onclick="lottoSaveAndSend()" class="btn" style="background:#229ED9;color:#fff;white-space:nowrap;">💾 저장+전송</button>
+            <button onclick="lottoGenerate()" class="btn" style="flex:1;background:#6366f1;color:#fff;">🎯 번호
+              추천받기</button>
+            <button onclick="lottoSaveAndSend()" class="btn"
+              style="background:#229ED9;color:#fff;white-space:nowrap;">💾 저장+전송</button>
           </div>
           <div id="lotto-results">
             <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
@@ -484,7 +982,8 @@
               <input id="lotto-tg-token" type="password" placeholder="Bot Token" class="input-box">
               <div style="display:flex;gap:8px;">
                 <button onclick="lottoSaveTg()" class="btn" style="flex:1;background:#6366f1;color:#fff;">저장</button>
-                <button onclick="lottoTestTg()" class="btn" style="background:var(--panel2);color:var(--text);">테스트</button>
+                <button onclick="lottoTestTg()" class="btn"
+                  style="background:var(--panel2);color:var(--text);">테스트</button>
               </div>
             </div>
           </div>
@@ -494,8 +993,10 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div style="font-weight:700;">⏰ 자동 발송 설정</div>
               <div style="display:flex;gap:6px;">
-                <button onclick="lottoResetSchedule()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
-                <button onclick="lottoSaveSchedule()" class="btn" style="background:#6366f1;color:#fff;font-size:0.82rem;">저장</button>
+                <button onclick="lottoResetSchedule()" class="btn"
+                  style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
+                <button onclick="lottoSaveSchedule()" class="btn"
+                  style="background:#6366f1;color:#fff;font-size:0.82rem;">저장</button>
               </div>
             </div>
             <div style="margin-bottom:12px;">
@@ -514,29 +1015,48 @@
                 <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">발송 시각</div>
                 <select id="lotto-sch-hour" class="input-box">
                   <option value="" disabled selected>시각 선택</option>
-                  <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option>
-                  <option value="3">03시</option><option value="4">04시</option><option value="5">05시</option>
-                  <option value="6">06시</option><option value="7">07시</option><option value="8">08시</option>
-                  <option value="9">09시</option><option value="10">10시</option><option value="11">11시</option>
-                  <option value="12">12시</option><option value="13">13시</option><option value="14">14시</option>
-                  <option value="15">15시</option><option value="16">16시</option><option value="17">17시</option>
-                  <option value="18">18시</option><option value="19">19시</option><option value="20">20시</option>
-                  <option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
+                  <option value="0">00시</option>
+                  <option value="1">01시</option>
+                  <option value="2">02시</option>
+                  <option value="3">03시</option>
+                  <option value="4">04시</option>
+                  <option value="5">05시</option>
+                  <option value="6">06시</option>
+                  <option value="7">07시</option>
+                  <option value="8">08시</option>
+                  <option value="9">09시</option>
+                  <option value="10">10시</option>
+                  <option value="11">11시</option>
+                  <option value="12">12시</option>
+                  <option value="13">13시</option>
+                  <option value="14">14시</option>
+                  <option value="15">15시</option>
+                  <option value="16">16시</option>
+                  <option value="17">17시</option>
+                  <option value="18">18시</option>
+                  <option value="19">19시</option>
+                  <option value="20">20시</option>
+                  <option value="21">21시</option>
+                  <option value="22">22시</option>
+                  <option value="23">23시</option>
                 </select>
               </div>
               <div style="flex:1;">
                 <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">게임 수</div>
                 <select id="lotto-sch-count" class="input-box">
                   <option value="" disabled selected>게임 선택</option>
-                  <option value="1">1게임</option><option value="3">3게임</option>
-                  <option value="5">5게임</option><option value="10">10게임</option>
+                  <option value="1">1게임</option>
+                  <option value="3">3게임</option>
+                  <option value="5">5게임</option>
+                  <option value="10">10게임</option>
                 </select>
               </div>
             </div>
             <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-last"></div>
             <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-next"></div>
             <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감</div>
-            <div id="lotto-sch-current" style="margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px;">
+            <div id="lotto-sch-current"
+              style="margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px;">
               <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
               <div id="lotto-sch-current-text" style="font-size:0.85rem;">스케줄 없음</div>
             </div>
@@ -548,11 +1068,15 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div style="font-weight:700;">📋 추천 이력</div>
             <div style="display:flex;gap:8px;">
-              <button onclick="lottoCheckAllUnconfirmed()" class="btn" style="background:#6366f1;color:#fff;font-size:0.82rem;" id="lotto-check-all-btn">🎯 전체 당첨확인</button>
-              <button onclick="lottoLoadHistory()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+              <button onclick="lottoCheckAllUnconfirmed()" class="btn"
+                style="background:#6366f1;color:#fff;font-size:0.82rem;" id="lotto-check-all-btn">🎯 전체 당첨확인</button>
+              <button onclick="lottoLoadHistory()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
             </div>
           </div>
-          <div id="lotto-history-list"><div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div></div>
+          <div id="lotto-history-list">
+            <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+          </div>
         </div>
 
         <!-- 자동발송 이력 + 스케줄 이력 -->
@@ -560,16 +1084,22 @@
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div style="font-weight:700;">🤖 자동발송 이력</div>
-              <button onclick="lottoLoadAutoHistory()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+              <button onclick="lottoLoadAutoHistory()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
             </div>
-            <div id="lotto-auto-history-list"><div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div></div>
+            <div id="lotto-auto-history-list">
+              <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+            </div>
           </div>
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div style="font-weight:700;">📅 스케줄 이력</div>
-              <button onclick="lottoLoadScheduleLog()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+              <button onclick="lottoLoadScheduleLog()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
             </div>
-            <div id="lotto-schedule-log-list"><div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div></div>
+            <div id="lotto-schedule-log-list">
+              <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+            </div>
           </div>
         </div>
 
@@ -578,7 +1108,8 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div style="font-weight:700;" id="lotto-detail-title">📅 상세</div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input id="lotto-check-drwno" type="number" placeholder="회차 (예: 1162)" class="input-box" style="width:140px;">
+              <input id="lotto-check-drwno" type="number" placeholder="회차 (예: 1162)" class="input-box"
+                style="width:140px;">
               <button onclick="lottoCheckResult()" class="btn" style="background:#6366f1;color:#fff;">당첨 확인</button>
             </div>
           </div>
@@ -594,130 +1125,186 @@
           <!-- 왼쪽: 이벤트 타입 메뉴 -->
           <div style="min-width:180px;max-width:200px;">
             <div style="background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;">
-              <div style="padding:10px 14px;font-size:0.75rem;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);letter-spacing:0.05em;">이벤트</div>
+              <div
+                style="padding:10px 14px;font-size:0.75rem;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);letter-spacing:0.05em;">
+                이벤트</div>
               <!-- 전체 -->
               <div class="err-menu-item active" onclick="selectErrType('ALL',this)" data-type="ALL"
-                style="padding:10px 14px;font-size:0.83rem;cursor:pointer;border-bottom:1px solid var(--line);font-weight:600;color:var(--text);">전체</div>
+                style="padding:10px 14px;font-size:0.83rem;cursor:pointer;border-bottom:1px solid var(--line);font-weight:600;color:var(--text);">
+                전체</div>
               <!-- 서버 에러 -->
-              <div style="padding:6px 14px;font-size:0.7rem;font-weight:700;color:var(--danger);background:rgba(239,68,68,0.07);letter-spacing:0.04em;border-bottom:1px solid var(--line);">🔴 서버 에러</div>
+              <div
+                style="padding:6px 14px;font-size:0.7rem;font-weight:700;color:var(--danger);background:rgba(239,68,68,0.07);letter-spacing:0.04em;border-bottom:1px solid var(--line);">
+                🔴 서버 에러</div>
               <div class="err-menu-item" onclick="selectErrType('MAIL_ERROR',this)" data-type="MAIL_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">메일 발송 실패</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                메일 발송 실패</div>
               <div class="err-menu-item" onclick="selectErrType('CHECK_EMAIL_ERROR',this)" data-type="CHECK_EMAIL_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">이메일 중복 체크 오류</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                이메일 중복 체크 오류</div>
               <div class="err-menu-item" onclick="selectErrType('BROKER_KEY_ERROR',this)" data-type="BROKER_KEY_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">브로커 키 저장 오류</div>
-              <div class="err-menu-item" onclick="selectErrType('LOTTO_SCHEDULE_SAVE_ERROR',this)" data-type="LOTTO_SCHEDULE_SAVE_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">로또 스케줄 저장 오류</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                브로커 키 저장 오류</div>
+              <div class="err-menu-item" onclick="selectErrType('LOTTO_SCHEDULE_SAVE_ERROR',this)"
+                data-type="LOTTO_SCHEDULE_SAVE_ERROR"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                로또 스케줄 저장 오류</div>
               <div class="err-menu-item" onclick="selectErrType('AUTO_TRADE_ERROR',this)" data-type="AUTO_TRADE_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">자동매매 오류</div>
-              <div class="err-menu-item" onclick="selectErrType('AUTO_TRADE_SCHEDULER_ERROR',this)" data-type="AUTO_TRADE_SCHEDULER_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">자동매매 스케줄러 오류</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                자동매매 오류</div>
+              <div class="err-menu-item" onclick="selectErrType('AUTO_TRADE_SCHEDULER_ERROR',this)"
+                data-type="AUTO_TRADE_SCHEDULER_ERROR"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                자동매매 스케줄러 오류</div>
               <div class="err-menu-item" onclick="selectErrType('SERVER_ERROR',this)" data-type="SERVER_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">Express 미처리 에러</div>
-              <div class="err-menu-item" onclick="selectErrType('UNHANDLED_REJECTION',this)" data-type="UNHANDLED_REJECTION"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">미처리 Promise rejection</div>
-              <div class="err-menu-item" onclick="selectErrType('UNCAUGHT_EXCEPTION',this)" data-type="UNCAUGHT_EXCEPTION"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">미처리 예외</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                Express 미처리 에러</div>
+              <div class="err-menu-item" onclick="selectErrType('UNHANDLED_REJECTION',this)"
+                data-type="UNHANDLED_REJECTION"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                미처리 Promise rejection</div>
+              <div class="err-menu-item" onclick="selectErrType('UNCAUGHT_EXCEPTION',this)"
+                data-type="UNCAUGHT_EXCEPTION"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                미처리 예외</div>
               <!-- 사용자 에러 -->
-              <div style="padding:6px 14px;font-size:0.7rem;font-weight:700;color:var(--warn);background:rgba(245,158,11,0.07);letter-spacing:0.04em;border-bottom:1px solid var(--line);">🟠 사용자(front) 에러</div>
+              <div
+                style="padding:6px 14px;font-size:0.7rem;font-weight:700;color:var(--warn);background:rgba(245,158,11,0.07);letter-spacing:0.04em;border-bottom:1px solid var(--line);">
+                🟠 사용자(front) 에러</div>
               <div class="err-menu-item" onclick="selectErrType('FRONT_JS_ERROR',this)" data-type="FRONT_JS_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">JS 런타임 에러</div>
-              <div class="err-menu-item" onclick="selectErrType('FRONT_UNHANDLED_REJECTION',this)" data-type="FRONT_UNHANDLED_REJECTION"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">미처리 Promise</div>
-              <div class="err-menu-item" onclick="selectErrType('FRONT_API_SERVER_ERROR',this)" data-type="FRONT_API_SERVER_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">API 서버 에러</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                JS 런타임 에러</div>
+              <div class="err-menu-item" onclick="selectErrType('FRONT_UNHANDLED_REJECTION',this)"
+                data-type="FRONT_UNHANDLED_REJECTION"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                미처리 Promise</div>
+              <div class="err-menu-item" onclick="selectErrType('FRONT_API_SERVER_ERROR',this)"
+                data-type="FRONT_API_SERVER_ERROR"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                API 서버 에러</div>
               <div class="err-menu-item" onclick="selectErrType('FRONT_FETCH_ERROR',this)" data-type="FRONT_FETCH_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">네트워크 연결 실패</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                네트워크 연결 실패</div>
               <!-- 어드민 에러 -->
-              <div style="padding:6px 14px;font-size:0.7rem;font-weight:700;color:#c084fc;background:rgba(192,132,252,0.07);letter-spacing:0.04em;border-bottom:1px solid var(--line);">🟣 어드민(admin) 에러</div>
+              <div
+                style="padding:6px 14px;font-size:0.7rem;font-weight:700;color:#c084fc;background:rgba(192,132,252,0.07);letter-spacing:0.04em;border-bottom:1px solid var(--line);">
+                🟣 어드민(admin) 에러</div>
               <div class="err-menu-item" onclick="selectErrType('ADMIN_JS_ERROR',this)" data-type="ADMIN_JS_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">JS 런타임 에러</div>
-              <div class="err-menu-item" onclick="selectErrType('ADMIN_UNHANDLED_REJECTION',this)" data-type="ADMIN_UNHANDLED_REJECTION"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">미처리 Promise</div>
-              <div class="err-menu-item" onclick="selectErrType('ADMIN_API_SERVER_ERROR',this)" data-type="ADMIN_API_SERVER_ERROR"
-                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">API 서버 에러</div>
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                JS 런타임 에러</div>
+              <div class="err-menu-item" onclick="selectErrType('ADMIN_UNHANDLED_REJECTION',this)"
+                data-type="ADMIN_UNHANDLED_REJECTION"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                미처리 Promise</div>
+              <div class="err-menu-item" onclick="selectErrType('ADMIN_API_SERVER_ERROR',this)"
+                data-type="ADMIN_API_SERVER_ERROR"
+                style="padding:9px 14px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--text);">
+                API 서버 에러</div>
               <div class="err-menu-item" onclick="selectErrType('ADMIN_FETCH_ERROR',this)" data-type="ADMIN_FETCH_ERROR"
                 style="padding:9px 14px;font-size:0.82rem;cursor:pointer;color:var(--text);">네트워크 연결 실패</div>
             </div>
           </div>
 
-        <div style="display:flex;gap:16px;flex:1;">
-          <!-- 왼쪽: 달력 -->
-          <div style="min-width:220px;max-width:240px;">
-            <div style="background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                <button onclick="errCalPrev()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:2px 6px;border-radius:6px;">‹</button>
-                <div id="errCalTitle" style="font-size:0.85rem;font-weight:700;color:var(--text);"></div>
-                <button onclick="errCalNext()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:2px 6px;border-radius:6px;">›</button>
+          <div style="display:flex;gap:16px;flex:1;">
+            <!-- 왼쪽: 달력 -->
+            <div style="min-width:220px;max-width:240px;">
+              <div style="background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <button onclick="errCalPrev()"
+                    style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:2px 6px;border-radius:6px;">‹</button>
+                  <div id="errCalTitle" style="font-size:0.85rem;font-weight:700;color:var(--text);"></div>
+                  <button onclick="errCalNext()"
+                    style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:2px 6px;border-radius:6px;">›</button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px;">
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--danger);padding:2px;">일</div>
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">월</div>
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">화</div>
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">수</div>
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">목</div>
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">금</div>
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--accent);padding:2px;">토</div>
+                </div>
+                <div id="errCalGrid"
+                  style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;gap:1px;"></div>
               </div>
-              <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px;">
-                <div style="font-size:0.7rem;font-weight:700;color:var(--danger);padding:2px;">일</div>
-                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">월</div>
-                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">화</div>
-                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">수</div>
-                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">목</div>
-                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);padding:2px;">금</div>
-                <div style="font-size:0.7rem;font-weight:700;color:var(--accent);padding:2px;">토</div>
-              </div>
-              <div id="errCalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;gap:1px;"></div>
             </div>
-          </div>
 
-          <!-- 오른쪽: 로그 목록 -->
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <div style="font-size:0.82rem;font-weight:700;color:var(--muted);" id="errorLogDateLabel">날짜를 선택하세요</div>
-              <span id="errorLogCount" style="font-size:0.78rem;color:var(--muted);"></span>
-            </div>
-            <div style="overflow-x:auto;">
-              <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-                <thead>
-                  <tr>
-                    <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;width:140px;">시각</th>
-                    <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;width:200px;">이벤트</th>
-                    <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;">오류 메시지</th>
-                    <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;width:60px;">상세</th>
-                  </tr>
-                </thead>
-                <tbody id="errorLogTableBody">
-                  <tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted);">날짜를 선택하세요</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <!-- 세부사항 패널 -->
-            <div id="errorDetailPanel" style="display:none;margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <div style="font-size:0.88rem;font-weight:700;color:var(--danger);">🔍 세부사항</div>
-                <button onclick="document.getElementById('errorDetailPanel').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;">✕</button>
+            <!-- 오른쪽: 로그 목록 -->
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--muted);" id="errorLogDateLabel">날짜를 선택하세요
+                </div>
+                <span id="errorLogCount" style="font-size:0.78rem;color:var(--muted);"></span>
               </div>
-              <pre id="errorDetailContent" style="font-size:0.8rem;color:var(--text);white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;margin:0;background:transparent;border:none;padding:0;"></pre>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                  <thead>
+                    <tr>
+                      <th
+                        style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;width:140px;">
+                        시각</th>
+                      <th
+                        style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;width:200px;">
+                        이벤트</th>
+                      <th
+                        style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;">
+                        오류 메시지</th>
+                      <th
+                        style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;width:60px;">
+                        상세</th>
+                    </tr>
+                  </thead>
+                  <tbody id="errorLogTableBody">
+                    <tr>
+                      <td colspan="4" style="padding:20px;text-align:center;color:var(--muted);">날짜를 선택하세요</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- 세부사항 패널 -->
+              <div id="errorDetailPanel"
+                style="display:none;margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                  <div style="font-size:0.88rem;font-weight:700;color:var(--danger);">🔍 세부사항</div>
+                  <button onclick="document.getElementById('errorDetailPanel').style.display='none'"
+                    style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;">✕</button>
+                </div>
+                <pre id="errorDetailContent"
+                  style="font-size:0.8rem;color:var(--text);white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;margin:0;background:transparent;border:none;padding:0;"></pre>
+              </div>
             </div>
           </div>
-        </div>
         </div><!-- end flex -->
       </div>
 
       <div class="page" id="page-realtime">
         <div class="page-title">📡 실시간 로그</div>
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div
+            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
             <div style="display:flex;align-items:center;gap:10px;">
               <div id="sseStatus" style="width:10px;height:10px;border-radius:50%;background:#9ca3af;"></div>
               <span id="sseStatusText" style="color:var(--muted);font-size:0.88rem;">연결 안됨</span>
             </div>
             <div style="display:flex;gap:8px;">
-              <select id="logLevelFilter" onchange="filterLogs()" style="background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--text);font-size:0.85rem;">
+              <select id="logLevelFilter" onchange="filterLogs()"
+                style="background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--text);font-size:0.85rem;">
                 <option value="all">전체</option>
                 <option value="success">로그인 성공</option>
                 <option value="error">로그인 실패</option>
                 <option value="warn">의심/초과</option>
                 <option value="info">일반 요청</option>
               </select>
-              <button class="btn" onclick="clearLogs()" style="padding:6px 14px;font-size:0.85rem;background:var(--panel2);color:var(--muted);border:1px solid var(--line);">초기화</button>
-              <button class="btn" id="toggleSSE" onclick="toggleStream()" style="padding:6px 14px;font-size:0.85rem;">▶ 시작</button>
+              <button class="btn" onclick="clearLogs()"
+                style="padding:6px 14px;font-size:0.85rem;background:var(--panel2);color:var(--muted);border:1px solid var(--line);">초기화</button>
+              <button class="btn" id="toggleSSE" onclick="toggleStream()" style="padding:6px 14px;font-size:0.85rem;">▶
+                시작</button>
             </div>
           </div>
-          <div id="logStream" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;height:500px;overflow-y:auto;font-family:monospace;font-size:0.82rem;line-height:1.7;"></div>
+          <div id="logStream"
+            style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;height:500px;overflow-y:auto;font-family:monospace;font-size:0.82rem;line-height:1.7;">
+          </div>
         </div>
       </div>
 
@@ -770,7 +1357,7 @@
         const payload = JSON.parse(atob(adminToken.split('.')[1]));
         const el = document.getElementById('adminUsernameDisplay');
         if (el && payload.username) el.textContent = '⚙️ ' + payload.username;
-      } catch(e) {}
+      } catch (e) { }
     } else if (existingAuthToken) {
       // 일반 유저 토큰만 있는 경우 → 무효화 후 admin-login으로
       sessionStorage.removeItem('auth_token');
@@ -845,7 +1432,7 @@
         document.getElementById('topIpsChart').innerHTML = (d.top_ips || []).map(ip => `
           <div class="bar-row">
             <div class="bar-label">${ip.ip}</div>
-            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(ip.cnt/maxCnt*100)}%"></div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(ip.cnt / maxCnt * 100)}%"></div></div>
             <div class="bar-val">${ip.cnt}</div>
           </div>
         `).join('') || '<p class="empty">데이터 없음</p>';
@@ -859,10 +1446,10 @@
 
         // 최근 실패
         document.getElementById('recentFailed').innerHTML = (d.recent_failed || []).length
-          ? d.recent_failed.map(l => `<tr><td class="tag">${l.timestamp?.slice(0,16)}</td><td class="tag">${l.ip}</td><td class="tag">${l.path}</td><td class="tag" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.user_agent || '-'}</td></tr>`).join('')
+          ? d.recent_failed.map(l => `<tr><td class="tag">${l.timestamp?.slice(0, 16)}</td><td class="tag">${l.ip}</td><td class="tag">${l.path}</td><td class="tag" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.user_agent || '-'}</td></tr>`).join('')
           : '<tr><td colspan="4" class="empty">없음</td></tr>';
 
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     }
 
     // ===== 통계 =====
@@ -874,15 +1461,15 @@
 
         // 시간대 차트
         const maxH = Math.max(...(d.hourlyStats?.map(h => h.cnt) || [1]));
-        const hours = Array.from({length:24}, (_, i) => i);
+        const hours = Array.from({ length: 24 }, (_, i) => i);
         const hourMap = Object.fromEntries((d.hourlyStats || []).map(h => [parseInt(h.hour), h.cnt]));
         document.getElementById('hourlyChart').innerHTML = hours.map(h => {
           const cnt = hourMap[h] || 0;
-          const pct = maxH > 0 ? Math.round(cnt/maxH*100) : 0;
-          return `<div class="hour-bar" style="height:${Math.max(pct,2)}%" title="${h}시: ${cnt}건"></div>`;
+          const pct = maxH > 0 ? Math.round(cnt / maxH * 100) : 0;
+          return `<div class="hour-bar" style="height:${Math.max(pct, 2)}%" title="${h}시: ${cnt}건"></div>`;
         }).join('');
-        document.getElementById('hourLabels').innerHTML = [0,4,8,12,16,20,23].map(h =>
-          `<span style="flex:${h===0?1:h===23?1:4};font-size:0.65rem;color:var(--muted);">${h}시</span>`
+        document.getElementById('hourLabels').innerHTML = [0, 4, 8, 12, 16, 20, 23].map(h =>
+          `<span style="flex:${h === 0 ? 1 : h === 23 ? 1 : 4};font-size:0.65rem;color:var(--muted);">${h}시</span>`
         ).join('');
 
         // 일별 통계
@@ -904,12 +1491,12 @@
             <td><strong>${row.username}</strong></td>
             <td>${row.total_requests?.toLocaleString()}</td>
             <td>${row.active_days}일</td>
-            <td class="tag">${row.first_seen?.slice(0,16) || '-'}</td>
-            <td class="tag">${row.last_seen?.slice(0,16) || '-'}</td>
+            <td class="tag">${row.first_seen?.slice(0, 16) || '-'}</td>
+            <td class="tag">${row.last_seen?.slice(0, 16) || '-'}</td>
           </tr>
         `).join('') || '<tr><td colspan="5" class="empty">데이터 없음</td></tr>';
 
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     }
 
     // ===== 가입자 관리 =====
@@ -923,12 +1510,12 @@
             <td class="tag">#${u.id}</td>
             <td><strong>${u.username}</strong>${u.username === 'admin' ? ' <span class="badge info">관리자</span>' : ''}</td>
             <td class="tag">${u.email || '-'}</td>
-            <td class="tag">${u.created_at?.slice(0,16) || '-'}</td>
-            <td class="tag">${u.last_login?.slice(0,16) || '미접속'}</td>
+            <td class="tag">${u.created_at?.slice(0, 16) || '-'}</td>
+            <td class="tag">${u.last_login?.slice(0, 16) || '미접속'}</td>
             <td>${u.username !== 'admin' ? `<button class="btn danger" style="padding:5px 12px;font-size:0.8rem;" onclick="deleteUser(${u.id}, '${u.username}')">삭제</button>` : '-'}</td>
           </tr>
         `).join('') || '<tr><td colspan="6" class="empty">가입자 없음</td></tr>';
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     }
 
     async function deleteUser(id, username) {
@@ -966,7 +1553,7 @@
           <div style="background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
             <div>
               <div style="font-weight:700;">👤 ${r.username}</div>
-              <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">${r.created_at?.slice(0,16)}</div>
+              <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">${r.created_at?.slice(0, 16)}</div>
               <div id="pw-${r.id}" style="display:none;margin-top:8px;background:rgba(126,240,191,0.1);border:1px solid var(--success);border-radius:8px;padding:8px 12px;">
                 <div style="color:var(--muted);font-size:0.78rem;">임시 비밀번호</div>
                 <div id="pwval-${r.id}" style="color:var(--success);font-family:monospace;font-size:1.1rem;font-weight:800;letter-spacing:2px;"></div>
@@ -975,7 +1562,7 @@
             <button class="btn" id="issbtn-${r.id}" onclick="issuePassword(${r.id})" style="white-space:nowrap;">발급</button>
           </div>
         `).join('');
-      } catch(e) {}
+      } catch (e) { }
     }
 
     async function issuePassword(id) {
@@ -1021,7 +1608,7 @@
         document.getElementById('pageInfo').textContent = currentLogPage + ' / ' + (totalPages || 1) + ' 페이지 (총 ' + totalLogs.toLocaleString() + '건)';
         document.getElementById('prevPage').disabled = currentLogPage <= 1;
         document.getElementById('nextPage').disabled = currentLogPage >= totalPages;
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     }
 
     function changePage(dir) {
@@ -1069,7 +1656,7 @@
           allLogs.push(log);
           if (allLogs.length > 500) allLogs.shift();
           renderLog(log);
-        } catch(err) {
+        } catch (err) {
           console.warn('SSE 파싱 실패 (무시):', e.data?.slice(0, 50));
         }
       };
@@ -1124,7 +1711,7 @@
 
     // 실시간 로그 페이지 진입 시 자동 시작 (showPage 래핑)
     const _origShowPage = showPage;
-    window.showPage = function(name, ev) {
+    window.showPage = function (name, ev) {
       _origShowPage.call(this, name, ev || window.event);
       if (name === 'realtime' && !isStreaming) startStream();
       if (name !== 'realtime' && isStreaming) stopStream();
@@ -1196,7 +1783,7 @@
         }
         const text = await res.text();
         let d;
-        try { d = JSON.parse(text); } catch(e) {
+        try { d = JSON.parse(text); } catch (e) {
           document.getElementById('errorLogTableBody').innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--danger);">응답 파싱 실패 (HTML 반환됨)</td></tr>';
           return;
         }
@@ -1212,7 +1799,7 @@
           loadErrorLogByDate(currentErrDate);
         }
         errCalRender();
-      } catch(e) {
+      } catch (e) {
         console.error('에러 로그 날짜 조회 실패:', e);
         document.getElementById('errorLogTableBody').innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--danger);">로그 조회 실패: ' + e.message + '</td></tr>';
       }
@@ -1235,7 +1822,7 @@
       }
       const text = await res.text();
       let d;
-      try { d = JSON.parse(text); } catch(e) {
+      try { d = JSON.parse(text); } catch (e) {
         tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--danger);">응답 파싱 실패 (HTML 반환됨)</td></tr>';
         return;
       }
@@ -1267,16 +1854,16 @@
 
       pre.innerHTML =
         '<div style="margin-bottom:12px;">' +
-          '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px;">시각</div>' +
-          '<div style="font-size:0.88rem;font-weight:600;">' + time + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px;">시각</div>' +
+        '<div style="font-size:0.88rem;font-weight:600;">' + time + '</div>' +
         '</div>' +
         '<div style="margin-bottom:12px;">' +
-          '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px;">이벤트</div>' +
-          '<span style="color:' + typeColor + ';font-weight:700;font-size:0.88rem;">' + (log.event_type || '-') + '</span>' +
+        '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px;">이벤트</div>' +
+        '<span style="color:' + typeColor + ';font-weight:700;font-size:0.88rem;">' + (log.event_type || '-') + '</span>' +
         '</div>' +
         '<div style="margin-bottom:12px;">' +
-          '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">오류 메시지</div>' +
-          '<div style="background:var(--bg);border-radius:6px;padding:10px;font-size:0.83rem;color:#ef4444;font-family:monospace;word-break:break-all;">' + (log.error_message || '-') + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">오류 메시지</div>' +
+        '<div style="background:var(--bg);border-radius:6px;padding:10px;font-size:0.83rem;color:#ef4444;font-family:monospace;word-break:break-all;">' + (log.error_message || '-') + '</div>' +
         '</div>' +
         (log.stack_trace ? '<div style="margin-bottom:12px;"><div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">스택 트레이스</div><pre style="background:var(--bg);border-radius:6px;padding:10px;font-size:0.75rem;color:var(--muted);overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all;">' + log.stack_trace + '</pre></div>' : '') +
         (log.url ? '<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px;">URL</div><div style="font-size:0.82rem;word-break:break-all;">' + log.url + '</div></div>' : '') +
@@ -1288,7 +1875,7 @@
     }
 
     // ===== RSS 소스 관리 =====
-    const categoryLabels = { global:'🌍 글로벌', economy:'💰 경제', it:'💻 IT', korea:'🇰🇷 한국' };
+    const categoryLabels = { global: '🌍 글로벌', economy: '💰 경제', it: '💻 IT', korea: '🇰🇷 한국' };
 
     async function adminLoadRssSources() {
       const tbody = document.getElementById('rssSourceBody');
@@ -1344,8 +1931,8 @@
     }
 
     async function adminAddRssSource() {
-      const name     = document.getElementById('rssNewName')?.value?.trim();
-      const url      = document.getElementById('rssNewUrl')?.value?.trim();
+      const name = document.getElementById('rssNewName')?.value?.trim();
+      const url = document.getElementById('rssNewUrl')?.value?.trim();
       const category = document.getElementById('rssNewCategory')?.value || 'global';
       if (!name || !url) { await spAlert('이름과 URL을 모두 입력해주세요.', '입력 오류', '⚠️'); return; }
       if (!url.startsWith('http')) { await spAlert('올바른 URL을 입력해주세요. (http로 시작)', '입력 오류', '⚠️'); return; }
@@ -1387,7 +1974,7 @@
 
         result.innerHTML = `
           <div style="margin-bottom:10px;font-weight:700;color:var(--text);">
-            총 ${data.results.filter(r=>r.success).length}/${data.results.length}개 소스 성공
+            총 ${data.results.filter(r => r.success).length}/${data.results.length}개 소스 성공
           </div>
           ${rows}`;
       } catch (e) {
@@ -1406,8 +1993,8 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ event_type, error_message, stack_trace, meta })
-        }).catch(() => {});
-      } catch (e) {}
+        }).catch(() => { });
+      } catch (e) { }
     }
 
     window.onerror = function (message, source, lineno, colno, error) {
@@ -1431,16 +2018,16 @@
           body: JSON.stringify({ count })
         });
         const d = await res.json();
-        if (!d.ok && !d.games) { el.innerHTML = '<span style="color:red;">생성 실패: ' + (d.error||'오류') + '</span>'; return; }
+        if (!d.ok && !d.games) { el.innerHTML = '<span style="color:red;">생성 실패: ' + (d.error || '오류') + '</span>'; return; }
         const games = d.games || d.numbers || [];
         el.innerHTML = games.map((g, i) => {
           const nums = Array.isArray(g) ? g : (g.numbers || []);
           return `<div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:0.78rem;color:var(--muted);width:24px;">${i+1}.</span>
-            ${nums.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${n<=10?'#f59e0b':n<=20?'#3b82f6':n<=30?'#ef4444':n<=40?'#8b5cf6':'#10b981'};color:#fff;font-weight:800;font-size:0.88rem;">${n}</span>`).join('')}
+            <span style="font-size:0.78rem;color:var(--muted);width:24px;">${i + 1}.</span>
+            ${nums.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${n <= 10 ? '#f59e0b' : n <= 20 ? '#3b82f6' : n <= 30 ? '#ef4444' : n <= 40 ? '#8b5cf6' : '#10b981'};color:#fff;font-weight:800;font-size:0.88rem;">${n}</span>`).join('')}
           </div>`;
         }).join('');
-      } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+      } catch (e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
     }
 
     async function adminLoadLottoHistory() {
@@ -1456,15 +2043,15 @@
         el.innerHTML = list.map(h => {
           const nums = typeof h.numbers === 'string' ? JSON.parse(h.numbers) : (h.numbers || []);
           return `<div style="margin-bottom:10px;padding:10px;background:var(--panel2);border-radius:8px;">
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;">${h.drw_no}회 (${h.drw_date||''})</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;">${h.drw_no}회 (${h.drw_date || ''})</div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              ${nums.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:${n<=10?'#f59e0b':n<=20?'#3b82f6':n<=30?'#ef4444':n<=40?'#8b5cf6':'#10b981'};color:#fff;font-weight:800;font-size:0.82rem;">${n}</span>`).join('')}
+              ${nums.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:${n <= 10 ? '#f59e0b' : n <= 20 ? '#3b82f6' : n <= 30 ? '#ef4444' : n <= 40 ? '#8b5cf6' : '#10b981'};color:#fff;font-weight:800;font-size:0.82rem;">${n}</span>`).join('')}
               <span style="font-size:0.78rem;color:var(--muted);margin-left:4px;">+ 보너스</span>
-              <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#6b7280;color:#fff;font-weight:800;font-size:0.82rem;">${h.bonus||'?'}</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#6b7280;color:#fff;font-weight:800;font-size:0.82rem;">${h.bonus || '?'}</span>
             </div>
           </div>`;
         }).join('');
-      } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+      } catch (e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
     }
 
     async function adminLoadLottoStats() {
@@ -1479,19 +2066,19 @@
         el.innerHTML = `
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
             <div style="padding:12px;background:var(--panel2);border-radius:8px;text-align:center;">
-              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_users||0}</div>
+              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_users || 0}</div>
               <div style="font-size:0.78rem;color:var(--muted);">이용자 수</div>
             </div>
             <div style="padding:12px;background:var(--panel2);border-radius:8px;text-align:center;">
-              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_picks||0}</div>
+              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_picks || 0}</div>
               <div style="font-size:0.78rem;color:var(--muted);">총 발급 게임</div>
             </div>
             <div style="padding:12px;background:var(--panel2);border-radius:8px;text-align:center;">
-              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_wins||0}</div>
+              <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${d.total_wins || 0}</div>
               <div style="font-size:0.78rem;color:var(--muted);">당첨 횟수</div>
             </div>
           </div>`;
-      } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
+      } catch (e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
     }
     // ===== 관리자 관리 JS =====
     async function loadRoles() {
@@ -1518,7 +2105,7 @@
           const cur = s.value;
           s.innerHTML = d.roles.map(r => `<option value="${r.id}" ${r.id == cur ? 'selected' : ''}>${r.role_name}</option>`).join('');
         });
-      } catch(e) { el.innerHTML = '<p class="empty" style="color:#ef4444;">로드 실패</p>'; }
+      } catch (e) { el.innerHTML = '<p class="empty" style="color:#ef4444;">로드 실패</p>'; }
     }
 
     function showAddRoleForm() {
@@ -1531,24 +2118,24 @@
       const desc = document.getElementById('newRoleDesc')?.value?.trim();
       if (!name) { await spAlert('롤 이름을 입력하세요.', '입력 오류', '⚠️'); return; }
       try {
-        const res = await fetch('/api/admin/roles', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({role_name:name,description:desc}) });
+        const res = await fetch('/api/admin/roles', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ role_name: name, description: desc }) });
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         document.getElementById('newRoleName').value = '';
         document.getElementById('newRoleDesc').value = '';
         document.getElementById('addRoleForm').style.display = 'none';
         loadRoles();
-      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+      } catch (e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function deleteRole(id) {
       if (!await spConfirm('이 롤을 삭제할까요?', '롤 삭제', '🗑️', '삭제', 'danger')) return;
       try {
-        const res = await fetch(`/api/admin/roles/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+        const res = await fetch(`/api/admin/roles/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         loadRoles();
-      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+      } catch (e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function loadAdmins() {
@@ -1576,13 +2163,13 @@
               <input type="checkbox" ${a.is_active ? 'checked' : ''} onchange="updateAdminActive(${a.id},this.checked)" />
               <span style="font-size:0.82rem;color:${a.is_active ? 'var(--success)' : 'var(--muted)'};">${a.is_active ? '활성' : '비활성'}</span>
             </label></td>
-            <td style="font-size:0.82rem;color:var(--muted);">${a.last_login ? a.last_login.slice(0,16) : '-'}</td>
+            <td style="font-size:0.82rem;color:var(--muted);">${a.last_login ? a.last_login.slice(0, 16) : '-'}</td>
             <td style="display:flex;gap:6px;">
               <button onclick="resetAdminPassword(${a.id},'${a.username}')" class="btn secondary" style="font-size:0.78rem;padding:4px 10px;">🔑 PW</button>
               <button onclick="deleteAdmin(${a.id},'${a.username}')" class="btn danger" style="font-size:0.78rem;padding:4px 10px;">삭제</button>
             </td>
           </tr>`).join('');
-      } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty" style="color:#ef4444;">로드 실패</td></tr>'; }
+      } catch (e) { tbody.innerHTML = '<tr><td colspan="7" class="empty" style="color:#ef4444;">로드 실패</td></tr>'; }
     }
 
     async function showAddAdminForm() {
@@ -1599,7 +2186,7 @@
       if (!username || !password) { await spAlert('아이디와 비밀번호를 입력하세요.', '입력 오류', '⚠️'); return; }
       if (!role_id) { await spAlert('롤을 선택하세요.', '입력 오류', '⚠️'); return; }
       try {
-        const res = await fetch('/api/admin/admins', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({username,password,email,role_id:parseInt(role_id)}) });
+        const res = await fetch('/api/admin/admins', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ username, password, email, role_id: parseInt(role_id) }) });
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         document.getElementById('newAdminUsername').value = '';
@@ -1607,41 +2194,41 @@
         document.getElementById('newAdminEmail').value = '';
         document.getElementById('addAdminForm').style.display = 'none';
         loadAdmins();
-      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+      } catch (e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function updateAdminRole(id, role_id) {
       try {
-        await fetch(`/api/admin/admins/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({role_id:parseInt(role_id)}) });
-      } catch(e) { await spAlert('롤 변경 실패', '오류', '❌'); }
+        await fetch(`/api/admin/admins/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ role_id: parseInt(role_id) }) });
+      } catch (e) { await spAlert('롤 변경 실패', '오류', '❌'); }
     }
 
     async function updateAdminActive(id, is_active) {
       try {
-        await fetch(`/api/admin/admins/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({is_active:is_active?1:0}) });
+        await fetch(`/api/admin/admins/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ is_active: is_active ? 1 : 0 }) });
         loadAdmins();
-      } catch(e) { await spAlert('상태 변경 실패', '오류', '❌'); }
+      } catch (e) { await spAlert('상태 변경 실패', '오류', '❌'); }
     }
 
     async function resetAdminPassword(id, username) {
       const newPw = prompt(`${username}의 새 비밀번호를 입력하세요:`);
       if (!newPw) return;
       try {
-        const res = await fetch(`/api/admin/admins/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({password:newPw}) });
+        const res = await fetch(`/api/admin/admins/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ password: newPw }) });
         const d = await res.json();
         if (d.ok) await spAlert('비밀번호가 변경됐습니다.', '완료', '✅');
         else await spAlert(d.error, '오류', '❌');
-      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+      } catch (e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function deleteAdmin(id, username) {
       if (!await spConfirm(`'${username}' 관리자를 삭제할까요?`, '관리자 삭제', '🗑️', '삭제', 'danger')) return;
       try {
-        const res = await fetch(`/api/admin/admins/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+        const res = await fetch(`/api/admin/admins/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         loadAdmins();
-      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+      } catch (e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     // ===== 전체 당첨확인 =====
@@ -1677,17 +2264,17 @@
             });
             const result = await res.json();
             if (result.ok) success++;
-            else if (result.skipped) {} // 당첨 정보 없으면 스킵
+            else if (result.skipped) { } // 당첨 정보 없으면 스킵
             else fail++;
-          } catch(e) { fail++; }
-          btn.textContent = `확인 중... (${i+1}/${total})`;
+          } catch (e) { fail++; }
+          btn.textContent = `확인 중... (${i + 1}/${total})`;
           // API 과부하 방지
           await new Promise(r => setTimeout(r, 500));
         }
 
         await spAlert(`완료! 성공: ${success}건, 실패: ${fail}건`, '전체 당첨확인 완료', '🎉');
         lottoLoadHistory();
-      } catch(e) {
+      } catch (e) {
         await spAlert('오류: ' + e.message, '오류', '❌');
       } finally {
         btn.disabled = false;
@@ -1703,11 +2290,58 @@
     }
   </script>
   <style>
-    .lotto-day-btn { padding:5px 12px;border-radius:6px;border:1.5px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;transition:all .15s; }
-    .lotto-day-btn.active { background:#eef2ff;border-color:#6366f1;color:#6366f1; }
-    .lotto-ball { display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;font-weight:800;font-size:13px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2); }
-    .lb1{background:#f59e0b}.lb2{background:#3b82f6}.lb3{background:#ef4444}.lb4{background:#8b5cf6}.lb5{background:#10b981}
+    .lotto-day-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1.5px solid var(--line);
+      background: var(--panel2);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all .15s;
+    }
+
+    .lotto-day-btn.active {
+      background: #eef2ff;
+      border-color: #6366f1;
+      color: #6366f1;
+    }
+
+    .lotto-ball {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
+    }
+
+    .lb1 {
+      background: #f59e0b
+    }
+
+    .lb2 {
+      background: #3b82f6
+    }
+
+    .lb3 {
+      background: #ef4444
+    }
+
+    .lb4 {
+      background: #8b5cf6
+    }
+
+    .lb5 {
+      background: #10b981
+    }
   </style>
   <script src="/js/lotto.js?v=20260331"></script>
 </body>
+
 </html>
