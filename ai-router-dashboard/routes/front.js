@@ -360,9 +360,6 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { pick_date, drw_no, user_id } = req.body;
     if (!pick_date || !drw_no) return res.status(400).json({ error: 'pick_date, drw_no 필수' });
-    // 관리자는 user_id 지정 가능, 일반 유저는 본인만
-    const targetUserId = (req.user.is_admin && user_id) ? parseInt(user_id) : (req.user.user_id || req.user.id);
-    if (!targetUserId) return res.status(400).json({ ok: false, error: '유저 정보를 찾을 수 없습니다.' });
     try {
       // lotto.oot.kr JSON API로 당첨번호 조회
       const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
@@ -383,7 +380,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           .run(drw_no, JSON.stringify(winning), bonus, data.drwNoDate || '');
       }
 
-      const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(targetUserId, pick_date);
+      // pick_date 기준으로 해당 날짜 모든 픽 업데이트 (user_id 체크 불필요)
+      const picks = db.prepare('SELECT * FROM lotto_picks WHERE pick_date=?').all(pick_date);
       if (!picks.length) return res.status(404).json({ ok: false, error: '해당 날짜의 추천 번호가 없습니다.' });
 
       const results = picks.map(pick => {
