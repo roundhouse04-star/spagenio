@@ -337,11 +337,6 @@
         });
         const data = await res.json();
         if (res.ok) {
-          if (data.username === 'admin') {
-            showError('Admin accounts must use the admin login page.');
-            btn.disabled = false; btn.textContent = 'Sign in';
-            return;
-          }
           sessionStorage.setItem('auth_token', data.token);
           location.href = '/';
         } else {
