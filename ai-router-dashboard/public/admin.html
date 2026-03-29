@@ -407,9 +407,9 @@
               <input type="email" id="newAdminEmail" placeholder="이메일 (선택)" />
               <select id="newAdminRole"><option value="">롤 선택...</option></select>
             </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn" onclick="addAdmin()">추가</button>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
               <button class="btn secondary" onclick="document.getElementById('addAdminForm').style.display='none'">취소</button>
+              <button class="btn" onclick="addAdmin()">추가</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -1555,10 +1555,10 @@
       } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty" style="color:#ef4444;">로드 실패</td></tr>'; }
     }
 
-    function showAddAdminForm() {
+    async function showAddAdminForm() {
       const f = document.getElementById('addAdminForm');
       if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
-      loadRoles(); // 롤 셀렉트 업데이트
+      await loadRoles(); // 롤 셀렉트 업데이트 (await로 완료 후 표시)
     }
 
     async function addAdmin() {
