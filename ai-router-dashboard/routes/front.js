@@ -305,14 +305,32 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/lotto/picks/check', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { pick_date, drw_no } = req.body;
+    if (!pick_date || !drw_no) return res.status(400).json({ error: 'pick_date, drw_no 필수' });
     try {
-      const apiRes = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drw_no}`);
-      const data = await apiRes.json();
-      if (data.returnValue !== 'success') return res.status(400).json({ error: '회차 정보 없음' });
+      // 동행복권 API 호출 (타임아웃 10초)
+      let data;
+      try {
+        const apiRes = await fetch(
+          `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drw_no}`,
+          { signal: AbortSignal.timeout(10000), headers: { 'User-Agent': 'Mozilla/5.0' } }
+        );
+        const text = await apiRes.text();
+        // HTML 응답(에러 페이지) 방어
+        if (text.trim().startsWith('<')) {
+          return res.status(502).json({ error: '동행복권 API 응답 오류. 잠시 후 다시 시도해주세요.' });
+        }
+        data = JSON.parse(text);
+      } catch (fetchErr) {
+        return res.status(502).json({ error: '동행복권 API 연결 실패: ' + fetchErr.message });
+      }
+
+      if (data.returnValue !== 'success') return res.status(400).json({ error: `${drw_no}회 당첨 정보가 없습니다.` });
+
       const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
       const bonus = data.bnusNo;
       const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(req.user.id, pick_date);
-      if (!picks.length) return res.status(404).json({ error: '픽 없음' });
+      if (!picks.length) return res.status(404).json({ error: '해당 날짜의 추천 번호가 없습니다.' });
+
       const results = picks.map(pick => {
         const nums = JSON.parse(pick.numbers);
         const matched = nums.filter(n => winning.includes(n)).length;

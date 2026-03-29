@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'spagenio',
       script: 'server.js',
-      cwd: '/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard',
+      cwd: '/Users/roundhouse04/projects/spagenio/ai-router-dashboard',
       watch: false,
       env: {
         NODE_ENV: 'production',
@@ -19,7 +19,7 @@ module.exports = {
       name: 'spagenio-stock',
       script: 'stock_server.py',
       interpreter: 'python3',
-      cwd: '/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard',
+      cwd: '/Users/roundhouse04/projects/spagenio/ai-router-dashboard',
       watch: false,
       restart_delay: 3000,
       max_restarts: 5
@@ -28,7 +28,7 @@ module.exports = {
       name: 'spagenio-quant',
       script: 'quant_engine.py',
       interpreter: 'python3',
-      cwd: '/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard',
+      cwd: '/Users/roundhouse04/projects/spagenio/ai-router-dashboard',
       watch: false,
       restart_delay: 3000,
       max_restarts: 5
