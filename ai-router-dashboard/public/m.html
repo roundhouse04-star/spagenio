@@ -27,6 +27,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     body {
+      max-width: 430px;
+      margin: 0 auto;
       font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
       background: var(--bg);
       color: var(--text);
@@ -543,10 +545,12 @@
     <!-- ── 자동매매 탭 ── -->
     <div class="m-tab" id="m-tab-trade">
       <!-- 서브탭 -->
-      <div class="m-subtab-bar">
-        <button class="m-subtab-btn active" onclick="mSwitchTrade('simple')">⚡ 단순</button>
-        <button class="m-subtab-btn" onclick="mSwitchTrade('auto')">🤖 자동</button>
-        <button class="m-subtab-btn" onclick="mSwitchTrade('picks')">🏆 추천</button>
+      <div class="m-subtab-bar" style="display:flex;flex-wrap:wrap;gap:4px;">
+        <button class="m-subtab-btn active" onclick="mSwitchTrade('simple')" style="flex:1;min-width:60px;">⚡ 단순</button>
+        <button class="m-subtab-btn" onclick="mSwitchTrade('auto')" style="flex:1;min-width:60px;">🤖 자동</button>
+        <button class="m-subtab-btn" onclick="mSwitchTrade('picks')" style="flex:1;min-width:60px;">🏆 추천</button>
+        <button class="m-subtab-btn" onclick="mSwitchTrade('perf')" style="flex:1;min-width:60px;">💹 성과</button>
+        <button class="m-subtab-btn" onclick="mSwitchTrade('backtest')" style="flex:1;min-width:60px;">🔬 백테스트</button>
       </div>
 
       <!-- 단순 자동매매 -->
@@ -600,80 +604,111 @@
         </div>
         <div id="m-top-picks-list"></div>
       </div>
+
+      <!-- 성과 (자동매매 탭 내) -->
+      <div id="m-trade-perf" style="display:none;">
+        <div class="m-section-label">성과 요약</div>
+        <div id="m-perf-summary" class="m-card">
+          <div class="m-loading">로딩 중...</div>
+        </div>
+        <div class="m-section-label">자동매매 이력</div>
+        <div class="m-card" style="padding:4px 14px;">
+          <div id="m-perf-trades"><div class="m-loading">로딩 중...</div></div>
+        </div>
+      </div>
+
+      <!-- 백테스트 (자동매매 탭 내) -->
+      <div id="m-trade-backtest" style="display:none;">
+        <div class="m-section-label">백테스팅</div>
+        <div class="m-card">
+          <div style="margin-bottom:10px;">
+            <label class="m-label">종목</label>
+            <input class="m-input" id="m-bt-symbol" placeholder="예: AAPL" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <div>
+              <label class="m-label">시작일</label>
+              <input class="m-input" id="m-bt-start" type="date" />
+            </div>
+            <div>
+              <label class="m-label">종료일</label>
+              <input class="m-input" id="m-bt-end" type="date" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div>
+              <label class="m-label">익절(%)</label>
+              <input class="m-input" id="m-bt-tp" type="number" value="5" />
+            </div>
+            <div>
+              <label class="m-label">손절(%)</label>
+              <input class="m-input" id="m-bt-sl" type="number" value="5" />
+            </div>
+          </div>
+          <button class="m-btn m-btn-primary m-btn-full" onclick="mRunBacktest()">▶ 백테스트 실행</button>
+        </div>
+        <div id="m-bt-result"></div>
+      </div>
     </div>
 
-    <!-- ── 성과 탭 ── -->
-    <div class="m-tab" id="m-tab-perf">
-      <div class="m-section-label">성과 요약</div>
-      <div id="m-perf-summary" class="m-card">
+    <!-- ── 관리 탭 ── -->
+    <div class="m-tab" id="m-tab-manage">
+      <!-- 스케줄러 -->
+      <div class="m-section-label">스케줄러</div>
+      <div class="m-card" id="m-scheduler-card">
         <div class="m-loading">로딩 중...</div>
       </div>
-      <div class="m-section-label">자동매매 이력</div>
-      <div class="m-card" style="padding:4px 14px;">
-        <div id="m-perf-trades"><div class="m-loading">로딩 중...</div></div>
-      </div>
-    </div>
 
-    <!-- ── 백테스팅 탭 ── -->
-    <div class="m-tab" id="m-tab-backtest">
-      <div class="m-section-label">백테스팅</div>
+      <!-- DB 관리 -->
+      <div class="m-section-label">DB 관리</div>
       <div class="m-card">
-        <div style="margin-bottom:10px;">
-          <label class="m-label">종목</label>
-          <input class="m-input" id="m-bt-symbol" placeholder="예: AAPL" />
+        <div class="m-card-title">🗄️ 데이터베이스</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('news')">📰 뉴스 DB 초기화</button>
+          <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('lotto')">🍀 로또 DB 초기화</button>
+          <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('trade')">🤖 매매이력 DB 초기화</button>
+          <button class="m-btn m-btn-danger m-btn-full" onclick="mDbAction('all')">⚠️ 전체 초기화</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-          <div>
-            <label class="m-label">시작일</label>
-            <input class="m-input" id="m-bt-start" type="date" />
-          </div>
-          <div>
-            <label class="m-label">종료일</label>
-            <input class="m-input" id="m-bt-end" type="date" />
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-          <div>
-            <label class="m-label">익절(%)</label>
-            <input class="m-input" id="m-bt-tp" type="number" value="5" />
-          </div>
-          <div>
-            <label class="m-label">손절(%)</label>
-            <input class="m-input" id="m-bt-sl" type="number" value="5" />
-          </div>
-        </div>
-        <button class="m-btn m-btn-primary m-btn-full" onclick="mRunBacktest()">▶ 백테스트 실행</button>
+        <div id="m-db-result" style="margin-top:10px;font-size:0.82rem;color:var(--muted);"></div>
       </div>
-      <div id="m-bt-result"></div>
+
+      <!-- 비밀번호 변경 -->
+      <div class="m-section-label">계정</div>
+      <div class="m-card">
+        <div class="m-card-title">🔒 비밀번호 변경</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <input class="m-input" id="m-pw-current" type="password" placeholder="현재 비밀번호" />
+          <input class="m-input" id="m-pw-new" type="password" placeholder="새 비밀번호" />
+          <input class="m-input" id="m-pw-confirm" type="password" placeholder="새 비밀번호 확인" />
+          <button class="m-btn m-btn-primary m-btn-full" onclick="mChangePw()">변경</button>
+        </div>
+        <div id="m-pw-result" style="margin-top:8px;font-size:0.82rem;"></div>
+      </div>
     </div>
 
   </main>
 
   <!-- 하단 탭바 -->
   <nav class="m-tabbar">
-    <button class="m-tab-btn active" onclick="mTab('news')">
+    <button class="m-tab-btn active" data-tab="news" onclick="mTab('news')">
       <span class="m-tab-icon">📰</span>
       <span class="m-tab-label">뉴스</span>
     </button>
-    <button class="m-tab-btn" onclick="mTab('stock')">
+    <button class="m-tab-btn" data-tab="stock" onclick="mTab('stock')">
       <span class="m-tab-icon">📈</span>
       <span class="m-tab-label">주식</span>
     </button>
-    <button class="m-tab-btn" onclick="mTab('lotto')">
-      <span class="m-tab-icon">🍀</span>
-      <span class="m-tab-label">로또</span>
-    </button>
-    <button class="m-tab-btn" onclick="mTab('trade')">
+    <button class="m-tab-btn" data-tab="trade" onclick="mTab('trade')">
       <span class="m-tab-icon">🤖</span>
       <span class="m-tab-label">자동매매</span>
     </button>
-    <button class="m-tab-btn" onclick="mTab('perf')">
-      <span class="m-tab-icon">💹</span>
-      <span class="m-tab-label">성과</span>
+    <button class="m-tab-btn" data-tab="lotto" onclick="mTab('lotto')">
+      <span class="m-tab-icon">🍀</span>
+      <span class="m-tab-label">로또</span>
     </button>
-    <button class="m-tab-btn" onclick="mTab('backtest')">
-      <span class="m-tab-icon">🔬</span>
-      <span class="m-tab-label">백테스트</span>
+    <button class="m-tab-btn" data-tab="manage" onclick="mTab('manage')">
+      <span class="m-tab-icon">⚙️</span>
+      <span class="m-tab-label">관리</span>
     </button>
   </nav>
 
@@ -742,14 +777,16 @@ let _currentTab = 'news';
 function mTab(tab) {
   document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.m-tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('m-tab-' + tab)?.classList.add('active');
-  document.querySelectorAll('.m-tab-btn')[['news','stock','lotto','trade','perf','backtest'].indexOf(tab)]?.classList.add('active');
+  const tabEl = document.getElementById('m-tab-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  const btnEl = document.querySelector(`.m-tab-btn[data-tab="${tab}"]`);
+  if (btnEl) btnEl.classList.add('active');
   _currentTab = tab;
   if (tab === 'news') { mLoadNews(); mLoadMarket(); }
   if (tab === 'stock') { mLoadAccount(); mLoadPositions(); }
   if (tab === 'lotto') { mLoadLottoHistory(); }
   if (tab === 'trade') { mLoadSimpleTrade(); }
-  if (tab === 'perf') { mLoadPerf(); }
+  if (tab === 'manage') { mLoadScheduler(); }
 }
 
 // ── 앱 초기화 ──
@@ -975,13 +1012,15 @@ async function mLoadLottoHistory() {
 
 // ── 자동매매 서브탭 ──
 function mSwitchTrade(sub) {
-  ['simple','auto','picks'].forEach(s => {
-    document.getElementById('m-trade-' + s).style.display = s === sub ? 'block' : 'none';
+  ['simple','auto','picks','perf','backtest'].forEach(s => {
+    const el = document.getElementById('m-trade-' + s);
+    if (el) el.style.display = s === sub ? 'block' : 'none';
   });
   document.querySelectorAll('.m-subtab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['simple','auto','picks'][i] === sub);
+    b.classList.toggle('active', ['simple','auto','picks','perf','backtest'][i] === sub);
   });
   if (sub === 'auto') { mLoadAutoPositions(); mLoadAutoLog(); }
+  if (sub === 'perf') { mLoadPerf(); }
 }
 
 // ── 단순 자동매매 ──
@@ -1229,6 +1268,71 @@ async function mRunBacktest() {
         </div>
       </div>`;
   } catch(e) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">오류: ${e.message}</div></div>`; }
+}
+
+// ── 관리: 스케줄러 ──
+async function mLoadScheduler() {
+  const el = document.getElementById('m-scheduler-card');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/scheduler/list');
+    const d = await res.json();
+    const jobs = d.jobs || [];
+    if (!jobs.length) { el.innerHTML = '<div class="m-empty">등록된 스케줄러 없음</div>'; return; }
+    el.innerHTML = `<div class="m-card-title">⏰ 스케줄러 목록</div>` +
+      jobs.map(j => {
+        const isOn = j.enabled || j.running;
+        return `<div class="m-stock-row">
+          <div>
+            <div style="font-weight:700;font-size:0.88rem;">${j.name || j.id}</div>
+            <div style="font-size:0.72rem;color:var(--muted);">${j.interval || j.schedule || ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="m-badge ${isOn ? 'm-badge-green' : 'm-badge-red'}">${isOn ? '실행중' : '정지'}</span>
+            <button class="m-btn m-btn-secondary" style="padding:5px 10px;font-size:0.72rem;"
+              onclick="mToggleScheduler('${j.id}',${isOn})">${isOn ? '정지' : '시작'}</button>
+          </div>
+        </div>`;
+      }).join('');
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+}
+
+async function mToggleScheduler(id, isOn) {
+  try {
+    const endpoint = isOn ? '/api/scheduler/stop' : '/api/scheduler/start';
+    await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) });
+    mLoadScheduler();
+  } catch(e) { alert('오류: ' + e.message); }
+}
+
+// ── 관리: DB 초기화 ──
+async function mDbAction(type) {
+  if (!confirm(`${type === 'all' ? '전체' : type} DB를 초기화할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  const el = document.getElementById('m-db-result');
+  el.textContent = '처리 중...';
+  try {
+    const res = await fetch('/api/db/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type }) });
+    const d = await res.json();
+    el.style.color = d.ok ? 'var(--success)' : 'var(--danger)';
+    el.textContent = d.ok ? '✅ 초기화 완료' : ('❌ 실패: ' + (d.error || ''));
+  } catch(e) { el.style.color='var(--danger)'; el.textContent='오류: ' + e.message; }
+}
+
+// ── 관리: 비밀번호 변경 ──
+async function mChangePw() {
+  const current = document.getElementById('m-pw-current').value;
+  const newPw = document.getElementById('m-pw-new').value;
+  const confirm2 = document.getElementById('m-pw-confirm').value;
+  const el = document.getElementById('m-pw-result');
+  if (!current || !newPw) { el.style.color='var(--danger)'; el.textContent='모든 필드를 입력하세요.'; return; }
+  if (newPw !== confirm2) { el.style.color='var(--danger)'; el.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
+  try {
+    const res = await fetch('/api/auth/change-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ current_password: current, new_password: newPw }) });
+    const d = await res.json();
+    el.style.color = d.ok ? 'var(--success)' : 'var(--danger)';
+    el.textContent = d.ok ? '✅ 비밀번호 변경 완료' : ('❌ ' + (d.error || '실패'));
+    if (d.ok) { document.getElementById('m-pw-current').value=''; document.getElementById('m-pw-new').value=''; document.getElementById('m-pw-confirm').value=''; }
+  } catch(e) { el.style.color='var(--danger)'; el.textContent='오류: ' + e.message; }
 }
 
 // ── 초기 실행 ──
