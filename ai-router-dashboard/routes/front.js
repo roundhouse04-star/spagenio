@@ -281,6 +281,64 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
+  router.get('/api/lotto/picks/unconfirmed', (req, res) => {
+    if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      // rank가 없고 오늘 이전 픽만 조회 (drw_no는 저장 시 이미 계산됨)
+      const unconfirmed = db.prepare(`
+        SELECT DISTINCT pick_date, drw_no
+        FROM lotto_picks
+        WHERE rank IS NULL AND pick_date < ?
+        ORDER BY pick_date DESC
+      `).all(today);
+      res.json({ ok: true, unconfirmed });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  router.post('/api/lotto/picks/check', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { pick_date, drw_no, user_id } = req.body;
+    if (!pick_date || !drw_no) return res.status(400).json({ error: 'pick_date, drw_no 필수' });
+    try {
+      // lotto.oot.kr JSON API로 당첨번호 조회
+      const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+      // 당첨 정보 없으면 에러 말고 스킵
+      if (!apiRes.ok) return res.json({ ok: false, skipped: true, error: `${drw_no}회 당첨 정보 없음 (아직 추첨 전)` });
+      const data = await apiRes.json();
+      if (!data.drwtNo1) return res.json({ ok: false, skipped: true, error: `${drw_no}회 당첨 정보 없음` });
+
+      const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+      const bonus = data.bnusNo;
+
+      // lotto_history에도 저장 (중복이면 무시)
+      db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
+        .run(drw_no, JSON.stringify(winning), bonus, data.drwNoDate || '');
+
+      // pick_date 기준으로 해당 날짜 모든 픽 업데이트 (user_id 체크 불필요)
+      const picks = db.prepare('SELECT * FROM lotto_picks WHERE pick_date=?').all(pick_date);
+      if (!picks.length) return res.status(404).json({ ok: false, error: '해당 날짜의 추천 번호가 없습니다.' });
+
+      const results = picks.map(pick => {
+        const nums = JSON.parse(pick.numbers);
+        const matched = nums.filter(n => winning.includes(n)).length;
+        const hasBonus = nums.includes(bonus);
+        let rank = null;
+        if (matched === 6) rank = 1;
+        else if (matched === 5 && hasBonus) rank = 2;
+        else if (matched === 5) rank = 3;
+        else if (matched === 4) rank = 4;
+        else if (matched === 3) rank = 5;
+        db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?').run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
+        return { game_index: pick.game_index, numbers: nums, matched, rank, has_bonus: hasBonus };
+      });
+      res.json({ ok: true, winning, bonus, results, drw_no });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  });
+
   router.post('/api/lotto/picks', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { pick_date, games, algorithms } = req.body;
@@ -339,66 +397,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // 미확인 픽 목록 조회 (관리자 전용)
-  router.get('/api/lotto/picks/unconfirmed', (req, res) => {
-    if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      // rank가 없고 오늘 이전 픽만 조회 (drw_no는 저장 시 이미 계산됨)
-      const unconfirmed = db.prepare(`
-        SELECT DISTINCT pick_date, drw_no
-        FROM lotto_picks
-        WHERE rank IS NULL AND pick_date < ?
-        ORDER BY pick_date DESC
-      `).all(today);
-      res.json({ ok: true, unconfirmed });
-    } catch(e) { res.status(500).json({ error: e.message }); }
-  });
 
-  router.post('/api/lotto/picks/check', async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { pick_date, drw_no, user_id } = req.body;
-    if (!pick_date || !drw_no) return res.status(400).json({ error: 'pick_date, drw_no 필수' });
-    try {
-      // lotto.oot.kr JSON API로 당첨번호 조회
-      const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000)
-      });
-      // 당첨 정보 없으면 에러 말고 스킵
-      if (!apiRes.ok) return res.json({ ok: false, skipped: true, error: `${drw_no}회 당첨 정보 없음 (아직 추첨 전)` });
-      const data = await apiRes.json();
-      if (!data.drwtNo1) return res.json({ ok: false, skipped: true, error: `${drw_no}회 당첨 정보 없음` });
-
-      const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
-      const bonus = data.bnusNo;
-
-      // lotto_history에도 저장 (없으면)
-      const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
-      if (!existing) {
-        db.prepare('INSERT INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
-          .run(drw_no, JSON.stringify(winning), bonus, data.drwNoDate || '');
-      }
-
-      // pick_date 기준으로 해당 날짜 모든 픽 업데이트 (user_id 체크 불필요)
-      const picks = db.prepare('SELECT * FROM lotto_picks WHERE pick_date=?').all(pick_date);
-      if (!picks.length) return res.status(404).json({ ok: false, error: '해당 날짜의 추천 번호가 없습니다.' });
-
-      const results = picks.map(pick => {
-        const nums = JSON.parse(pick.numbers);
-        const matched = nums.filter(n => winning.includes(n)).length;
-        const hasBonus = nums.includes(bonus);
-        let rank = null;
-        if (matched === 6) rank = 1;
-        else if (matched === 5 && hasBonus) rank = 2;
-        else if (matched === 5) rank = 3;
-        else if (matched === 4) rank = 4;
-        else if (matched === 3) rank = 5;
-        db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?').run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
-        return { game_index: pick.game_index, numbers: nums, matched, rank, has_bonus: hasBonus };
-      });
-      res.json({ ok: true, winning, bonus, results, drw_no });
-    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
-  });
 
   router.get('/api/lotto/schedule', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
