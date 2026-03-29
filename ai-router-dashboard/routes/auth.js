@@ -44,6 +44,25 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, JWT_EXPIRES, s
     return res.json({ status: 'ok', user: req.user });
   });
 
+  // ✅ 관리자 로그인 (admins 테이블 조회)
+  router.post('/admin-login', (req, res) => {
+    const { username, password } = req.body;
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+    const admin = db.prepare('SELECT a.*, r.role_name FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.username=? AND a.is_active=1').get(username);
+    if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
+      logger.warn('ADMIN_LOGIN_FAILED', { ip, username });
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+
+    db.prepare('UPDATE admins SET last_login=? WHERE id=?').run(new Date().toISOString(), admin.id);
+    logger.info('ADMIN_LOGIN_SUCCESS', { ip, username: admin.username });
+
+    const token = jwt.sign({ id: admin.id, username: admin.username, is_admin: true, role: admin.role_name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 });
+    return res.json({ status: 'ok', token, username: admin.username, role: admin.role_name, is_admin: true });
+  });
+
   // ✅ 로그아웃
   router.post('/logout', (req, res) => {
     res.clearCookie('auth_token');
@@ -183,7 +202,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, JWT_EXPIRES, s
     const { password } = req.body;
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
     if (!bcrypt.compareSync(password, user.password_hash)) return res.status(401).json({ error: '비밀번호가 올바르지 않습니다.' });
-    if (user.username === 'admin') return res.status(400).json({ error: '관리자 계정은 탈퇴할 수 없습니다.' });
+    if (req.user.is_admin) return res.status(400).json({ error: '관리자 계정은 탈퇴할 수 없습니다.' });
     db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
     res.clearCookie('auth_token');
     return res.json({ status: 'ok', message: '탈퇴가 완료됐습니다.' });
@@ -243,7 +262,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, JWT_EXPIRES, s
 
   // ✅ 초대 코드 생성 (관리자)
   router.post('/invite', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '관리자만 초대 코드를 생성할 수 있습니다.' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '관리자만 초대 코드를 생성할 수 있습니다.' });
     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     db.prepare('INSERT INTO invite_codes (code, created_by, expires_at) VALUES (?, ?, ?)').run(code, req.user.id, expiresAt);

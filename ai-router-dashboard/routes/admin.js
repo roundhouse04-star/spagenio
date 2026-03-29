@@ -10,7 +10,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 가입자 목록 조회
   router.get('/api/admin/users', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { search } = req.query;
     let query = 'SELECT id, username, email, created_at, last_login FROM users WHERE 1=1';
     const params = [];
@@ -23,10 +23,10 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 가입자 삭제
   router.delete('/api/admin/users/:id', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const user = db.prepare('SELECT username FROM users WHERE id = ?').get(req.params.id);
     if (!user) return res.status(404).json({ error: '사용자 없음' });
-    if (user.username === 'admin') return res.status(400).json({ error: '관리자는 삭제할 수 없습니다.' });
+    if (user.is_admin) return res.status(400).json({ error: '관리자는 삭제할 수 없습니다.' });
     db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
     logger.warn('USER_DELETED', { adminId: req.user.id, deletedUsername: user.username });
     return res.json({ status: 'ok' });
@@ -34,7 +34,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 접속 통계
   router.get('/api/admin/stats', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const dailyStats = db.prepare(`SELECT DATE(timestamp) as date, COUNT(*) as total_requests, COUNT(DISTINCT ip) as unique_ips, COUNT(DISTINCT username) as unique_users,
       SUM(CASE WHEN event_type = 'login_success' THEN 1 ELSE 0 END) as logins,
       SUM(CASE WHEN event_type = 'login_failed' THEN 1 ELSE 0 END) as failed_logins,
@@ -50,7 +50,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 보안 통계
   router.get('/api/admin/security-stats', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const stats = {
       total_requests: db.prepare("SELECT COUNT(*) as cnt FROM access_logs").get().cnt,
       login_success: db.prepare("SELECT COUNT(*) as cnt FROM access_logs WHERE event_type = 'login_success'").get().cnt,
@@ -67,7 +67,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 접속 로그 조회
   router.get('/api/admin/logs', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { type, limit = 100, page = 1 } = req.query;
     const offset = (page - 1) * limit;
     let query = 'SELECT * FROM access_logs WHERE 1=1';
@@ -86,7 +86,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     if (!token) return res.status(401).end();
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      if (decoded.username !== 'admin') return res.status(403).end();
+      const streamUser = db.prepare('SELECT a.id, 1 as is_admin FROM admins a WHERE a.id=? AND a.is_active=1').get(decoded.id); if (!streamUser?.is_admin) return res.status(403).end();
     } catch (e) { return res.status(401).end(); }
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -116,7 +116,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 비밀번호 초기화 요청 목록
   router.get('/api/admin/reset-requests', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     db.exec(`CREATE TABLE IF NOT EXISTS password_reset_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, username TEXT NOT NULL,
       status TEXT DEFAULT 'pending', temp_password TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
@@ -126,7 +126,7 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ 임시 비밀번호 발급
   router.post('/api/admin/reset-password', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { request_id } = req.body;
     const request = db.prepare('SELECT * FROM password_reset_requests WHERE id = ?').get(request_id);
     if (!request) return res.status(404).json({ error: '요청을 찾을 수 없습니다.' });
@@ -139,13 +139,13 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
 
   // ✅ RSS 소스 관리
   router.get('/api/admin/rss/sources', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const sources = db.prepare('SELECT * FROM rss_sources ORDER BY category, name').all();
     return res.json({ sources });
   });
 
   router.post('/api/admin/rss/sources', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { name, url, category = 'global' } = req.body;
     if (!name || !url) return res.status(400).json({ error: 'name, url 필수' });
     try {
@@ -158,21 +158,21 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
   });
 
   router.patch('/api/admin/rss/sources/:id', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { enabled } = req.body;
     db.prepare('UPDATE rss_sources SET enabled = ? WHERE id = ?').run(enabled ? 1 : 0, req.params.id);
     return res.json({ status: 'ok' });
   });
 
   router.delete('/api/admin/rss/sources/:id', (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     db.prepare('DELETE FROM rss_sources WHERE id = ?').run(req.params.id);
     return res.json({ status: 'ok' });
   });
 
   // ✅ RSS 수집 테스트
   router.get('/api/admin/rss/test', async (req, res) => {
-    if (req.user.username !== 'admin') return res.status(403).json({ error: '권한 없음' });
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const sources = db.prepare('SELECT * FROM rss_sources WHERE enabled = 1').all();
     const results = await Promise.allSettled(sources.map(async (s) => {
       try {
@@ -231,6 +231,78 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
       logger.error('ERROR_LOG_FETCH', { error: e.message });
       res.status(500).json({ error: '서버 오류' });
     }
+  });
+
+
+  // ===== 관리자 관리 API =====
+
+  // 관리자 목록 조회
+  router.get('/api/admin/admins', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const admins = db.prepare('SELECT a.id, a.username, a.email, a.is_active, a.created_at, a.last_login, r.role_name, r.id as role_id FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id ORDER BY a.created_at DESC').all();
+    return res.json({ admins });
+  });
+
+  // 관리자 등록
+  router.post('/api/admin/admins', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { username, password, email, role_id } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'username, password 필수' });
+    const existing = db.prepare('SELECT id FROM admins WHERE username=?').get(username);
+    if (existing) return res.status(400).json({ error: '이미 사용 중인 아이디입니다.' });
+    const hash = bcrypt.hashSync(password, 12);
+    const result = db.prepare('INSERT INTO admins (username, password_hash, email, role_id) VALUES (?,?,?,?)').run(username, hash, email || null, role_id || 1);
+    return res.json({ ok: true, id: result.lastInsertRowid });
+  });
+
+  // 관리자 수정
+  router.put('/api/admin/admins/:id', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { email, role_id, is_active, password } = req.body;
+    const admin = db.prepare('SELECT * FROM admins WHERE id=?').get(req.params.id);
+    if (!admin) return res.status(404).json({ error: '관리자 없음' });
+    if (password) {
+      db.prepare('UPDATE admins SET password_hash=? WHERE id=?').run(bcrypt.hashSync(password, 12), req.params.id);
+    }
+    db.prepare('UPDATE admins SET email=?, role_id=?, is_active=? WHERE id=?').run(email ?? admin.email, role_id ?? admin.role_id, is_active ?? admin.is_active, req.params.id);
+    return res.json({ ok: true });
+  });
+
+  // 관리자 삭제
+  router.delete('/api/admin/admins/:id', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ error: '본인 계정은 삭제할 수 없습니다.' });
+    db.prepare('DELETE FROM admins WHERE id=?').run(req.params.id);
+    return res.json({ ok: true });
+  });
+
+  // 관리자 롤 목록
+  router.get('/api/admin/roles', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const roles = db.prepare('SELECT * FROM admin_roles ORDER BY id').all();
+    return res.json({ roles });
+  });
+
+  // 관리자 롤 추가
+  router.post('/api/admin/roles', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { role_name, description } = req.body;
+    if (!role_name) return res.status(400).json({ error: 'role_name 필수' });
+    try {
+      const result = db.prepare('INSERT INTO admin_roles (role_name, description) VALUES (?,?)').run(role_name, description || '');
+      return res.json({ ok: true, id: result.lastInsertRowid });
+    } catch(e) {
+      return res.status(400).json({ error: '이미 존재하는 롤입니다.' });
+    }
+  });
+
+  // 관리자 롤 삭제
+  router.delete('/api/admin/roles/:id', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const used = db.prepare('SELECT id FROM admins WHERE role_id=?').get(req.params.id);
+    if (used) return res.status(400).json({ error: '사용 중인 롤은 삭제할 수 없습니다.' });
+    db.prepare('DELETE FROM admin_roles WHERE id=?').run(req.params.id);
+    return res.json({ ok: true });
   });
 
   return router;

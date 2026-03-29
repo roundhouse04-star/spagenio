@@ -39,6 +39,8 @@ db.exec(`
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
+  CREATE TABLE IF NOT EXISTS admin_roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role_name TEXT UNIQUE NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+  CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, role_id INTEGER, is_active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, FOREIGN KEY (role_id) REFERENCES admin_roles(id));
   CREATE TABLE IF NOT EXISTS user_broker_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, account_name TEXT NOT NULL DEFAULT '기본 계좌', alpaca_api_key TEXT, alpaca_secret_key TEXT, alpaca_paper INTEGER DEFAULT 1, is_active INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS terms_agreements (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, agree_terms INTEGER DEFAULT 0, agree_privacy INTEGER DEFAULT 0, agree_investment INTEGER DEFAULT 0, agree_marketing INTEGER DEFAULT 0, ip TEXT, agreed_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code TEXT NOT NULL, verified INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL);
@@ -409,9 +411,17 @@ const insertComments = db.transaction(() => {
 insertComments();
 console.log('✅ DB 코멘트 초기화 완료');
 
-const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
+// 기본 관리자 롤 생성
+const superAdminRole = db.prepare("SELECT id FROM admin_roles WHERE role_name='superadmin'").get();
+if (!superAdminRole) {
+  db.prepare("INSERT INTO admin_roles (role_name, description) VALUES ('superadmin','슈퍼 관리자 - 모든 권한')").run();
+  db.prepare("INSERT INTO admin_roles (role_name, description) VALUES ('manager','매니저 - 일반 관리 권한')").run();
+}
+// admins 테이블에 기본 admin 계정 생성
+const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
 if (!adminExists) {
-  db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('admin', bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin1234!', 12));
+  const roleId = db.prepare("SELECT id FROM admin_roles WHERE role_name='superadmin'").get()?.id || 1;
+  db.prepare('INSERT INTO admins (username, password_hash, role_id) VALUES (?, ?, ?)').run('admin', bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin1234!', 12), roleId);
   console.log('✅ 기본 관리자 계정 생성됨');
 }
 console.log('✅ SQLite DB 초기화 완료:', dbPath);
@@ -618,10 +628,21 @@ app.use((req, res, next) => {
 });
 
 function authMiddleware(req, res, next) {
-  const publicApis = ['/api/auth/login','/api/auth/verify','/api/auth/register','/api/auth/forgot-password','/api/auth/send-email-code','/api/auth/verify-email-code','/api/auth/check-username','/api/auth/check-email'];
+  const publicApis = ['/api/auth/login','/api/auth/admin-login','/api/auth/verify','/api/auth/register','/api/auth/forgot-password','/api/auth/send-email-code','/api/auth/verify-email-code','/api/auth/check-username','/api/auth/check-email'];
   if (!req.path.startsWith('/api/')) return next();
   const token = req.headers.authorization?.replace('Bearer ','') || req.cookies?.auth_token;
-  if (token) { try { req.user = jwt.verify(token, JWT_SECRET); } catch(e) {} }
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      // admins 테이블 먼저 확인 (관리자 토큰)
+      let user = db.prepare('SELECT a.id, a.username, a.email, r.role_name, 1 as is_admin FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.id=? AND a.is_active=1').get(decoded.id);
+      if (!user) {
+        // 일반 유저 확인
+        user = db.prepare('SELECT id, username, email, 0 as is_admin FROM users WHERE id = ?').get(decoded.id);
+      }
+      if (user) req.user = { ...decoded, ...user };
+    } catch(e) {}
+  }
   if (publicApis.some(p => req.path.startsWith(p))) return next();
   if (!req.user) return res.status(401).json({ error:'인증이 필요합니다.' });
   next();
@@ -728,83 +749,9 @@ setInterval(async () => {
         }
       } catch(e) { saveErrorLog({event_type:'LOTTO_MAIL_ERROR',error_message:e.message,stack_trace:e.stack,meta:{userId:sch.user_id}}); }
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
-      db.prepare('INSERT INTO lotto_schedule_log (user_id,days,hour,game_count) VALUES (?,?,?,?)').run(sch.user_id,String(currentDay),currentHour,sch.game_count);
+      db.prepare('INSERT INTO lotto_schedule_log (user_id,day,hour,game_count) VALUES (?,?,?,?)').run(sch.user_id,currentDay,currentHour,sch.game_count);
     }
   } catch(e) { saveErrorLog({event_type:'LOTTO_SCHEDULE_SAVE_ERROR',error_message:e.message,stack_trace:e.stack}); }
-}, 60*1000);
-
-// ============================================================
-// 🍀 토요일 9시 자동 당첨확인 스케줄러
-// ============================================================
-setInterval(async () => {
-  try {
-    const now = new Date();
-    if (now.getMinutes() !== 0) return;
-    const currentHour = now.getHours();
-    const currentDay = now.getDay(); // 6 = 토요일
-    if (currentDay !== 6 || currentHour !== 21) return; // 토요일 21시 (추첨 후)
-
-    const today = now.toISOString().split('T')[0];
-
-    // 1. 날짜 기반으로 최신 회차 계산 후 lotto.oot.kr에서 당첨번호 조회
-    // 1회차: 2002-12-07, 매주 토요일 1회씩 증가
-    let winData;
-    try {
-      const FIRST_DATE = new Date('2002-12-07');
-      const diffDays = Math.floor((now - FIRST_DATE) / (1000 * 60 * 60 * 24));
-      const drwNo = Math.floor(diffDays / 7) + 1;
-
-      const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drwNo}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000)
-      });
-      if (!apiRes.ok) throw new Error(`${drwNo}회 API 응답 오류 (${apiRes.status})`);
-      winData = await apiRes.json();
-      if (!winData?.drwtNo1) throw new Error('당첨번호 없음');
-    } catch(e) {
-      saveErrorLog({ event_type: 'LOTTO_WIN_FETCH_ERROR', error_message: e.message });
-      return;
-    }
-
-    const drw_no = winData.drwNo;
-    const winning = [winData.drwtNo1, winData.drwtNo2, winData.drwtNo3, winData.drwtNo4, winData.drwtNo5, winData.drwtNo6];
-    const bonus = winData.bnusNo;
-    const drw_date = winData.drwNoDate || today;
-
-    // 2. lotto_history에 저장 (이미 있으면 스킵)
-    const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
-    if (!existing) {
-      db.prepare('INSERT INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
-        .run(drw_no, JSON.stringify(winning), bonus, drw_date);
-    }
-
-    // 3. 이번 주 추첨일 기준 최근 7일 내 픽 자동 당첨확인
-    const weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString().split('T')[0];
-
-    const allPicks = db.prepare(
-      'SELECT DISTINCT user_id, pick_date FROM lotto_picks WHERE pick_date >= ? AND (drw_no IS NULL OR drw_no = 0) GROUP BY user_id, pick_date'
-    ).all(weekAgoStr);
-
-    for (const { user_id, pick_date } of allPicks) {
-      const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(user_id, pick_date);
-      for (const pick of picks) {
-        const nums = JSON.parse(pick.numbers);
-        const matched = nums.filter(n => winning.includes(n)).length;
-        const hasBonus = nums.includes(bonus);
-        let rank = null;
-        if (matched === 6) rank = 1;
-        else if (matched === 5 && hasBonus) rank = 2;
-        else if (matched === 5) rank = 3;
-        else if (matched === 4) rank = 4;
-        else if (matched === 3) rank = 5;
-        db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?')
-          .run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
-      }
-    }
-
-  } catch(e) { saveErrorLog({ event_type: 'LOTTO_AUTO_CHECK_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60*1000);
 
 // ============================================================

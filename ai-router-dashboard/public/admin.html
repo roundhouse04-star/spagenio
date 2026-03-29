@@ -168,6 +168,7 @@
       <button class="nav-btn" onclick="showPage('rss')">📡 RSS 소스 관리</button>
       <button class="nav-btn" onclick="showPage('lotto')">🍀 로또 관리</button>
       <div class="nav-divider"></div>
+      <button class="nav-btn" onclick="showPage('admin-mgmt')">👤 관리자 관리</button>
       <div class="sidebar-bottom">
         <button class="nav-btn" onclick="location.href='/'">← 대시보드</button>
 
@@ -366,6 +367,55 @@
               <tbody id="rssSourceBody">
                 <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted);">로딩 중...</td></tr>
               </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- 관리자 관리 -->
+      <div class="page" id="page-admin-mgmt">
+        <div class="page-title">👤 관리자 관리</div>
+
+        <!-- 관리자 롤 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">🎭 관리자 롤</div>
+            <button class="btn" onclick="showAddRoleForm()">+ 롤 추가</button>
+          </div>
+          <div id="addRoleForm" style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input type="text" id="newRoleName" placeholder="롤 이름 (예: manager)" style="flex:1;" />
+              <input type="text" id="newRoleDesc" placeholder="설명" style="flex:2;" />
+              <button class="btn" onclick="addRole()">추가</button>
+              <button class="btn secondary" onclick="document.getElementById('addRoleForm').style.display='none'">취소</button>
+            </div>
+          </div>
+          <div id="roleList"><p class="empty">로딩 중...</p></div>
+        </div>
+
+        <!-- 관리자 목록 -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">👤 관리자 목록</div>
+            <button class="btn" onclick="showAddAdminForm()">+ 관리자 추가</button>
+          </div>
+          <div id="addAdminForm" style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <input type="text" id="newAdminUsername" placeholder="아이디" />
+              <input type="password" id="newAdminPassword" placeholder="비밀번호" />
+              <input type="email" id="newAdminEmail" placeholder="이메일 (선택)" />
+              <select id="newAdminRole"><option value="">롤 선택...</option></select>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn" onclick="addAdmin()">추가</button>
+              <button class="btn secondary" onclick="document.getElementById('addAdminForm').style.display='none'">취소</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>아이디</th><th>이메일</th><th>롤</th><th>상태</th><th>마지막 로그인</th><th>관리</th></tr></thead>
+              <tbody id="adminList"><tr><td colspan="7" class="empty">로딩 중...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -702,7 +752,11 @@
         document.getElementById('spModalOverlay').style.display = 'flex';
       });
     }
-    const token = sessionStorage.getItem('auth_token');
+    // admin_token을 auth_token에 동기화 (lotto.js 등 공통 모듈이 auth_token 사용)
+    // sessionStorage는 탭마다 독립적이라 다른 탭의 front에 영향 없음
+    const adminToken = sessionStorage.getItem('admin_token');
+    if (adminToken) sessionStorage.setItem('auth_token', adminToken);
+    const token = adminToken || sessionStorage.getItem('auth_token');
     if (!token) location.href = '/admin-login';
 
     let currentLogPage = 1;
@@ -721,6 +775,7 @@
       if (name === 'overview') { loadSecurityStats(); loadStats(); }
       else if (name === 'stats') loadStats();
       else if (name === 'lotto') { if (typeof lottoInit === 'function') { lottoInitialized = false; lottoInit(); } }
+      else if (name === 'admin-mgmt') { loadRoles(); loadAdmins(); }
       else if (name === 'users') loadUsers();
       else if (name === 'invite') { loadRequests(); }
       else if (name === 'logs') { currentLogPage = 1; loadLogs(); }
@@ -1389,6 +1444,157 @@
           </div>`;
       } catch(e) { el.innerHTML = '<span style="color:red;">오류: ' + e.message + '</span>'; }
     }
+    // ===== 관리자 관리 JS =====
+    async function loadRoles() {
+      const el = document.getElementById('roleList');
+      if (!el) return;
+      try {
+        const res = await fetch('/api/admin/roles', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+        if (!d.roles?.length) { el.innerHTML = '<p class="empty">등록된 롤이 없습니다.</p>'; return; }
+        el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+          d.roles.map(r => `
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);">
+              <span style="font-weight:700;color:var(--accent);">${r.role_name}</span>
+              <span style="color:var(--muted);font-size:0.82rem;">${r.description || ''}</span>
+              ${r.role_name !== 'superadmin' ? `<button onclick="deleteRole(${r.id})" style="padding:2px 8px;background:#fff0f0;color:#ef4444;border:1px solid #fecaca;border-radius:4px;font-size:0.75rem;cursor:pointer;">삭제</button>` : ''}
+            </div>`).join('') + '</div>';
+        // 관리자 추가 폼 롤 셀렉트 업데이트
+        const sel = document.getElementById('newAdminRole');
+        if (sel) {
+          sel.innerHTML = '<option value="">롤 선택...</option>' + d.roles.map(r => `<option value="${r.id}">${r.role_name}</option>`).join('');
+        }
+        // 수정 셀렉트들도 업데이트
+        document.querySelectorAll('.admin-role-select').forEach(s => {
+          const cur = s.value;
+          s.innerHTML = d.roles.map(r => `<option value="${r.id}" ${r.id == cur ? 'selected' : ''}>${r.role_name}</option>`).join('');
+        });
+      } catch(e) { el.innerHTML = '<p class="empty" style="color:#ef4444;">로드 실패</p>'; }
+    }
+
+    function showAddRoleForm() {
+      const f = document.getElementById('addRoleForm');
+      if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function addRole() {
+      const name = document.getElementById('newRoleName')?.value?.trim();
+      const desc = document.getElementById('newRoleDesc')?.value?.trim();
+      if (!name) { await spAlert('롤 이름을 입력하세요.', '입력 오류', '⚠️'); return; }
+      try {
+        const res = await fetch('/api/admin/roles', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({role_name:name,description:desc}) });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        document.getElementById('newRoleName').value = '';
+        document.getElementById('newRoleDesc').value = '';
+        document.getElementById('addRoleForm').style.display = 'none';
+        loadRoles();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function deleteRole(id) {
+      if (!await spConfirm('이 롤을 삭제할까요?', '롤 삭제', '🗑️', '삭제', 'danger')) return;
+      try {
+        const res = await fetch(`/api/admin/roles/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        loadRoles();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function loadAdmins() {
+      const tbody = document.getElementById('adminList');
+      if (!tbody) return;
+      try {
+        const res = await fetch('/api/admin/admins', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+        if (!d.admins?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">관리자가 없습니다.</td></tr>'; return; }
+
+        // 롤 목록 가져오기
+        const roleRes = await fetch('/api/admin/roles', { headers: { 'Authorization': 'Bearer ' + token } });
+        const roleData = await roleRes.json();
+        const roles = roleData.roles || [];
+
+        tbody.innerHTML = d.admins.map(a => `
+          <tr>
+            <td>${a.id}</td>
+            <td style="font-weight:700;">${a.username}</td>
+            <td>${a.email || '-'}</td>
+            <td><select class="admin-role-select" data-id="${a.id}" onchange="updateAdminRole(${a.id},this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--line);">
+              ${roles.map(r => `<option value="${r.id}" ${r.id == a.role_id ? 'selected' : ''}>${r.role_name}</option>`).join('')}
+            </select></td>
+            <td><label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" ${a.is_active ? 'checked' : ''} onchange="updateAdminActive(${a.id},this.checked)" />
+              <span style="font-size:0.82rem;color:${a.is_active ? 'var(--success)' : 'var(--muted)'};">${a.is_active ? '활성' : '비활성'}</span>
+            </label></td>
+            <td style="font-size:0.82rem;color:var(--muted);">${a.last_login ? a.last_login.slice(0,16) : '-'}</td>
+            <td style="display:flex;gap:6px;">
+              <button onclick="resetAdminPassword(${a.id},'${a.username}')" class="btn secondary" style="font-size:0.78rem;padding:4px 10px;">🔑 PW</button>
+              <button onclick="deleteAdmin(${a.id},'${a.username}')" class="btn danger" style="font-size:0.78rem;padding:4px 10px;">삭제</button>
+            </td>
+          </tr>`).join('');
+      } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty" style="color:#ef4444;">로드 실패</td></tr>'; }
+    }
+
+    function showAddAdminForm() {
+      const f = document.getElementById('addAdminForm');
+      if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+      loadRoles(); // 롤 셀렉트 업데이트
+    }
+
+    async function addAdmin() {
+      const username = document.getElementById('newAdminUsername')?.value?.trim();
+      const password = document.getElementById('newAdminPassword')?.value?.trim();
+      const email = document.getElementById('newAdminEmail')?.value?.trim();
+      const role_id = document.getElementById('newAdminRole')?.value;
+      if (!username || !password) { await spAlert('아이디와 비밀번호를 입력하세요.', '입력 오류', '⚠️'); return; }
+      if (!role_id) { await spAlert('롤을 선택하세요.', '입력 오류', '⚠️'); return; }
+      try {
+        const res = await fetch('/api/admin/admins', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({username,password,email,role_id:parseInt(role_id)}) });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        document.getElementById('newAdminUsername').value = '';
+        document.getElementById('newAdminPassword').value = '';
+        document.getElementById('newAdminEmail').value = '';
+        document.getElementById('addAdminForm').style.display = 'none';
+        loadAdmins();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function updateAdminRole(id, role_id) {
+      try {
+        await fetch(`/api/admin/admins/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({role_id:parseInt(role_id)}) });
+      } catch(e) { await spAlert('롤 변경 실패', '오류', '❌'); }
+    }
+
+    async function updateAdminActive(id, is_active) {
+      try {
+        await fetch(`/api/admin/admins/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({is_active:is_active?1:0}) });
+        loadAdmins();
+      } catch(e) { await spAlert('상태 변경 실패', '오류', '❌'); }
+    }
+
+    async function resetAdminPassword(id, username) {
+      const newPw = prompt(`${username}의 새 비밀번호를 입력하세요:`);
+      if (!newPw) return;
+      try {
+        const res = await fetch(`/api/admin/admins/${id}`, { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({password:newPw}) });
+        const d = await res.json();
+        if (d.ok) await spAlert('비밀번호가 변경됐습니다.', '완료', '✅');
+        else await spAlert(d.error, '오류', '❌');
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function deleteAdmin(id, username) {
+      if (!await spConfirm(`'${username}' 관리자를 삭제할까요?`, '관리자 삭제', '🗑️', '삭제', 'danger')) return;
+      try {
+        const res = await fetch(`/api/admin/admins/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        loadAdmins();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
     function adminLogout() {
       sessionStorage.removeItem('admin_token');
       sessionStorage.removeItem('auth_token');
