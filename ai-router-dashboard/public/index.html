@@ -4265,7 +4265,12 @@
         if (typeof switchQuantTab === 'function') switchQuantTab(subKey);
       }
 
-      // 탭별 초기화
+      // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
+      if (typeof switchTab === 'function' && !subKey) {
+        switchTab(tabKey);
+        return; // switchTab이 탭 표시까지 처리
+      }
+
       if (tabKey === 'performance') {
         const perfTab = document.getElementById('tab-performance');
         if (perfTab) { perfTab.style.display = 'block'; }
