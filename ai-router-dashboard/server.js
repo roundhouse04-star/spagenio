@@ -64,6 +64,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT NOT NULL, action TEXT NOT NULL, qty REAL, price REAL, reason TEXT, order_id TEXT, profit_pct REAL, status TEXT DEFAULT 'active', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
 `);
 
 try { db.exec("ALTER TABLE auto_trade_log ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e) {}
@@ -422,6 +424,9 @@ if (!superAdminRole) {
 // created_by 컬럼 없으면 추가 (기존 DB 마이그레이션)
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch(e) {}
 try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch(e) {}
+try { db.prepare("ALTER TABLE auto_trade_settings ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch(e) {}
+try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch(e) {}
+try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch(e) {}
 
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
 if (!adminExists) {
@@ -939,6 +944,183 @@ async function getNasdaqTop3(signalMode = 'combined', alpacaKeys = null, market 
 }
 
 // ============================================================
+// 단순 자동매매 (1종목 / 30% / 당일청산)
+// ============================================================
+async function runSimpleAutoTrade(userId) {
+  const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=? AND enabled=1').get(userId);
+  if (!state) return;
+
+  const keys = getUserAlpacaKeys(userId, null);
+  if (!keys) return;
+
+  const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+  const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
+
+  // 미국 동부 시간 기준
+  const now = new Date();
+  const estHour = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(now));
+  const estMin = parseInt(new Intl.DateTimeFormat('en-US', { minute: 'numeric', timeZone: 'America/New_York' }).format(now));
+  const estTime = estHour * 60 + estMin;
+  const marketOpen = 9 * 60 + 30;   // 9:30
+  const marketClose = 16 * 60;       // 16:00
+  const forceCloseTime = 15 * 60 + 55; // 15:55 (마감 5분 전)
+
+  // 장 시간 외에는 실행 안 함
+  if (estTime < marketOpen || estTime >= marketClose) return;
+
+  try {
+    const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+    const equity = parseFloat(account.equity) || 0;
+
+    // === 보유 중인 경우: 익절/손절/강제청산 체크 ===
+    if (state.status === 'holding' && state.symbol && state.buy_price) {
+      const posRes = await fetch(`${baseUrl}/v2/positions/${state.symbol}`, { headers });
+      if (posRes.ok) {
+        const pos = await posRes.json();
+        const currentPrice = parseFloat(pos.current_price) || 0;
+        const plPct = (currentPrice - state.buy_price) / state.buy_price;
+        const qty = state.qty;
+
+        let shouldSell = false;
+        let reason = '';
+
+        if (plPct >= (state.take_profit || 0.05)) {
+          shouldSell = true;
+          reason = `익절 +${(plPct*100).toFixed(2)}%`;
+        } else if (plPct <= -(state.stop_loss || 0.05)) {
+          shouldSell = true;
+          reason = `손절 ${(plPct*100).toFixed(2)}%`;
+        } else if (estTime >= forceCloseTime) {
+          shouldSell = true;
+          reason = `당일마감 강제청산 ${(plPct*100).toFixed(2)}%`;
+        }
+
+        if (shouldSell) {
+          // 매도
+          const order = await (await fetch(`${baseUrl}/v2/orders`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ symbol: state.symbol, qty: String(qty), side: 'sell', type: 'market', time_in_force: 'day' })
+          })).json();
+
+          db.prepare('INSERT INTO simple_auto_trade_log (user_id,symbol,action,qty,price,profit_pct,reason) VALUES (?,?,?,?,?,?,?)')
+            .run(userId, state.symbol, 'SELL', qty, currentPrice, plPct*100, reason);
+
+          // 강제청산이면 당일 재매수 안 함
+          if (estTime >= forceCloseTime) {
+            db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,order_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+              .run('idle', userId);
+          } else {
+            // 매도 후 즉시 재분석 → 재매수
+            db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+              .run('analyzing', userId);
+            setTimeout(() => runSimpleAutoTrade(userId), 3000);
+          }
+
+          // 텔레그램 알림
+          try {
+            const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id=?').get(userId);
+            if (tg?.chat_id && tg?.bot_token) {
+              const token = tg.bot_token.startsWith('bot') ? tg.bot_token.slice(3) : tg.bot_token;
+              const icon = plPct >= 0 ? '✅' : '🔴';
+              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: tg.chat_id, text: `${icon} <b>[단순매매] ${state.symbol} 매도</b>
+사유: ${reason}
+수익률: ${(plPct*100).toFixed(2)}%
+수량: ${qty}주 @ $${currentPrice.toFixed(2)}`, parse_mode: 'HTML' })
+              });
+            }
+          } catch(e) {}
+          return;
+        }
+      } else {
+        // 포지션 없으면 idle로 리셋
+        db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+          .run('idle', userId);
+      }
+    }
+
+    // === idle/analyzing 상태: 재분석 후 매수 ===
+    if ((state.status === 'idle' || state.status === 'analyzing') && estTime < forceCloseTime) {
+      // TOP1 종목 분석
+      const settingsRow = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const symbols = settingsRow?.candidate_symbols
+        ? settingsRow.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY'];
+
+      const end = new Date().toISOString().split('T')[0];
+      const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      function calcEMA(prices, period) { const k=2/(period+1);let ema=prices.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<prices.length;i++)ema=prices[i]*k+ema*(1-k);return ema; }
+      function calcMACD(closes) { if(closes.length<35)return null;const ml=[];for(let i=26;i<=closes.length;i++)ml.push(calcEMA(closes.slice(0,i),12)-calcEMA(closes.slice(0,i),26));if(ml.length<9)return null;const m=ml[ml.length-1],s=calcEMA(ml,9),pm=ml[ml.length-2],ps=calcEMA(ml.slice(0,-1),9);return{macd:m,signal:s,goldenCross:pm<ps&&m>s}; }
+      function calcRSI(closes,period=14) { if(closes.length<period+1)return null;const ch=closes.slice(1).map((c,i)=>c-closes[i]);const ag=ch.slice(-period).filter(c=>c>0).reduce((a,b)=>a+b,0)/period;const al=ch.slice(-period).filter(c=>c<0).reduce((a,b)=>a-b,0)/period;return al===0?100:100-(100/(1+ag/al)); }
+
+      const scored = [];
+      await Promise.allSettled(symbols.map(async (symbol) => {
+        try {
+          const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key } });
+          const json = await resp.json();
+          const bars = json.bars || [];
+          if (bars.length < 35) return;
+          const closes = bars.map(b => b.c);
+          const volumes = bars.map(b => b.v);
+          const currentPrice = closes[closes.length - 1];
+          let score = 0;
+          const avgVol = volumes.slice(0,-1).reduce((a,b)=>a+b,0)/(volumes.length-1);
+          if (volumes[volumes.length-1] > avgVol * 2) score += 3;
+          else if (volumes[volumes.length-1] > avgVol * 1.5) score += 1;
+          const m = calcMACD(closes);
+          if (m?.goldenCross) score += 3;
+          else if (m?.macd > 0) score += 1;
+          const rsi = calcRSI(closes);
+          if (rsi && rsi < 30) score += 3;
+          else if (rsi && rsi < 40) score += 2;
+          else if (rsi && rsi < 50) score += 1;
+          if (score > 0) scored.push({ symbol, score, price: currentPrice });
+        } catch(e) {}
+      }));
+
+      scored.sort((a, b) => b.score - a.score);
+      const top = scored[0];
+      if (!top) { db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId); return; }
+
+      // 매수 금액 계산 (계좌 30%)
+      const buyAmount = equity * (state.balance_ratio || 0.3);
+      const qty = Math.floor(buyAmount / top.price);
+      if (qty < 1) return;
+
+      const order = await (await fetch(`${baseUrl}/v2/orders`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ symbol: top.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' })
+      })).json();
+
+      if (order.id) {
+        db.prepare('INSERT INTO simple_auto_trade_log (user_id,symbol,action,qty,price,profit_pct,reason) VALUES (?,?,?,?,?,?,?)')
+          .run(userId, top.symbol, 'BUY', qty, top.price, 0, `점수 ${top.score}점 TOP1 매수`);
+        db.prepare('UPDATE simple_auto_trade SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+          .run('holding', top.symbol, qty, top.price, order.id, userId);
+
+        // 텔레그램 알림
+        try {
+          const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id=?').get(userId);
+          if (tg?.chat_id && tg?.bot_token) {
+            const token = tg.bot_token.startsWith('bot') ? tg.bot_token.slice(3) : tg.bot_token;
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: tg.chat_id, text: `🟢 <b>[단순매매] ${top.symbol} 매수</b>
+수량: ${qty}주 @ $${top.price.toFixed(2)}
+투자금: $${(qty*top.price).toFixed(0)}
+점수: ${top.score}점`, parse_mode: 'HTML' })
+            });
+          }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    saveErrorLog({ event_type: 'SIMPLE_AUTO_TRADE_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId } });
+  }
+}
+
+// ============================================================
 // 자동매매 스케줄러
 // ============================================================
 function calcEMA(prices,period){const k=2/(period+1);let ema=prices.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<prices.length;i++)ema=prices[i]*k+ema*(1-k);return ema;}
@@ -1068,6 +1250,18 @@ setInterval(async()=>{
     for(const u of users)await runAutoTradeForUser(u.user_id);
   }catch(e){saveErrorLog({event_type:'AUTO_TRADE_SCHEDULER_ERROR',error_message:e.message,stack_trace:e.stack});}
 },60*1000);
+
+// 단순 자동매매 스케줄러 (1분마다)
+setInterval(async () => {
+  try {
+    const now = new Date();
+    const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
+    const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
+    if (!isMarketHours) return;
+    const users = db.prepare('SELECT user_id FROM simple_auto_trade WHERE enabled=1').all();
+    for (const u of users) await runSimpleAutoTrade(u.user_id);
+  } catch(e) { saveErrorLog({ event_type: 'SIMPLE_AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
+}, 60 * 1000);
 
 // ============================================================
 // 백테스팅 API

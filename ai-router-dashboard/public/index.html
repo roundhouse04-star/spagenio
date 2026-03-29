@@ -2457,6 +2457,61 @@
             <div style="font-size:0.83rem;color:#818cf8;">거래량 급등 감지 · 뉴스 촉매 탐지 · 리스크 관리 계산기</div>
           </div>
 
+          <!-- 오늘의 추천 종목 -->
+          <div class="sp-card" style="margin-bottom:20px;">
+            <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
+              <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+            </div>
+            <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천 종목이에요</div>
+            <div id="topPicksList">
+              <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)</div>
+            </div>
+          </div>
+
+          <!-- 단순 자동매매 현황 -->
+          <div class="sp-card" style="margin-bottom:20px;border:2px solid #4f46e5;">
+            <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div class="sp-card-title">⚡ 단순 자동매매</div>
+                <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">TOP1 종목 · 계좌 30% · +5%익절/-5%손절 · 당일 15:55 강제청산</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <span id="simpleTradeStatusBadge" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
+                <button onclick="toggleSimpleAutoTrade()" id="simpleTradeToggleBtn" class="sp-btn sp-btn-indigo">▶ 시작</button>
+              </div>
+            </div>
+
+            <!-- 설정 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+              <div>
+                <label class="sp-label">매수 비율 (%)</label>
+                <input type="number" id="simpleBalanceRatio" value="30" min="10" max="100" class="sp-input" />
+              </div>
+              <div>
+                <label class="sp-label">익절 (%)</label>
+                <input type="number" id="simpleTakeProfit" value="5" min="1" max="20" class="sp-input" />
+              </div>
+              <div>
+                <label class="sp-label">손절 (%)</label>
+                <input type="number" id="simpleStopLoss" value="5" min="1" max="20" class="sp-input" />
+              </div>
+            </div>
+
+            <!-- 현재 보유 현황 -->
+            <div id="simpleTradeState" style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:12px;">
+              <div style="text-align:center;color:#6b7280;font-size:0.85rem;">자동매매 비활성 상태입니다</div>
+            </div>
+
+            <!-- 매매 이력 -->
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:#6b7280;margin-bottom:8px;">📋 매매 이력</div>
+              <div id="simpleTradeLog" style="max-height:200px;overflow-y:auto;">
+                <div style="text-align:center;color:#6b7280;font-size:0.82rem;padding:12px;">이력 없음</div>
+              </div>
+            </div>
+          </div>
+
           <!-- 3열 그리드: 거래량 급등 / 뉴스 촉매 / 리스크 계산 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
@@ -3459,7 +3514,7 @@
       autoBtn.style.cssText = tab === 'auto' ? 'flex:1;padding:12px;border:none;background:#0f172a;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#4f46e5;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); loadAutoStrategyLog(); }
-      if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); }
+      if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); }
       // 퀀트 탭 진입 시 성향 체크 (매번 확인)
       checkInvestorProfile();
     };

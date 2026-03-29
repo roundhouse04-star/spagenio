@@ -652,6 +652,141 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 나스닥100/다우존스30 TOP3 분석
+  // ✅ 단순 자동매매 API
+  router.get('/api/simple-auto-trade/state', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const userId = req.user.user_id || req.user.id;
+    const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
+    const logs = db.prepare('SELECT * FROM simple_auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 20').all(userId);
+    res.json({ ok: true, state: state || null, logs });
+  });
+
+  router.post('/api/simple-auto-trade/toggle', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const userId = req.user.user_id || req.user.id;
+    const { enabled } = req.body;
+    const existing = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
+    if (existing) {
+      db.prepare('UPDATE simple_auto_trade SET enabled=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        .run(enabled ? 1 : 0, enabled ? 'idle' : 'idle', userId);
+    } else {
+      db.prepare('INSERT INTO simple_auto_trade (user_id,enabled,status) VALUES (?,?,?)').run(userId, enabled ? 1 : 0, 'idle');
+    }
+    res.json({ ok: true, enabled });
+  });
+
+  router.post('/api/simple-auto-trade/settings', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const userId = req.user.user_id || req.user.id;
+    const { balance_ratio = 0.3, take_profit = 0.05, stop_loss = 0.05 } = req.body;
+    const existing = db.prepare('SELECT id FROM simple_auto_trade WHERE user_id=?').get(userId);
+    if (existing) {
+      db.prepare('UPDATE simple_auto_trade SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        .run(balance_ratio, take_profit, stop_loss, userId);
+    } else {
+      db.prepare('INSERT INTO simple_auto_trade (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
+    }
+    res.json({ ok: true });
+  });
+
+  // ✅ 오늘의 추천 종목 (거래량 + 뉴스 + 기술적 신호 종합)
+  router.get('/api/auto-trade/top-picks', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const userId = req.user.user_id || req.user.id;
+      const keys = getUserAlpacaKeys(userId, null);
+      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const symbols = settings?.candidate_symbols
+        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY','NFLX','PYPL','INTC','AMD','CRM'];
+
+      const alpacaHeaders = keys
+        ? { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key }
+        : {};
+
+      // 1. 거래량 급등 감지
+      const surges = await detectVolumeSurge(symbols, keys);
+      const surgeMap = new Map(surges.map(s => [s.symbol, s]));
+
+      // 2. 뉴스 촉매 탐지
+      const catalysts = await detectNewsCatalyst(db, symbols);
+      const newsMap = new Map(catalysts.map(c => [c.symbol, c]));
+
+      // 3. 기술적 신호 (MACD + RSI) 분석
+      const end = new Date().toISOString().split('T')[0];
+      const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      function calcEMA(prices, period) {
+        const k = 2 / (period + 1);
+        let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+        for (let i = period; i < prices.length; i++) ema = prices[i] * k + ema * (1 - k);
+        return ema;
+      }
+      function calcMACD(closes) {
+        if (closes.length < 35) return null;
+        const macdLine = [];
+        for (let i = 26; i <= closes.length; i++) macdLine.push(calcEMA(closes.slice(0, i), 12) - calcEMA(closes.slice(0, i), 26));
+        if (macdLine.length < 9) return null;
+        const macd = macdLine[macdLine.length - 1];
+        const signal = calcEMA(macdLine, 9);
+        const prevMacd = macdLine[macdLine.length - 2];
+        const prevSignal = calcEMA(macdLine.slice(0, -1), 9);
+        return { macd, signal, goldenCross: prevMacd < prevSignal && macd > signal };
+      }
+      function calcRSI(closes, period = 14) {
+        if (closes.length < period + 1) return null;
+        const changes = closes.slice(1).map((c, i) => c - closes[i]);
+        const avgGain = changes.slice(-period).filter(c => c > 0).reduce((a, b) => a + b, 0) / period;
+        const avgLoss = changes.slice(-period).filter(c => c < 0).reduce((a, b) => a - b, 0) / period;
+        return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+      }
+
+      const scored = [];
+      await Promise.allSettled(symbols.map(async (symbol) => {
+        try {
+          let score = 0;
+          const signals = [];
+
+          // 거래량 점수
+          const surge = surgeMap.get(symbol);
+          if (surge) {
+            if (surge.surge_level === 'extreme') { score += 3; signals.push(`🔥 거래량 ${surge.volume_ratio}x`); }
+            else if (surge.surge_level === 'high') { score += 2; signals.push(`⚡ 거래량 ${surge.volume_ratio}x`); }
+            else { score += 1; signals.push(`📈 거래량 ${surge.volume_ratio}x`); }
+          }
+
+          // 뉴스 점수
+          const news = newsMap.get(symbol);
+          if (news) { score += 2; signals.push(`📰 뉴스 ${news.news_count}건`); }
+
+          // 기술적 신호 점수
+          const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers: alpacaHeaders });
+          const json = await resp.json();
+          const bars = json.bars || [];
+          if (bars.length >= 35) {
+            const closes = bars.map(b => b.c);
+            const price = closes[closes.length - 1];
+            const macd = calcMACD(closes);
+            const rsi = calcRSI(closes);
+            if (macd?.goldenCross) { score += 3; signals.push('✅ MACD 골든크로스'); }
+            else if (macd?.macd > 0) { score += 1; signals.push('MACD 양수'); }
+            if (rsi && rsi < 30) { score += 3; signals.push(`RSI ${rsi.toFixed(0)} 강한매수`); }
+            else if (rsi && rsi < 40) { score += 2; signals.push(`RSI ${rsi.toFixed(0)} 과매도`); }
+            else if (rsi && rsi < 50) { score += 1; signals.push(`RSI ${rsi.toFixed(0)}`); }
+
+            if (score > 0) {
+              const change_pct = surge?.change_pct || ((closes[closes.length-1] - closes[closes.length-2]) / closes[closes.length-2] * 100);
+              scored.push({ symbol, score, price, change_pct: parseFloat(change_pct.toFixed(2)), signals, rsi: rsi ? parseFloat(rsi.toFixed(1)) : null, macd_cross: macd?.goldenCross || false, has_news: !!news, has_surge: !!surge });
+            }
+          }
+        } catch(e) {}
+      }));
+
+      scored.sort((a, b) => b.score - a.score);
+      res.json({ ok: true, picks: scored.slice(0, 5), total_analyzed: symbols.length });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ✅ 거래량 급등 감지
   router.get('/api/auto-trade/volume-surge', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });

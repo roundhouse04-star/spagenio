@@ -40,7 +40,7 @@ start_travel_python() {
   cd "$dir"
   [ -d venv ] || python3 -m venv venv
   source venv/bin/activate
-  pip install -q -r requirements.txt
+  pip3 install -q -r requirements.txt --break-system-packages --break-system-packages --break-system-packages
   kill_port 9001
   nohup uvicorn main:app --host 0.0.0.0 --port 9001 > "$LOG_DIR/travel-python.log" 2>&1 &
   echo $! > "$PID_DIR/travel-python.pid"
@@ -91,7 +91,7 @@ start_stock_server() {
   cd "$dir"
   [ -d "$dir/stock_venv" ] || python3 -m venv "$dir/stock_venv"
   source "$dir/stock_venv/bin/activate"
-  pip install -q flask flask-cors yfinance alpaca-py 2>/dev/null || true
+  pip3 install -q flask flask-cors yfinance alpaca-py --break-system-packages 2>/dev/null || true
   kill_port 5001
   nohup python3 "$script" > "$LOG_DIR/stock-server.log" 2>&1 &
   echo $! > "$PID_DIR/stock-server.pid"
@@ -106,7 +106,7 @@ start_quant_server() {
   cd "$dir"
   [ -d "$dir/stock_venv" ] || python3 -m venv "$dir/stock_venv"
   source "$dir/stock_venv/bin/activate"
-  pip install -q flask flask-cors yfinance requests beautifulsoup4 2>/dev/null || true
+  pip3 install -q flask flask-cors yfinance requests beautifulsoup4 --break-system-packages 2>/dev/null || true
   kill_port 5002
   nohup python3 "$script" > "$LOG_DIR/quant-server.log" 2>&1 &
   echo $! > "$PID_DIR/quant-server.pid"
