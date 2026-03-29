@@ -108,14 +108,11 @@
         });
         const data = await res.json();
         if (res.ok) {
-          // 관리자 확인
-          const verifyRes = await fetch('/api/auth/verify', {
-            headers: { 'Authorization': 'Bearer ' + data.token }
-          });
-          const verifyData = await verifyRes.json();
-          if (verifyData.user?.username === 'admin') {
-            sessionStorage.setItem('auth_token', data.token);
+          if (data.is_admin) {
+            // 기존 일반 유저 토큰 무효화 후 admin 토큰 저장
+            sessionStorage.removeItem('auth_token');
             sessionStorage.setItem('admin_token', data.token);
+            sessionStorage.setItem('auth_token', data.token);
             document.cookie = `auth_token=${data.token};path=/;max-age=86400`;
             location.href = '/admin';
           } else {

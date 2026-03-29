@@ -752,12 +752,26 @@
         document.getElementById('spModalOverlay').style.display = 'flex';
       });
     }
-    // admin_token을 auth_token에 동기화 (lotto.js 등 공통 모듈이 auth_token 사용)
-    // sessionStorage는 탭마다 독립적이라 다른 탭의 front에 영향 없음
+    // ===== 토큰 처리 =====
+    // 1. admin_token 있으면 → admin으로 로그인된 상태 → auth_token 덮어쓰기
+    // 2. admin_token 없고 auth_token만 있으면 → 일반 유저 토큰 → 무효화 후 admin-login으로
+    // 3. 둘 다 없으면 → admin-login으로
     const adminToken = sessionStorage.getItem('admin_token');
-    if (adminToken) sessionStorage.setItem('auth_token', adminToken);
-    const token = adminToken || sessionStorage.getItem('auth_token');
-    if (!token) location.href = '/admin-login';
+    const existingAuthToken = sessionStorage.getItem('auth_token');
+
+    if (adminToken) {
+      // admin 로그인 상태 → auth_token 동기화
+      sessionStorage.setItem('auth_token', adminToken);
+    } else if (existingAuthToken) {
+      // 일반 유저 토큰만 있는 경우 → 무효화 후 admin-login으로
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('admin_token');
+      location.href = '/admin-login';
+    } else {
+      // 토큰 없음 → admin-login으로
+      location.href = '/admin-login';
+    }
+    const token = adminToken;
 
     let currentLogPage = 1;
     let totalLogs = 0;
@@ -787,7 +801,12 @@
     async function loadSecurityStats() {
       try {
         const res = await fetch('/api/admin/security-stats', { headers: { 'Authorization': 'Bearer ' + token } });
-        if (res.status === 403) { document.body.innerHTML = '<div style="text-align:center;padding:60px;color:var(--danger);"><h2>🚫 관리자만 접근 가능합니다</h2><br/><a href="/" style="color:var(--accent);">대시보드로 이동</a></div>'; return; }
+        if (res.status === 403 || res.status === 401) {
+          sessionStorage.removeItem('admin_token');
+          sessionStorage.removeItem('auth_token');
+          location.href = '/admin-login';
+          return;
+        }
         const d = await res.json();
 
         // 개요 통계
