@@ -27,7 +27,26 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, logger, decry
     const user = db.prepare('SELECT username FROM users WHERE id = ?').get(req.params.id);
     if (!user) return res.status(404).json({ error: '사용자 없음' });
     if (user.is_admin) return res.status(400).json({ error: '관리자는 삭제할 수 없습니다.' });
-    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+    const uid = parseInt(req.params.id);
+    // 연관 데이터 전체 삭제 (트랜잭션)
+    const deleteAll = db.transaction(() => {
+      db.prepare('DELETE FROM lotto_picks WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM lotto_schedule WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM lotto_schedule_log WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM lotto_algorithm_weights WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM user_telegram WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM user_broker_keys WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM terms_agreements WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM auto_trade_settings WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM auto_trade_log WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM auto_strategy_settings WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM portfolio_performance WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM backtest_results WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM telegram_alert_log WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM quant_analysis_log WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM users WHERE id=?').run(uid);
+    });
+    deleteAll();
     logger.warn('USER_DELETED', { adminId: req.user.id, deletedUsername: user.username });
     return res.json({ status: 'ok' });
   });
