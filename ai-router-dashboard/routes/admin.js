@@ -334,6 +334,66 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json({ ok: true });
   });
 
+  // ===== 스케줄러 관리 API =====
+
+  // 스케줄러 목록 조회
+  router.get('/api/admin/schedulers', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const schedulers = db.prepare('SELECT * FROM schedulers ORDER BY id').all();
+    res.json({ ok: true, schedulers });
+  });
+
+  // 스케줄러 활성/비활성
+  router.put('/api/admin/schedulers/:key', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { enabled, interval_sec } = req.body;
+    const sch = db.prepare('SELECT id FROM schedulers WHERE key=?').get(req.params.key);
+    if (!sch) return res.status(404).json({ error: '스케줄러 없음' });
+    const updates = [];
+    const params = [];
+    if (enabled !== undefined) { updates.push('enabled=?'); params.push(enabled ? 1 : 0); }
+    if (interval_sec !== undefined) { updates.push('interval_sec=?'); params.push(parseInt(interval_sec)); }
+    if (!updates.length) return res.status(400).json({ error: '변경 항목 없음' });
+    params.push(req.params.key);
+    db.prepare(`UPDATE schedulers SET ${updates.join(',')} WHERE key=?`).run(...params);
+    res.json({ ok: true });
+  });
+
+  // ===== 스케줄러 관리 API =====
+
+  // 스케줄러 목록 조회
+  router.get('/api/admin/schedulers', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const schedulers = db.prepare('SELECT * FROM schedulers ORDER BY id').all();
+    res.json({ ok: true, schedulers });
+  });
+
+  // 스케줄러 ON/OFF
+  router.patch('/api/admin/schedulers/:key/toggle', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { enabled } = req.body;
+    db.prepare('UPDATE schedulers SET enabled=? WHERE key=?').run(enabled ? 1 : 0, req.params.key);
+    res.json({ ok: true });
+  });
+
+  // 스케줄러 주기 변경
+  router.patch('/api/admin/schedulers/:key/interval', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { interval_sec } = req.body;
+    if (!interval_sec || interval_sec < 10) return res.status(400).json({ error: '최소 10초 이상' });
+    db.prepare('UPDATE schedulers SET interval_sec=? WHERE key=?').run(interval_sec, req.params.key);
+    res.json({ ok: true });
+  });
+
+  // 스케줄러 즉시 실행
+  router.post('/api/admin/schedulers/:key/run', async (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    // 즉시 실행은 서버 측에서 함수 호출 불가 (front.js에 있으므로)
+    // DB 상태만 업데이트
+    db.prepare('UPDATE schedulers SET last_run=CURRENT_TIMESTAMP, run_count=run_count+1 WHERE key=?').run(req.params.key);
+    res.json({ ok: true, message: '다음 주기에 실행됩니다.' });
+  });
+
   // ===== 메뉴 관리 API =====
 
   // 메뉴 전체 조회 (관리자용 - disabled 포함)

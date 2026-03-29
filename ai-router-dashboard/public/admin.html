@@ -554,6 +554,7 @@
       <button class="nav-btn" onclick="showPage('lotto')">🍀 로또 관리</button>
       <div class="nav-divider"></div>
       <button class="nav-btn" onclick="showPage('admin-mgmt')">👤 관리자 관리</button>
+      <button class="nav-btn" onclick="showPage('scheduler-mgmt')">⏱️ 스케줄러 관리</button>
       <button class="nav-btn" onclick="showPage('menu-mgmt')">📋 메뉴 관리</button>
       <div class="sidebar-bottom">
         <button class="nav-btn" onclick="location.href='/'">← 대시보드</button>
@@ -845,6 +846,19 @@
       </div>
 
 
+
+
+      <!-- 스케줄러 관리 -->
+      <div class="page" id="page-scheduler-mgmt">
+        <div class="page-title">⏱️ 스케줄러 관리</div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">⏱️ 스케줄러 목록</div>
+            <button class="btn secondary" onclick="loadSchedulers()" style="font-size:0.82rem;">🔄 새로고침</button>
+          </div>
+          <div id="schedulerList"><p class="empty">로딩 중...</p></div>
+        </div>
+      </div>
 
       <!-- 메뉴 관리 -->
       <div class="page" id="page-menu-mgmt">
@@ -1423,6 +1437,7 @@
       else if (name === 'stats') loadStats();
       else if (name === 'lotto') { if (typeof lottoInit === 'function') { lottoInitialized = false; lottoInit(); } }
       else if (name === 'admin-mgmt') { loadRoles(); loadAdmins(); }
+      else if (name === 'scheduler-mgmt') { loadSchedulers(); }
       else if (name === 'menu-mgmt') { loadMenus(); }
       else if (name === 'users') loadUsers();
       else if (name === 'invite') { loadRequests(); }
@@ -2318,6 +2333,173 @@
         btn.disabled = false;
         btn.textContent = '🎯 전체 당첨확인';
       }
+    }
+
+    // ===== 스케줄러 관리 JS =====
+    async function loadSchedulers() {
+      const el = document.getElementById('schedulerList');
+      if (!el) return;
+      try {
+        const res = await fetch('/api/admin/schedulers', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+        if (!d.schedulers?.length) { el.innerHTML = '<p class="empty">스케줄러 없음</p>'; return; }
+
+        el.innerHTML = d.schedulers.map(s => {
+          const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('ko-KR') : '미실행';
+          const intervalMin = s.interval_sec >= 3600 ? `${s.interval_sec/3600}시간` : s.interval_sec >= 60 ? `${s.interval_sec/60}분` : `${s.interval_sec}초`;
+          return `
+            <div style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                <div>
+                  <span style="font-weight:700;font-size:0.95rem;">${s.name}</span>
+                  <span style="font-size:0.72rem;color:var(--muted);margin-left:8px;">key: ${s.key}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:999px;font-weight:700;background:${s.enabled ? '#dcfce7' : '#f1f5f9'};color:${s.enabled ? '#065f46' : '#6b7280'};">
+                    ${s.enabled ? '🟢 활성' : '⭕ 정지'}
+                  </span>
+                  <button onclick="toggleScheduler('${s.key}', ${s.enabled ? 0 : 1})"
+                    class="btn ${s.enabled ? 'danger' : ''}" style="font-size:0.78rem;padding:4px 12px;">
+                    ${s.enabled ? '⏹ 정지' : '▶ 시작'}
+                  </button>
+                </div>
+              </div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">${s.description || ''}</div>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:0.78rem;color:var(--muted);">실행 주기:</span>
+                  <input type="number" value="${s.interval_sec}" min="10" style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);font-size:0.82rem;" id="interval-${s.key}" />
+                  <span style="font-size:0.78rem;color:var(--muted);">초 (현재: ${intervalMin})</span>
+                  <button onclick="updateInterval('${s.key}')" class="btn secondary" style="font-size:0.75rem;padding:3px 10px;">저장</button>
+                </div>
+                <div style="font-size:0.78rem;color:var(--muted);">
+                  마지막 실행: <b>${lastRun}</b> · 총 ${s.run_count.toLocaleString()}회
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+    }
+
+    async function toggleScheduler(key, enabled) {
+      try {
+        const res = await fetch(`/api/admin/schedulers/${key}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ enabled })
+        });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        loadSchedulers();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function updateInterval(key) {
+      const input = document.getElementById(`interval-${key}`);
+      const interval_sec = parseInt(input?.value);
+      if (!interval_sec || interval_sec < 10) { await spAlert('최소 10초 이상이어야 합니다.', '입력 오류', '⚠️'); return; }
+      try {
+        const res = await fetch(`/api/admin/schedulers/${key}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ interval_sec })
+        });
+        const d = await res.json();
+        if (d.ok) await spAlert('저장됐습니다.', '완료', '✅');
+        else await spAlert(d.error, '오류', '❌');
+        loadSchedulers();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    // ===== 스케줄러 관리 JS =====
+    async function loadSchedulers() {
+      const el = document.getElementById('schedulerList');
+      if (!el) return;
+      try {
+        const res = await fetch('/api/admin/schedulers', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await res.json();
+        if (!d.schedulers?.length) { el.innerHTML = '<p class="empty">스케줄러가 없습니다.</p>'; return; }
+
+        el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' +
+          d.schedulers.map(s => {
+            const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('ko-KR') : '실행 안 됨';
+            const intervalLabel = s.interval_sec >= 3600
+              ? `${s.interval_sec/3600}시간`
+              : s.interval_sec >= 60
+              ? `${s.interval_sec/60}분`
+              : `${s.interval_sec}초`;
+            return `
+              <div style="border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--panel2);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                  <div>
+                    <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">${s.name}</div>
+                    <div style="font-size:0.78rem;color:var(--muted);">${s.description || ''}</div>
+                  </div>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <span style="font-size:0.8rem;color:${s.enabled ? 'var(--success)' : 'var(--muted)'};">${s.enabled ? '🟢 실행중' : '⏸️ 정지'}</span>
+                    <div style="position:relative;width:44px;height:24px;">
+                      <input type="checkbox" ${s.enabled ? 'checked' : ''} 
+                        onchange="toggleScheduler('${s.key}', this.checked)"
+                        style="opacity:0;width:0;height:0;position:absolute;">
+                      <span onclick="this.previousElementSibling.click()" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${s.enabled ? '#6366f1' : '#374151'};border-radius:24px;transition:.3s;">
+                        <span style="position:absolute;height:18px;width:18px;left:${s.enabled ? '23px' : '3px'};bottom:3px;background:white;border-radius:50%;transition:.3s;"></span>
+                      </span>
+                    </div>
+                  </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:0.78rem;color:var(--muted);">주기:</span>
+                    <select onchange="updateInterval('${s.key}', this.value)" 
+                      style="padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:0.8rem;">
+                      <option value="10" ${s.interval_sec==10?'selected':''}>10초</option>
+                      <option value="30" ${s.interval_sec==30?'selected':''}>30초</option>
+                      <option value="60" ${s.interval_sec==60?'selected':''}>1분</option>
+                      <option value="300" ${s.interval_sec==300?'selected':''}>5분</option>
+                      <option value="600" ${s.interval_sec==600?'selected':''}>10분</option>
+                      <option value="1800" ${s.interval_sec==1800?'selected':''}>30분</option>
+                      <option value="3600" ${s.interval_sec==3600?'selected':''}>1시간</option>
+                    </select>
+                  </div>
+                  <div style="font-size:0.78rem;color:var(--muted);">
+                    마지막 실행: <b>${lastRun}</b>
+                  </div>
+                  <div style="font-size:0.78rem;color:var(--muted);">
+                    총 실행: <b>${s.run_count}회</b>
+                  </div>
+                </div>
+              </div>`;
+          }).join('') + '</div>';
+      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+    }
+
+    async function toggleScheduler(key, enabled) {
+      try {
+        const res = await fetch(`/api/admin/schedulers/${key}/toggle`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ enabled })
+        });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        await spAlert(`스케줄러가 ${enabled ? '시작' : '정지'}됐습니다.
+서버 재시작 후 적용됩니다.`, '완료', enabled ? '🟢' : '⏸️');
+        loadSchedulers();
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
+    }
+
+    async function updateInterval(key, interval_sec) {
+      try {
+        const res = await fetch(`/api/admin/schedulers/${key}/interval`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ interval_sec: parseInt(interval_sec) })
+        });
+        const d = await res.json();
+        if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
+        await spAlert('주기가 변경됐습니다.
+서버 재시작 후 적용됩니다.', '완료', '✅');
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     // ===== 메뉴 관리 JS =====

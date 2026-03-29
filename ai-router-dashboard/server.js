@@ -64,6 +64,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT NOT NULL, action TEXT NOT NULL, qty REAL, price REAL, reason TEXT, order_id TEXT, profit_pct REAL, status TEXT DEFAULT 'active', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
@@ -426,6 +427,19 @@ if (!superAdminRole) {
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch(e) {}
 try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch(e) {}
 try { db.prepare("ALTER TABLE auto_trade_settings ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch(e) {}
+try { db.exec("CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+
+// 기본 스케줄러 데이터 삽입
+const schCount = db.prepare("SELECT COUNT(*) as cnt FROM schedulers").get();
+if (schCount.cnt === 0) {
+  const ins = db.prepare("INSERT OR IGNORE INTO schedulers (name, key, enabled, interval_sec, description) VALUES (?,?,?,?,?)");
+  ins.run('로또 자동발송', 'lotto_send', 1, 3600, '유저 설정 기반 로또 번호 자동 텔레그램 발송 (매시 정각)');
+  ins.run('미국 자동매매', 'auto_trade', 1, 60, 'MACD/RSI 기반 미국 주식 자동매매 (장시간 09:30~16:00 EST)');
+  ins.run('단순 자동매매', 'simple_trade', 1, 60, 'TOP1 종목 당일 자동매매 (장시간, 15:55 강제청산)');
+  ins.run('완전 자동매매', 'auto_strategy', 1, 60, '팩터 스크리닝 기반 완전자동매매 (장시간)');
+  ins.run('로또 당첨번호 수집', 'lotto_history', 1, 60, '토요일 KST 21:00 당첨번호 자동 수집');
+}
+
 try { db.exec("CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
 
 // 기본 메뉴 데이터 삽입
@@ -740,8 +754,10 @@ process.on('uncaughtException', (err) => {
 // ============================================================
 setInterval(async () => {
   try {
+    if (!isSchedulerEnabled('lotto_send')) return;
     const now = new Date();
     if (now.getMinutes() !== 0) return;
+    updateSchedulerRun('lotto_send');
     const currentHour = now.getHours(), currentDay = now.getDay(), today = now.toISOString().split('T')[0];
     if (currentDay === 6 && currentHour >= 20) return;
     const schedules = db.prepare('SELECT ls.*, ut.chat_id, ut.bot_token FROM lotto_schedule ls JOIN user_telegram ut ON ls.user_id=ut.user_id WHERE ls.enabled=1 AND ls.hour=?').all(currentHour);
@@ -1142,6 +1158,29 @@ async function runSimpleAutoTrade(userId) {
 }
 
 // ============================================================
+// 스케줄러 관리 헬퍼
+// ============================================================
+function isSchedulerEnabled(key) {
+  try {
+    const row = db.prepare('SELECT enabled FROM schedulers WHERE key=?').get(key);
+    return row ? row.enabled === 1 : true; // DB에 없으면 기본 활성
+  } catch(e) { return true; }
+}
+
+function updateSchedulerRun(key) {
+  try {
+    db.prepare('UPDATE schedulers SET last_run=CURRENT_TIMESTAMP, run_count=run_count+1 WHERE key=?').run(key);
+  } catch(e) {}
+}
+
+function getSchedulerInterval(key, defaultSec = 60) {
+  try {
+    const row = db.prepare('SELECT interval_sec FROM schedulers WHERE key=?').get(key);
+    return (row?.interval_sec || defaultSec) * 1000;
+  } catch(e) { return defaultSec * 1000; }
+}
+
+// ============================================================
 // 자동매매 스케줄러
 // ============================================================
 function calcEMA(prices,period){const k=2/(period+1);let ema=prices.slice(0,period).reduce((a,b)=>a+b,0)/period;for(let i=period;i<prices.length;i++)ema=prices[i]*k+ema*(1-k);return ema;}
@@ -1264,9 +1303,11 @@ async function runAutoTradeForUser(userId) {
 
 setInterval(async()=>{
   try{
+    if (!isSchedulerEnabled('auto_trade')) return;
     const now=new Date(),utcHour=now.getUTCHours(),utcMin=now.getUTCMinutes();
     const isMarketHours=(utcHour===14&&utcMin>=30)||(utcHour>14&&utcHour<21);
     if(!isMarketHours)return;
+    updateSchedulerRun('auto_trade');
     const users=db.prepare('SELECT user_id FROM auto_trade_settings WHERE enabled=1').all();
     for(const u of users)await runAutoTradeForUser(u.user_id);
   }catch(e){saveErrorLog({event_type:'AUTO_TRADE_SCHEDULER_ERROR',error_message:e.message,stack_trace:e.stack});}
@@ -1275,10 +1316,12 @@ setInterval(async()=>{
 // 단순 자동매매 스케줄러 (1분마다)
 setInterval(async () => {
   try {
+    if (!isSchedulerEnabled('simple_trade')) return;
     const now = new Date();
     const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     if (!isMarketHours) return;
+    updateSchedulerRun('simple_trade');
     const users = db.prepare('SELECT user_id FROM simple_auto_trade WHERE enabled=1').all();
     for (const u of users) await runSimpleAutoTrade(u.user_id);
   } catch(e) { saveErrorLog({ event_type: 'SIMPLE_AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
@@ -1670,13 +1713,125 @@ async function runAutoStrategy(userId) {
 // 1분마다 완전자동매매 실행
 setInterval(async () => {
   try {
+    if (!isSchedulerEnabled('auto_strategy')) return;
     const now = new Date(); const utcHour = now.getUTCHours(); const utcMin = now.getUTCMinutes();
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     if (!isMarketHours) return;
+    updateSchedulerRun('auto_strategy');
     const users = db.prepare('SELECT user_id FROM auto_strategy_settings WHERE enabled=1').all();
     for (const u of users) await runAutoStrategy(u.user_id);
   } catch(e) { saveErrorLog({ event_type: 'AUTO_STRATEGY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
+
+// ============================================================
+// 스케줄러 관리 시스템 (DB 기반, key로 관리)
+// ============================================================
+const schedulerTimers = {}; // { id: timer }
+
+function startScheduler(id, intervalSec, fn) {
+  if (schedulerTimers[id]) clearInterval(schedulerTimers[id]);
+  schedulerTimers[id] = setInterval(async () => {
+    try {
+      await fn();
+      db.prepare('UPDATE schedulers SET last_run=CURRENT_TIMESTAMP, run_count=run_count+1 WHERE id=?').run(id);
+    } catch(e) {
+      saveErrorLog({ event_type: 'SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack, meta: { schedulerId: id } });
+    }
+  }, intervalSec * 1000);
+}
+
+function stopScheduler(id) {
+  if (schedulerTimers[id]) {
+    clearInterval(schedulerTimers[id]);
+    delete schedulerTimers[id];
+  }
+}
+
+function initSchedulers() {
+  const schedulers = db.prepare('SELECT * FROM schedulers').all();
+  schedulers.forEach(s => {
+    if (s.enabled) startScheduler(s.id, s.interval_sec, getSchedulerFn(s.id));
+  });
+}
+
+function getSchedulerFn(id) {
+  const fns = {
+    1: lottoAutoSendFn,
+    2: autoTradeFn,
+    3: simpleAutoTradeFn,
+    4: autoStrategyFn,
+    5: lottoHistoryFn,
+  };
+  return fns[id] || (() => {});
+}
+
+// 각 스케줄러 함수 정의
+async function lottoAutoSendFn() {
+  const now = new Date();
+  if (now.getMinutes() !== 0) return;
+  const currentHour = now.getUTCHours() + 9; // KST
+  const kstHour = currentHour >= 24 ? currentHour - 24 : currentHour;
+  const schedules = db.prepare('SELECT ls.*, ut.chat_id, ut.bot_token FROM lotto_schedule ls JOIN user_telegram ut ON ls.user_id=ut.user_id WHERE ls.enabled=1 AND ls.hour=?').all(kstHour);
+  // 기존 로또 발송 로직은 아래 setInterval에서 처리
+}
+
+async function autoTradeFn() {
+  const now = new Date();
+  const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
+  const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
+  if (!isMarketHours) return;
+  const users = db.prepare('SELECT user_id FROM auto_trade_settings WHERE enabled=1').all();
+  for (const u of users) await runAutoTradeForUser(u.user_id);
+}
+
+async function simpleAutoTradeFn() {
+  const now = new Date();
+  const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
+  const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
+  if (!isMarketHours) return;
+  const users = db.prepare('SELECT user_id FROM simple_auto_trade WHERE enabled=1').all();
+  for (const u of users) await runSimpleAutoTrade(u.user_id);
+}
+
+async function autoStrategyFn() {
+  const now = new Date();
+  const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
+  const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
+  if (!isMarketHours) return;
+  const users = db.prepare('SELECT user_id FROM auto_strategy_settings WHERE enabled=1').all();
+  for (const u of users) await runAutoStrategy(u.user_id);
+}
+
+async function lottoHistoryFn() {
+  const now = new Date();
+  const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
+  const utcDay = now.getUTCDay();
+  if (utcDay !== 6 || utcHour !== 12 || utcMin > 5) return;
+  const today = now.toISOString().split('T')[0];
+  const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
+  const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
+  if (existing) return;
+  const res = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+    signal: AbortSignal.timeout(10000)
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  if (!data.drwtNo1) return;
+  const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+  db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)').run(drw_no, JSON.stringify(winning), data.bnusNo, data.drwNoDate || today);
+  const picks = db.prepare('SELECT * FROM lotto_picks WHERE pick_date=? AND rank IS NULL').all(today);
+  picks.forEach(pick => {
+    const nums = JSON.parse(pick.numbers);
+    const matched = nums.filter(n => winning.includes(n)).length;
+    const hasBonus = nums.includes(data.bnusNo);
+    let rank = null;
+    if (matched === 6) rank = 1; else if (matched === 5 && hasBonus) rank = 2;
+    else if (matched === 5) rank = 3; else if (matched === 4) rank = 4; else if (matched === 3) rank = 5;
+    db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?').run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
+  });
+  console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료`);
+}
 
 // ============================================================
 // 로또 당첨번호 자동 수집 스케줄러 (토요일 KST 21:00 = UTC 12:00)
@@ -1688,8 +1843,10 @@ setInterval(async () => {
     const utcMin = now.getUTCMinutes();
     const utcDay = now.getUTCDay(); // 0=일, 6=토
 
+    if (!isSchedulerEnabled('lotto_history')) return;
     // 토요일 UTC 12:00 (KST 21:00)에만 실행
     if (utcDay !== 6 || utcHour !== 12 || utcMin > 5) return;
+    updateSchedulerRun('lotto_history');
 
     // 이번 주 회차 계산
     const today = now.toISOString().split('T')[0];
@@ -1737,6 +1894,9 @@ setInterval(async () => {
 // ============================================================
 // 서버 시작
 // ============================================================
+// 스케줄러 초기화
+initSchedulers();
+
 app.listen(port, '0.0.0.0', () => {
   console.log('');
   console.log(`${C.bright}${C.magenta}  ╔══════════════════════════════════╗${C.reset}`);
