@@ -726,6 +726,11 @@ app.use('/', frontRoutes(frontDeps));
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error:'Not found' });
+  // m.spagenio.com 접속 시 모바일 페이지로
+  const host = req.hostname || '';
+  if (host.startsWith('m.')) {
+    return res.sendFile(path.join(__dirname, 'public', 'm.html'));
+  }
   res.sendFile(path.join(__dirname,'public','index.html'));
 });
 

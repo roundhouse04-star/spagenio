@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>spagenio</title>
+  <style>
+    :root {
+      --bg: #0a0f1a;
+      --surface: #111827;
+      --surface2: #1a2335;
+      --border: #1e2d42;
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --tab-h: 64px;
+      --header-h: 56px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── 헤더 ── */
+    .m-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: rgba(10,15,26,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 100;
+    }
+    .m-header-logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .m-header-user {
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .m-logout-btn {
+      padding: 5px 10px;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      color: var(--danger);
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ── 메인 콘텐츠 ── */
+    .m-main {
+      padding-top: var(--header-h);
+      padding-bottom: calc(var(--tab-h) + var(--safe-bottom) + 8px);
+      min-height: 100dvh;
+    }
+
+    /* ── 탭 콘텐츠 ── */
+    .m-tab { display: none; padding: 16px; }
+    .m-tab.active { display: block; }
+
+    /* ── 하단 탭바 ── */
+    .m-tabbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(var(--tab-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(10,15,26,0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      z-index: 100;
+    }
+    .m-tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding-top: 10px;
+      height: var(--tab-h);
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .m-tab-btn.active { color: var(--accent); }
+    .m-tab-btn .m-tab-icon { font-size: 1.3rem; line-height: 1; }
+    .m-tab-btn .m-tab-label { font-size: 0.65rem; font-weight: 600; letter-spacing: -0.2px; }
+    .m-tab-btn.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 32px; height: 2px;
+      background: var(--accent);
+      border-radius: 0 0 4px 4px;
+    }
+
+    /* ── 카드 ── */
+    .m-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .m-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .m-section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 16px 0 8px;
+    }
+
+    /* ── 버튼 ── */
+    .m-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .m-btn:active { transform: scale(0.97); opacity: 0.85; }
+    .m-btn-primary { background: var(--accent); color: #fff; }
+    .m-btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .m-btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+    .m-btn-success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+    .m-btn-full { width: 100%; }
+
+    /* ── 배지 ── */
+    .m-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .m-badge-green { background: rgba(16,185,129,0.15); color: var(--success); }
+    .m-badge-red { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .m-badge-blue { background: rgba(99,102,241,0.15); color: var(--accent2); }
+    .m-badge-yellow { background: rgba(245,158,11,0.15); color: var(--warn); }
+
+    /* ── 입력 ── */
+    .m-input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .m-input:focus { border-color: var(--accent); }
+    .m-input::placeholder { color: var(--muted); }
+    .m-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; display: block; }
+
+    /* ── 로딩 ── */
+    .m-loading { text-align: center; color: var(--muted); padding: 24px; font-size: 0.85rem; }
+    .m-empty { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 0.85rem; }
+
+    /* ── 뉴스 ── */
+    .m-news-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .m-news-item:last-child { border-bottom: none; }
+    .m-news-cat { font-size: 0.68rem; color: var(--accent2); font-weight: 700; margin-bottom: 4px; }
+    .m-news-title { font-size: 0.88rem; font-weight: 600; line-height: 1.4; color: var(--text); margin-bottom: 4px; }
+    .m-news-time { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── 시장 지표 스크롤 ── */
+    .m-market-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .m-market-scroll::-webkit-scrollbar { display: none; }
+    .m-market-chip {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      min-width: 80px;
+    }
+    .m-market-chip-label { font-size: 0.65rem; color: var(--muted); font-weight: 600; }
+    .m-market-chip-price { font-size: 0.88rem; font-weight: 800; margin: 2px 0; }
+    .m-market-chip-change { font-size: 0.7rem; font-weight: 700; }
+
+    /* ── 로또 번호 ── */
+    .m-lotto-ball {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .lb1 { background: #fbbf24; }
+    .lb2 { background: #60a5fa; }
+    .lb3 { background: #f87171; }
+    .lb4 { background: #9ca3af; }
+    .lb5 { background: #34d399; }
+
+    /* ── 주식 가격 ── */
+    .m-stock-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .m-stock-row:last-child { border-bottom: none; }
+
+    /* ── 성과 지표 그리드 ── */
+    .m-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .m-stat-item {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .m-stat-label { font-size: 0.68rem; color: var(--muted); margin-bottom: 4px; }
+    .m-stat-value { font-size: 1rem; font-weight: 800; }
+
+    /* ── 스와이프 탭 (자동매매 서브탭) ── */
+    .m-subtab-bar {
+      display: flex;
+      gap: 0;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+    .m-subtab-btn {
+      flex: 1;
+      padding: 7px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .m-subtab-btn.active { background: var(--accent); color: #fff; }
+
+    /* ── 로그인 화면 ── */
+    #m-login-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 999;
+    }
+    .m-login-logo {
+      font-size: 2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .m-login-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 32px; }
+    .m-login-form { width: 100%; max-width: 340px; }
+    .m-login-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .m-login-input:focus { border-color: var(--accent); }
+    .m-login-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .m-login-err { color: var(--danger); font-size: 0.82rem; text-align: center; margin-top: 10px; }
+
+    /* ── 풀스크린 모달 ── */
+    .m-modal {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+    }
+    .m-modal.open { display: flex; }
+    .m-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    }
+    .m-modal-back {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: none;
+      color: var(--text);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .m-modal-title { font-size: 1rem; font-weight: 700; }
+    .m-modal-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* 애니메이션 */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .m-tab.active { animation: fadeUp 0.2s ease; }
+
+    /* 구분선 */
+    .m-divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+    /* 스위치 토글 */
+    .m-toggle {
+      position: relative;
+      width: 44px; height: 24px;
+      display: inline-block;
+    }
+    .m-toggle input { opacity: 0; width: 0; height: 0; }
+    .m-toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 24px;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .m-toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .m-toggle input:checked + .m-toggle-slider { background: var(--accent); }
+    .m-toggle input:checked + .m-toggle-slider:before { transform: translateX(20px); }
+  </style>
+</head>
+<body>
+
+<!-- ── 로그인 화면 ── -->
+<div id="m-login-screen">
+  <div class="m-login-logo">spagenio</div>
+  <div class="m-login-sub">AI 투자 대시보드</div>
+  <div class="m-login-form">
+    <input class="m-login-input" type="text" id="m-username" placeholder="아이디" autocomplete="username" />
+    <input class="m-login-input" type="password" id="m-password" placeholder="비밀번호" autocomplete="current-password" />
+    <button class="m-login-btn" onclick="mLogin()">로그인</button>
+    <div class="m-login-err" id="m-login-err"></div>
+  </div>
+</div>
+
+<!-- ── 앱 본체 ── -->
+<div id="m-app" style="display:none;">
+
+  <!-- 헤더 -->
+  <header class="m-header">
+    <div class="m-header-logo">spagenio</div>
+    <div class="m-header-user">
+      <span id="m-username-display"></span>
+      <button class="m-logout-btn" onclick="mLogout()">로그아웃</button>
+    </div>
+  </header>
+
+  <!-- 메인 -->
+  <main class="m-main">
+
+    <!-- ── 뉴스 탭 ── -->
+    <div class="m-tab active" id="m-tab-news">
+      <!-- 시장 지표 -->
+      <div class="m-section-label">시장 지표</div>
+      <div class="m-market-scroll" id="m-market-chips">
+        <div class="m-loading">로딩 중...</div>
+      </div>
+
+      <!-- 뉴스 -->
+      <div class="m-section-label" style="margin-top:16px;">최신 뉴스</div>
+      <div class="m-card" style="padding:4px 14px;">
+        <div id="m-news-list"><div class="m-loading">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ── 주식 탭 ── -->
+    <div class="m-tab" id="m-tab-stock">
+      <!-- 계좌 정보 -->
+      <div class="m-section-label">계좌 정보</div>
+      <div id="m-account-card" class="m-card">
+        <div class="m-loading">로딩 중...</div>
+      </div>
+
+      <!-- 보유 종목 -->
+      <div class="m-section-label">보유 종목</div>
+      <div class="m-card" style="padding:4px 14px;">
+        <div id="m-positions-list"><div class="m-loading">로딩 중...</div></div>
+      </div>
+
+      <!-- 종목 검색 -->
+      <div class="m-section-label">종목 검색</div>
+      <div class="m-card">
+        <div style="display:flex;gap:8px;">
+          <input class="m-input" id="m-stock-input" placeholder="예: AAPL" style="flex:1;" />
+          <button class="m-btn m-btn-primary" onclick="mSearchStock()">검색</button>
+        </div>
+        <div id="m-stock-result" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- 매수/매도 -->
+      <div class="m-section-label">매매</div>
+      <div class="m-card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <label class="m-label">종목</label>
+            <input class="m-input" id="m-trade-symbol" placeholder="AAPL" />
+          </div>
+          <div>
+            <label class="m-label">수량</label>
+            <input class="m-input" id="m-trade-qty" type="number" value="1" min="1" />
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="m-btn m-btn-danger m-btn-full" onclick="mTrade('buy')">🔴 매수</button>
+          <button class="m-btn m-btn-success m-btn-full" onclick="mTrade('sell')">🟢 매도</button>
+        </div>
+        <div id="m-trade-result" style="margin-top:10px;font-size:0.82rem;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <!-- ── 로또 탭 ── -->
+    <div class="m-tab" id="m-tab-lotto">
+      <!-- 번호 추천 -->
+      <div class="m-section-label">번호 추천</div>
+      <div class="m-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <select id="m-lotto-count" class="m-input" style="width:auto;padding:8px 12px;">
+            <option value="1">1게임</option>
+            <option value="3">3게임</option>
+            <option value="5" selected>5게임</option>
+          </select>
+          <button class="m-btn m-btn-primary" onclick="mLottoPick()">🎱 추천받기</button>
+        </div>
+        <div id="m-lotto-picks"><div class="m-empty">추천 버튼을 눌러주세요</div></div>
+        <div id="m-lotto-save-btn" style="display:none;margin-top:12px;">
+          <button class="m-btn m-btn-secondary m-btn-full" onclick="mLottoSave()">💾 저장</button>
+        </div>
+      </div>
+
+      <!-- 추천 이력 -->
+      <div class="m-section-label">추천 이력</div>
+      <div class="m-card" style="padding:4px 14px;">
+        <div id="m-lotto-history"><div class="m-loading">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ── 자동매매 탭 ── -->
+    <div class="m-tab" id="m-tab-trade">
+      <!-- 서브탭 -->
+      <div class="m-subtab-bar">
+        <button class="m-subtab-btn active" onclick="mSwitchTrade('simple')">⚡ 단순</button>
+        <button class="m-subtab-btn" onclick="mSwitchTrade('auto')">🤖 자동</button>
+        <button class="m-subtab-btn" onclick="mSwitchTrade('picks')">🏆 추천</button>
+      </div>
+
+      <!-- 단순 자동매매 -->
+      <div id="m-trade-simple">
+        <div id="m-simple-trade-card" class="m-card">
+          <div class="m-loading">로딩 중...</div>
+        </div>
+        <div class="m-card">
+          <div class="m-card-title">⚙️ 설정</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div>
+              <label class="m-label">매수비율(%)</label>
+              <input class="m-input" id="m-simple-ratio" type="number" value="30" />
+            </div>
+            <div>
+              <label class="m-label">익절(%)</label>
+              <input class="m-input" id="m-simple-tp" type="number" value="5" />
+            </div>
+            <div>
+              <label class="m-label">손절(%)</label>
+              <input class="m-input" id="m-simple-sl" type="number" value="5" />
+            </div>
+          </div>
+          <button class="m-btn m-btn-primary m-btn-full" id="m-simple-toggle-btn" onclick="mToggleSimpleTrade()">▶ 시작</button>
+        </div>
+        <div class="m-section-label">매매 이력</div>
+        <div class="m-card" style="padding:4px 14px;">
+          <div id="m-simple-log"><div class="m-empty">이력 없음</div></div>
+        </div>
+      </div>
+
+      <!-- 자동매매 현황 -->
+      <div id="m-trade-auto" style="display:none;">
+        <div id="m-auto-positions" class="m-card">
+          <div class="m-loading">로딩 중...</div>
+        </div>
+        <div class="m-card">
+          <button class="m-btn m-btn-danger m-btn-full" onclick="mStopAllTrade()">⏹ 전체 청산</button>
+        </div>
+        <div class="m-section-label">자동매매 이력</div>
+        <div class="m-card" style="padding:4px 14px;">
+          <div id="m-auto-log"><div class="m-empty">이력 없음</div></div>
+        </div>
+      </div>
+
+      <!-- TOP5 추천 -->
+      <div id="m-trade-picks" style="display:none;">
+        <div class="m-card">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">거래량·뉴스·기술적 신호 종합 분석</p>
+          <button class="m-btn m-btn-primary m-btn-full" onclick="mLoadTopPicks()">🔍 분석 시작 (10~20초)</button>
+        </div>
+        <div id="m-top-picks-list"></div>
+      </div>
+    </div>
+
+    <!-- ── 성과 탭 ── -->
+    <div class="m-tab" id="m-tab-perf">
+      <div class="m-section-label">성과 요약</div>
+      <div id="m-perf-summary" class="m-card">
+        <div class="m-loading">로딩 중...</div>
+      </div>
+      <div class="m-section-label">자동매매 이력</div>
+      <div class="m-card" style="padding:4px 14px;">
+        <div id="m-perf-trades"><div class="m-loading">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ── 백테스팅 탭 ── -->
+    <div class="m-tab" id="m-tab-backtest">
+      <div class="m-section-label">백테스팅</div>
+      <div class="m-card">
+        <div style="margin-bottom:10px;">
+          <label class="m-label">종목</label>
+          <input class="m-input" id="m-bt-symbol" placeholder="예: AAPL" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <label class="m-label">시작일</label>
+            <input class="m-input" id="m-bt-start" type="date" />
+          </div>
+          <div>
+            <label class="m-label">종료일</label>
+            <input class="m-input" id="m-bt-end" type="date" />
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div>
+            <label class="m-label">익절(%)</label>
+            <input class="m-input" id="m-bt-tp" type="number" value="5" />
+          </div>
+          <div>
+            <label class="m-label">손절(%)</label>
+            <input class="m-input" id="m-bt-sl" type="number" value="5" />
+          </div>
+        </div>
+        <button class="m-btn m-btn-primary m-btn-full" onclick="mRunBacktest()">▶ 백테스트 실행</button>
+      </div>
+      <div id="m-bt-result"></div>
+    </div>
+
+  </main>
+
+  <!-- 하단 탭바 -->
+  <nav class="m-tabbar">
+    <button class="m-tab-btn active" onclick="mTab('news')">
+      <span class="m-tab-icon">📰</span>
+      <span class="m-tab-label">뉴스</span>
+    </button>
+    <button class="m-tab-btn" onclick="mTab('stock')">
+      <span class="m-tab-icon">📈</span>
+      <span class="m-tab-label">주식</span>
+    </button>
+    <button class="m-tab-btn" onclick="mTab('lotto')">
+      <span class="m-tab-icon">🍀</span>
+      <span class="m-tab-label">로또</span>
+    </button>
+    <button class="m-tab-btn" onclick="mTab('trade')">
+      <span class="m-tab-icon">🤖</span>
+      <span class="m-tab-label">자동매매</span>
+    </button>
+    <button class="m-tab-btn" onclick="mTab('perf')">
+      <span class="m-tab-icon">💹</span>
+      <span class="m-tab-label">성과</span>
+    </button>
+    <button class="m-tab-btn" onclick="mTab('backtest')">
+      <span class="m-tab-icon">🔬</span>
+      <span class="m-tab-label">백테스트</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+// ── 공통 fetch (토큰 자동 첨부) ──
+const _origFetch = window.fetch;
+window.fetch = function(url, opts = {}) {
+  const token = sessionStorage.getItem('auth_token');
+  if (token && typeof url === 'string' && url.startsWith('/')) {
+    opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token };
+  }
+  return _origFetch(url, opts).then(res => {
+    if (res.status === 401 && !url.includes('/api/auth/')) {
+      sessionStorage.removeItem('auth_token');
+      showLogin();
+    }
+    return res;
+  });
+};
+
+// ── 로그인 ──
+async function mLogin() {
+  const username = document.getElementById('m-username').value.trim();
+  const password = document.getElementById('m-password').value;
+  const errEl = document.getElementById('m-login-err');
+  if (!username || !password) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+  try {
+    const res = await _origFetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const d = await res.json();
+    if (res.ok && d.token) {
+      sessionStorage.setItem('auth_token', d.token);
+      document.getElementById('m-username-display').textContent = d.username;
+      showApp();
+    } else {
+      errEl.textContent = d.error || '로그인 실패';
+    }
+  } catch(e) { errEl.textContent = '연결 실패: ' + e.message; }
+}
+
+document.getElementById('m-password').addEventListener('keydown', e => { if (e.key === 'Enter') mLogin(); });
+
+function mLogout() {
+  sessionStorage.removeItem('auth_token');
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('m-login-screen').style.display = 'flex';
+  document.getElementById('m-app').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('m-login-screen').style.display = 'none';
+  document.getElementById('m-app').style.display = 'block';
+  initApp();
+}
+
+// ── 탭 전환 ──
+let _currentTab = 'news';
+function mTab(tab) {
+  document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.m-tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('m-tab-' + tab)?.classList.add('active');
+  document.querySelectorAll('.m-tab-btn')[['news','stock','lotto','trade','perf','backtest'].indexOf(tab)]?.classList.add('active');
+  _currentTab = tab;
+  if (tab === 'news') { mLoadNews(); mLoadMarket(); }
+  if (tab === 'stock') { mLoadAccount(); mLoadPositions(); }
+  if (tab === 'lotto') { mLoadLottoHistory(); }
+  if (tab === 'trade') { mLoadSimpleTrade(); }
+  if (tab === 'perf') { mLoadPerf(); }
+}
+
+// ── 앱 초기화 ──
+function initApp() {
+  // 백테스트 날짜 기본값
+  const today = new Date().toISOString().split('T')[0];
+  const sixM = new Date(Date.now() - 180*24*60*60*1000).toISOString().split('T')[0];
+  const btStart = document.getElementById('m-bt-start');
+  const btEnd = document.getElementById('m-bt-end');
+  if (btStart) btStart.value = sixM;
+  if (btEnd) btEnd.value = today;
+
+  mLoadNews();
+  mLoadMarket();
+}
+
+// ── 뉴스 ──
+async function mLoadNews() {
+  const el = document.getElementById('m-news-list');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/news/fetch?category=all');
+    const d = await res.json();
+    const news = d.news || [];
+    if (!news.length) { el.innerHTML = '<div class="m-empty">뉴스 없음</div>'; return; }
+    const catLabel = { global:'🌍', korea:'🇰🇷', it:'💻', economy:'💰' };
+    el.innerHTML = news.slice(0, 20).map(n => {
+      const time = n.publishedAt ? new Date(n.publishedAt).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      return `<div class="m-news-item" onclick="window.open('${(n.url||'').replace(/'/g,"'")}','_blank')">
+        <div class="m-news-cat">${catLabel[n.category]||'📰'} ${n.source}</div>
+        <div class="m-news-title">${n.title||''}</div>
+        <div class="m-news-time">${time}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+}
+
+// ── 시장 지표 ──
+async function mLoadMarket() {
+  const el = document.getElementById('m-market-chips');
+  if (!el) return;
+  try {
+    const res = await fetch('/proxy/stock/api/market/indicators');
+    const d = await res.json();
+    const indicators = d.indicators || [];
+    el.innerHTML = indicators.filter(i => !i.error).map(i => {
+      const up = i.change_pct >= 0;
+      const color = i.type === 'vix' ? (up ? '#ef4444' : '#10b981') : (up ? '#10b981' : '#ef4444');
+      return `<div class="m-market-chip">
+        <div class="m-market-chip-label">${i.label}</div>
+        <div class="m-market-chip-price" style="color:${color};">${i.price.toLocaleString()}</div>
+        <div class="m-market-chip-change" style="color:${color};">${up?'▲':'▼'} ${Math.abs(i.change_pct)}%</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:8px;">지표 로드 실패</div>'; }
+}
+
+// ── 주식: 계좌 ──
+async function mLoadAccount() {
+  const el = document.getElementById('m-account-card');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/alpaca-user/v2/account');
+    const d = await res.json();
+    if (d.no_account) { el.innerHTML = '<div class="m-empty">🔑 Alpaca 계좌를 등록해주세요</div>'; return; }
+    if (!d.equity) { el.innerHTML = '<div class="m-empty">계좌 정보 없음</div>'; return; }
+    el.innerHTML = `<div class="m-stat-grid">
+      <div class="m-stat-item"><div class="m-stat-label">현금</div><div class="m-stat-value">$${parseFloat(d.cash).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+      <div class="m-stat-item"><div class="m-stat-label">포트폴리오</div><div class="m-stat-value">$${parseFloat(d.portfolio_value).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+      <div class="m-stat-item"><div class="m-stat-label">매수 가능</div><div class="m-stat-value">$${parseFloat(d.buying_power).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+      <div class="m-stat-item"><div class="m-stat-label">총 자산</div><div class="m-stat-value">$${parseFloat(d.equity).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+    </div>`;
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+}
+
+// ── 주식: 보유 종목 ──
+async function mLoadPositions() {
+  const el = document.getElementById('m-positions-list');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/alpaca-user/v2/positions');
+    const d = await res.json();
+    if (d.no_account) { el.innerHTML = '<div class="m-empty">계좌 미등록</div>'; return; }
+    const positions = Array.isArray(d) ? d : (d.positions || []);
+    if (!positions.length) { el.innerHTML = '<div class="m-empty">보유 종목 없음</div>'; return; }
+    el.innerHTML = positions.map(p => {
+      const pl = parseFloat(p.unrealized_pl) || 0;
+      const plPct = (parseFloat(p.unrealized_plpc) || 0) * 100;
+      const color = pl >= 0 ? 'var(--success)' : 'var(--danger)';
+      return `<div class="m-stock-row">
+        <div>
+          <div style="font-weight:700;">${p.symbol}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${p.qty}주 · $${parseFloat(p.avg_entry_price).toFixed(2)}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:700;color:${color};">${pl>=0?'+':''}$${pl.toFixed(2)}</div>
+          <div style="font-size:0.75rem;color:${color};">${plPct>=0?'+':''}${plPct.toFixed(2)}%</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+}
+
+// ── 주식: 검색 ──
+async function mSearchStock() {
+  const symbol = document.getElementById('m-stock-input').value.trim().toUpperCase();
+  const el = document.getElementById('m-stock-result');
+  if (!symbol) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">조회 중...</div>';
+  try {
+    const res = await fetch(`/proxy/stock/api/stock/prices?symbols=${symbol}`);
+    const d = await res.json();
+    const stocks = d.stocks || [];
+    if (!stocks.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">결과 없음</div>'; return; }
+    el.innerHTML = stocks.map(s => {
+      const up = s.change >= 0;
+      const color = up ? 'var(--success)' : 'var(--danger)';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+        <span style="font-weight:700;">${s.symbol}</span>
+        <div style="text-align:right;">
+          <div style="font-weight:700;">$${s.price}</div>
+          <div style="font-size:0.75rem;color:${color};">${up?'▲':'▼'} ${Math.abs(s.change)} (${(s.change_pct||0).toFixed(2)}%)</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="color:var(--danger);font-size:0.8rem;">조회 실패</div>'; }
+}
+
+// ── 주식: 매매 ──
+async function mTrade(side) {
+  const symbol = document.getElementById('m-trade-symbol').value.trim().toUpperCase();
+  const qty = document.getElementById('m-trade-qty').value;
+  const el = document.getElementById('m-trade-result');
+  if (!symbol || !qty) { el.textContent = '종목과 수량을 입력하세요.'; return; }
+  el.textContent = '주문 중...';
+  try {
+    const res = await fetch('/api/alpaca-user/v2/orders', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, qty: Number(qty), side, type: 'market', time_in_force: 'gtc' })
+    });
+    const d = await res.json();
+    if (res.ok && d.id) {
+      el.textContent = `✅ ${side === 'buy' ? '매수' : '매도'} 주문 완료 · ${symbol} ${qty}주`;
+      el.style.color = side === 'buy' ? 'var(--success)' : 'var(--danger)';
+    } else {
+      el.textContent = '❌ ' + (d.message || d.error || '주문 실패');
+      el.style.color = 'var(--danger)';
+    }
+  } catch(e) { el.textContent = '오류: ' + e.message; }
+}
+
+// ── 로또 ──
+let _lottoGames = [];
+function getLottoBallColor(n) {
+  if (n <= 10) return 'lb1';
+  if (n <= 20) return 'lb2';
+  if (n <= 30) return 'lb3';
+  if (n <= 40) return 'lb4';
+  return 'lb5';
+}
+
+async function mLottoPick() {
+  const gameCount = parseInt(document.getElementById('m-lotto-count').value);
+  const el = document.getElementById('m-lotto-picks');
+  el.innerHTML = '<div class="m-loading">추천 중...</div>';
+  try {
+    const res = await fetch('/api/lotto/recommend', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameCount })
+    });
+    const d = await res.json();
+    const games = d.games || [];
+    _lottoGames = games;
+    if (!games.length) { el.innerHTML = '<div class="m-empty">추천 실패</div>'; return; }
+    el.innerHTML = games.map((g, i) => `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">${i+1}번 게임</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${g.numbers.map(n => `<span class="m-lotto-ball ${getLottoBallColor(n)}">${n}</span>`).join('')}
+        </div>
+      </div>`).join('');
+    document.getElementById('m-lotto-save-btn').style.display = 'block';
+  } catch(e) { el.innerHTML = '<div class="m-empty" style="color:var(--danger);">오류: ' + e.message + '</div>'; }
+}
+
+async function mLottoSave() {
+  if (!_lottoGames.length) return;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const res = await fetch('/api/lotto/picks', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pick_date: today, games: _lottoGames.map(g => g.numbers) })
+    });
+    const d = await res.json();
+    if (d.ok) {
+      alert('저장 완료!');
+      document.getElementById('m-lotto-save-btn').style.display = 'none';
+      mLoadLottoHistory();
+    }
+  } catch(e) { alert('저장 실패: ' + e.message); }
+}
+
+async function mLoadLottoHistory() {
+  const el = document.getElementById('m-lotto-history');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/lotto/picks?limit=5&page=1');
+    const d = await res.json();
+    const picks = d.picks || [];
+    if (!picks.length) { el.innerHTML = '<div class="m-empty">추천 이력 없음</div>'; return; }
+    el.innerHTML = picks.map(p => {
+      const rank = p.best_rank ? `<span class="m-badge m-badge-yellow">${p.best_rank}등</span>` : `<span class="m-badge" style="background:var(--surface2);color:var(--muted);">미확인</span>`;
+      return `<div class="m-stock-row">
+        <div>
+          <div style="font-weight:700;">${p.pick_date}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">${p.game_count}게임 · ${p.drw_no ? p.drw_no+'회' : '미확인'}</div>
+        </div>
+        <div>${rank}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+}
+
+// ── 자동매매 서브탭 ──
+function mSwitchTrade(sub) {
+  ['simple','auto','picks'].forEach(s => {
+    document.getElementById('m-trade-' + s).style.display = s === sub ? 'block' : 'none';
+  });
+  document.querySelectorAll('.m-subtab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['simple','auto','picks'][i] === sub);
+  });
+  if (sub === 'auto') { mLoadAutoPositions(); mLoadAutoLog(); }
+}
+
+// ── 단순 자동매매 ──
+let _simpleEnabled = false;
+async function mLoadSimpleTrade() {
+  const el = document.getElementById('m-simple-trade-card');
+  try {
+    const res = await fetch('/api/simple-auto-trade/state');
+    const d = await res.json();
+    const state = d.state;
+    _simpleEnabled = !!(state?.enabled);
+
+    const btn = document.getElementById('m-simple-toggle-btn');
+    if (btn) {
+      btn.textContent = _simpleEnabled ? '⏹ 중지' : '▶ 시작';
+      btn.style.background = _simpleEnabled ? 'var(--danger)' : 'var(--accent)';
+    }
+
+    if (el) {
+      if (!state?.enabled) {
+        el.innerHTML = `<div class="m-empty">자동매매 비활성 상태</div>`;
+      } else if (state.status === 'holding' && state.symbol) {
+        el.innerHTML = `<div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">보유 중</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${state.symbol}</div>
+          <div style="font-size:0.82rem;color:var(--muted);">${state.qty}주 · 매수가 $${parseFloat(state.buy_price).toFixed(2)}</div>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <span class="m-badge m-badge-green">익절 +${Math.round((state.take_profit||0.05)*100)}%</span>
+            <span class="m-badge m-badge-red">손절 -${Math.round((state.stop_loss||0.05)*100)}%</span>
+            <span class="m-badge m-badge-blue">15:55 강제청산</span>
+          </div>
+        </div>`;
+      } else {
+        el.innerHTML = `<div class="m-empty">🔍 매수 기회 탐색 중...</div>`;
+      }
+
+      if (state) {
+        const r = document.getElementById('m-simple-ratio');
+        const tp = document.getElementById('m-simple-tp');
+        const sl = document.getElementById('m-simple-sl');
+        if (r) r.value = Math.round((state.balance_ratio||0.3)*100);
+        if (tp) tp.value = Math.round((state.take_profit||0.05)*100);
+        if (sl) sl.value = Math.round((state.stop_loss||0.05)*100);
+      }
+    }
+
+    // 이력
+    const logEl = document.getElementById('m-simple-log');
+    if (logEl && d.logs?.length) {
+      logEl.innerHTML = d.logs.slice(0,10).map(l => {
+        const isBuy = l.action === 'BUY';
+        const color = isBuy ? 'var(--success)' : (l.profit_pct >= 0 ? 'var(--accent2)' : 'var(--danger)');
+        const icon = isBuy ? '🟢' : (l.profit_pct >= 0 ? '✅' : '🔴');
+        return `<div class="m-stock-row">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>${icon}</span>
+            <div>
+              <div style="font-weight:700;color:${color};">${l.symbol}</div>
+              <div style="font-size:0.72rem;color:var(--muted);">${l.qty}주 @ $${parseFloat(l.price).toFixed(2)}</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            ${!isBuy ? `<div style="font-size:0.85rem;font-weight:700;color:${color};">${l.profit_pct>=0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {}
+}
+
+async function mToggleSimpleTrade() {
+  _simpleEnabled = !_simpleEnabled;
+  const balance_ratio = parseFloat(document.getElementById('m-simple-ratio').value||30) / 100;
+  const take_profit = parseFloat(document.getElementById('m-simple-tp').value||5) / 100;
+  const stop_loss = parseFloat(document.getElementById('m-simple-sl').value||5) / 100;
+  await fetch('/api/simple-auto-trade/settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ balance_ratio, take_profit, stop_loss })
+  });
+  await fetch('/api/simple-auto-trade/toggle', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: _simpleEnabled })
+  });
+  mLoadSimpleTrade();
+}
+
+// ── 자동매매 현황 ──
+async function mLoadAutoPositions() {
+  const el = document.getElementById('m-auto-positions');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/auto-trade/positions');
+    const d = await res.json();
+    const positions = d.positions || [];
+    if (!positions.length) { el.innerHTML = '<div class="m-empty">보유 중인 자동매매 종목 없음</div>'; return; }
+    el.innerHTML = `<div class="m-card-title">📊 자동매매 보유 (${positions.length}종목)</div>` +
+      positions.map(p => {
+        const pl = parseFloat(p.unrealized_pl) || 0;
+        const plPct = (parseFloat(p.unrealized_plpc) || 0) * 100;
+        const color = pl >= 0 ? 'var(--success)' : 'var(--danger)';
+        return `<div class="m-stock-row">
+          <div>
+            <div style="font-weight:700;">${p.symbol}</div>
+            <div style="font-size:0.75rem;color:var(--muted);">${p.qty}주 · $${parseFloat(p.current_price).toFixed(2)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700;color:${color};">${pl>=0?'+':''}$${pl.toFixed(2)}</div>
+            <div style="font-size:0.75rem;color:${color};">${plPct>=0?'+':''}${plPct.toFixed(2)}%</div>
+          </div>
+        </div>`;
+      }).join('');
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+}
+
+async function mLoadAutoLog() {
+  const el = document.getElementById('m-auto-log');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/auto-trade/log');
+    const d = await res.json();
+    const logs = d.logs || [];
+    if (!logs.length) { el.innerHTML = '<div class="m-empty">이력 없음</div>'; return; }
+    el.innerHTML = logs.slice(0,10).map(l => {
+      const isBuy = l.action === 'BUY';
+      const color = isBuy ? 'var(--success)' : (l.profit_pct >= 0 ? 'var(--accent2)' : 'var(--danger)');
+      return `<div class="m-stock-row">
+        <div>
+          <div style="font-weight:700;">${l.symbol} <span style="font-size:0.72rem;color:${color};">${l.action}</span></div>
+          <div style="font-size:0.72rem;color:var(--muted);">${l.reason || ''}</div>
+        </div>
+        ${l.profit_pct ? `<div style="font-weight:700;color:${color};">${l.profit_pct>=0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function mStopAllTrade() {
+  if (!confirm('모든 포지션을 청산할까요?')) return;
+  try {
+    const res = await fetch('/api/auto-trade/stop-all', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const d = await res.json();
+    alert(d.ok ? '청산 완료!' : '실패: ' + d.error);
+    mLoadAutoPositions();
+  } catch(e) { alert('오류: ' + e.message); }
+}
+
+// ── TOP5 추천 ──
+async function mLoadTopPicks() {
+  const el = document.getElementById('m-top-picks-list');
+  el.innerHTML = '<div class="m-loading">분석 중... (10~20초)</div>';
+  try {
+    const res = await fetch('/api/auto-trade/top-picks');
+    const d = await res.json();
+    if (!d.picks?.length) { el.innerHTML = '<div class="m-empty">추천 종목 없음</div>'; return; }
+    const rankIcons = ['🥇','🥈','🥉','4위','5위'];
+    el.innerHTML = d.picks.map((p, i) => {
+      const color = p.change_pct >= 0 ? 'var(--success)' : 'var(--danger)';
+      return `<div class="m-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3rem;">${rankIcons[i]}</span>
+            <div>
+              <div style="font-weight:800;font-size:1rem;">${p.symbol}</div>
+              <div style="font-size:0.72rem;color:var(--muted);">${p.signals.slice(0,2).join(' · ')}</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700;">$${p.price?.toFixed(2)}</div>
+            <div style="font-size:0.75rem;font-weight:700;color:${color};">${p.change_pct>=0?'▲':'▼'} ${Math.abs(p.change_pct)}%</div>
+            <div style="font-size:0.7rem;color:var(--accent2);">점수 ${p.score}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="m-empty" style="color:var(--danger);">오류: ' + e.message + '</div>'; }
+}
+
+// ── 성과 ──
+async function mLoadPerf() {
+  const el = document.getElementById('m-perf-summary');
+  try {
+    const res = await fetch('/api/performance/summary');
+    const d = await res.json();
+    if (!d.ok || !d.latest) { el.innerHTML = '<div class="m-empty">성과 데이터 없음</div>'; return; }
+    const l = d.latest;
+    const total = parseFloat(l.total_value) || 0;
+    const prev = d.previous ? parseFloat(d.previous.total_value) : total;
+    const change = total - prev;
+    const changePct = prev ? (change/prev*100).toFixed(2) : '0.00';
+    const color = change >= 0 ? 'var(--success)' : 'var(--danger)';
+    el.innerHTML = `<div class="m-stat-grid">
+      <div class="m-stat-item"><div class="m-stat-label">총 자산</div><div class="m-stat-value">$${total.toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+      <div class="m-stat-item"><div class="m-stat-label">변동</div><div class="m-stat-value" style="color:${color};">${change>=0?'+':''}$${Math.abs(change).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+      <div class="m-stat-item"><div class="m-stat-label">현금</div><div class="m-stat-value">$${parseFloat(l.cash||0).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
+      <div class="m-stat-item"><div class="m-stat-label">수익률</div><div class="m-stat-value" style="color:${color};">${change>=0?'+':''}${changePct}%</div></div>
+    </div>`;
+  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
+
+  // 자동매매 이력
+  const logEl = document.getElementById('m-perf-trades');
+  try {
+    const res = await fetch('/api/auto-trade/log');
+    const d = await res.json();
+    const logs = (d.logs || []).filter(l => l.action.includes('SELL')).slice(0,10);
+    if (!logs.length) { logEl.innerHTML = '<div class="m-empty">매매 이력 없음</div>'; return; }
+    logEl.innerHTML = logs.map(l => {
+      const color = l.profit_pct >= 0 ? 'var(--success)' : 'var(--danger)';
+      return `<div class="m-stock-row">
+        <div>
+          <div style="font-weight:700;">${l.symbol}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">${new Date(l.created_at).toLocaleDateString('ko-KR')}</div>
+        </div>
+        <div style="font-weight:700;color:${color};">${l.profit_pct>=0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%</div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── 백테스트 ──
+async function mRunBacktest() {
+  const symbol = document.getElementById('m-bt-symbol').value.trim().toUpperCase();
+  const start = document.getElementById('m-bt-start').value;
+  const end = document.getElementById('m-bt-end').value;
+  const take_profit = parseFloat(document.getElementById('m-bt-tp').value||5) / 100;
+  const stop_loss = parseFloat(document.getElementById('m-bt-sl').value||5) / 100;
+  const el = document.getElementById('m-bt-result');
+  if (!symbol) { alert('종목을 입력하세요.'); return; }
+  el.innerHTML = '<div class="m-loading">백테스트 실행 중...</div>';
+  try {
+    const res = await fetch('/api/backtest/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, start_date: start, end_date: end, take_profit, stop_loss, strategy: 'macd' })
+    });
+    const d = await res.json();
+    if (!d.ok) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">${d.error || '실패'}</div></div>`; return; }
+    const r = d.result;
+    const color = r.total_return >= 0 ? 'var(--success)' : 'var(--danger)';
+    el.innerHTML = `<div class="m-section-label">백테스트 결과</div>
+      <div class="m-card">
+        <div class="m-stat-grid">
+          <div class="m-stat-item"><div class="m-stat-label">총 수익률</div><div class="m-stat-value" style="color:${color};">${r.total_return>=0?'+':''}${(r.total_return*100).toFixed(2)}%</div></div>
+          <div class="m-stat-item"><div class="m-stat-label">총 거래</div><div class="m-stat-value">${r.total_trades}회</div></div>
+          <div class="m-stat-item"><div class="m-stat-label">승률</div><div class="m-stat-value">${(r.win_rate*100).toFixed(1)}%</div></div>
+          <div class="m-stat-item"><div class="m-stat-label">최대 낙폭</div><div class="m-stat-value" style="color:var(--danger);">${(r.max_drawdown*100).toFixed(2)}%</div></div>
+        </div>
+      </div>`;
+  } catch(e) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">오류: ${e.message}</div></div>`; }
+}
+
+// ── 초기 실행 ──
+(function init() {
+  const token = sessionStorage.getItem('auth_token');
+  if (token) {
+    // 토큰 검증
+    fetch('/api/auth/verify').then(r => r.json()).then(d => {
+      if (d.user) {
+        document.getElementById('m-username-display').textContent = d.user.username;
+        showApp();
+      } else {
+        showLogin();
+      }
+    }).catch(() => showLogin());
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
