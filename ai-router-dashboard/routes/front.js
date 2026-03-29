@@ -336,10 +336,32 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ picks: rows, total, page: parseInt(page), limit: pageSize, totalPages: Math.ceil(total / pageSize), is_admin: false });
   });
 
+  // 미확인 픽 목록 조회 (관리자 전용)
+  router.get('/api/lotto/picks/unconfirmed', (req, res) => {
+    if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
+    try {
+      // 당첨 회차가 없는 픽을 날짜+유저별로 그룹화
+      // 날짜 기준으로 해당 로또 회차 계산 (2002-12-07 = 1회차)
+      const rows = db.prepare(`
+        SELECT DISTINCT lp.pick_date, lp.user_id,
+          (CAST((julianday(lp.pick_date) - julianday('2002-12-07')) / 7 AS INTEGER) + 1) as drw_no
+        FROM lotto_picks lp
+        WHERE lp.drw_no IS NULL OR lp.drw_no = 0
+        ORDER BY lp.pick_date DESC
+      `).all();
+      // 미래 날짜 또는 오늘 제외 (아직 추첨 안 됐을 수 있음)
+      const today = new Date().toISOString().split('T')[0];
+      const unconfirmed = rows.filter(r => r.pick_date < today && r.drw_no > 0);
+      res.json({ ok: true, unconfirmed });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   router.post('/api/lotto/picks/check', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { pick_date, drw_no } = req.body;
+    const { pick_date, drw_no, user_id } = req.body;
     if (!pick_date || !drw_no) return res.status(400).json({ error: 'pick_date, drw_no 필수' });
+    // 관리자는 user_id 지정 가능, 일반 유저는 본인만
+    const targetUserId = (req.user.is_admin && user_id) ? parseInt(user_id) : req.user.id;
     try {
       // lotto.oot.kr JSON API로 당첨번호 조회
       const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
@@ -360,7 +382,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           .run(drw_no, JSON.stringify(winning), bonus, data.drwNoDate || '');
       }
 
-      const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(req.user.id, pick_date);
+      const picks = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=?').all(targetUserId, pick_date);
       if (!picks.length) return res.status(404).json({ ok: false, error: '해당 날짜의 추천 번호가 없습니다.' });
 
       const results = picks.map(pick => {
