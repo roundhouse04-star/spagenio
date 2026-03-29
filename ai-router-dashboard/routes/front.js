@@ -294,14 +294,22 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/lotto/picks', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { date, limit = 10, page = 1 } = req.query;
+    const isAdmin = req.user.is_admin;
     if (date) {
-      const rows = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=? ORDER BY game_index').all(req.user.id, date);
+      const rows = isAdmin
+        ? db.prepare('SELECT lp.*, u.username FROM lotto_picks lp LEFT JOIN users u ON lp.user_id=u.id WHERE lp.pick_date=? ORDER BY lp.user_id, lp.game_index').all(date)
+        : db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=? ORDER BY game_index').all(req.user.id, date);
       return res.json({ picks: rows.map(r => ({ ...r, numbers: JSON.parse(r.numbers) })) });
     }
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const total = db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks WHERE user_id=?').get(req.user.id)?.cnt || 0;
-    const rows = db.prepare(`SELECT pick_date, COUNT(*) as game_count, MAX(drw_no) as drw_no, MIN(CASE WHEN rank > 0 THEN rank END) as best_rank, MAX(matched_count) as max_match, SUM(CASE WHEN rank > 0 THEN 1 ELSE 0 END) as checked_count FROM lotto_picks WHERE user_id=? GROUP BY pick_date ORDER BY pick_date DESC LIMIT ? OFFSET ?`).all(req.user.id, parseInt(limit), offset);
-    res.json({ picks: rows, total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) });
+    const pageSize = isAdmin ? 5 : parseInt(limit);
+    const offset = (parseInt(page) - 1) * pageSize;
+    const total = isAdmin
+      ? db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks').get()?.cnt || 0
+      : db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks WHERE user_id=?').get(req.user.id)?.cnt || 0;
+    const rows = isAdmin
+      ? db.prepare(`SELECT lp.pick_date, COUNT(*) as game_count, MAX(lp.drw_no) as drw_no, MIN(CASE WHEN lp.rank > 0 THEN lp.rank END) as best_rank, MAX(lp.matched_count) as max_match, COUNT(DISTINCT lp.user_id) as user_count FROM lotto_picks lp GROUP BY lp.pick_date ORDER BY lp.pick_date DESC LIMIT ? OFFSET ?`).all(pageSize, offset)
+      : db.prepare(`SELECT pick_date, COUNT(*) as game_count, MAX(drw_no) as drw_no, MIN(CASE WHEN rank > 0 THEN rank END) as best_rank, MAX(matched_count) as max_match, SUM(CASE WHEN rank > 0 THEN 1 ELSE 0 END) as checked_count FROM lotto_picks WHERE user_id=? GROUP BY pick_date ORDER BY pick_date DESC LIMIT ? OFFSET ?`).all(req.user.id, pageSize, offset);
+    res.json({ picks: rows, total, page: parseInt(page), limit: pageSize, totalPages: Math.ceil(total / pageSize), is_admin: isAdmin });
   });
 
   router.post('/api/lotto/picks/check', async (req, res) => {
@@ -375,8 +383,17 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/lotto/schedule/log', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const rows = db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY created_at DESC LIMIT 50').all(req.user.id);
-    res.json({ logs: rows });
+    const { page = 1, limit = 5 } = req.query;
+    const isAdmin = req.user.is_admin;
+    const pageSize = parseInt(limit);
+    const offset = (parseInt(page) - 1) * pageSize;
+    const total = isAdmin
+      ? db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log').get()?.cnt || 0
+      : db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log WHERE user_id=?').get(req.user.id)?.cnt || 0;
+    const rows = isAdmin
+      ? db.prepare('SELECT sl.*, u.username FROM lotto_schedule_log sl LEFT JOIN users u ON sl.user_id=u.id ORDER BY sl.created_at DESC LIMIT ? OFFSET ?').all(pageSize, offset)
+      : db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(req.user.id, pageSize, offset);
+    res.json({ logs: rows, total, page: parseInt(page), totalPages: Math.ceil(total / pageSize) });
   });
 
   router.get('/api/lotto/history', async (req, res) => {

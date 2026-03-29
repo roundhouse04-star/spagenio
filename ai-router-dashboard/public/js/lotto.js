@@ -514,14 +514,13 @@
           const d = await r.json();
           if (!d.picks?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">추천 이력이 없습니다</div>'; return; }
 
+          const isAdmin = d.is_admin;
+          const thead = isAdmin
+            ? '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">유저수</th><th style="padding:8px;text-align:center;">상세</th>'
+            : '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">상세</th>';
+
           el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
-            '<th style="padding:8px;text-align:left;">날짜</th>' +
-            '<th style="padding:8px;text-align:center;">게임수</th>' +
-            '<th style="padding:8px;text-align:center;">회차</th>' +
-            '<th style="padding:8px;text-align:center;">최고 등수</th>' +
-            '<th style="padding:8px;text-align:center;">최다 일치</th>' +
-            '<th style="padding:8px;text-align:center;">상세</th></tr></thead><tbody>' +
+            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' + thead + '</tr></thead><tbody>' +
             d.picks.map(p =>
               '<tr style="border-bottom:1px solid #f3f4f6;">' +
               '<td style="padding:8px;">'+p.pick_date+'</td>' +
@@ -529,6 +528,7 @@
               '<td style="padding:8px;text-align:center;">'+(p.drw_no ? p.drw_no+'회' : '미확인')+'</td>' +
               '<td style="padding:8px;text-align:center;">'+(p.best_rank ? '<span class="lotto-rank-badge rank-'+p.best_rank+'">'+p.best_rank+'등</span>' : '<span class="lotto-rank-badge rank-0">미확인</span>')+'</td>' +
               '<td style="padding:8px;text-align:center;">'+(p.max_match != null ? p.max_match+'개' : '-')+'</td>' +
+              (isAdmin ? '<td style="padding:8px;text-align:center;color:#6366f1;font-weight:700;">'+(p.user_count||0)+'명</td>' : '') +
               '<td style="padding:8px;text-align:center;"><button class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:3px 10px;" data-date="' + p.pick_date + '" onclick="lottoShowDetail(this.dataset.date)">보기</button></td>' +
               '</tr>'
             ).join('') + '</tbody></table>';
@@ -548,19 +548,25 @@
 
       const DAY_NAMES = ['일','월','화','수','목','금','토'];
 
-      window.lottoLoadScheduleLog = async function() {
+      let lottoScheduleLogPage = 1;
+
+      window.lottoLoadScheduleLog = async function(page = 1) {
+        lottoScheduleLogPage = page;
         const el = $id('lotto-schedule-log-list');
         if (!el) return;
+        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
         try {
-          const r = await fetch('/api/lotto/schedule/log');
+          const r = await fetch(`/api/lotto/schedule/log?page=${page}&limit=5`);
           const d = await r.json();
           if (!d.logs?.length) {
             el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">스케줄 변경 이력이 없습니다</div>';
             return;
           }
+          const hasUsername = d.logs[0]?.username !== undefined;
           el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
             '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
             '<th style="padding:8px;text-align:left;">변경일시</th>' +
+            (hasUsername ? '<th style="padding:8px;text-align:center;">유저</th>' : '') +
             '<th style="padding:8px;text-align:center;">요일</th>' +
             '<th style="padding:8px;text-align:center;">시각</th>' +
             '<th style="padding:8px;text-align:center;">게임수</th></tr></thead><tbody>' +
@@ -570,27 +576,44 @@
               const dayName = (p.days||'').split(',').map(x=>DAY_NAMES[parseInt(x)]||'').filter(Boolean).join(',') + '요일';
               return '<tr style="border-bottom:1px solid #f3f4f6;">' +
               '<td style="padding:8px;font-size:0.78rem;">'+dateStr+'</td>' +
+              (hasUsername ? '<td style="padding:8px;text-align:center;color:#6366f1;font-weight:700;">'+(p.username||'-')+'</td>' : '') +
               '<td style="padding:8px;text-align:center;">'+dayName+'</td>' +
               '<td style="padding:8px;text-align:center;">'+String(p.hour).padStart(2,'0')+':00</td>' +
               '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
               '</tr>';
             }).join('') + '</tbody></table>';
+
+          // 페이징
+          if (d.totalPages > 1) {
+            let pagingHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;">';
+            pagingHtml += `<button onclick="lottoLoadScheduleLog(${page-1})" ${page<=1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page<=1?'#f9fafb':'#fff'};cursor:${page<=1?'default':'pointer'};font-size:0.82rem;">← 이전</button>`;
+            pagingHtml += `<span style="font-size:0.82rem;color:#6b7280;">${page} / ${d.totalPages}</span>`;
+            pagingHtml += `<button onclick="lottoLoadScheduleLog(${page+1})" ${page>=d.totalPages?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page>=d.totalPages?'#f9fafb':'#fff'};cursor:${page>=d.totalPages?'default':'pointer'};font-size:0.82rem;">다음 →</button>`;
+            pagingHtml += '</div>';
+            el.innerHTML += pagingHtml;
+          }
         } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
       };
 
-      window.lottoLoadAutoHistory = async function() {
+      let lottoAutoHistoryPage = 1;
+
+      window.lottoLoadAutoHistory = async function(page = 1) {
+        lottoAutoHistoryPage = page;
         const el = $id('lotto-auto-history-list');
         if (!el) return;
+        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
         try {
-          const r = await fetch('/api/lotto/schedule/log');
+          const r = await fetch(`/api/lotto/schedule/log?page=${page}&limit=5`);
           const d = await r.json();
           if (!d.logs?.length) {
             el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동발송 설정 이력이 없습니다</div>';
             return;
           }
+          const hasUsername = d.logs[0]?.username !== undefined;
           el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
             '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
             '<th style="padding:8px;text-align:left;">등록/수정일</th>' +
+            (hasUsername ? '<th style="padding:8px;text-align:center;">유저</th>' : '') +
             '<th style="padding:8px;text-align:center;">요일</th>' +
             '<th style="padding:8px;text-align:center;">발송시각</th>' +
             '<th style="padding:8px;text-align:center;">게임수</th></tr></thead><tbody>' +
@@ -601,11 +624,22 @@
               const timeStr = String(p.hour).padStart(2,'0') + ':00';
               return '<tr style="border-bottom:1px solid #f3f4f6;">' +
               '<td style="padding:8px;font-size:0.82rem;">'+dateStr+'</td>' +
+              (hasUsername ? '<td style="padding:8px;text-align:center;color:#6366f1;font-weight:700;">'+(p.username||'-')+'</td>' : '') +
               '<td style="padding:8px;text-align:center;">'+dayName+'</td>' +
               '<td style="padding:8px;text-align:center;">'+timeStr+'</td>' +
               '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
               '</tr>';
             }).join('') + '</tbody></table>';
+
+          // 페이징
+          if (d.totalPages > 1) {
+            let pagingHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;">';
+            pagingHtml += `<button onclick="lottoLoadAutoHistory(${page-1})" ${page<=1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page<=1?'#f9fafb':'#fff'};cursor:${page<=1?'default':'pointer'};font-size:0.82rem;">← 이전</button>`;
+            pagingHtml += `<span style="font-size:0.82rem;color:#6b7280;">${page} / ${d.totalPages}</span>`;
+            pagingHtml += `<button onclick="lottoLoadAutoHistory(${page+1})" ${page>=d.totalPages?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page>=d.totalPages?'#f9fafb':'#fff'};cursor:${page>=d.totalPages?'default':'pointer'};font-size:0.82rem;">다음 →</button>`;
+            pagingHtml += '</div>';
+            el.innerHTML += pagingHtml;
+          }
         } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
       };
       window.lottoShowDetail = async function(date) {
