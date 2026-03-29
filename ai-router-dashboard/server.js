@@ -656,6 +656,15 @@ app.use(globalLimit);
 app.use('/api/auth/login', authLimit);
 app.use('/api/auth/register', authLimit);
 app.set('trust proxy', 1);
+
+// m.spagenio.com → 모바일 페이지
+app.use((req, res, next) => {
+  const host = req.headers['x-forwarded-host'] || req.headers['host'] || '';
+  if (host.startsWith('m.')) {
+    return res.sendFile(path.join(__dirname, 'public', 'm.html'));
+  }
+  next();
+});
 app.use(cors());
 app.use(express.json({ limit:'1mb' }));
 app.use(cookieParser());
@@ -723,6 +732,10 @@ const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt
 app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
 app.use('/', frontRoutes(frontDeps));
+
+app.get("/debug-headers", (req, res) => {
+  res.json({ headers: req.headers, hostname: req.hostname });
+});
 
 app.get("/mobile", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "m.html"));
