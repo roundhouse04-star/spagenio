@@ -794,6 +794,111 @@ const DOW30 = [
   'MSFT','NKE','PG','TRV','UNH','V','VZ','WBA','WMT','INTC'
 ];
 
+// ============================================================
+// 거래량 급등 감지 (평소 대비 2배 이상)
+// ============================================================
+async function detectVolumeSurge(symbols, alpacaKeys = null) {
+  const headers = alpacaKeys
+    ? { 'APCA-API-KEY-ID': alpacaKeys.api_key, 'APCA-API-SECRET-KEY': alpacaKeys.secret_key }
+    : {};
+  const results = [];
+  const end = new Date().toISOString().split('T')[0];
+  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  await Promise.allSettled(symbols.map(async (symbol) => {
+    try {
+      const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=30`, { headers });
+      const json = await resp.json();
+      const bars = json.bars || [];
+      if (bars.length < 10) return;
+      const volumes = bars.map(b => b.v);
+      const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
+      const todayVolume = volumes[volumes.length - 1];
+      const ratio = todayVolume / avgVolume;
+      const closes = bars.map(b => b.c);
+      const change_pct = ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100;
+      if (ratio >= 1.5) {
+        results.push({
+          symbol,
+          today_volume: todayVolume,
+          avg_volume: Math.round(avgVolume),
+          volume_ratio: parseFloat(ratio.toFixed(2)),
+          price: closes[closes.length - 1],
+          change_pct: parseFloat(change_pct.toFixed(2)),
+          surge_level: ratio >= 3 ? 'extreme' : ratio >= 2 ? 'high' : 'moderate'
+        });
+      }
+    } catch(e) {}
+  }));
+
+  return results.sort((a, b) => b.volume_ratio - a.volume_ratio);
+}
+
+// ============================================================
+// 뉴스 촉매 탐지 (RSS 기반)
+// ============================================================
+async function detectNewsCatalyst(symbols) {
+  const catalysts = [];
+  try {
+    const rssRows = db.prepare("SELECT url FROM rss_sources WHERE enabled=1 LIMIT 5").all();
+    const newsItems = [];
+
+    await Promise.allSettled(rssRows.map(async (row) => {
+      try {
+        const resp = await fetch(row.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(5000)
+        });
+        const text = await resp.text();
+        const items = [...text.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
+        items.slice(0, 10).forEach(m => {
+          const title = (m[1].match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/i) || m[1].match(/<title>(.*?)<\/title>/i) || [])[1] || '';
+          const pub = (m[1].match(/<pubDate>(.*?)<\/pubDate>/i) || [])[1] || '';
+          const link = (m[1].match(/<link>(.*?)<\/link>/i) || [])[1] || '';
+          if (title) newsItems.push({ title, pub, link });
+        });
+      } catch(e) {}
+    }));
+
+    // 종목명이 뉴스 제목에 포함된 것만 필터
+    symbols.forEach(symbol => {
+      const matched = newsItems.filter(n =>
+        n.title.toUpperCase().includes(symbol.toUpperCase()) ||
+        n.title.includes(symbol)
+      );
+      if (matched.length > 0) {
+        catalysts.push({
+          symbol,
+          news_count: matched.length,
+          latest_title: matched[0].title,
+          latest_time: matched[0].pub,
+          link: matched[0].link
+        });
+      }
+    });
+  } catch(e) {}
+  return catalysts;
+}
+
+// ============================================================
+// 리스크 계산 (계좌 잔고의 1~2% 룰)
+// ============================================================
+function calcRiskPosition(accountBalance, price, stopLossPct = 0.05, riskRatio = 0.02) {
+  const riskAmount = accountBalance * riskRatio; // 계좌의 2%
+  const stopLossAmount = price * stopLossPct;    // 주당 손실금액
+  const qty = Math.floor(riskAmount / stopLossAmount);
+  const totalCost = qty * price;
+  const actualRiskPct = (qty * stopLossAmount / accountBalance) * 100;
+  return {
+    qty: Math.max(qty, 0),
+    total_cost: parseFloat(totalCost.toFixed(2)),
+    risk_amount: parseFloat((qty * stopLossAmount).toFixed(2)),
+    risk_pct: parseFloat(actualRiskPct.toFixed(2)),
+    stop_price: parseFloat((price * (1 - stopLossPct)).toFixed(2)),
+    take_profit_price: parseFloat((price * (1 + stopLossPct * 2)).toFixed(2)) // 2:1 RR
+  };
+}
+
 async function getNasdaqTop3(signalMode = 'combined', alpacaKeys = null, market = 'nasdaq') {
   const results = [];
   const headers = alpacaKeys

@@ -768,3 +768,140 @@ async function loadHistoryData() {
 
 // ===== Alpaca 다계좌 관리 =====
 let activeAccountId = null; // 현재 Select된 계좌 ID
+
+// ============================================================
+// 거래량 급등 감지
+// ============================================================
+window.loadVolumeSurge = async function() {
+  const el = document.getElementById('volumeSurgeList');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
+  try {
+    const res = await fetch('/api/auto-trade/volume-surge');
+    const d = await res.json();
+    if (!d.surges?.length) {
+      el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">거래량 급등 종목 없음</div>';
+      return;
+    }
+    el.innerHTML = d.surges.map(s => {
+      const levelColor = s.surge_level === 'extreme' ? '#ef4444' : s.surge_level === 'high' ? '#f59e0b' : '#6366f1';
+      const levelLabel = s.surge_level === 'extreme' ? '🔥 폭발' : s.surge_level === 'high' ? '⚡ 급등' : '📈 상승';
+      const changeColor = s.change_pct >= 0 ? '#065f46' : '#991b1b';
+      const changeBg = s.change_pct >= 0 ? '#dcfce7' : '#fee2e2';
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;background:#fff;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="font-weight:800;font-size:1rem;">${s.symbol}</span>
+              <span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:${levelColor}20;color:${levelColor};font-weight:700;">${levelLabel}</span>
+            </div>
+            <div style="font-size:0.78rem;color:#6b7280;">
+              오늘: <b>${s.today_volume?.toLocaleString()}</b> | 평균: ${s.avg_volume?.toLocaleString()}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.1rem;font-weight:800;color:${levelColor};">${s.volume_ratio}x</div>
+            <div style="font-size:0.78rem;font-weight:700;padding:2px 8px;border-radius:999px;background:${changeBg};color:${changeColor};">
+              ${s.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(s.change_pct)}%
+            </div>
+            <button onclick="quickRiskCalc('${s.symbol}')" style="margin-top:4px;padding:3px 8px;font-size:0.72rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:#ef4444;padding:12px;font-size:0.85rem;">조회 실패: ${e.message}</div>`;
+  }
+};
+
+// ============================================================
+// 뉴스 촉매 탐지
+// ============================================================
+window.loadNewsCatalyst = async function() {
+  const el = document.getElementById('newsCatalystList');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 뉴스 분석 중...</div>';
+  try {
+    const res = await fetch('/api/auto-trade/news-catalyst');
+    const d = await res.json();
+    if (!d.catalysts?.length) {
+      el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">관련 뉴스 없음</div>';
+      return;
+    }
+    el.innerHTML = d.catalysts.map(c => `
+      <div style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;background:#fff;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <span style="font-weight:800;font-size:0.95rem;color:#6366f1;">${c.symbol}</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:#fef3c7;color:#92400e;font-weight:700;">📰 뉴스 ${c.news_count}건</span>
+        </div>
+        <div style="font-size:0.82rem;color:#374151;margin-bottom:4px;line-height:1.4;">${c.latest_title}</div>
+        ${c.link ? `<a href="${c.link}" target="_blank" style="font-size:0.75rem;color:#6366f1;">↗ 원문 보기</a>` : ''}
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:#ef4444;padding:12px;font-size:0.85rem;">조회 실패: ${e.message}</div>`;
+  }
+};
+
+// ============================================================
+// 리스크 계산기
+// ============================================================
+window.quickRiskCalc = async function(symbol) {
+  const riskSymbolEl = document.getElementById('riskSymbol');
+  if (riskSymbolEl) riskSymbolEl.value = symbol;
+  await calcRisk();
+};
+
+window.calcRisk = async function() {
+  const symbol = document.getElementById('riskSymbol')?.value?.trim()?.toUpperCase();
+  const stopLossPct = parseFloat(document.getElementById('riskStopLoss')?.value || 5) / 100;
+  const riskRatio = parseFloat(document.getElementById('riskRatio')?.value || 2) / 100;
+  const el = document.getElementById('riskResult');
+  if (!symbol) { await spAlert('종목을 입력하세요.', '입력 오류', '⚠️'); return; }
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:12px;font-size:0.85rem;">⏳ 계산 중...</div>';
+  try {
+    const res = await fetch('/api/auto-trade/risk-calc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, stop_loss_pct: stopLossPct, risk_ratio: riskRatio })
+    });
+    const d = await res.json();
+    if (!d.ok) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">${d.error}</div>`; return; }
+    el.innerHTML = `
+      <div style="background:#f8fafc;border-radius:10px;padding:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#6b7280;margin-bottom:4px;">현재가</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#111;">$${d.price?.toFixed(2)}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#6b7280;margin-bottom:4px;">계좌 잔고</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#111;">$${d.balance?.toLocaleString('en',{maximumFractionDigits:0})}</div>
+          </div>
+          <div style="background:#dcfce7;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#065f46;margin-bottom:4px;">추천 수량</div>
+            <div style="font-size:1.3rem;font-weight:800;color:#065f46;">${d.qty}주</div>
+          </div>
+          <div style="background:#fee2e2;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#991b1b;margin-bottom:4px;">리스크 금액</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#991b1b;">$${d.risk_amount?.toFixed(0)} (${d.risk_pct}%)</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#6b7280;">손절가</div>
+            <div style="font-weight:700;color:#ef4444;">$${d.stop_price}</div>
+          </div>
+          <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#6b7280;">목표가 (2:1)</div>
+            <div style="font-weight:700;color:#10b981;">$${d.take_profit_price}</div>
+          </div>
+          <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:0.72rem;color:#6b7280;">투자금액</div>
+            <div style="font-weight:700;color:#6366f1;">$${d.total_cost?.toLocaleString('en',{maximumFractionDigits:0})}</div>
+          </div>
+        </div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
+  }
+};

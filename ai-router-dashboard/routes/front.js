@@ -2,6 +2,90 @@ import express from 'express';
 import path from 'path';
 const router = express.Router();
 
+// ============================================================
+// 거래량 급등 감지
+// ============================================================
+async function detectVolumeSurge(symbols, alpacaKeys = null) {
+  const headers = alpacaKeys
+    ? { 'APCA-API-KEY-ID': alpacaKeys.api_key, 'APCA-API-SECRET-KEY': alpacaKeys.secret_key }
+    : {};
+  const results = [];
+  const end = new Date().toISOString().split('T')[0];
+  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  await Promise.allSettled(symbols.map(async (symbol) => {
+    try {
+      const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=30`, { headers });
+      const json = await resp.json();
+      const bars = json.bars || [];
+      if (bars.length < 10) return;
+      const volumes = bars.map(b => b.v);
+      const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
+      const todayVolume = volumes[volumes.length - 1];
+      const ratio = todayVolume / avgVolume;
+      const closes = bars.map(b => b.c);
+      const change_pct = ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100;
+      if (ratio >= 1.5) {
+        results.push({
+          symbol, today_volume: todayVolume, avg_volume: Math.round(avgVolume),
+          volume_ratio: parseFloat(ratio.toFixed(2)), price: closes[closes.length - 1],
+          change_pct: parseFloat(change_pct.toFixed(2)),
+          surge_level: ratio >= 3 ? 'extreme' : ratio >= 2 ? 'high' : 'moderate'
+        });
+      }
+    } catch(e) {}
+  }));
+  return results.sort((a, b) => b.volume_ratio - a.volume_ratio);
+}
+
+// ============================================================
+// 뉴스 촉매 탐지 (RSS 기반)
+// ============================================================
+async function detectNewsCatalyst(db, symbols) {
+  const catalysts = [];
+  try {
+    const rssRows = db.prepare("SELECT url FROM rss_sources WHERE enabled=1 LIMIT 5").all();
+    const newsItems = [];
+    await Promise.allSettled(rssRows.map(async (row) => {
+      try {
+        const resp = await fetch(row.url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(5000) });
+        const text = await resp.text();
+        const items = [...text.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
+        items.slice(0, 10).forEach(m => {
+          const title = (m[1].match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/i) || m[1].match(/<title>(.*?)<\/title>/i) || [])[1] || '';
+          const pub = (m[1].match(/<pubDate>(.*?)<\/pubDate>/i) || [])[1] || '';
+          const link = (m[1].match(/<link>(.*?)<\/link>/i) || [])[1] || '';
+          if (title) newsItems.push({ title, pub, link });
+        });
+      } catch(e) {}
+    }));
+    symbols.forEach(symbol => {
+      const matched = newsItems.filter(n => n.title.toUpperCase().includes(symbol.toUpperCase()));
+      if (matched.length > 0) {
+        catalysts.push({ symbol, news_count: matched.length, latest_title: matched[0].title, latest_time: matched[0].pub, link: matched[0].link });
+      }
+    });
+  } catch(e) {}
+  return catalysts;
+}
+
+// ============================================================
+// 리스크 계산
+// ============================================================
+function calcRiskPosition(accountBalance, price, stopLossPct = 0.05, riskRatio = 0.02) {
+  const riskAmount = accountBalance * riskRatio;
+  const stopLossAmount = price * stopLossPct;
+  const qty = Math.floor(riskAmount / stopLossAmount);
+  const totalCost = qty * price;
+  const actualRiskPct = (qty * stopLossAmount / accountBalance) * 100;
+  return {
+    qty: Math.max(qty, 0), total_cost: parseFloat(totalCost.toFixed(2)),
+    risk_amount: parseFloat((qty * stopLossAmount).toFixed(2)),
+    risk_pct: parseFloat(actualRiskPct.toFixed(2)),
+    stop_price: parseFloat((price * (1 - stopLossPct)).toFixed(2)),
+    take_profit_price: parseFloat((price * (1 + stopLossPct * 2)).toFixed(2))
+  };
+}
+
 export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, __dirname }) {
 
   // ✅ 페이지 라우트
@@ -568,6 +652,59 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 나스닥100/다우존스30 TOP3 분석
+  // ✅ 거래량 급등 감지
+  router.get('/api/auto-trade/volume-surge', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const userId = req.user.user_id || req.user.id;
+      const keys = getUserAlpacaKeys(userId, null);
+      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const symbols = settings?.candidate_symbols
+        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY'];
+      const result = await detectVolumeSurge(symbols, keys);
+      res.json({ ok: true, surges: result });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ✅ 뉴스 촉매 탐지
+  router.get('/api/auto-trade/news-catalyst', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const userId = req.user.user_id || req.user.id;
+      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const symbols = settings?.candidate_symbols
+        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD'];
+      const result = await detectNewsCatalyst(db, symbols);
+      res.json({ ok: true, catalysts: result });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ✅ 리스크 계산
+  router.post('/api/auto-trade/risk-calc', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const userId = req.user.user_id || req.user.id;
+      const { symbol, stop_loss_pct = 0.05, risk_ratio = 0.02 } = req.body;
+      if (!symbol) return res.status(400).json({ error: 'symbol 필수' });
+      const keys = getUserAlpacaKeys(userId, null);
+      if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
+      const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+      const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
+      const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+      const balance = parseFloat(account.equity) || 0;
+      // 현재가 조회
+      const end = new Date().toISOString().split('T')[0];
+      const start = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=5`, { headers })).json()).bars || [];
+      const price = bars.length ? bars[bars.length - 1].c : 0;
+      if (!price) return res.status(400).json({ error: '현재가 조회 실패' });
+      const result = calcRiskPosition(balance, price, stop_loss_pct, risk_ratio);
+      res.json({ ok: true, symbol, price, balance, ...result });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   router.post('/api/auto-trade/nasdaq-top3', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
