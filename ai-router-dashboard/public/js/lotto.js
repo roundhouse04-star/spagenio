@@ -515,8 +515,11 @@
           if (!d.picks?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">추천 이력이 없습니다</div>'; return; }
 
           const isAdmin = d.is_admin;
+
+          // 관리자: 유저명 + 날짜별 개별 표시
+          // 일반 유저: 날짜별 표시
           const thead = isAdmin
-            ? '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">유저수</th><th style="padding:8px;text-align:center;">상세</th>'
+            ? '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">유저</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">상세</th>'
             : '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">상세</th>';
 
           el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
@@ -524,12 +527,12 @@
             d.picks.map(p =>
               '<tr style="border-bottom:1px solid #f3f4f6;">' +
               '<td style="padding:8px;">'+p.pick_date+'</td>' +
+              (isAdmin ? '<td style="padding:8px;text-align:center;"><span style="padding:2px 8px;border-radius:999px;background:#eef2ff;color:#6366f1;font-size:0.78rem;font-weight:700;">'+(p.username||'-')+'</span></td>' : '') +
               '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
               '<td style="padding:8px;text-align:center;">'+(p.drw_no ? p.drw_no+'회' : '미확인')+'</td>' +
               '<td style="padding:8px;text-align:center;">'+(p.best_rank ? '<span class="lotto-rank-badge rank-'+p.best_rank+'">'+p.best_rank+'등</span>' : '<span class="lotto-rank-badge rank-0">미확인</span>')+'</td>' +
               '<td style="padding:8px;text-align:center;">'+(p.max_match != null ? p.max_match+'개' : '-')+'</td>' +
-              (isAdmin ? '<td style="padding:8px;text-align:center;color:#6366f1;font-weight:700;">'+(p.user_count||0)+'명</td>' : '') +
-              '<td style="padding:8px;text-align:center;"><button class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:3px 10px;" data-date="' + p.pick_date + '" onclick="lottoShowDetail(this.dataset.date)">보기</button></td>' +
+              '<td style="padding:8px;text-align:center;"><button class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:3px 10px;" data-date="' + p.pick_date + '" data-userid="' + (p.user_id||'') + '" onclick="lottoShowDetail(this.dataset.date, this.dataset.userid)">보기</button></td>' +
               '</tr>'
             ).join('') + '</tbody></table>';
 
@@ -642,7 +645,7 @@
           }
         } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
       };
-      window.lottoShowDetail = async function(date) {
+      window.lottoShowDetail = async function(date, userId) {
         const card = $id('lotto-detail-card');
         const title = $id('lotto-detail-title');
         const gamesEl = $id('lotto-detail-games');
@@ -650,10 +653,12 @@
         card.style.display = 'block';
         title.textContent = '📅 ' + date + ' 추천 번호';
         card.dataset.date = date;
+        card.dataset.userId = userId || '';
         gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;">로딩 중...</div>';
         card.scrollIntoView({behavior:'smooth', block:'start'});
         try {
-          const r = await fetch('/api/lotto/picks?date='+date);
+          const url = userId ? `/api/lotto/picks?date=${date}&user_id=${userId}` : `/api/lotto/picks?date=${date}`;
+          const r = await fetch(url);
           const d = await r.json();
           gamesEl.innerHTML = d.picks.map(p => {
             const rankLabel = p.rank

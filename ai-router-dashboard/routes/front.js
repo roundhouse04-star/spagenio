@@ -285,31 +285,55 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { pick_date, games, algorithms } = req.body;
     if (!games?.length) return res.status(400).json({ error: '번호 없음' });
-    db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(req.user.id, pick_date);
+    // admin은 users 테이블 id(user_id) 사용, 없으면 저장 불가
+    const userId = req.user.user_id || req.user.id;
+    if (!userId) return res.status(400).json({ error: '저장 가능한 유저 계정이 없습니다.' });
+    db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(userId, pick_date);
     const stmt = db.prepare('INSERT INTO lotto_picks (user_id, pick_date, game_index, numbers, algorithms) VALUES (?,?,?,?,?)');
-    games.forEach((nums, i) => stmt.run(req.user.id, pick_date, i, JSON.stringify(nums), algorithms || ''));
+    games.forEach((nums, i) => stmt.run(userId, pick_date, i, JSON.stringify(nums), algorithms || ''));
     res.json({ ok: true, saved: games.length });
   });
 
   router.get('/api/lotto/picks', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { date, limit = 10, page = 1 } = req.query;
+    const { date, limit = 10, page = 1, user_id } = req.query;
     const isAdmin = req.user.is_admin;
     if (date) {
-      const rows = isAdmin
-        ? db.prepare('SELECT lp.*, u.username FROM lotto_picks lp LEFT JOIN users u ON lp.user_id=u.id WHERE lp.pick_date=? ORDER BY lp.user_id, lp.game_index').all(date)
-        : db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=? ORDER BY game_index').all(req.user.id, date);
+      let rows;
+      if (isAdmin && user_id) {
+        // 관리자가 특정 유저 날짜 조회
+        rows = db.prepare('SELECT lp.*, u.username FROM lotto_picks lp LEFT JOIN users u ON lp.user_id=u.id WHERE lp.pick_date=? AND lp.user_id=? ORDER BY lp.game_index').all(date, parseInt(user_id));
+      } else if (isAdmin) {
+        rows = db.prepare('SELECT lp.*, u.username FROM lotto_picks lp LEFT JOIN users u ON lp.user_id=u.id WHERE lp.pick_date=? ORDER BY lp.user_id, lp.game_index').all(date);
+      } else {
+        rows = db.prepare('SELECT * FROM lotto_picks WHERE user_id=? AND pick_date=? ORDER BY game_index').all(req.user.id, date);
+      }
       return res.json({ picks: rows.map(r => ({ ...r, numbers: JSON.parse(r.numbers) })) });
     }
     const pageSize = isAdmin ? 5 : parseInt(limit);
     const offset = (parseInt(page) - 1) * pageSize;
-    const total = isAdmin
-      ? db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks').get()?.cnt || 0
-      : db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks WHERE user_id=?').get(req.user.id)?.cnt || 0;
-    const rows = isAdmin
-      ? db.prepare(`SELECT lp.pick_date, COUNT(*) as game_count, MAX(lp.drw_no) as drw_no, MIN(CASE WHEN lp.rank > 0 THEN lp.rank END) as best_rank, MAX(lp.matched_count) as max_match, COUNT(DISTINCT lp.user_id) as user_count FROM lotto_picks lp GROUP BY lp.pick_date ORDER BY lp.pick_date DESC LIMIT ? OFFSET ?`).all(pageSize, offset)
-      : db.prepare(`SELECT pick_date, COUNT(*) as game_count, MAX(drw_no) as drw_no, MIN(CASE WHEN rank > 0 THEN rank END) as best_rank, MAX(matched_count) as max_match, SUM(CASE WHEN rank > 0 THEN 1 ELSE 0 END) as checked_count FROM lotto_picks WHERE user_id=? GROUP BY pick_date ORDER BY pick_date DESC LIMIT ? OFFSET ?`).all(req.user.id, pageSize, offset);
-    res.json({ picks: rows, total, page: parseInt(page), limit: pageSize, totalPages: Math.ceil(total / pageSize), is_admin: isAdmin });
+
+    if (isAdmin) {
+      // 관리자: 전체 게임 개별 표시 (user_id, pick_date, game_index별)
+      const total = db.prepare('SELECT COUNT(*) as cnt FROM (SELECT pick_date, user_id FROM lotto_picks GROUP BY pick_date, user_id)').get()?.cnt || 0;
+      const rows = db.prepare(`
+        SELECT lp.pick_date, lp.user_id, u.username,
+          COUNT(*) as game_count,
+          MAX(lp.drw_no) as drw_no,
+          MIN(CASE WHEN lp.rank > 0 THEN lp.rank END) as best_rank,
+          MAX(lp.matched_count) as max_match
+        FROM lotto_picks lp
+        LEFT JOIN users u ON lp.user_id = u.id
+        GROUP BY lp.pick_date, lp.user_id
+        ORDER BY lp.pick_date DESC, lp.user_id
+        LIMIT ? OFFSET ?`).all(pageSize, offset);
+      return res.json({ picks: rows, total, page: parseInt(page), limit: pageSize, totalPages: Math.ceil(total / pageSize), is_admin: true });
+    }
+
+    // 일반 유저: 본인 날짜별
+    const total = db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks WHERE user_id=?').get(req.user.id)?.cnt || 0;
+    const rows = db.prepare(`SELECT pick_date, COUNT(*) as game_count, MAX(drw_no) as drw_no, MIN(CASE WHEN rank > 0 THEN rank END) as best_rank, MAX(matched_count) as max_match, SUM(CASE WHEN rank > 0 THEN 1 ELSE 0 END) as checked_count FROM lotto_picks WHERE user_id=? GROUP BY pick_date ORDER BY pick_date DESC LIMIT ? OFFSET ?`).all(req.user.id, pageSize, offset);
+    res.json({ picks: rows, total, page: parseInt(page), limit: pageSize, totalPages: Math.ceil(total / pageSize), is_admin: false });
   });
 
   router.post('/api/lotto/picks/check', async (req, res) => {
