@@ -619,13 +619,25 @@
       window.lottoCheckResult = async function() {
         const card = $id('lotto-detail-card');
         const date = card?.dataset.date;
-        const drw_no = $id('lotto-check-drwno')?.value;
-        if (!date || !drw_no) { await spAlert('날짜와 회차를 입력하세요', '입력 오류', '⚠️'); return; }
+        const drw_no = $id('lotto-check-drwno')?.value?.trim();
+        const btn = document.querySelector('button[onclick="lottoCheckResult()"]');
+
+        if (!date) { await spAlert('먼저 추천 이력에서 "보기"를 눌러주세요.', '안내', '⚠️'); return; }
+        if (!drw_no) { await spAlert('회차를 입력하세요.', '입력 오류', '⚠️'); return; }
+
+        // 로딩 표시
+        if (btn) { btn.disabled = true; btn.textContent = '확인 중...'; }
+        const gamesEl = $id('lotto-detail-games');
+        if (gamesEl) gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;text-align:center;">⏳ 동행복권 확인 중...</div>';
+
         try {
-          const r = await fetch('/api/lotto/picks/check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pick_date:date, drw_no:parseInt(drw_no)})});
+          const r = await fetch('/api/lotto/picks/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pick_date: date, drw_no: parseInt(drw_no) })
+          });
           const d = await r.json();
-          if (!d.ok) throw new Error(d.error);
-          const gamesEl = $id('lotto-detail-games');
+          if (!d.ok) throw new Error(d.error || '확인 실패');
           gamesEl.innerHTML =
             '<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:12px;">' +
             '<span style="font-size:0.82rem;font-weight:700;color:#6b7280;">'+d.drw_no+'회 당첨 번호</span>' +
@@ -641,7 +653,13 @@
                 '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(res.numbers, d.winning)+'</div></div>';
             }).join('');
           lottoLoadHistory();
-        } catch(e) { await spAlert('확인 실패: '+e.message, '오류', '❌'); }
+        } catch(e) {
+          console.error('lottoCheckResult error:', e);
+          if (gamesEl) gamesEl.innerHTML = '<div style="color:#ef4444;padding:16px;">❌ ' + e.message + '</div>';
+          await spAlert(e.message, '확인 실패', '❌');
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = '당첨 확인'; }
+        }
       };
 
       window.lottoGenerate = function lottoGenerate() {
@@ -659,7 +677,7 @@
           const res = await fetch('/api/lotto/history');
           if (!res.ok) throw new Error('history api not available');
           const data = await res.json();
-          lottoHistory = Array.isArray(data.history) ? data.history : [];
+          lottoHistory = Array.isArray(data) ? data : [];
         } catch (e) {
           lottoHistory = [];
         }
