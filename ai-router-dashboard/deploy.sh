@@ -5,7 +5,7 @@
 # 파일 수정 후 이 스크립트 실행하면 자동 push + 배포
 # ==========================================
 
-PROJECT="/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard"
+PROJECT="/Users/roundhouse04/projects/spagenio/ai-router-dashboard"
 cd "$PROJECT"
 
 # 커밋 메시지 입력

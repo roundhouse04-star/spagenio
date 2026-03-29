@@ -4,7 +4,7 @@
 # 사용법: ./build.sh
 # ============================================================
 
-PROJECT_DIR="$HOME/프로젝트/spagenio/ai-router-dashboard"
+PROJECT_DIR="$HOME/projects/spagenio/ai-router-dashboard"
 JS_DIR="$PROJECT_DIR/public/js"
 DIST_DIR="$PROJECT_DIR/public/js/dist"
 
@@ -87,5 +87,5 @@ echo "  📁 원본 백업: $DIST_DIR"
 echo "────────────────────────────────────"
 echo ""
 echo "🚀 서버 재시작하려면:"
-echo "   cd ~/프로젝트/spagenio && ./stop-all.sh && ./start-all.sh"
+echo "   cd ~/projects/spagenio && ./stop-all.sh && ./start-all.sh"
 echo ""

@@ -3,7 +3,7 @@
 echo "🚀 spagenio 시작"
 echo "======================================"
 
-PROJECT="/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard"
+PROJECT="/Users/roundhouse04/projects/spagenio/ai-router-dashboard"
 cd "$PROJECT"
 
 # PM2로 서버 시작

@@ -5,7 +5,7 @@
 # GitHub push 감지 → pull → PM2 재시작
 # ==========================================
 
-PROJECT="/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard"
+PROJECT="/Users/roundhouse04/projects/spagenio/ai-router-dashboard"
 BRANCH="main"
 CHECK_INTERVAL=30  # 30초마다 체크
 LAST_COMMIT=""

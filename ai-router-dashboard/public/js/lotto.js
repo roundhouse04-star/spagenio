@@ -659,7 +659,7 @@
           const res = await fetch('/api/lotto/history');
           if (!res.ok) throw new Error('history api not available');
           const data = await res.json();
-          lottoHistory = Array.isArray(data) ? data : [];
+          lottoHistory = Array.isArray(data.history) ? data.history : [];
         } catch (e) {
           lottoHistory = [];
         }

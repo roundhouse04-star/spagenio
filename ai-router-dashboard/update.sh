@@ -6,7 +6,7 @@
 # 사용법: bash update.sh "수정 내용 설명"
 # ==========================================
 
-PROJECT="/Users/roundhouse04/프로젝트/spagenio/ai-router-dashboard"
+PROJECT="/Users/roundhouse04/projects/spagenio/ai-router-dashboard"
 DOWNLOADS="$HOME/Downloads"
 MSG="${1:-업데이트 $(date '+%Y-%m-%d %H:%M')}"
 
@@ -42,7 +42,7 @@ echo "📁 파일 복사 중..."
 
 echo ""
 
-# ===== 프로젝트 폴더로 이동 =====
+# ===== projects 폴더로 이동 =====
 cd "$PROJECT"
 
 # ===== Git 배포 =====

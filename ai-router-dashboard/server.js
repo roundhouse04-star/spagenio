@@ -641,6 +641,54 @@ app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
 app.use('/', frontRoutes(frontDeps));
 
+// 로또 통계 API — 핫/콜드 번호 실계산 (lotto_history 기반)
+app.get('/api/lotto/stats', (req, res) => {
+  try {
+    const rows = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no DESC').all();
+    const totalRounds = rows.length;
+
+    const freqMap = {};
+    for (let n = 1; n <= 45; n++) freqMap[n] = 0;
+    for (const row of rows) {
+      try { const nums = JSON.parse(row.numbers); for (const n of nums) if (n >= 1 && n <= 45) freqMap[n]++; } catch {}
+    }
+
+    const recentRows = rows.slice(0, 20);
+    const recentFreq = {};
+    for (let n = 1; n <= 45; n++) recentFreq[n] = 0;
+    for (const row of recentRows) {
+      try { const nums = JSON.parse(row.numbers); for (const n of nums) if (n >= 1 && n <= 45) recentFreq[n]++; } catch {}
+    }
+
+    const hotNumber = Number(Object.entries(recentFreq).sort((a,b)=>b[1]-a[1])[0]?.[0] || 34);
+
+    const lastSeenMap = {};
+    for (let n = 1; n <= 45; n++) lastSeenMap[n] = totalRounds;
+    rows.forEach((row, idx) => {
+      try {
+        const nums = JSON.parse(row.numbers);
+        for (const n of nums) { if (lastSeenMap[n] === totalRounds || lastSeenMap[n] > idx) lastSeenMap[n] = idx; }
+      } catch {}
+    });
+    const coldNumber = Number(Object.entries(lastSeenMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || 44);
+
+    const top5 = Object.entries(freqMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([num,cnt])=>({num:Number(num),cnt}));
+    res.json({ ok: true, totalRounds, hotNumber, coldNumber, top5 });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// 관리자 전용: 로또 전체 통계
+app.get('/api/admin/lotto/stats', (req, res) => {
+  try {
+    if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
+    const total_users  = db.prepare('SELECT COUNT(DISTINCT user_id) as cnt FROM lotto_picks').get()?.cnt || 0;
+    const total_picks  = db.prepare('SELECT COUNT(*) as cnt FROM lotto_picks').get()?.cnt || 0;
+    const total_wins   = db.prepare('SELECT COUNT(*) as cnt FROM lotto_picks WHERE rank IS NOT NULL AND rank > 0').get()?.cnt || 0;
+    const total_rounds = db.prepare('SELECT COUNT(*) as cnt FROM lotto_history').get()?.cnt || 0;
+    res.json({ ok: true, total_users, total_picks, total_wins, total_rounds });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error:'Not found' });
   res.sendFile(path.join(__dirname,'public','index.html'));
