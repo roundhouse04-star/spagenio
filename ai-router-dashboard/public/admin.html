@@ -2497,8 +2497,7 @@
         });
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
-        await spAlert('주기가 변경됐습니다.
-서버 재시작 후 적용됩니다.', '완료', '✅');
+        await spAlert('주기 변경 완료 (서버 재시작 후 적용)', '완료', '✅');
       } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
