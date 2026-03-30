@@ -509,8 +509,8 @@
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="m-btn m-btn-danger m-btn-full" onclick="mTrade('buy')">🔴 매수</button>
-          <button class="m-btn m-btn-success m-btn-full" onclick="mTrade('sell')">🟢 매도</button>
+          <button class="m-btn m-btn-success m-btn-full" onclick="mTrade('buy')">🟢 매수</button>
+          <button class="m-btn m-btn-danger m-btn-full" onclick="mTrade('sell')">🔴 매도</button>
         </div>
         <div id="m-trade-result" style="margin-top:10px;font-size:0.82rem;color:var(--muted);"></div>
       </div>
@@ -540,10 +540,6 @@
       <div class="m-card" style="padding:4px 14px;">
         <div id="m-lotto-history"><div class="m-loading">로딩 중...</div></div>
       </div>
-
-      <!-- 예측 이력 -->
-      <div class="m-section-label" style="margin-top:16px;">✨ 예측 이력 (반복출현 패턴 기반)</div>
-      <div id="m-lotto-predictions"><div class="m-loading">로딩 중...</div></div>
     </div>
 
     <!-- ── 자동매매 탭 ── -->
@@ -730,11 +726,6 @@
 </div>
 
 <script>
-// ── NaN/Infinity 공통 처리 ──
-function safeJson(text) {
-  return JSON.parse(text.replace(/:\s*NaN/g, ': null').replace(/:\s*Infinity/g, ': null').replace(/:\s*-Infinity/g, ': null'));
-}
-
 // ── 공통 fetch (토큰 자동 첨부) ──
 const _origFetch = window.fetch;
 window.fetch = function(url, opts = {}) {
@@ -804,7 +795,7 @@ function mTab(tab) {
   _currentTab = tab;
   if (tab === 'news') { mLoadNews(); mLoadMarket(); }
   if (tab === 'stock') { mLoadAccount(); mLoadPositions(); }
-  if (tab === 'lotto') { mLoadLottoHistory(); mLoadLottoPredictions(); }
+  if (tab === 'lotto') { mLoadLottoHistory(); }
   if (tab === 'trade') { mLoadSimpleTrade(); }
   if (tab === 'manage') { mLoadScheduler(); }
 }
@@ -924,8 +915,12 @@ async function mSearchStock() {
     el.innerHTML = stocks.map(s => {
       const up = s.change >= 0;
       const color = up ? 'var(--success)' : 'var(--danger)';
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
-        <span style="font-weight:700;">${s.symbol}</span>
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;cursor:pointer;"
+        onclick="document.getElementById('m-trade-symbol').value='${s.symbol}';document.getElementById('m-trade-result').textContent='${s.symbol} 선택됨';">
+        <div>
+          <span style="font-weight:700;">${s.symbol}</span>
+          <span style="font-size:0.72rem;color:var(--muted);margin-left:6px;">탭하면 매매창에 입력</span>
+        </div>
         <div style="text-align:right;">
           <div style="font-weight:700;">$${s.price}</div>
           <div style="font-size:0.75rem;color:${color};">${up?'▲':'▼'} ${Math.abs(s.change)} (${(s.change_pct||0).toFixed(2)}%)</div>
@@ -938,24 +933,46 @@ async function mSearchStock() {
 // ── 주식: 매매 ──
 async function mTrade(side) {
   const symbol = document.getElementById('m-trade-symbol').value.trim().toUpperCase();
-  const qty = document.getElementById('m-trade-qty').value;
+  const qtyRaw = document.getElementById('m-trade-qty').value;
   const el = document.getElementById('m-trade-result');
-  if (!symbol || !qty) { el.textContent = '종목과 수량을 입력하세요.'; return; }
+
+  // 수정2: 입력값 검증
+  if (!symbol) { el.style.color = 'var(--danger)'; el.textContent = '❌ 종목을 입력하세요.'; return; }
+  const qty = parseInt(qtyRaw);
+  if (!qty || qty < 1 || isNaN(qty)) { el.style.color = 'var(--danger)'; el.textContent = '❌ 수량은 1 이상 정수로 입력하세요.'; return; }
+
+  // 수정3: 장 시간 체크 (EST 기준)
+  const now = new Date();
+  const estHour = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(now));
+  const estMin = parseInt(new Intl.DateTimeFormat('en-US', { minute: 'numeric', timeZone: 'America/New_York' }).format(now));
+  const estTime = estHour * 60 + estMin;
+  const isMarketHours = estTime >= 9 * 60 + 30 && estTime < 16 * 60;
+  if (!isMarketHours) {
+    const openAt = new Date(now);
+    el.style.color = 'var(--warn)';
+    el.textContent = `⚠️ 현재 미국 장외 시간입니다 (EST ${String(estHour).padStart(2,'0')}:${String(estMin).padStart(2,'0')}). 장 시간: 09:30~16:00 EST`;
+    return;
+  }
+
+  el.style.color = 'var(--muted)';
   el.textContent = '주문 중...';
   try {
+    // 수정4: time_in_force 'gtc' → 'day' (당일 미체결 시 자동 취소)
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty: Number(qty), side, type: 'market', time_in_force: 'gtc' })
+      body: JSON.stringify({ symbol, qty, side, type: 'market', time_in_force: 'day' })
     });
     const d = await res.json();
     if (res.ok && d.id) {
       el.textContent = `✅ ${side === 'buy' ? '매수' : '매도'} 주문 완료 · ${symbol} ${qty}주`;
       el.style.color = side === 'buy' ? 'var(--success)' : 'var(--danger)';
+      // 주문 후 포지션 새로고침
+      setTimeout(() => mLoadPositions(), 2000);
     } else {
       el.textContent = '❌ ' + (d.message || d.error || '주문 실패');
       el.style.color = 'var(--danger)';
     }
-  } catch(e) { el.textContent = '오류: ' + e.message; }
+  } catch(e) { el.style.color = 'var(--danger)'; el.textContent = '오류: ' + e.message; }
 }
 
 // ── 로또 ──
@@ -968,112 +985,24 @@ function getLottoBallColor(n) {
   return 'lb5';
 }
 
-// ── 로또 예측 엔진 (lotto_weights 기반) ──
-let _lottoDbWeights = {};
-let _lottoHistoryData = [];
-let _streakCache = null;
-
-async function mLottoLoadWeights() {
-  try {
-    const res = await fetch('/api/lotto/weights');
-    const d = await res.json();
-    if (d.weights?.length) {
-      _lottoDbWeights = {};
-      d.weights.forEach(w => { _lottoDbWeights[w.num] = parseFloat(w.weight) || 1.0; });
-    }
-  } catch(e) {}
-  try {
-    const res = await fetch('/api/lotto/history');
-    const d = await res.json();
-    _lottoHistoryData = d.history || [];
-  } catch(e) {}
-}
-
-function mBuildStreakCache() {
-  const maxStreak = {}, curStreak = {};
-  for (let i = 1; i < _lottoHistoryData.length; i++) {
-    const prev = new Set(_lottoHistoryData[i-1]);
-    const cur  = new Set(_lottoHistoryData[i]);
-    for (let x = 1; x <= 45; x++) {
-      if (prev.has(x) && cur.has(x)) {
-        curStreak[x] = (curStreak[x] || 0) + 1;
-        if ((curStreak[x]||0) > (maxStreak[x]||0)) maxStreak[x] = curStreak[x];
-      } else { curStreak[x] = 0; }
-    }
-  }
-  const mul = {};
-  for (let x = 1; x <= 45; x++) {
-    const cs = curStreak[x] || 0, ms = maxStreak[x] || 0;
-    if (cs === 0)                       mul[x] = 1.0;
-    else if (ms > 0 && cs >= ms)        mul[x] = 0.3;
-    else if (ms > 0 && cs >= ms * 0.7)  mul[x] = 0.6;
-    else                                mul[x] = 1.0 + (cs * 0.3);
-  }
-  return mul;
-}
-
-function mGetNumberScore(n) {
-  const dbW = _lottoDbWeights[n] || 1.0;
-  const streakMul = _streakCache ? (_streakCache[n] || 1.0) : 1.0;
-  let score = dbW * streakMul;
-
-  // 최근 10회차 동적 hot/cold
-  const recent10 = _lottoHistoryData.slice(-10);
-  const recentFlat = [].concat(...recent10);
-  const recentFreq = {};
-  recentFlat.forEach(num => { recentFreq[num] = (recentFreq[num] || 0) + 1; });
-  const isHot = (recentFreq[n] || 0) >= 2;
-  const isCold = (recentFreq[n] || 0) === 0;
-
-  // 전체 이력 빈도
-  const allFlat = [].concat(..._lottoHistoryData);
-  const totalFreq = {};
-  allFlat.forEach(num => { totalFreq[num] = (totalFreq[num] || 0) + 1; });
-  const avgFreq = allFlat.length / 45;
-  const freqRatio = (totalFreq[n] || 0) / (avgFreq || 1);
-
-  score += freqRatio * 0.3;
-  if (isHot) score += (recentFreq[n] || 0) * 0.5;
-  if (isCold) score += 0.7;
-
-  return score;
-}
-
-function mPickWeighted(pool) {
-  const total = pool.reduce((s, item) => s + item.weight, 0);
-  if (total <= 0) return pool[Math.floor(Math.random() * pool.length)];
-  let r = Math.random() * total;
-  for (const item of pool) { r -= item.weight; if (r <= 0) return item; }
-  return pool[pool.length - 1];
-}
-
-function mGenerateOneGame() {
-  const picked = new Set();
-  while (picked.size < 6) {
-    const pool = [];
-    for (let n = 1; n <= 45; n++) {
-      if (!picked.has(n)) pool.push({ number: n, weight: mGetNumberScore(n) });
-    }
-    picked.add(mPickWeighted(pool).number);
-  }
-  return [...picked].sort((a, b) => a - b);
-}
-
 async function mLottoPick() {
-  const gameCount = parseInt(document.getElementById('m-lotto-count').value) || 5;
+  const gameCount = parseInt(document.getElementById('m-lotto-count').value);
   const el = document.getElementById('m-lotto-picks');
   el.innerHTML = '<div class="m-loading">추천 중...</div>';
   try {
-    await mLottoLoadWeights();
-    _streakCache = mBuildStreakCache();
-    const games = Array.from({ length: gameCount }, () => mGenerateOneGame());
-    _streakCache = null;
-    _lottoGames = games.map(numbers => ({ numbers }));
+    const res = await fetch('/api/lotto/recommend', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameCount })
+    });
+    const d = await res.json();
+    const games = d.games || [];
+    _lottoGames = games;
+    if (!games.length) { el.innerHTML = '<div class="m-empty">추천 실패</div>'; return; }
     el.innerHTML = games.map((g, i) => `
       <div style="margin-bottom:12px;">
         <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">${i+1}번 게임</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${g.map(n => `<span class="m-lotto-ball ${getLottoBallColor(n)}">${n}</span>`).join('')}
+          ${g.numbers.map(n => `<span class="m-lotto-ball ${getLottoBallColor(n)}">${n}</span>`).join('')}
         </div>
       </div>`).join('');
     document.getElementById('m-lotto-save-btn').style.display = 'block';
@@ -1090,22 +1019,9 @@ async function mLottoSave() {
     });
     const d = await res.json();
     if (d.ok) {
-      // 예측 이력에도 저장 (중복 방지 적용됨)
-      try {
-        const histRes = await fetch('/api/lotto/history');
-        const histD = await histRes.json();
-        const latestRound = histD.latest_round || 0;
-        for (const g of _lottoGames) {
-          await fetch('/api/lotto/prediction/save', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ based_on_round: latestRound, predicted_for_round: latestRound + 1, picks: g.numbers })
-          });
-        }
-      } catch(e) {}
       alert('저장 완료!');
       document.getElementById('m-lotto-save-btn').style.display = 'none';
       mLoadLottoHistory();
-      mLoadLottoPredictions();
     }
   } catch(e) { alert('저장 실패: ' + e.message); }
 }
@@ -1126,33 +1042,6 @@ async function mLoadLottoHistory() {
           <div style="font-size:0.75rem;color:var(--muted);">${p.game_count}게임 · ${p.drw_no ? p.drw_no+'회' : '미확인'}</div>
         </div>
         <div>${rank}</div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
-
-// ── 로또 예측 이력 ──
-async function mLoadLottoPredictions() {
-  const el = document.getElementById('m-lotto-predictions');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/lotto/prediction/history');
-    const d = await res.json();
-    const preds = d.predictions || [];
-    if (!preds.length) { el.innerHTML = '<div class="m-empty">예측 이력 없음</div>'; return; }
-    el.innerHTML = preds.slice(0, 10).map(p => {
-      const picks = typeof p.picks === 'string' ? JSON.parse(p.picks) : p.picks;
-      const hitBadge = p.result_checked
-        ? `<span class="m-badge ${p.hit_count >= 3 ? 'm-badge-yellow' : ''}" style="background:var(--surface2);color:var(--muted);">${p.hit_count}개 일치</span>`
-        : `<span class="m-badge" style="background:var(--surface2);color:var(--muted);">미확인</span>`;
-      return `<div class="m-card" style="margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:0.78rem;color:var(--muted);">${p.based_on_round}회 기반 → ${p.predicted_for_round || p.based_on_round+1}회 예측</span>
-          ${hitBadge}
-        </div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          ${picks.map(n => `<span class="m-lotto-ball ${getLottoBallColor(n)}" style="width:30px;height:30px;font-size:0.78rem;">${n}</span>`).join('')}
-        </div>
       </div>`;
     }).join('');
   } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
