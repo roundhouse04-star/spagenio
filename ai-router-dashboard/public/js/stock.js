@@ -486,31 +486,26 @@ async function loadOrderBook() {
   if (statusEl) statusEl.textContent = '조회 중...';
 
   try {
-    // 1. 최신 체결가 조회
-    const [tradeRes, quoteRes, barRes] = await Promise.all([
-      fetch(`/api/alpaca-user/v2/stocks/${symbol}/trades/latest`),
-      fetch(`/api/alpaca-user/v2/stocks/${symbol}/quotes/latest`),
-      fetch(`/api/alpaca-user/v2/stocks/${symbol}/bars/latest?timeframe=1Day`)
+    // yfinance 기반 현재가 조회 (Paper 계좌 data API 제한 우회)
+    const [priceRes, quoteRes] = await Promise.all([
+      fetch(`/proxy/stock/api/stock/prices?symbols=${symbol}`),
+      fetch(`/api/alpaca-user/v2/stocks/${symbol}/quotes/latest`).catch(() => null)
     ]);
+    const priceData = priceRes.ok ? await priceRes.json() : {};
+    const stockInfo = (priceData.stocks || [])[0] || {};
+    const quoteData = quoteRes && quoteRes.ok ? await quoteRes.json() : {};
+    const quote = quoteData.quote || {};
 
-    const tradeData = tradeRes.ok ? await tradeRes.json() : null;
-    const quoteData = quoteRes.ok ? await quoteRes.json() : null;
-    const barData   = barRes.ok   ? await barRes.json()   : null;
-
-    const trade = tradeData?.trade || {};
-    const quote = quoteData?.quote || {};
-    const bar   = barData?.bar    || {};
-
-    const latestPrice = parseFloat(trade.p) || parseFloat(quote.ap) || 0;
-    const askPrice    = parseFloat(quote.ap) || 0;
-    const bidPrice    = parseFloat(quote.bp) || 0;
-    const askSize     = parseInt(quote.as)   || 0;
-    const bidSize     = parseInt(quote.bs)   || 0;
-    const open        = parseFloat(bar.o)    || 0;
-    const high        = parseFloat(bar.h)    || 0;
-    const low         = parseFloat(bar.l)    || 0;
-    const prevClose   = parseFloat(bar.c)    || latestPrice;
-    const volume      = bar.v || 0;
+    const latestPrice = parseFloat(stockInfo.price) || 0;
+    const askPrice = parseFloat(quote.ap) || (latestPrice > 0 ? parseFloat((latestPrice + 0.01).toFixed(2)) : 0);
+    const bidPrice = parseFloat(quote.bp) || (latestPrice > 0 ? parseFloat((latestPrice - 0.01).toFixed(2)) : 0);
+    const askSize  = parseInt(quote.as) || 0;
+    const bidSize  = parseInt(quote.bs) || 0;
+    const open     = parseFloat(stockInfo.open)   || latestPrice;
+    const high     = parseFloat(stockInfo.high)   || latestPrice;
+    const low      = parseFloat(stockInfo.low)    || latestPrice;
+    const prevClose = parseFloat(stockInfo.prev_close) || latestPrice;
+    const volume = stockInfo.volume || 0;
 
     const change    = latestPrice - open;
     const changePct = open > 0 ? (change / open * 100) : 0;
