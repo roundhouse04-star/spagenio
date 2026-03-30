@@ -1677,7 +1677,12 @@ async function runAutoStrategy(userId) {
               }
             }
           }
-          db.prepare('UPDATE auto_strategy_settings SET last_rebalanced_at=? WHERE user_id=?').run(now.toISOString(), userId);
+          // 풀에 종목이 있을 때만 리밸런싱 완료 처리 (스크리닝 실패 시 재시도 보장)
+          if (pool.length > 0) {
+            db.prepare('UPDATE auto_strategy_settings SET last_rebalanced_at=? WHERE user_id=?').run(now.toISOString(), userId);
+          } else {
+            console.log(`[완전자동] userId=${userId} 팩터 스크리닝 결과 없음 — 다음 실행 시 재시도`);
+          }
         }
       } catch (e) { saveErrorLog({ event_type: 'AUTO_STRATEGY_REBAL_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId } }); }
     }
@@ -1688,47 +1693,58 @@ async function runAutoStrategy(userId) {
     const positions = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
     const posList = Array.isArray(positions) ? positions : [];
 
-    // 익절/손절/200일선 이탈 체크
+    // 익절/손절 체크 (else if로 중복 실행 방지)
     for (const pos of posList) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       const currentPrice = parseFloat(pos.current_price);
       const qty = parseFloat(pos.qty);
 
-      // 1차 익절 (절반 매도)
-      if (plPct >= s.take_profit1) {
+      // 매수 기준으로 1차/2차 익절 중복 방지 (BUY 로그의 created_at 이후)
+      const buyLog = db.prepare("SELECT created_at FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
+      const buyTime = buyLog?.created_at || '1970-01-01';
+
+      // 2차 익절 (전량 매도) — 1차보다 먼저 체크해서 else if로 1차 건너뜀
+      if (plPct >= s.take_profit2) {
+        const existing2 = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT2' AND created_at>?").get(userId, pos.symbol, buyTime);
+        if (!existing2) {
+          await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
+          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT2', qty, currentPrice, `퀀트전략:2차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
+          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
+        }
+      // 1차 익절 (절반 매도) — 2차 미달 시만 실행
+      } else if (plPct >= s.take_profit1) {
         const halfQty = Math.floor(qty / 2);
         if (halfQty >= 1) {
-          const existing = db.prepare("SELECT * FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT1' AND DATE(created_at)=DATE('now')").get(userId, pos.symbol);
-          if (!existing) {
+          const existing1 = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT1' AND created_at>?").get(userId, pos.symbol, buyTime);
+          if (!existing1) {
             await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: String(halfQty), side: 'sell', type: 'market', time_in_force: 'day' }) });
             db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT1', halfQty, currentPrice, `퀀트전략:1차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
           }
         }
-      }
-      // 2차 익절 (전량 매도)
-      if (plPct >= s.take_profit2) {
-        await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-        db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT2', qty, currentPrice, `퀀트전략:2차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
-      }
-      // 손절
-      if (plPct <= -s.stop_loss) {
-        await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-        db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_STOP', qty, currentPrice, `퀀트전략:손절 ${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
+      // 손절 — 익절 조건 미달 시만 실행
+      } else if (plPct <= -s.stop_loss) {
+        const existingStop = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_STOP' AND created_at>?").get(userId, pos.symbol, buyTime);
+        if (!existingStop) {
+          await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
+          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_STOP', qty, currentPrice, `퀀트전략:손절 ${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
+          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
+        }
       }
     }
 
     // 매수 체크 (풀에서 타이밍 조건 확인)
     const heldSymbols = new Set(posList.map(p => p.symbol));
     const pool = db.prepare('SELECT symbol FROM auto_strategy_pool WHERE user_id=? ORDER BY factor_score DESC').all(userId);
-    const buyAmount = buyingPower * s.balance_ratio;
     const maxPos = s.max_positions || 5;
+    let remainingBuyingPower = buyingPower; // 매수마다 차감하여 잔고 초과 방지
 
     for (const row of pool) {
-      if (posList.length >= maxPos || heldSymbols.has(row.symbol) || buyAmount < 10) continue;
+      const buyAmount = remainingBuyingPower * s.balance_ratio;
+      if (heldSymbols.size >= maxPos || heldSymbols.has(row.symbol) || buyAmount < 10) continue;
       try {
         const end = new Date().toISOString().split('T')[0];
-        const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${row.symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers })).json()).bars || [];
+        const start = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 300일 (200일선 계산용)
+        const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${row.symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=250`, { headers })).json()).bars || [];
         if (bars.length < 35) continue;
         const closes = bars.map(b => b.c);
         const currentPrice = closes[closes.length - 1];
@@ -1757,6 +1773,7 @@ async function runAutoStrategy(userId) {
           if (order.id) {
             db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, row.symbol, 'BUY', qty, currentPrice, `퀀트전략:3단계(${reasons.join('+')})`, order.id, 'active');
             heldSymbols.add(row.symbol);
+            remainingBuyingPower -= qty * currentPrice; // 매수 후 잔여 매수력 차감
           }
         }
       } catch (e) { saveErrorLog({ event_type: 'AUTO_STRATEGY_BUY_ERROR', error_message: e.message, meta: { symbol: row.symbol, userId } }); }
