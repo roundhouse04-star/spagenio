@@ -4879,6 +4879,23 @@
         if (typeof switchQuantTab === 'function') switchQuantTab(subKey);
       }
 
+      // performance 탭은 switchTab 이전에 처리
+      if (tabKey === 'performance') {
+        const perfTab = document.getElementById('tab-performance');
+        if (perfTab) { perfTab.style.display = 'block'; }
+        setTimeout(() => {
+          if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+          if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
+          if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
+          if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+          if (typeof loadTradeHistory === 'function') loadTradeHistory();
+          if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
+          if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
+          if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
+        }, 300);
+        return;
+      }
+
       // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
       if (typeof switchTab === 'function' && !subKey) {
         switchTab(tabKey);
