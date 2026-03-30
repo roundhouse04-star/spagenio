@@ -565,9 +565,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const { based_on_round, predicted_for_round, picks } = req.body;
       if (!based_on_round || !picks) return res.status(400).json({ error: '필수값 누락' });
+      // 동일 회차 + 동일 번호 중복 저장 방지
+      const picksJson = JSON.stringify(picks);
+      const existing = db.prepare('SELECT id FROM lotto_predictions WHERE based_on_round=? AND picks=?').get(based_on_round, picksJson);
+      if (existing) return res.json({ ok: true, skipped: true, message: '이미 동일한 예측번호가 저장되어 있습니다.' });
       db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)')
-        .run(based_on_round, predicted_for_round || null, JSON.stringify(picks));
-      res.json({ ok: true });
+        .run(based_on_round, predicted_for_round || null, picksJson);
+      res.json({ ok: true, skipped: false });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -807,11 +811,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       ];
       const results = await Promise.allSettled(KR_SYMBOLS.map(async (item) => {
         try {
-          const r = await fetch(`http://localhost:5001/stock/${item.symbol}`);
+          const r = await fetch(`http://localhost:5001/api/stock/history?symbol=${item.symbol}&period=60`);
           const text = await r.text();
           const d = safeJson(text);
-          const closes = (d.closes || []).filter(v => v !== null && !isNaN(v));
-          const volumes = (d.volumes || []).filter(v => v !== null && !isNaN(v));
+          const closes = (d.data || []).map(x => x.close).filter(v => v !== null && !isNaN(v));
+          const volumes = (d.data || []).map(x => x.volume).filter(v => v !== null && !isNaN(v));
           if (closes.length < 15) return null;
           // RSI 계산
           const period = 14;
