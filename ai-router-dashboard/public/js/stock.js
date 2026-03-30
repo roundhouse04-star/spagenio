@@ -129,7 +129,7 @@ async function buyStock() {
   }
 
   resultEl.style.color = 'var(--muted)';
-  resultEl.textContent = '⏳ 주문 중...';
+  resultEl.textContent = '⏳ 잔고 확인 중...';
   try {
     const keyRes = await fetch('/api/user/broker-keys');
     const keyData = await keyRes.json();
@@ -138,7 +138,43 @@ async function buyStock() {
       resultEl.textContent = '❌ Alpaca 키가 등록되지 않았습니다. 위에서 먼저 등록해주세요.';
       return;
     }
-    // 수정3: time_in_force gtc→day
+
+    // ✅ 잔고 부족 체크: 현재가 × 수량 > buying_power 이면 차단
+    const accountRes = await fetch('/api/alpaca-user/v2/account');
+    const accountData = await accountRes.json();
+    const buyingPower = parseFloat(accountData.buying_power) || 0;
+
+    // 현재가 조회 (stock_server)
+    const priceRes = await fetch(`/proxy/stock/api/stock/prices?symbols=${symbol}`);
+    const priceData = await priceRes.json();
+    const currentPrice = priceData.stocks?.[0]?.price || 0;
+
+    if (currentPrice > 0) {
+      const totalCost = currentPrice * qty;
+      if (totalCost > buyingPower) {
+        await spAlert(
+          `잔고가 부족합니다.
+
+필요 금액: $${totalCost.toLocaleString('en', {maximumFractionDigits:2})}
+매수 가능 금액: $${buyingPower.toLocaleString('en', {maximumFractionDigits:2})}`,
+          '잔고 부족', '💰'
+        );
+        resultEl.style.color = 'var(--red)';
+        resultEl.textContent = `❌ 잔고 부족 — 필요: $${totalCost.toFixed(2)} / 보유: $${buyingPower.toFixed(2)}`;
+        return;
+      }
+      // 매수 확인 팝업
+      const confirm = await spConfirm(
+        `${symbol} ${qty}주 매수할까요?
+
+예상 금액: $${totalCost.toFixed(2)}
+잔여 매수력: $${(buyingPower - totalCost).toFixed(2)}`,
+        '매수 확인', '🟢', '매수', '#10b981'
+      );
+      if (!confirm) { resultEl.textContent = ''; return; }
+    }
+
+    resultEl.textContent = '⏳ 주문 중...';
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -152,7 +188,6 @@ async function buyStock() {
       resultEl.style.color = 'var(--red)';
       resultEl.textContent = `❌ 오류: ${data.message || data.error || JSON.stringify(data)}`;
     }
-    // 수정4: 주문 후 계좌/포지션/주문내역 모두 새로고침
     setTimeout(() => { loadAccount(); loadPositions(); loadOrders(); }, 1500);
   } catch (e) {
     resultEl.style.color = 'var(--red)';
@@ -171,11 +206,47 @@ async function sellStock() {
   const qty = parseInt(qtyRaw);
   if (!qty || qty < 1 || isNaN(qty)) { await spAlert('수량은 1 이상 정수로 입력해주세요', '입력 오류', '⚠️'); return; }
 
-  // 수정2: 보유 포지션 확인
-  const ok = await spConfirm(`${symbol} ${qty}주를 매도할까요?`, '매도 확인', '🔴', '매도', '#ef4444');
-  if (!ok) return;
+  // ✅ 보유 수량 체크: 포지션 없거나 수량 부족하면 차단
+  try {
+    const posRes = await fetch(`/api/alpaca-user/v2/positions/${symbol}`);
+    if (posRes.status === 404) {
+      await spAlert(`${symbol} 보유 포지션이 없습니다.
+보유하지 않은 종목은 매도할 수 없어요.`, '포지션 없음', '❌');
+      return;
+    }
+    if (posRes.ok) {
+      const posData = await posRes.json();
+      const heldQty = parseFloat(posData.qty) || 0;
+      if (qty > heldQty) {
+        await spAlert(
+          `보유 수량이 부족합니다.
 
-  // 수정3: 장 시간 체크
+매도 요청: ${qty}주
+보유 수량: ${heldQty}주`,
+          '수량 부족', '❌'
+        );
+        return;
+      }
+      // 매도 확인 팝업 (현재 손익 포함)
+      const pl = parseFloat(posData.unrealized_pl) || 0;
+      const plPct = (parseFloat(posData.unrealized_plpc) || 0) * 100;
+      const plStr = `${pl >= 0 ? '+' : ''}$${pl.toFixed(2)} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)`;
+      const ok = await spConfirm(
+        `${symbol} ${qty}주를 매도할까요?
+
+현재 손익: ${plStr}
+보유 수량: ${heldQty}주`,
+        '매도 확인', '🔴', '매도', '#ef4444'
+      );
+      if (!ok) return;
+    }
+  } catch(e) {
+    // 포지션 조회 실패 시 그냥 진행 (경고만)
+    const ok = await spConfirm(`${symbol} ${qty}주를 매도할까요?`, '매도 확인', '🔴', '매도', '#ef4444');
+    if (!ok) return;
+  }
+
+  // 장 시간 체크
   const now = new Date();
   const estHour = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(now));
   const estMin  = parseInt(new Intl.DateTimeFormat('en-US', { minute: 'numeric', timeZone: 'America/New_York' }).format(now));
