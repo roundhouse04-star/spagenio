@@ -2155,7 +2155,7 @@
           const repeats = {}; // num -> {count, rounds}
           for (let j = i + 1; j <= i + carryCount && j < rows.length; j++) {
             const prev = rows[j];
-            const prevNums = JSON.parse(prev.numbers || '[]');
+            const prevNums = Array.isArray(prev.numbers) ? prev.numbers : JSON.parse(prev.numbers || '[]');
             const prevBonus = prev.bonus;
             const prevAll = includeBonus ? [...prevNums, prevBonus] : [...prevNums];
             allNums.forEach(n => {
