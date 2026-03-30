@@ -969,6 +969,25 @@
       <div class="page" id="page-lotto">
         <div class="page-title">🍀 로또 관리</div>
 
+        <!-- 로또 내부 탭바 -->
+        <div style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid var(--line, #e2e8f0);">
+          <button id="lotto-tab-main" onclick="switchLottoTab('main')"
+            style="flex:1;padding:10px;border:none;background:#6366f1;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">
+            🎯 로또 관리
+          </button>
+          <button id="lotto-tab-repeat" onclick="switchLottoTab('repeat')"
+            style="flex:1;padding:10px;border:none;background:var(--panel2,#f8fafc);color:var(--muted,#64748b);font-weight:700;font-size:0.9rem;cursor:pointer;">
+            🔁 반복출현번호
+          </button>
+          <button id="lotto-tab-pattern" onclick="switchLottoTab('pattern')"
+            style="flex:1;padding:10px;border:none;background:var(--panel2,#f8fafc);color:var(--muted,#64748b);font-weight:700;font-size:0.9rem;cursor:pointer;">
+            📊 패턴분석
+          </button>
+        </div>
+
+        <!-- 메인 탭 -->
+        <div id="lotto-panel-main">
+
         <!-- 통계 -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
           <div class="card" style="text-align:center;padding:18px;">
@@ -1167,6 +1186,52 @@
           </div>
           <div id="lotto-detail-games"></div>
         </div>
+
+        </div><!-- /lotto-panel-main -->
+
+        <!-- 반복출현번호 패널 -->
+        <div id="lotto-panel-repeat" style="display:none;">
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <div style="font-weight:700;font-size:1rem;">🔁 반복출현번호 분석</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <label style="font-size:0.85rem;color:var(--muted);">이월수</label>
+                <input type="number" id="repeat-carry-count" value="5" min="1" max="20"
+                  style="width:60px;padding:6px 8px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);font-size:0.85rem;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--muted);cursor:pointer;">
+                  <input type="checkbox" id="repeat-include-bonus" checked style="width:16px;height:16px;">
+                  보너스 포함
+                </label>
+                <button onclick="loadRepeatNumbers()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
+              </div>
+            </div>
+            <div id="repeat-result" style="overflow-x:auto;min-width:0;">
+              <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
+            </div>
+          </div>
+        </div><!-- /lotto-panel-repeat -->
+
+        <!-- 패턴분석 패널 -->
+        <div id="lotto-panel-pattern" style="display:none;">
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <div style="font-weight:700;font-size:1rem;">📊 패턴분석표</div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <label style="font-size:0.85rem;color:var(--muted);">회차</label>
+                <input type="number" id="pattern-round" value="1217" min="1"
+                  style="width:80px;padding:6px 8px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);font-size:0.85rem;">
+                <button onclick="patternPrev()" class="btn" style="padding:6px 12px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);">◀</button>
+                <button onclick="patternNext()" class="btn" style="padding:6px 12px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);">▶</button>
+                <button onclick="loadPatternAnalysis()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
+                <button onclick="loadLottoPrediction()" class="btn" style="background:#22c55e;color:#fff;font-size:0.85rem;">🎯 예측</button>
+              </div>
+            </div>
+            <div id="prediction-result" style="display:none;margin-bottom:16px;"></div>
+            <div id="pattern-result" style="overflow-x:auto;">
+              <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
+            </div>
+          </div>
+        </div><!-- /lotto-panel-pattern -->
 
       </div>
 
@@ -2082,6 +2147,233 @@
       const msg = e.reason instanceof Error ? e.reason.message : String(e.reason);
       sendAdminError({ event_type: 'ADMIN_UNHANDLED_REJECTION', error_message: msg, stack_trace: e.reason?.stack || '' });
     });
+
+    // ===== 로또 탭 전환 =====
+    function switchLottoTab(tab) {
+      const panels = { main: 'lotto-panel-main', repeat: 'lotto-panel-repeat', pattern: 'lotto-panel-pattern' };
+      const btns = { main: 'lotto-tab-main', repeat: 'lotto-tab-repeat', pattern: 'lotto-tab-pattern' };
+      Object.keys(panels).forEach(t => {
+        const p = document.getElementById(panels[t]);
+        const b = document.getElementById(btns[t]);
+        if (p) p.style.display = t === tab ? '' : 'none';
+        if (b) { b.style.background = t === tab ? '#6366f1' : 'var(--panel2,#f8fafc)'; b.style.color = t === tab ? '#fff' : 'var(--muted,#64748b)'; }
+      });
+      if (tab === 'repeat') loadRepeatNumbers();
+      if (tab === 'pattern') loadPatternAnalysis();
+    }
+
+    // ===== 반복출현번호 =====
+    function getLottoBallColor(n) {
+      if (n <= 10) return '#f59e0b';
+      if (n <= 20) return '#3b82f6';
+      if (n <= 30) return '#ef4444';
+      if (n <= 40) return '#888888';
+      return '#22c55e';
+    }
+    function makeBallSlot(n, isBonus = false, arrowCount = 0) {
+      const size = 42;
+      const color = getLottoBallColor(n);
+      const border = isBonus ? `2px dashed ${color}` : `2px solid ${color}`;
+      const bg = isBonus ? 'transparent' : color + '22';
+      const ball = `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;border:${border};background:${bg};color:${color};font-weight:800;font-size:${Math.round(size*0.42)}px;">${n}</span>`;
+      const arrow = arrowCount > 0
+        ? `<span style="font-size:10px;color:#ef4444;font-weight:700;height:16px;line-height:16px;text-align:center;">↑${arrowCount}</span>`
+        : `<span style="font-size:10px;color:transparent;height:16px;line-height:16px;">↑0</span>`;
+      return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;">${ball}${arrow}</div>`;
+    }
+    function makeBall(n, size = 42, isBonus = false) { return makeBallSlot(n, isBonus, 0); }
+
+    async function loadRepeatNumbers() {
+      const el = document.getElementById('repeat-result');
+      const carryCount = parseInt(document.getElementById('repeat-carry-count')?.value || 5);
+      const includeBonus = document.getElementById('repeat-include-bonus')?.checked ?? true;
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
+      try {
+        const res = await fetch('/api/lotto/history-full?limit=500');
+        if (!res.ok) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">서버 오류: ${res.status}</div>`; return; }
+        const d = await res.json();
+        const history = d.history || [];
+        if (!history.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">데이터 없음</div>'; return; }
+        const rows = history.slice(0, 30);
+        let html = `<div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;">최근 ${rows.length}회차 · 이월수: ${carryCount}회 · 보너스 ${includeBonus ? '포함' : '제외'}</div><div style="overflow-x:auto;">`;
+        for (let i = 0; i < rows.length; i++) {
+          const cur = rows[i];
+          const nums = Array.isArray(cur.numbers) ? cur.numbers : JSON.parse(cur.numbers || '[]');
+          const bonus = cur.bonus;
+          const allNums = includeBonus ? [...nums, bonus] : [...nums];
+          const repeats = {};
+          for (let j = i + 1; j <= i + carryCount && j < rows.length; j++) {
+            const prev = rows[j];
+            const prevNums = Array.isArray(prev.numbers) ? prev.numbers : JSON.parse(prev.numbers || '[]');
+            const prevAll = includeBonus ? [...prevNums, prev.bonus] : [...prevNums];
+            allNums.forEach(n => { if (prevAll.includes(n)) { if (!repeats[n]) repeats[n] = { count: 0 }; repeats[n].count++; } });
+          }
+          html += `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line,#e2e8f0);min-width:1000px;">`;
+          html += `<div style="min-width:75px;font-size:0.9rem;font-weight:700;color:var(--muted);padding-top:10px;">${cur.drw_no}회</div>`;
+          html += `<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:flex-end;flex:1;">`;
+          nums.forEach(n => { html += makeBallSlot(n, false, repeats[n] ? repeats[n].count : 0); });
+          if (includeBonus && bonus) {
+            html += `<span style="margin:0 8px;font-size:1.2rem;color:var(--muted);line-height:42px;">+</span>`;
+            html += makeBallSlot(bonus, true, repeats[bonus] ? repeats[bonus].count : 0);
+          }
+          html += '</div>';
+          const repNums = Object.keys(repeats).filter(n => repeats[n].count > 0);
+          if (repNums.length) html += `<div style="margin-left:12px;font-size:0.82rem;color:#ef4444;white-space:nowrap;font-weight:600;">반복: ${repNums.map(n=>`<span style="font-weight:800;">${n}</span>`).join(', ')}</div>`;
+          html += '</div>';
+        }
+        html += '</div>';
+        el.innerHTML = html;
+      } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
+    }
+
+    // ===== 패턴분석 =====
+    let _patternHistory = null;
+    async function ensurePatternHistory() {
+      if (_patternHistory) return _patternHistory;
+      const res = await fetch('/api/lotto/history-full?limit=500');
+      const d = await res.json();
+      _patternHistory = d.history || [];
+      return _patternHistory;
+    }
+    function patternPrev() { const inp = document.getElementById('pattern-round'); if (inp && parseInt(inp.value) > 1) { inp.value = parseInt(inp.value) - 1; loadPatternAnalysis(); } }
+    function patternNext() { const inp = document.getElementById('pattern-round'); if (inp) { inp.value = parseInt(inp.value) + 1; loadPatternAnalysis(); } }
+
+    async function loadPatternAnalysis() {
+      const el = document.getElementById('pattern-result');
+      const roundNo = parseInt(document.getElementById('pattern-round')?.value);
+      if (!roundNo || !el) return;
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
+      try {
+        const history = await ensurePatternHistory();
+        const cur = history.find(h => h.drw_no === roundNo);
+        if (!cur) { el.innerHTML = `<div style="text-align:center;color:var(--muted);padding:24px;">${roundNo}회 데이터 없음</div>`; return; }
+        const nums = Array.isArray(cur.numbers) ? cur.numbers : JSON.parse(cur.numbers || '[]');
+        const bonus = cur.bonus;
+        const COLS = 7, CELL = 52, PAD = 20;
+        const totalW = COLS * CELL + PAD * 2, totalH = Math.ceil(45 / COLS) * CELL + PAD * 2 + 60;
+        function getPos(n) { const idx = n-1; return { x: PAD + (idx%COLS)*CELL + CELL/2, y: PAD + 60 + Math.floor(idx/COLS)*CELL + CELL/2 }; }
+        let svg = `<svg width="${totalW}" height="${totalH}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">`;
+        svg += `<rect x="0" y="0" width="${totalW}" height="56" rx="8" fill="#6366f1"/>`;
+        svg += `<text x="${totalW/2}" y="36" text-anchor="middle" font-size="22" font-weight="800" fill="white" font-family="Arial">${roundNo}회 (${cur.drw_date})</text>`;
+        svg += `<rect x="0" y="56" width="${totalW}" height="${totalH-56}" fill="#f5f0e8"/>`;
+        const sortedNums = [...nums].sort((a,b)=>a-b);
+        for (let i = 0; i < sortedNums.length-1; i++) {
+          const p1 = getPos(sortedNums[i]), p2 = getPos(sortedNums[i+1]);
+          svg += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>`;
+        }
+        for (let n = 1; n <= 45; n++) {
+          const {x, y} = getPos(n), r = CELL/2-4;
+          if (nums.includes(n)) {
+            svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="#444" stroke="#333" stroke-width="1.5"/>`;
+            svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="800" fill="white" font-family="Arial">${n}</text>`;
+          } else if (n === bonus) {
+            svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"/>`;
+            svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#ef4444" font-family="Arial">${n}</text>`;
+          } else {
+            svg += `<rect x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}" fill="none" stroke="#cc3333" stroke-width="1.5" rx="3"/>`;
+            svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-size="13" fill="#cc3333" font-family="Arial">${n}</text>`;
+          }
+        }
+        svg += '</svg>';
+        const bColors = ['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC = n => n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        const ballRow = nums.sort((a,b)=>a-b).map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${getC(n)}22;border:2px solid ${getC(n)};color:${getC(n)};font-weight:800;font-size:14px;margin:2px;">${n}</span>`).join('');
+        const bC = getC(bonus);
+        el.innerHTML = `<div style="margin-bottom:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${ballRow}<span style="font-size:1rem;color:var(--muted);margin:0 4px;">+</span><span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:2px dashed ${bC};color:${bC};font-weight:800;font-size:14px;margin:2px;">${bonus}</span></div>${svg}`;
+      } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
+    }
+
+    async function loadLottoPrediction() {
+      const el = document.getElementById('prediction-result');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
+      try {
+        const history = await ensurePatternHistory();
+        const sorted = history.slice().sort((a,b)=>b.drw_no-a.drw_no);
+        const latest = sorted[0];
+        const latestNums = Array.isArray(latest.numbers) ? latest.numbers : JSON.parse(latest.numbers);
+        const asc = history.slice().sort((a,b)=>a.drw_no-b.drw_no);
+        const numCarry = {};
+        for (let n=1;n<=45;n++) numCarry[n]={appear:0,carry:0};
+        for (let i=1;i<asc.length;i++) {
+          const prev=asc[i-1].numbers; const cur=new Set(asc[i].numbers);
+          prev.forEach(n=>{numCarry[n].appear++;if(cur.has(n))numCarry[n].carry++;});
+        }
+        const carryPct={};
+        for(let n=1;n<=45;n++) carryPct[n]=numCarry[n].appear>0?numCarry[n].carry/numCarry[n].appear:0;
+        const getDec=n=>n<=9?0:n<=19?1:n<=29?2:n<=39?3:4;
+        const decCarry=Array(5).fill(null).map(()=>({appear:0,carry:0}));
+        for(let i=1;i<asc.length;i++){const prev=asc[i-1].numbers;const curDecs=new Set(asc[i].numbers.map(getDec));prev.forEach(n=>{const d=getDec(n);decCarry[d].appear++;if(curDecs.has(d))decCarry[d].carry++;});}
+        const decPct=decCarry.map(d=>d.appear>0?d.carry/d.appear:0);
+        const recent20=sorted.slice(0,20);
+        const rBonus={};for(let n=1;n<=45;n++)rBonus[n]=0;
+        recent20.forEach((h,idx)=>{const w=(20-idx)/20;h.numbers.forEach(n=>{rBonus[n]+=w*0.5;});});
+        let dbW={};
+        try{const wr=await fetch('/api/lotto/weights');if(wr.ok){const wd=await wr.json();(wd.weights||[]).forEach(w=>{dbW[w.num]=w.weight;});}}catch(e){}
+        const scores={};
+        for(let n=1;n<=45;n++){let s=carryPct[n]*100+decPct[getDec(n)]*30+rBonus[n]*20;if(latestNums.includes(n))s+=carryPct[n]*50;scores[n]=s*(dbW[n]||1.0);}
+        const carryPicks=[...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]).slice(0,2);
+        const picks=new Set(carryPicks);
+        const zones=[[1,9],[10,19],[20,29],[30,39],[40,45]];
+        for(const[lo,hi]of zones){if(picks.size>=6)break;const z=Object.entries(scores).filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);}).sort((a,b)=>b[1]-a[1]);if(z.length)picks.add(parseInt(z[0][0]));}
+        const rem=Object.entries(scores).filter(([n])=>!picks.has(parseInt(n))).sort((a,b)=>b[1]-a[1]);
+        for(const[n]of rem){if(picks.size>=6)break;picks.add(parseInt(n));}
+        const finalPicks=[...picks].sort((a,b)=>a-b);
+        const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        const carryBalls=latestNums.sort((a,b)=>a-b).map(n=>{const p=Math.round(carryPct[n]*100);const c=getC(n);const isCP=carryPicks.includes(n);return`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:4px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:${isCP?c:c+'22'};border:2px solid ${c};color:${isCP?'#fff':c};font-weight:800;font-size:15px;">${n}</span><span style="font-size:10px;color:${p>=15?'#22c55e':p>=10?'#f59e0b':'#9CA3AF'};font-weight:700;">${p}%</span></div>`;}).join('');
+        const pickBalls=finalPicks.map(n=>{const c=getC(n);const isC=carryPicks.includes(n);return`<span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:${c};color:#fff;font-weight:800;font-size:16px;margin:4px;box-shadow:${isC?'0 0 0 3px '+c:'none'};">${n}</span>`;}).join('');
+        const expectedCarry=Math.round([...latestNums].map(n=>carryPct[n]).reduce((a,b)=>a+b,0)*10)/10;
+        el.innerHTML=`<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div></div></div><div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #6366f1;"><div style="font-size:0.78rem;color:#a5b4fc;margin-bottom:12px;font-weight:700;">✨ 추천 번호</div><div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">${pickBalls}</div><div style="font-size:0.72rem;color:#636366;margin-top:10px;text-align:center;">※ 통계 기반 확률 예측이며 당첨을 보장하지 않습니다</div></div><div style="display:flex;gap:8px;margin-top:12px;"><button onclick="savePrediction(${latest.drw_no},[${finalPicks}])" style="flex:1;padding:10px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">💾 저장하기</button><button onclick="loadPredictionHistory()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;">📋 이력</button></div><div id="prediction-history" style="margin-top:12px;"></div></div>`;
+      } catch(e) { el.innerHTML=`<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
+    }
+
+    async function savePrediction(basedOn, picks) {
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const res = await fetch('/api/lotto/prediction/save', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_t}, body:JSON.stringify({based_on_round:basedOn,predicted_for_round:basedOn+1,picks}) });
+        const d = await res.json();
+        if (d.ok) { spAlert(`${basedOn}회 기반 예측 저장 완료!`, '저장', '💾'); loadPredictionHistory(); }
+      } catch(e) { spAlert('저장 실패: '+e.message,'오류','❌'); }
+    }
+    async function checkPrediction(predId, actualRound) {
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const res = await fetch('/api/lotto/prediction/check', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_t}, body:JSON.stringify({prediction_id:predId,actual_round:actualRound}) });
+        const d = await res.json();
+        if (d.ok) { spAlert(`결과: ${d.hit_count}개 적중!
+맞춘 번호: ${d.hits.join(', ')||'없음'}
+가중치 자동 업데이트됨`,'결과 확인','🎯'); loadPredictionHistory(); }
+        else spAlert(d.error||'오류','오류','❌');
+      } catch(e) { spAlert(e.message,'오류','❌'); }
+    }
+    async function loadPredictionHistory() {
+      const el = document.getElementById('prediction-history');
+      if (!el) return;
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const res = await fetch('/api/lotto/prediction/history', { headers:{'Authorization':'Bearer '+_t} });
+        const d = await res.json();
+        if (!d.ok||!d.predictions?.length) { el.innerHTML='<div style="font-size:0.8rem;color:#636366;padding:8px;">저장된 예측 없음</div>'; return; }
+        const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력</div>'+d.predictions.map(p=>{
+          const picks=JSON.parse(p.picks);
+          const balls=picks.map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:11px;margin:1px;">${n}</span>`).join('');
+          const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<button onclick="checkPrediction(${p.id},${p.predicted_for_round||p.based_on_round+1})" style="font-size:0.72rem;padding:3px 10px;border-radius:999px;border:none;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">🔍 결과 확인</button>`;
+          return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.based_on_round}회 기반</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
+        }).join('');
+      } catch(e) {}
+    }
+
+    async function toggleLottoAutoSend(userId, enabled) {
+      try {
+        const res = await fetch('/api/admin/users/' + userId + '/lotto-auto-send', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({enabled:enabled?1:0}) });
+        const d = await res.json();
+        if (d.ok) loadUsers(); else spAlert(d.error||'변경 실패','오류','❌');
+      } catch(e) { spAlert(e.message,'오류','❌'); }
+    }
 
     // ===== 로또 관리 =====
     async function adminGenLotto() {
