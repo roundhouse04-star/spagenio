@@ -53,7 +53,11 @@
       display: none;
       margin: 2px 0 4px 0;
     }
-    .sp-sub-menu.open { display: block; }
+
+    .sp-sub-menu.open {
+      display: block;
+    }
+
     .sp-sub-btn {
       display: block;
       width: 100%;
@@ -68,15 +72,28 @@
       cursor: pointer;
       transition: background 0.15s, color 0.15s;
     }
-    .sp-sub-btn:hover { background: #1E242C; color: #E5E7EB; }
-    .sp-sub-btn.active { background: #1E242C; color: #6366f1; }
+
+    .sp-sub-btn:hover {
+      background: #1E242C;
+      color: #E5E7EB;
+    }
+
+    .sp-sub-btn.active {
+      background: #1E242C;
+      color: #6366f1;
+    }
+
     .sp-parent-arrow {
       float: right;
       font-size: 0.7rem;
       transition: transform 0.2s;
       margin-top: 2px;
     }
-    .sp-parent-btn.open .sp-parent-arrow { transform: rotate(90deg); }
+
+    .sp-parent-btn.open .sp-parent-arrow {
+      transform: rotate(90deg);
+    }
+
     .sp-sidebar {
       position: fixed;
       top: 0;
@@ -146,12 +163,12 @@
     }
 
     .tab-btn:hover {
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.05);
       color: #E5E7EB;
     }
 
     .tab-btn.active {
-      background: rgba(79,143,255,0.12);
+      background: rgba(79, 143, 255, 0.12);
       color: #4f8fff;
       font-weight: 700;
       border-left: 2px solid #4f8fff;
@@ -560,13 +577,15 @@
       justify-content: space-between;
       margin-bottom: 14px;
     }
+
     .chart-modal-title {
       font-size: 1rem;
       font-weight: 800;
       color: #E5E7EB;
     }
+
     .chart-close-btn {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.08);
       border: 1px solid #2A2A2A;
       border-radius: 6px;
       color: #9CA3AF;
@@ -579,13 +598,19 @@
       justify-content: center;
       transition: all .15s;
     }
-    .chart-close-btn:hover { background: rgba(255,59,48,0.15); color: #FF3B30; border-color: rgba(255,59,48,0.3); }
+
+    .chart-close-btn:hover {
+      background: rgba(255, 59, 48, 0.15);
+      color: #FF3B30;
+      border-color: rgba(255, 59, 48, 0.3);
+    }
 
     .chart-period-btns {
       display: flex;
       gap: 6px;
       margin-bottom: 16px;
     }
+
     .chart-period-btn {
       padding: 5px 14px;
       border-radius: 6px;
@@ -597,14 +622,22 @@
       cursor: pointer;
       transition: all .15s;
     }
-    .chart-period-btn:hover { background: rgba(255,255,255,0.05); color: #E5E7EB; }
+
+    .chart-period-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #E5E7EB;
+    }
+
     .chart-period-btn.active {
-      background: rgba(79,143,255,0.15);
+      background: rgba(79, 143, 255, 0.15);
       border-color: #4f8fff;
       color: #4f8fff;
     }
 
-    .chart-section { margin-bottom: 16px; }
+    .chart-section {
+      margin-bottom: 16px;
+    }
+
     .chart-section-title {
       font-size: 0.82rem;
       font-weight: 700;
@@ -802,7 +835,11 @@
       justify-content: space-between;
       gap: 12px;
     }
-    .account-metric:last-child { border-right: none; }
+
+    .account-metric:last-child {
+      border-right: none;
+    }
+
     .account-metric .lbl {
       font-size: 0.72rem;
       color: var(--muted);
@@ -811,6 +848,7 @@
       letter-spacing: 0.5px;
       white-space: nowrap;
     }
+
     .account-metric .val {
       font-size: 1.1rem;
       font-weight: 800;
@@ -818,6 +856,7 @@
       white-space: nowrap;
       text-align: right;
     }
+
     #accountCards {
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -839,330 +878,795 @@
       background: #f1f5f9;
       min-height: 100vh;
     }
+
     #tab-ai .sp-card {
       background: #ffffff;
       border-color: #e2e8f0;
       color: #0f172a;
     }
-    #tab-ai .sp-card-title { color: #0f172a; }
-    #tab-ai .sp-card-header { border-bottom-color: #e2e8f0; }
-    #tab-ai .sp-input, #tab-ai .sp-select {
-      background: #ffffff; border-color: #e2e8f0; color: #0f172a;
+
+    #tab-ai .sp-card-title {
+      color: #0f172a;
     }
-    #tab-ai .sp-input::placeholder { color: #94a3b8; }
-    #tab-ai .sp-label { color: #64748b; }
-    #tab-ai .sp-btn-outline { border-color: #e2e8f0; color: #64748b; background: transparent; }
-    #tab-ai .sp-inner-tab { border-color: #e2e8f0; color: #64748b; background: transparent; }
-    #tab-ai .sp-inner-tab.active { background: #eef2ff; border-color: #6366f1; color: #6366f1; }
-    #tab-ai .sp-empty { color: #94a3b8; }
-    #tab-ai .sp-table th { background: #f8fafc; color: #64748b; border-bottom-color: #e2e8f0; }
-    #tab-ai .sp-table td { border-bottom-color: #e2e8f0; color: #0f172a; }
-    #tab-ai .sp-table tr:hover td { background: #f8fafc; }
-    #tab-ai .news-item:hover { background: #f8fafc; }
-    #tab-ai .sp-page { background: #f1f5f9; min-height: calc(100vh - 52px); }
+
+    #tab-ai .sp-card-header {
+      border-bottom-color: #e2e8f0;
+    }
+
+    #tab-ai .sp-input,
+    #tab-ai .sp-select {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #0f172a;
+    }
+
+    #tab-ai .sp-input::placeholder {
+      color: #94a3b8;
+    }
+
+    #tab-ai .sp-label {
+      color: #64748b;
+    }
+
+    #tab-ai .sp-btn-outline {
+      border-color: #e2e8f0;
+      color: #64748b;
+      background: transparent;
+    }
+
+    #tab-ai .sp-inner-tab {
+      border-color: #e2e8f0;
+      color: #64748b;
+      background: transparent;
+    }
+
+    #tab-ai .sp-inner-tab.active {
+      background: #eef2ff;
+      border-color: #6366f1;
+      color: #6366f1;
+    }
+
+    #tab-ai .sp-empty {
+      color: #94a3b8;
+    }
+
+    #tab-ai .sp-table th {
+      background: #f8fafc;
+      color: #64748b;
+      border-bottom-color: #e2e8f0;
+    }
+
+    #tab-ai .sp-table td {
+      border-bottom-color: #e2e8f0;
+      color: #0f172a;
+    }
+
+    #tab-ai .sp-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    #tab-ai .news-item:hover {
+      background: #f8fafc;
+    }
+
+    #tab-ai .sp-page {
+      background: #f1f5f9;
+      min-height: calc(100vh - 52px);
+    }
 
     /* ===== 주식 탭 다크 ===== */
     #tab-stock {
-      --t-bg: #0D1117; --t-card: #161B22; --t-border: #2A2A2A;
-      --t-hover: #1E242C; --t-text: #E5E7EB; --t-sub: #9CA3AF;
-      background: var(--t-bg); min-height: 100vh;
-    }
-    #tab-stock .sp-page { background: var(--t-bg); min-height: calc(100vh - 52px); }
-    #tab-stock .sp-card { background: var(--t-card); border: 1px solid var(--t-border); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
-    #tab-stock .sp-card-title { color: var(--t-text); }
-    #tab-stock .sp-card-header { border-bottom-color: var(--t-border); }
-    #tab-stock .sp-input, #tab-stock .sp-select { background: var(--t-bg); border-color: var(--t-border); color: var(--t-text); }
-    #tab-stock .sp-input:focus, #tab-stock .sp-select:focus { border-color: #4f8fff; box-shadow: 0 0 0 2px rgba(79,143,255,0.2); }
-    #tab-stock .sp-input::placeholder { color: #4B5563; }
-    #tab-stock .sp-label { color: var(--t-sub); }
-    #tab-stock .sp-btn-outline { border-color: var(--t-border); color: var(--t-sub); background: transparent; }
-    #tab-stock .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
-    #tab-stock .sp-table th, #tab-stock table thead th { background: #0D1117; color: var(--t-sub); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; border-bottom: 1px solid var(--t-border); }
-    #tab-stock .sp-table td, #tab-stock table tbody td { padding: 9px 12px; border-bottom: 1px solid var(--t-border); color: var(--t-text); font-size: 0.85rem; }
-    #tab-stock .sp-table tr:hover td, #tab-stock table tbody tr:hover td { background: var(--t-hover); }
-    #tab-stock .sp-result { background: var(--t-bg); border: 1px solid var(--t-border); color: var(--t-text); border-radius: 8px; padding: 12px; font-size: 0.82rem; }
-    #tab-stock .btn-buy  { background: #FF3B30 !important; color: #fff !important; }
-    #tab-stock .btn-sell { background: #007AFF !important; color: #fff !important; }
-    #tab-stock .text-up   { color: #FF3B30 !important; font-weight: 700; }
-    #tab-stock .text-down { color: #007AFF !important; font-weight: 700; }
-    #tab-stock #stock-symbol-badge { background: #0D1117 !important; border-color: #2A2A2A !important; }
-    #tab-stock .price-card { background: #1E242C; border: 1px solid #2A2A2A; border-radius: 8px; padding: 12px 14px; cursor: pointer; }
-    #tab-stock .price-card .symbol { font-weight: 800; color: #fff; font-size: 1rem; }
-    #tab-stock .price-card .price  { font-size: 1.1rem; font-weight: 700; color: #fff; }
-    #tab-stock .price-card .up     { color: #FF3B30; font-weight: 700; }
-    #tab-stock .price-card .down   { color: #007AFF; font-weight: 700; }
-
-    /* ===== 로또 탭 다크 ===== */
-    #tab-lotto {
-      --t-bg: #0D1117; --t-card: #161B22; --t-border: #2A2A2A;
-      --t-hover: #1E242C; --t-text: #E5E7EB; --t-sub: #9CA3AF;
-      background: var(--t-bg); min-height: 100vh;
-    }
-    #tab-lotto .sp-page { background: var(--t-bg); min-height: calc(100vh - 52px); }
-    #tab-lotto .sp-card { background: var(--t-card); border: 1px solid var(--t-border); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
-    #tab-lotto .sp-card-title { color: var(--t-text); }
-    #tab-lotto .sp-card-header { border-bottom-color: var(--t-border); }
-    #tab-lotto .sp-input, #tab-lotto .sp-select { background: var(--t-bg); border-color: var(--t-border); color: var(--t-text); }
-    #tab-lotto .sp-input:focus, #tab-lotto .sp-select:focus { border-color: #4f8fff; box-shadow: 0 0 0 2px rgba(79,143,255,0.2); }
-    #tab-lotto .sp-input::placeholder { color: #4B5563; }
-    #tab-lotto .sp-label { color: var(--t-sub); }
-    #tab-lotto .sp-btn-outline { border-color: var(--t-border); color: var(--t-sub); background: transparent; }
-    #tab-lotto .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
-    #tab-lotto .sp-empty { color: #4B5563; }
-    #tab-lotto .lotto-day-btn { background: #1E242C; border-color: #2A2A2A; color: #9CA3AF; }
-    #tab-lotto .lotto-day-btn.active { background: rgba(79,143,255,0.15); border-color: #4f8fff; color: #4f8fff; }
-
-    /* ===== 퀀트 탭 sp-page 다크 ===== */
-    #tab-quant .sp-page { background: #0D1117; min-height: calc(100vh - 52px); }
-
-    /* ===== 성과 대시보드 탭 다크 ===== */
-    #tab-performance {
-      --t-bg: #0D1117; --t-card: #161B22; --t-border: #2A2A2A;
-      --t-hover: #1E242C; --t-text: #E5E7EB; --t-sub: #9CA3AF;
-      background: var(--t-bg); min-height: 100vh;
-    }
-    #tab-performance .sp-page { background: var(--t-bg); min-height: calc(100vh - 52px); }
-    #tab-performance .sp-card { background: var(--t-card); border: 1px solid var(--t-border); box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
-    #tab-performance .sp-card-title { color: var(--t-text); }
-    #tab-performance .sp-card-header { border-bottom-color: var(--t-border); }
-    #tab-performance .sp-input { background: var(--t-bg); border-color: var(--t-border); color: var(--t-text); }
-    #tab-performance .sp-input::placeholder { color: #4B5563; }
-    #tab-performance .sp-input:focus { border-color: #4f8fff; box-shadow: 0 0 0 2px rgba(79,143,255,0.2); }
-    #tab-performance .sp-label { color: var(--t-sub); }
-    #tab-performance .sp-btn-outline { border-color: var(--t-border); color: var(--t-sub); background: transparent; }
-    #tab-performance .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
-    #tab-performance .sp-empty { color: #4B5563; }
-    #tab-performance table thead th { background: #0D1117; color: var(--t-sub); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; border-bottom: 1px solid var(--t-border); }
-    #tab-performance table tbody td { padding: 9px 12px; border-bottom: 1px solid var(--t-border); color: var(--t-text); font-size: 0.85rem; }
-    #tab-performance table tbody tr:hover td { background: var(--t-hover); }
-
-    /* ===== 백테스팅 탭 트레이딩 다크 테마 ===== */
-    #tab-backtest {
-      --t-bg:     #0D1117;
-      --t-card:   #161B22;
+      --t-bg: #0D1117;
+      --t-card: #161B22;
       --t-border: #2A2A2A;
-      --t-hover:  #1E242C;
-      --t-text:   #E5E7EB;
-      --t-sub:    #9CA3AF;
-      --t-up:     #FF3B30;
-      --t-down:   #007AFF;
-      --t-warn:   #FFD60A;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
       background: var(--t-bg);
       min-height: 100vh;
     }
+
+    #tab-stock .sp-page {
+      background: var(--t-bg);
+      min-height: calc(100vh - 52px);
+    }
+
+    #tab-stock .sp-card {
+      background: var(--t-card);
+      border: 1px solid var(--t-border);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    #tab-stock .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-stock .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
+
+    #tab-stock .sp-input,
+    #tab-stock .sp-select {
+      background: var(--t-bg);
+      border-color: var(--t-border);
+      color: var(--t-text);
+    }
+
+    #tab-stock .sp-input:focus,
+    #tab-stock .sp-select:focus {
+      border-color: #4f8fff;
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
+    }
+
+    #tab-stock .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-stock .sp-label {
+      color: var(--t-sub);
+    }
+
+    #tab-stock .sp-btn-outline {
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
+    }
+
+    #tab-stock .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
+    #tab-stock .sp-table th,
+    #tab-stock table thead th {
+      background: #0D1117;
+      color: var(--t-sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--t-border);
+    }
+
+    #tab-stock .sp-table td,
+    #tab-stock table tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--t-border);
+      color: var(--t-text);
+      font-size: 0.85rem;
+    }
+
+    #tab-stock .sp-table tr:hover td,
+    #tab-stock table tbody tr:hover td {
+      background: var(--t-hover);
+    }
+
+    #tab-stock .sp-result {
+      background: var(--t-bg);
+      border: 1px solid var(--t-border);
+      color: var(--t-text);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.82rem;
+    }
+
+    #tab-stock .btn-buy {
+      background: #FF3B30 !important;
+      color: #fff !important;
+    }
+
+    #tab-stock .btn-sell {
+      background: #007AFF !important;
+      color: #fff !important;
+    }
+
+    #tab-stock .text-up {
+      color: #FF3B30 !important;
+      font-weight: 700;
+    }
+
+    #tab-stock .text-down {
+      color: #007AFF !important;
+      font-weight: 700;
+    }
+
+    #tab-stock #stock-symbol-badge {
+      background: #0D1117 !important;
+      border-color: #2A2A2A !important;
+    }
+
+    #tab-stock .price-card {
+      background: #1E242C;
+      border: 1px solid #2A2A2A;
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+
+    #tab-stock .price-card .symbol {
+      font-weight: 800;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    #tab-stock .price-card .price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    #tab-stock .price-card .up {
+      color: #FF3B30;
+      font-weight: 700;
+    }
+
+    #tab-stock .price-card .down {
+      color: #007AFF;
+      font-weight: 700;
+    }
+
+    /* ===== 로또 탭 다크 ===== */
+    #tab-lotto {
+      --t-bg: #0D1117;
+      --t-card: #161B22;
+      --t-border: #2A2A2A;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
+      background: var(--t-bg);
+      min-height: 100vh;
+    }
+
+    #tab-lotto .sp-page {
+      background: var(--t-bg);
+      min-height: calc(100vh - 52px);
+    }
+
+    #tab-lotto .sp-card {
+      background: var(--t-card);
+      border: 1px solid var(--t-border);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    #tab-lotto .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-lotto .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
+
+    #tab-lotto .sp-input,
+    #tab-lotto .sp-select {
+      background: var(--t-bg);
+      border-color: var(--t-border);
+      color: var(--t-text);
+    }
+
+    #tab-lotto .sp-input:focus,
+    #tab-lotto .sp-select:focus {
+      border-color: #4f8fff;
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
+    }
+
+    #tab-lotto .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-lotto .sp-label {
+      color: var(--t-sub);
+    }
+
+    #tab-lotto .sp-btn-outline {
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
+    }
+
+    #tab-lotto .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
+    #tab-lotto .sp-empty {
+      color: #4B5563;
+    }
+
+    #tab-lotto .lotto-day-btn {
+      background: #1E242C;
+      border-color: #2A2A2A;
+      color: #9CA3AF;
+    }
+
+    #tab-lotto .lotto-day-btn.active {
+      background: rgba(79, 143, 255, 0.15);
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
+    /* ===== 퀀트 탭 sp-page 다크 ===== */
+    #tab-quant .sp-page {
+      background: #0D1117;
+      min-height: calc(100vh - 52px);
+    }
+
+    /* ===== 성과 대시보드 탭 다크 ===== */
+    #tab-performance {
+      --t-bg: #0D1117;
+      --t-card: #161B22;
+      --t-border: #2A2A2A;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
+      background: var(--t-bg);
+      min-height: 100vh;
+    }
+
+    #tab-performance .sp-page {
+      background: var(--t-bg);
+      min-height: calc(100vh - 52px);
+    }
+
+    #tab-performance .sp-card {
+      background: var(--t-card);
+      border: 1px solid var(--t-border);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    #tab-performance .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-performance .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
+
+    #tab-performance .sp-input {
+      background: var(--t-bg);
+      border-color: var(--t-border);
+      color: var(--t-text);
+    }
+
+    #tab-performance .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-performance .sp-input:focus {
+      border-color: #4f8fff;
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
+    }
+
+    #tab-performance .sp-label {
+      color: var(--t-sub);
+    }
+
+    #tab-performance .sp-btn-outline {
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
+    }
+
+    #tab-performance .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
+    #tab-performance .sp-empty {
+      color: #4B5563;
+    }
+
+    #tab-performance table thead th {
+      background: #0D1117;
+      color: var(--t-sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--t-border);
+    }
+
+    #tab-performance table tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--t-border);
+      color: var(--t-text);
+      font-size: 0.85rem;
+    }
+
+    #tab-performance table tbody tr:hover td {
+      background: var(--t-hover);
+    }
+
+    /* ===== 백테스팅 탭 트레이딩 다크 테마 ===== */
+    #tab-backtest {
+      --t-bg: #0D1117;
+      --t-card: #161B22;
+      --t-border: #2A2A2A;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
+      --t-up: #FF3B30;
+      --t-down: #007AFF;
+      --t-warn: #FFD60A;
+      background: var(--t-bg);
+      min-height: 100vh;
+    }
+
     #tab-backtest .sp-page {
       background: var(--t-bg);
       min-height: calc(100vh - 52px);
     }
+
     #tab-backtest .sp-card {
       background: var(--t-card);
       border: 1px solid var(--t-border);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     }
-    #tab-backtest .sp-card-title { color: var(--t-text); }
-    #tab-backtest .sp-card-header { border-bottom-color: var(--t-border); }
+
+    #tab-backtest .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-backtest .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
+
     #tab-backtest .sp-input,
     #tab-backtest .sp-select {
       background: var(--t-bg);
       border-color: var(--t-border);
       color: var(--t-text);
     }
+
     #tab-backtest .sp-input:focus,
     #tab-backtest .sp-select:focus {
       border-color: #4f8fff;
-      box-shadow: 0 0 0 2px rgba(79,143,255,0.2);
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
     }
-    #tab-backtest .sp-input::placeholder { color: #4B5563; }
-    #tab-backtest .sp-label { color: var(--t-sub); }
+
+    #tab-backtest .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-backtest .sp-label {
+      color: var(--t-sub);
+    }
+
     #tab-backtest .sp-btn-outline {
-      border-color: var(--t-border); color: var(--t-sub); background: transparent;
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
     }
-    #tab-backtest .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
+
+    #tab-backtest .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
     #tab-backtest .sp-inner-tab {
-      border-color: var(--t-border); color: var(--t-sub); background: transparent;
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
     }
-    #tab-backtest .sp-inner-tab:hover { background: var(--t-hover); color: var(--t-text); }
+
+    #tab-backtest .sp-inner-tab:hover {
+      background: var(--t-hover);
+      color: var(--t-text);
+    }
+
     #tab-backtest .sp-inner-tab.active {
-      background: rgba(79,143,255,0.15); border-color: #4f8fff; color: #4f8fff;
+      background: rgba(79, 143, 255, 0.15);
+      border-color: #4f8fff;
+      color: #4f8fff;
     }
+
     #tab-backtest .sp-table th,
     #tab-backtest table thead th {
-      background: #0D1117; color: var(--t-sub);
-      font-size: 0.72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      padding: 8px 12px; border-bottom: 1px solid var(--t-border);
+      background: #0D1117;
+      color: var(--t-sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--t-border);
     }
+
     #tab-backtest .sp-table td,
     #tab-backtest table tbody td {
-      padding: 9px 12px; border-bottom: 1px solid var(--t-border);
-      color: var(--t-text); font-size: 0.85rem;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--t-border);
+      color: var(--t-text);
+      font-size: 0.85rem;
     }
+
     #tab-backtest .sp-table tr:hover td,
-    #tab-backtest table tbody tr:hover td { background: var(--t-hover); }
-    #tab-backtest .sp-empty { color: #4B5563; }
+    #tab-backtest table tbody tr:hover td {
+      background: var(--t-hover);
+    }
+
+    #tab-backtest .sp-empty {
+      color: #4B5563;
+    }
+
     /* 백테스팅 결과 수익 색상 */
     #tab-backtest .text-up,
     #tab-backtest [style*="color:#16a34a"],
-    #tab-backtest [style*="color: #16a34a"] { color: #FF3B30 !important; }
+    #tab-backtest [style*="color: #16a34a"] {
+      color: #FF3B30 !important;
+    }
+
     #tab-backtest .text-down,
     #tab-backtest [style*="color:#dc2626"],
-    #tab-backtest [style*="color: #dc2626"] { color: #007AFF !important; }
+    #tab-backtest [style*="color: #dc2626"] {
+      color: #007AFF !important;
+    }
+
     /* 백테스트 결과 카드 */
     #tab-backtest .sp-card-dark {
       background: #111827;
       border-color: var(--t-border);
     }
+
     /* 백테스트 차트 영역 */
-    #tab-backtest canvas { border-radius: 8px; }
+    #tab-backtest canvas {
+      border-radius: 8px;
+    }
+
     #tab-datacollect {
-      --t-bg:     #0D1117;
-      --t-card:   #161B22;
+      --t-bg: #0D1117;
+      --t-card: #161B22;
       --t-border: #2A2A2A;
-      --t-hover:  #1E242C;
-      --t-text:   #E5E7EB;
-      --t-sub:    #9CA3AF;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
       background: var(--t-bg);
     }
+
     #tab-datacollect .sp-page {
       background: var(--t-bg);
       min-height: calc(100vh - 52px);
     }
+
     #tab-datacollect .sp-card {
       background: var(--t-card);
       border: 1px solid var(--t-border);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     }
-    #tab-datacollect .sp-card-title { color: var(--t-text); }
-    #tab-datacollect .sp-card-header { border-bottom-color: var(--t-border); }
+
+    #tab-datacollect .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-datacollect .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
+
     #tab-datacollect .sp-input,
     #tab-datacollect .sp-select {
       background: var(--t-bg);
       border-color: var(--t-border);
       color: var(--t-text);
     }
+
     #tab-datacollect .sp-input:focus,
     #tab-datacollect .sp-select:focus {
       border-color: #4f8fff;
-      box-shadow: 0 0 0 2px rgba(79,143,255,0.2);
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
     }
-    #tab-datacollect .sp-input::placeholder { color: #4B5563; }
-    #tab-datacollect .sp-label { color: var(--t-sub); }
+
+    #tab-datacollect .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-datacollect .sp-label {
+      color: var(--t-sub);
+    }
+
     #tab-datacollect .sp-btn-outline {
-      border-color: var(--t-border); color: var(--t-sub); background: transparent;
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
     }
-    #tab-datacollect .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
+
+    #tab-datacollect .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
     #tab-datacollect .sp-table th,
     #tab-datacollect table thead th {
-      background: #0D1117; color: var(--t-sub);
-      font-size: 0.72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      padding: 8px 12px; border-bottom: 1px solid var(--t-border);
+      background: #0D1117;
+      color: var(--t-sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--t-border);
     }
+
     #tab-datacollect .sp-table td,
     #tab-datacollect table tbody td {
-      padding: 9px 12px; border-bottom: 1px solid var(--t-border);
-      color: var(--t-text); font-size: 0.85rem;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--t-border);
+      color: var(--t-text);
+      font-size: 0.85rem;
     }
+
     #tab-datacollect .sp-table tr:hover td,
-    #tab-datacollect table tbody tr:hover td { background: var(--t-hover); }
-    #tab-datacollect .sp-empty { color: #4B5563; }
-    #tab-datacollect .sp-inner-tab {
-      border-color: var(--t-border); color: var(--t-sub); background: transparent;
+    #tab-datacollect table tbody tr:hover td {
+      background: var(--t-hover);
     }
-    #tab-datacollect .sp-inner-tab:hover { background: var(--t-hover); color: var(--t-text); }
+
+    #tab-datacollect .sp-empty {
+      color: #4B5563;
+    }
+
+    #tab-datacollect .sp-inner-tab {
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
+    }
+
+    #tab-datacollect .sp-inner-tab:hover {
+      background: var(--t-hover);
+      color: var(--t-text);
+    }
+
     #tab-datacollect .sp-inner-tab.active {
-      background: rgba(79,143,255,0.15); border-color: #4f8fff; color: #4f8fff;
+      background: rgba(79, 143, 255, 0.15);
+      border-color: #4f8fff;
+      color: #4f8fff;
     }
 
     /* ===== 퀀트자동매매 탭 트레이딩 다크 테마 ===== */
     #tab-quant {
-      --t-bg:     #0D1117;
-      --t-card:   #161B22;
+      --t-bg: #0D1117;
+      --t-card: #161B22;
       --t-border: #2A2A2A;
-      --t-hover:  #1E242C;
-      --t-text:   #E5E7EB;
-      --t-sub:    #9CA3AF;
-      --t-up:     #FF3B30;
-      --t-down:   #007AFF;
-      --t-warn:   #FFD60A;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
+      --t-up: #FF3B30;
+      --t-down: #007AFF;
+      --t-warn: #FFD60A;
       background: var(--t-bg);
     }
+
     #tab-quant .sp-card {
       background: var(--t-card);
       border: 1px solid var(--t-border);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     }
-    #tab-quant .sp-card-title { color: var(--t-text); }
-    #tab-quant .sp-card-header { border-bottom-color: var(--t-border); }
+
+    #tab-quant .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-quant .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
+
     #tab-quant .sp-input,
     #tab-quant .sp-select {
       background: var(--t-bg);
       border-color: var(--t-border);
       color: var(--t-text);
     }
+
     #tab-quant .sp-input:focus,
     #tab-quant .sp-select:focus {
       border-color: #4f8fff;
-      box-shadow: 0 0 0 2px rgba(79,143,255,0.2);
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
     }
-    #tab-quant .sp-input::placeholder { color: #4B5563; }
-    #tab-quant .sp-label { color: var(--t-sub); }
+
+    #tab-quant .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-quant .sp-label {
+      color: var(--t-sub);
+    }
+
     #tab-quant .sp-btn-outline {
-      border-color: var(--t-border); color: var(--t-sub); background: transparent;
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
     }
-    #tab-quant .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
+
+    #tab-quant .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
     #tab-quant .sp-inner-tab {
-      border-color: var(--t-border); color: var(--t-sub); background: transparent;
+      border-color: var(--t-border);
+      color: var(--t-sub);
+      background: transparent;
     }
-    #tab-quant .sp-inner-tab:hover { background: var(--t-hover); color: var(--t-text); }
+
+    #tab-quant .sp-inner-tab:hover {
+      background: var(--t-hover);
+      color: var(--t-text);
+    }
+
     #tab-quant .sp-inner-tab.active {
-      background: rgba(79,143,255,0.15); border-color: #4f8fff; color: #4f8fff;
+      background: rgba(79, 143, 255, 0.15);
+      border-color: #4f8fff;
+      color: #4f8fff;
     }
+
     /* 퀀트 탭 배너 (완전자동매매 다크 배너는 유지) */
     #tab-quant .sp-card-dark {
       background: #111827;
       border-color: var(--t-border);
     }
+
     /* 퀀트 스크리닝 결과 카드 */
     #tab-quant .sp-table th,
     #tab-quant table thead th {
-      background: #0D1117; color: var(--t-sub);
-      font-size: 0.72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      padding: 8px 12px; border-bottom: 1px solid var(--t-border);
+      background: #0D1117;
+      color: var(--t-sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--t-border);
     }
+
     #tab-quant .sp-table td,
     #tab-quant table tbody td {
-      padding: 9px 12px; border-bottom: 1px solid var(--t-border);
-      color: var(--t-text); font-size: 0.85rem;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--t-border);
+      color: var(--t-text);
+      font-size: 0.85rem;
     }
+
     #tab-quant .sp-table tr:hover td,
-    #tab-quant table tbody tr:hover td { background: var(--t-hover); }
-    #tab-quant .sp-empty { color: #4B5563; }
+    #tab-quant table tbody tr:hover td {
+      background: var(--t-hover);
+    }
+
+    #tab-quant .sp-empty {
+      color: #4B5563;
+    }
 
     /* 투자성향 등록 페이지 다크 */
     #quantProfilePage .sp-card,
-    #quantProfilePage > div > div {
+    #quantProfilePage>div>div {
       background: var(--t-card) !important;
       border-color: var(--t-border) !important;
     }
+
     .profile-option {
       border-color: #2A2A2A !important;
       background: #161B22;
       color: #E5E7EB;
     }
-    .profile-option:hover { border-color: #4f8fff !important; background: #1E242C; }
-    .profile-option:has(input:checked) { border-color: #4f8fff !important; background: rgba(79,143,255,0.1); }
+
+    .profile-option:hover {
+      border-color: #4f8fff !important;
+      background: #1E242C;
+    }
+
+    .profile-option:has(input:checked) {
+      border-color: #4f8fff !important;
+      background: rgba(79, 143, 255, 0.1);
+    }
+
     #tab-stock {
-      --t-bg:      #0D1117;
-      --t-card:    #161B22;
-      --t-border:  #2A2A2A;
-      --t-hover:   #1E242C;
-      --t-text:    #E5E7EB;
-      --t-sub:     #9CA3AF;
-      --t-up:      #FF3B30;
-      --t-down:    #007AFF;
-      --t-warn:    #FFD60A;
+      --t-bg: #0D1117;
+      --t-card: #161B22;
+      --t-border: #2A2A2A;
+      --t-hover: #1E242C;
+      --t-text: #E5E7EB;
+      --t-sub: #9CA3AF;
+      --t-up: #FF3B30;
+      --t-down: #007AFF;
+      --t-warn: #FFD60A;
       background: var(--t-bg);
       border-radius: 0;
     }
@@ -1171,15 +1675,21 @@
       background: var(--t-bg);
       min-height: calc(100vh - 52px);
     }
+
     #tab-stock .sp-card {
       background: var(--t-card);
       border: 1px solid var(--t-border);
       border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     }
 
-    #tab-stock .sp-card-title { color: var(--t-text); }
-    #tab-stock .sp-card-header { border-bottom-color: var(--t-border); }
+    #tab-stock .sp-card-title {
+      color: var(--t-text);
+    }
+
+    #tab-stock .sp-card-header {
+      border-bottom-color: var(--t-border);
+    }
 
     #tab-stock .sp-input,
     #tab-stock .sp-select {
@@ -1187,38 +1697,70 @@
       border-color: var(--t-border);
       color: var(--t-text);
     }
+
     #tab-stock .sp-input:focus,
     #tab-stock .sp-select:focus {
       border-color: #4f8fff;
-      box-shadow: 0 0 0 2px rgba(79,143,255,0.2);
+      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
     }
-    #tab-stock .sp-input::placeholder { color: #4B5563; }
 
-    #tab-stock .sp-label { color: var(--t-sub); }
+    #tab-stock .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-stock .sp-label {
+      color: var(--t-sub);
+    }
 
     #tab-stock .sp-btn-outline {
       border-color: var(--t-border);
       color: var(--t-sub);
       background: transparent;
     }
+
     #tab-stock .sp-btn-outline:hover {
       border-color: #4f8fff;
       color: #4f8fff;
     }
 
     /* BUY=빨강, SELL=파랑 (한국 기준) */
-    #tab-stock .btn-buy  { background: #FF3B30 !important; color: #fff !important; }
-    #tab-stock .btn-sell { background: #007AFF !important; color: #fff !important; }
-    #tab-stock .sp-btn-green { background: #007AFF !important; color: #fff !important; }
+    #tab-stock .btn-buy {
+      background: #FF3B30 !important;
+      color: #fff !important;
+    }
+
+    #tab-stock .btn-sell {
+      background: #007AFF !important;
+      color: #fff !important;
+    }
+
+    #tab-stock .sp-btn-green {
+      background: #007AFF !important;
+      color: #fff !important;
+    }
 
     /* 계좌 카드 다크 */
-    #tab-stock .account-metric { border-right-color: var(--t-border); }
-    #tab-stock .account-metric .lbl { color: var(--t-sub); }
-    #tab-stock .account-metric .val { color: #fff; font-size: 1.15rem; }
-    #tab-stock #accountCards { border-color: var(--t-border); }
+    #tab-stock .account-metric {
+      border-right-color: var(--t-border);
+    }
+
+    #tab-stock .account-metric .lbl {
+      color: var(--t-sub);
+    }
+
+    #tab-stock .account-metric .val {
+      color: #fff;
+      font-size: 1.15rem;
+    }
+
+    #tab-stock #accountCards {
+      border-color: var(--t-border);
+    }
 
     /* Alpaca 연결 카드 */
-    #tab-stock #alpacaKeyForm { border-top-color: var(--t-border) !important; }
+    #tab-stock #alpacaKeyForm {
+      border-top-color: var(--t-border) !important;
+    }
 
     /* Stock Prices 검색 영역 */
     #tab-stock #stock-symbol-badge {
@@ -1228,23 +1770,36 @@
 
     /* 상태 배지 */
     #tab-stock .badge-active {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px; border-radius: 999px;
-      background: rgba(0,200,83,0.15); color: #00C853;
-      font-size: 0.75rem; font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(0, 200, 83, 0.15);
+      color: #00C853;
+      font-size: 0.75rem;
+      font-weight: 700;
     }
+
     #tab-stock .badge-paper {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 10px; border-radius: 999px;
-      background: rgba(255,214,10,0.15); color: #FFD60A;
-      font-size: 0.75rem; font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(255, 214, 10, 0.15);
+      color: #FFD60A;
+      font-size: 0.75rem;
+      font-weight: 700;
     }
 
     /* 포지션/주문 테이블 */
     #tab-stock .stock-table,
     #tab-stock table {
-      width: 100%; border-collapse: collapse;
+      width: 100%;
+      border-collapse: collapse;
     }
+
     #tab-stock .stock-table th,
     #tab-stock table thead th {
       background: #0D1117;
@@ -1256,6 +1811,7 @@
       padding: 8px 12px;
       border-bottom: 1px solid var(--t-border);
     }
+
     #tab-stock .stock-table td,
     #tab-stock table tbody td {
       padding: 10px 12px;
@@ -1263,14 +1819,22 @@
       color: var(--t-text);
       font-size: 0.86rem;
     }
+
     #tab-stock .stock-table tr:hover td,
     #tab-stock table tbody tr:hover td {
       background: var(--t-hover);
     }
 
     /* 손익 색상 */
-    #tab-stock .text-up   { color: #FF3B30 !important; font-weight: 700; }
-    #tab-stock .text-down { color: #007AFF !important; font-weight: 700; }
+    #tab-stock .text-up {
+      color: #FF3B30 !important;
+      font-weight: 700;
+    }
+
+    #tab-stock .text-down {
+      color: #007AFF !important;
+      font-weight: 700;
+    }
 
     /* Trade Result */
     #tab-stock .sp-result {
@@ -1289,11 +1853,28 @@
       border-radius: 8px;
       padding: 12px 14px;
     }
-    #tab-stock .price-card .symbol { font-weight: 800; color: #fff; font-size: 1rem; }
-    #tab-stock .price-card .price  { font-size: 1.1rem; font-weight: 700; color: #fff; }
-    #tab-stock .price-card .up     { color: #FF3B30; font-weight: 700; }
-    #tab-stock .price-card .down   { color: #007AFF; font-weight: 700; }
 
+    #tab-stock .price-card .symbol {
+      font-weight: 800;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    #tab-stock .price-card .price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    #tab-stock .price-card .up {
+      color: #FF3B30;
+      font-weight: 700;
+    }
+
+    #tab-stock .price-card .down {
+      color: #007AFF;
+      font-weight: 700;
+    }
   </style>
 </head>
 
@@ -1350,19 +1931,27 @@
         <div id="homePortfolioWrap" style="display:none;margin-bottom:16px;">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">총 자산</div>
+              <div
+                style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                총 자산</div>
               <div id="homeEquity" style="font-size:1.3rem;font-weight:800;color:#0f172a;">-</div>
             </div>
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">오늘 손익</div>
+              <div
+                style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                오늘 손익</div>
               <div id="homeDailyPnl" style="font-size:1.3rem;font-weight:800;color:#0f172a;">-</div>
             </div>
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">누적 수익률</div>
+              <div
+                style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                누적 수익률</div>
               <div id="homeTotalPnl" style="font-size:1.3rem;font-weight:800;color:#0f172a;">-</div>
             </div>
             <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;">
-              <div style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">승률 / MDD</div>
+              <div
+                style="font-size:0.72rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                승률 / MDD</div>
               <div id="homeWinRate" style="font-size:1.3rem;font-weight:800;color:#0f172a;">-</div>
             </div>
           </div>
@@ -1499,7 +2088,8 @@
                 <div id="stock-symbol-badge"
                   style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;flex:1;min-height:38px;border:1px solid #2A2A2A;border-radius:6px;padding:4px 10px;background:#0D1117;cursor:pointer;"
                   onclick="openStockSearch('stockSymbols', true)">
-                  <span id="stock-symbol-placeholder" style="color:#4B5563;font-size:0.85rem;">종목 검색 (예: AAPL, NVDA) · 최대 5종목</span>
+                  <span id="stock-symbol-placeholder" style="color:#4B5563;font-size:0.85rem;">종목 검색 (예: AAPL, NVDA) ·
+                    최대 5종목</span>
                 </div>
                 <input type="hidden" id="stockSymbols" value="" />
                 <button onclick="openStockSearch('stockSymbols', true)" class="sp-btn sp-btn-outline"
@@ -1545,7 +2135,8 @@
           </div>
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면 실시간 가격)</small></div>
+              <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면
+                  실시간 가격)</small></div>
               <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
             </div>
             <div id="positionsTable"></div>
@@ -2136,7 +2727,8 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">📊 스크리닝 결과</div>
-                <span style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석
+                <span
+                  style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석
                   전용</span>
               </div>
               <div id="krTradeResult" style="min-height:100px;">
@@ -2464,7 +3056,8 @@
         <div id="quantPanelDay" style="display:none;">
 
           <!-- 헤더 배너 -->
-          <div class="sp-card" style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;margin-bottom:20px;">
+          <div class="sp-card"
+            style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;margin-bottom:20px;">
             <div style="font-size:1rem;font-weight:800;color:#a5b4fc;margin-bottom:6px;">⚡ 일반 자동매매</div>
             <div style="font-size:0.83rem;color:#818cf8;">거래량 급등 감지 · 뉴스 촉매 탐지 · 리스크 관리 계산기</div>
           </div>
@@ -2475,9 +3068,11 @@
               <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
               <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
             </div>
-            <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천 종목이에요</div>
+            <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천
+              종목이에요</div>
             <div id="topPicksList">
-              <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)</div>
+              <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)
+              </div>
             </div>
           </div>
 
@@ -2486,11 +3081,14 @@
             <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
               <div>
                 <div class="sp-card-title">⚡ 단순 자동매매</div>
-                <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">TOP1 종목 · 계좌 30% · +5%익절/-5%손절 · 당일 15:55 강제청산</div>
+                <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">TOP1 종목 · 계좌 30% · +5%익절/-5%손절 · 당일 15:55
+                  강제청산</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center;">
-                <span id="simpleTradeStatusBadge" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
-                <button onclick="toggleSimpleAutoTrade()" id="simpleTradeToggleBtn" class="sp-btn sp-btn-indigo">▶ 시작</button>
+                <span id="simpleTradeStatusBadge"
+                  style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
+                <button onclick="toggleSimpleAutoTrade()" id="simpleTradeToggleBtn" class="sp-btn sp-btn-indigo">▶
+                  시작</button>
               </div>
             </div>
 
@@ -2558,10 +3156,12 @@
               <div class="sp-card-title">🛡️ 리스크 관리 계산기</div>
             </div>
             <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:16px;">계좌 잔고의 1~2% 리스크 룰로 적정 매수 수량을 계산해요</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end;margin-bottom:16px;">
+            <div
+              style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end;margin-bottom:16px;">
               <div>
                 <label class="sp-label">종목</label>
-                <input type="text" id="riskSymbol" placeholder="예: AAPL" class="sp-input" style="text-transform:uppercase;" />
+                <input type="text" id="riskSymbol" placeholder="예: AAPL" class="sp-input"
+                  style="text-transform:uppercase;" />
               </div>
               <div>
                 <label class="sp-label">손절 비율 (%)</label>
@@ -2718,7 +3318,8 @@
 
         <div id="bt-loading" style="display:none;text-align:center;padding:40px;color:#9CA3AF;">🔍 백테스팅 실행 중...</div>
         <div id="bt-error"
-          style="display:none;padding:16px;color:#ef4444;background:rgba(255,59,48,0.1);border-radius:8px;margin-top:12px;"></div>
+          style="display:none;padding:16px;color:#ef4444;background:rgba(255,59,48,0.1);border-radius:8px;margin-top:12px;">
+        </div>
         <!-- 백테스트 결과 저장 버튼 -->
         <div id="bt-save-wrap" style="display:none;margin-top:12px;text-align:right;">
           <button onclick="saveBtResultToDb()" class="sp-btn sp-btn-indigo">💾 결과 저장</button>
@@ -2820,22 +3421,30 @@
         <!-- 상단 요약 카드 4개 -->
         <div class="sp-grid-4" style="margin-bottom:16px;">
           <div class="sp-card" style="text-align:center;padding:16px;">
-            <div style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">총 자산</div>
+            <div
+              style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">
+              총 자산</div>
             <div id="perf-equity" style="font-size:1.5rem;font-weight:800;color:#E5E7EB;">-</div>
             <div id="perf-equity-sub" style="font-size:0.75rem;color:#9CA3AF;margin-top:4px;">현금 + 주식</div>
           </div>
           <div class="sp-card" style="text-align:center;padding:16px;">
-            <div style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">오늘 손익</div>
+            <div
+              style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">
+              오늘 손익</div>
             <div id="perf-daily-pnl" style="font-size:1.5rem;font-weight:800;color:#E5E7EB;">-</div>
             <div id="perf-daily-pct" style="font-size:0.75rem;color:#9CA3AF;margin-top:4px;">일일 수익률</div>
           </div>
           <div class="sp-card" style="text-align:center;padding:16px;">
-            <div style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">누적 수익률</div>
+            <div
+              style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">
+              누적 수익률</div>
             <div id="perf-total-pnl" style="font-size:1.5rem;font-weight:800;color:#E5E7EB;">-</div>
             <div id="perf-total-pct" style="font-size:0.75rem;color:#9CA3AF;margin-top:4px;">시작 대비</div>
           </div>
           <div class="sp-card" style="text-align:center;padding:16px;">
-            <div style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">승률 / MDD</div>
+            <div
+              style="font-size:0.72rem;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">
+              승률 / MDD</div>
             <div id="perf-winrate" style="font-size:1.5rem;font-weight:800;color:#E5E7EB;">-</div>
             <div id="perf-mdd" style="font-size:0.75rem;color:#9CA3AF;margin-top:4px;">최대 낙폭</div>
           </div>
@@ -2883,7 +3492,8 @@
             <canvas id="perfEquityChart" height="120"></canvas>
             <div id="perfChartEmpty" style="text-align:center;padding:32px;color:#4B5563;font-size:0.85rem;">
               📊 스냅샷을 저장하면 차트가 표시돼요<br>
-              <button onclick="savePerformanceSnapshot()" class="sp-btn sp-btn-indigo sp-btn-sm" style="margin-top:12px;">📸 지금 저장</button>
+              <button onclick="savePerformanceSnapshot()" class="sp-btn sp-btn-indigo sp-btn-sm"
+                style="margin-top:12px;">📸 지금 저장</button>
             </div>
           </div>
           <div class="sp-card">
@@ -2926,14 +3536,18 @@
               <div class="sp-card-title">📋 매매 이력 (최근 20건)</div>
               <button onclick="loadTradeHistory()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
             </div>
-            <div id="perfTradeHistory"><div class="sp-empty">매매 이력 없음</div></div>
+            <div id="perfTradeHistory">
+              <div class="sp-empty">매매 이력 없음</div>
+            </div>
           </div>
           <div class="sp-card">
             <div class="sp-card-header">
               <div class="sp-card-title">🔬 저장된 백테스트 결과</div>
               <button onclick="loadSavedBacktests()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
             </div>
-            <div id="savedBacktestList"><div class="sp-empty">저장된 결과 없음</div></div>
+            <div id="savedBacktestList">
+              <div class="sp-empty">저장된 결과 없음</div>
+            </div>
           </div>
         </div>
 
@@ -3532,7 +4146,7 @@
     };
 
     // ===== 통합 매매 신호 =====
-    window.loadCombinedSignal = async function() {
+    window.loadCombinedSignal = async function () {
       const el = document.getElementById('combinedSignalList');
       if (!el) return;
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 분석 중...</div>';
@@ -3584,7 +4198,7 @@
             </div>`).join('');
         }
         el.innerHTML = html;
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
       }
     };
@@ -3840,13 +4454,13 @@
         const items = isKr ? d.top : d.results;
         if (!d.ok || !items?.length) { el.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음 — 전략을 바꿔보세요</div>'; return; }
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-        const tBg  = { BUY: 'rgba(255,59,48,0.08)',  WATCH: 'rgba(255,214,10,0.06)', AVOID: 'rgba(30,123,255,0.08)' };
-        const tBor = { BUY: 'rgba(255,59,48,0.3)',   WATCH: 'rgba(255,214,10,0.3)',  AVOID: 'rgba(30,123,255,0.3)' };
+        const tBg = { BUY: 'rgba(255,59,48,0.08)', WATCH: 'rgba(255,214,10,0.06)', AVOID: 'rgba(30,123,255,0.08)' };
+        const tBor = { BUY: 'rgba(255,59,48,0.3)', WATCH: 'rgba(255,214,10,0.3)', AVOID: 'rgba(30,123,255,0.3)' };
         const tCol = { BUY: '#FF3B30', WATCH: '#FFD60A', AVOID: '#1E7BFF' };
         const rows = items.map((item, i) => {
           const timing = item.timing || 'WATCH';
-          const bg  = isKr ? (i === 0 ? 'rgba(255,59,48,0.08)' : '#1E242C') : (tBg[timing]  || '#1E242C');
-          const bor = isKr ? (i === 0 ? 'rgba(255,59,48,0.3)'  : '#2A2A2A') : (tBor[timing] || '#2A2A2A');
+          const bg = isKr ? (i === 0 ? 'rgba(255,59,48,0.08)' : '#1E242C') : (tBg[timing] || '#1E242C');
+          const bor = isKr ? (i === 0 ? 'rgba(255,59,48,0.3)' : '#2A2A2A') : (tBor[timing] || '#2A2A2A');
           const timingColor = tCol[timing] || '#9CA3AF';
           const badge = isKr
             ? `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:rgba(255,214,10,0.12);color:#FFD60A;font-weight:700;">📊 분석용</span>`
@@ -4155,7 +4769,7 @@
           const first = d.menus[0];
           activateMenu(first.tab_key, first.sub_key, first.id);
         }
-      } catch(e) {
+      } catch (e) {
         // 폴백: 기본 사이드바 렌더링
         renderDefaultSidebar();
       }
@@ -4283,7 +4897,7 @@
           if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
           if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
           if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
-        }, 100);
+        }, 500);
       }
       if (tabKey === 'quant' && !subKey) {
         setTimeout(() => { if (typeof checkInvestorProfile === 'function') checkInvestorProfile(); }, 50);
@@ -4353,7 +4967,7 @@
           },
           options: {
             responsive: true, maintainAspectRatio: true,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${parseFloat(ctx.parsed).toLocaleString()} (${(ctx.parsed/total*100).toFixed(1)}%)` } } },
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${parseFloat(ctx.parsed).toLocaleString()} (${(ctx.parsed / total * 100).toFixed(1)}%)` } } },
             cutout: '65%'
           }
         });
@@ -4373,7 +4987,7 @@
               <div style="color:#E5E7EB;font-weight:800;font-size:1rem;">$${total.toLocaleString()}</div>
             </div>
           </div>`;
-      } catch(e) { document.getElementById('assetPieLegend').innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">로드 실패</div>'; }
+      } catch (e) { document.getElementById('assetPieLegend').innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">로드 실패</div>'; }
     }
 
     async function loadPositionPieChart() {
@@ -4387,10 +5001,10 @@
           legendEl.innerHTML = '<div style="color:#4B5563;text-align:center;padding:16px;font-size:0.8rem;">보유 종목 없음</div>';
           return;
         }
-        const colors = ['#FF3B30','#1E7BFF','#FFD60A','#BF5AF2','#FF9F0A','#30D158','#64D2FF','#FF6B6B'];
+        const colors = ['#FF3B30', '#1E7BFF', '#FFD60A', '#BF5AF2', '#FF9F0A', '#30D158', '#64D2FF', '#FF6B6B'];
         const labels = positions.map(p => p.symbol);
         const values = positions.map(p => parseFloat(p.market_value) || 0);
-        const total = values.reduce((a,b) => a+b, 0);
+        const total = values.reduce((a, b) => a + b, 0);
 
         if (positionPieInstance) positionPieInstance.destroy();
         positionPieInstance = new Chart(chartEl.getContext('2d'), {
@@ -4401,17 +5015,17 @@
           },
           options: {
             responsive: true, maintainAspectRatio: true,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${parseFloat(ctx.parsed).toLocaleString()} (${(ctx.parsed/total*100).toFixed(1)}%)` } } },
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${parseFloat(ctx.parsed).toLocaleString()} (${(ctx.parsed / total * 100).toFixed(1)}%)` } } },
             cutout: '65%'
           }
         });
 
         legendEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;">
           ${positions.map((p, i) => {
-            const val = parseFloat(p.market_value) || 0;
-            const pct = (val / total * 100).toFixed(1);
-            const pl = parseFloat(p.unrealized_plpc || 0) * 100;
-            return `<div style="display:flex;align-items:center;gap:6px;">
+          const val = parseFloat(p.market_value) || 0;
+          const pct = (val / total * 100).toFixed(1);
+          const pl = parseFloat(p.unrealized_plpc || 0) * 100;
+          return `<div style="display:flex;align-items:center;gap:6px;">
               <div style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0;"></div>
               <div style="flex:1;min-width:0;">
                 <div style="display:flex;justify-content:space-between;">
@@ -4420,13 +5034,13 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;">
                   <span style="color:#9CA3AF;font-size:0.7rem;">$${val.toLocaleString()}</span>
-                  <span style="color:${pl>=0?'#FF3B30':'#1E7BFF'};font-size:0.7rem;">${pl>=0?'+':''}${pl.toFixed(1)}%</span>
+                  <span style="color:${pl >= 0 ? '#FF3B30' : '#1E7BFF'};font-size:0.7rem;">${pl >= 0 ? '+' : ''}${pl.toFixed(1)}%</span>
                 </div>
               </div>
             </div>`;
-          }).join('')}
+        }).join('')}
         </div>`;
-      } catch(e) { legendEl.innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">Alpaca 연결 필요</div>'; }
+      } catch (e) { legendEl.innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">Alpaca 연결 필요</div>'; }
     }
 
     async function loadPerformanceSummary() {
@@ -4440,29 +5054,29 @@
         const { latest, winRate, maxMdd, monthPnl } = d;
 
         // 총 자산
-        document.getElementById('perf-equity').textContent = `$${parseFloat(latest.total_equity||0).toLocaleString()}`;
-        document.getElementById('perf-equity-sub').textContent = `현금 $${parseFloat(latest.cash||0).toLocaleString()}`;
+        document.getElementById('perf-equity').textContent = `$${parseFloat(latest.total_equity || 0).toLocaleString()}`;
+        document.getElementById('perf-equity-sub').textContent = `현금 $${parseFloat(latest.cash || 0).toLocaleString()}`;
 
         // 오늘 손익
-        const dp = parseFloat(latest.daily_pnl||0);
-        const dpc = parseFloat(latest.daily_pnl_pct||0);
+        const dp = parseFloat(latest.daily_pnl || 0);
+        const dpc = parseFloat(latest.daily_pnl_pct || 0);
         const dpEl = document.getElementById('perf-daily-pnl');
-        dpEl.textContent = `${dp>=0?'+':''}$${dp.toFixed(0)}`;
-        dpEl.style.color = dp>=0 ? '#FF3B30' : '#007AFF';
-        document.getElementById('perf-daily-pct').textContent = `${dpc>=0?'+':''}${dpc.toFixed(2)}%`;
+        dpEl.textContent = `${dp >= 0 ? '+' : ''}$${dp.toFixed(0)}`;
+        dpEl.style.color = dp >= 0 ? '#FF3B30' : '#007AFF';
+        document.getElementById('perf-daily-pct').textContent = `${dpc >= 0 ? '+' : ''}${dpc.toFixed(2)}%`;
 
         // 누적 수익률
-        const tp = parseFloat(latest.total_pnl||0);
-        const tpc = parseFloat(latest.total_pnl_pct||0);
+        const tp = parseFloat(latest.total_pnl || 0);
+        const tpc = parseFloat(latest.total_pnl_pct || 0);
         const tpEl = document.getElementById('perf-total-pnl');
-        tpEl.textContent = `${tp>=0?'+':''}$${tp.toFixed(0)}`;
-        tpEl.style.color = tp>=0 ? '#FF3B30' : '#007AFF';
-        document.getElementById('perf-total-pct').textContent = `${tpc>=0?'+':''}${tpc.toFixed(2)}%`;
+        tpEl.textContent = `${tp >= 0 ? '+' : ''}$${tp.toFixed(0)}`;
+        tpEl.style.color = tp >= 0 ? '#FF3B30' : '#007AFF';
+        document.getElementById('perf-total-pct').textContent = `${tpc >= 0 ? '+' : ''}${tpc.toFixed(2)}%`;
 
         // 승률 / MDD
         document.getElementById('perf-winrate').textContent = `${winRate.toFixed(0)}%`;
-        document.getElementById('perf-mdd').textContent = `MDD -${parseFloat(maxMdd||0).toFixed(1)}%`;
-      } catch(e) { console.error('성과 요약 로드 실패', e); }
+        document.getElementById('perf-mdd').textContent = `MDD -${parseFloat(maxMdd || 0).toFixed(1)}%`;
+      } catch (e) { console.error('성과 요약 로드 실패', e); }
     }
 
     async function loadPerformanceHistory() {
@@ -4502,11 +5116,11 @@
             plugins: { legend: { display: false } },
             scales: {
               x: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
-              y: { ticks: { color: '#9CA3AF', font: { size: 10 }, callback: v => '$'+v.toLocaleString() }, grid: { color: 'rgba(255,255,255,0.06)' } }
+              y: { ticks: { color: '#9CA3AF', font: { size: 10 }, callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(255,255,255,0.06)' } }
             }
           }
         });
-      } catch(e) { console.error('성과 이력 로드 실패', e); }
+      } catch (e) { console.error('성과 이력 로드 실패', e); }
     }
 
     async function savePerformanceSnapshot() {
@@ -4518,7 +5132,7 @@
           loadPerformanceSummary();
           loadPerformanceHistory();
         } else { await spAlert(d.error || '저장 실패', '오류', '❌'); }
-      } catch(e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
+      } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
     }
 
     async function loadTradeHistory() {
@@ -4528,7 +5142,7 @@
         const res = await fetch('/api/auto-trade/log');
         const d = await res.json();
         if (!d.logs?.length) { el.innerHTML = '<div class="sp-empty">매매 이력 없음</div>'; return; }
-        const actionMap = { BUY:'매수', SELL_PROFIT:'익절', SELL_PROFIT1:'1차익절', SELL_PROFIT2:'2차익절', SELL_LOSS:'손절', SELL_STOP:'손절', SELL_FACTOR:'팩터매도' };
+        const actionMap = { BUY: '매수', SELL_PROFIT: '익절', SELL_PROFIT1: '1차익절', SELL_PROFIT2: '2차익절', SELL_LOSS: '손절', SELL_STOP: '손절', SELL_FACTOR: '팩터매도' };
         el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
           <thead><tr>
             <th style="padding:7px 10px;text-align:left;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">일시</th>
@@ -4537,21 +5151,21 @@
             <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">가격</th>
             <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">손익</th>
           </tr></thead><tbody>
-          ${d.logs.slice(0,20).map(l => {
-            const isBuy = l.action==='BUY';
-            const isProfit = l.action.includes('PROFIT');
-            const color = isBuy ? '#4f8fff' : isProfit ? '#FF3B30' : '#007AFF';
-            const pnl = l.profit_pct ? `${l.profit_pct>0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%` : '-';
-            return `<tr>
-              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-size:0.78rem;color:#9CA3AF;">${new Date(l.created_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+          ${d.logs.slice(0, 20).map(l => {
+          const isBuy = l.action === 'BUY';
+          const isProfit = l.action.includes('PROFIT');
+          const color = isBuy ? '#4f8fff' : isProfit ? '#FF3B30' : '#007AFF';
+          const pnl = l.profit_pct ? `${l.profit_pct > 0 ? '+' : ''}${parseFloat(l.profit_pct).toFixed(2)}%` : '-';
+          return `<tr>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-size:0.78rem;color:#9CA3AF;">${new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
               <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:#E5E7EB;">${l.symbol}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;"><span style="padding:2px 7px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${color}22;color:${color};">${actionMap[l.action]||l.action}</span></td>
-              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;color:#E5E7EB;">$${parseFloat(l.price||0).toFixed(2)}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:${isProfit?'#FF3B30':l.action.includes('LOSS')||l.action.includes('STOP')?'#007AFF':'#9CA3AF'};">${pnl}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;"><span style="padding:2px 7px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${color}22;color:${color};">${actionMap[l.action] || l.action}</span></td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;color:#E5E7EB;">$${parseFloat(l.price || 0).toFixed(2)}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:${isProfit ? '#FF3B30' : l.action.includes('LOSS') || l.action.includes('STOP') ? '#007AFF' : '#9CA3AF'};">${pnl}</td>
             </tr>`;
-          }).join('')}
+        }).join('')}
           </tbody></table></div>`;
-      } catch(e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
+      } catch (e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
     }
 
     // ============================================================
@@ -4566,7 +5180,7 @@
         const d = await res.json();
         if (d.ok) await spAlert(`백테스트 결과가 저장됐어요! (ID: ${d.id})`, '저장 완료', '✅');
         else await spAlert(d.error || '저장 실패', '오류', '❌');
-      } catch(e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
+      } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
     }
 
     async function loadSavedBacktests() {
@@ -4577,22 +5191,22 @@
         const d = await res.json();
         if (!d.ok || !d.results?.length) { el.innerHTML = '<div class="sp-empty">저장된 결과 없음</div>'; return; }
         el.innerHTML = d.results.map(r => {
-          const ret = parseFloat(r.total_return||0);
-          const retColor = ret>=0 ? '#FF3B30' : '#007AFF';
+          const ret = parseFloat(r.total_return || 0);
+          const retColor = ret >= 0 ? '#FF3B30' : '#007AFF';
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #2A2A2A;border-radius:8px;margin-bottom:8px;background:#1E242C;">
             <div>
-              <div style="font-weight:700;color:#E5E7EB;font-size:0.88rem;">${r.name||r.symbol}</div>
-              <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">${r.strategy} · ${r.start_date||''} ~ ${r.end_date||''}</div>
-              <div style="font-size:0.75rem;color:#9CA3AF;">승률 ${r.win_rate?.toFixed(0)||'-'}% · MDD ${r.max_drawdown?.toFixed(1)||'-'}%</div>
+              <div style="font-weight:700;color:#E5E7EB;font-size:0.88rem;">${r.name || r.symbol}</div>
+              <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">${r.strategy} · ${r.start_date || ''} ~ ${r.end_date || ''}</div>
+              <div style="font-size:0.75rem;color:#9CA3AF;">승률 ${r.win_rate?.toFixed(0) || '-'}% · MDD ${r.max_drawdown?.toFixed(1) || '-'}%</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:1.1rem;font-weight:800;color:${retColor};">${ret>=0?'+':''}${ret.toFixed(1)}%</div>
-              <div style="font-size:0.72rem;color:#4B5563;margin-top:2px;">${r.created_at?.slice(0,10)}</div>
+              <div style="font-size:1.1rem;font-weight:800;color:${retColor};">${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%</div>
+              <div style="font-size:0.72rem;color:#4B5563;margin-top:2px;">${r.created_at?.slice(0, 10)}</div>
               <button onclick="deleteBacktestResult(${r.id})" style="font-size:0.72rem;color:#4B5563;background:none;border:none;cursor:pointer;margin-top:2px;">🗑️ 삭제</button>
             </div>
           </div>`;
         }).join('');
-      } catch(e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
+      } catch (e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
     }
 
     async function deleteBacktestResult(id) {
@@ -4615,7 +5229,7 @@
           if (tokenEl) tokenEl.value = d.bot_token || '';
           if (chatEl) chatEl.value = d.chat_id || '';
         }
-      } catch(e) {}
+      } catch (e) { }
     }
 
     async function saveTelegramSettings() {
@@ -4630,7 +5244,7 @@
         });
         const d = await res.json();
         showTgMsg(d.ok ? '✅ 텔레그램 설정 저장 완료!' : '❌ 저장 실패: ' + d.error, d.ok);
-      } catch(e) { showTgMsg('❌ 오류: ' + e.message, false); }
+      } catch (e) { showTgMsg('❌ 오류: ' + e.message, false); }
     }
 
     async function testTelegramAlert() {
@@ -4639,7 +5253,7 @@
         const d = await res.json();
         showTgMsg(d.ok ? '✅ 테스트 메시지 발송 완료!' : '❌ 발송 실패 — Bot Token/Chat ID를 확인해주세요', d.ok);
         if (d.ok) loadTelegramAlertLog();
-      } catch(e) { showTgMsg('❌ 오류: ' + e.message, false); }
+      } catch (e) { showTgMsg('❌ 오류: ' + e.message, false); }
     }
 
     function showTgMsg(msg, isOk) {
@@ -4659,12 +5273,12 @@
         const res = await fetch('/api/telegram/alert/log');
         const d = await res.json();
         if (!d.ok || !d.logs?.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:#4B5563;">알림 내역 없음</div>'; return; }
-        el.innerHTML = d.logs.slice(0,5).map(l => `
+        el.innerHTML = d.logs.slice(0, 5).map(l => `
           <div style="padding:6px 0;border-bottom:1px solid #2A2A2A;display:flex;justify-content:space-between;align-items:flex-start;">
             <span style="color:#4f8fff;font-size:0.72rem;font-weight:700;">${l.alert_type}</span>
-            <span style="color:#4B5563;font-size:0.7rem;">${new Date(l.sent_at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+            <span style="color:#4B5563;font-size:0.7rem;">${new Date(l.sent_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
           </div>`).join('');
-      } catch(e) {}
+      } catch (e) { }
     }
 
     // ============================================================
@@ -4679,14 +5293,14 @@
         if (wrap) wrap.style.display = 'block';
         const { latest, winRate, maxMdd } = d;
         const el = (id) => document.getElementById(id);
-        if (el('homeEquity')) el('homeEquity').textContent = `$${parseFloat(latest.total_equity||0).toLocaleString()}`;
-        const dp = parseFloat(latest.daily_pnl||0);
-        const dpc = parseFloat(latest.daily_pnl_pct||0);
-        if (el('homeDailyPnl')) { el('homeDailyPnl').textContent = `${dp>=0?'+':''}$${dp.toFixed(0)} (${dpc>=0?'+':''}${dpc.toFixed(2)}%)`; el('homeDailyPnl').style.color = dp>=0 ? '#16a34a' : '#dc2626'; }
-        const tp = parseFloat(latest.total_pnl_pct||0);
-        if (el('homeTotalPnl')) { el('homeTotalPnl').textContent = `${tp>=0?'+':''}${tp.toFixed(2)}%`; el('homeTotalPnl').style.color = tp>=0 ? '#16a34a' : '#dc2626'; }
-        if (el('homeWinRate')) el('homeWinRate').textContent = `${winRate.toFixed(0)}% / -${parseFloat(maxMdd||0).toFixed(1)}%`;
-      } catch(e) {}
+        if (el('homeEquity')) el('homeEquity').textContent = `$${parseFloat(latest.total_equity || 0).toLocaleString()}`;
+        const dp = parseFloat(latest.daily_pnl || 0);
+        const dpc = parseFloat(latest.daily_pnl_pct || 0);
+        if (el('homeDailyPnl')) { el('homeDailyPnl').textContent = `${dp >= 0 ? '+' : ''}$${dp.toFixed(0)} (${dpc >= 0 ? '+' : ''}${dpc.toFixed(2)}%)`; el('homeDailyPnl').style.color = dp >= 0 ? '#16a34a' : '#dc2626'; }
+        const tp = parseFloat(latest.total_pnl_pct || 0);
+        if (el('homeTotalPnl')) { el('homeTotalPnl').textContent = `${tp >= 0 ? '+' : ''}${tp.toFixed(2)}%`; el('homeTotalPnl').style.color = tp >= 0 ? '#16a34a' : '#dc2626'; }
+        if (el('homeWinRate')) el('homeWinRate').textContent = `${winRate.toFixed(0)}% / -${parseFloat(maxMdd || 0).toFixed(1)}%`;
+      } catch (e) { }
     }
 
     // ============================================================
@@ -4696,7 +5310,7 @@
 
     // runBacktest 완료 후 훅
     const _origRunBacktest = window.runBacktest;
-    window.runBacktest = async function(...args) {
+    window.runBacktest = async function (...args) {
       document.getElementById('bt-save-wrap').style.display = 'none';
       _lastBtResult = null;
       if (typeof _origRunBacktest === 'function') await _origRunBacktest.apply(this, args);
@@ -4713,7 +5327,7 @@
     }
 
     // 백테스트 결과 캡처 (공통 js와 연동)
-    window._captureBtResult = function(result) {
+    window._captureBtResult = function (result) {
       _lastBtResult = result;
       const wrap = document.getElementById('bt-save-wrap');
       if (wrap) wrap.style.display = 'block';
