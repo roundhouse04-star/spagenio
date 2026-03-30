@@ -536,6 +536,55 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  // ===== 로또 가중치 + 예측 시스템 =====
+
+  router.get('/api/lotto/weights', (req, res) => {
+    try {
+      const rows = db.prepare('SELECT num, weight, appear_count, hit_count, updated_at FROM lotto_weights ORDER BY num').all();
+      res.json({ ok: true, weights: rows });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  router.post('/api/lotto/prediction/save', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const { based_on_round, predicted_for_round, picks } = req.body;
+      if (!based_on_round || !picks) return res.status(400).json({ error: '필수값 누락' });
+      db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)')
+        .run(based_on_round, predicted_for_round || null, JSON.stringify(picks));
+      res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  router.post('/api/lotto/prediction/check', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const { prediction_id, actual_round } = req.body;
+      if (!prediction_id || !actual_round) return res.status(400).json({ error: '필수값 누락' });
+      const pred = db.prepare('SELECT * FROM lotto_predictions WHERE id=?').get(prediction_id);
+      if (!pred) return res.status(404).json({ error: '예측 없음' });
+      const picks = JSON.parse(pred.picks);
+      const actual = db.prepare('SELECT numbers FROM lotto_history WHERE drw_no=?').get(actual_round);
+      if (!actual) return res.status(404).json({ error: `${actual_round}회 당첨번호 없음` });
+      const actualNums = JSON.parse(actual.numbers);
+      const hits = picks.filter(n => actualNums.includes(n));
+      const updateWeight = db.prepare('UPDATE lotto_weights SET weight=MAX(0.1,MIN(5.0,weight*?)),appear_count=appear_count+1,hit_count=hit_count+?,updated_at=CURRENT_TIMESTAMP WHERE num=?');
+      picks.forEach(n => updateWeight.run(hits.includes(n) ? 1.15 : 0.92, hits.includes(n) ? 1 : 0, n));
+      actualNums.filter(n => !picks.includes(n)).forEach(n => updateWeight.run(1.05, 0, n));
+      db.prepare('UPDATE lotto_predictions SET hit_count=?,predicted_for_round=?,result_checked=1 WHERE id=?')
+        .run(hits.length, actual_round, prediction_id);
+      res.json({ ok: true, hit_count: hits.length, hits, picks, actual_nums: actualNums });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  router.get('/api/lotto/prediction/history', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const rows = db.prepare('SELECT * FROM lotto_predictions ORDER BY created_at DESC LIMIT 20').all();
+      res.json({ ok: true, predictions: rows });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   // 반복출현번호 분석용 - drw_no, numbers, bonus, drw_date 전체 반환
   router.get('/api/lotto/history-full', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
