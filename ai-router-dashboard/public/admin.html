@@ -2379,15 +2379,12 @@
     }
 
     async function loadLottoPrediction() {
-      // 현재 보이는 패널에 따라 올바른 엘리먼트 선택
-      const patternPanel = document.getElementById('lotto-panel-pattern');
+      // 보이는 패널의 결과 엘리먼트에 렌더링
+      const elTab = document.getElementById('prediction-result-tab');
+      const elPattern = document.getElementById('prediction-result');
       const predPanel = document.getElementById('lotto-panel-prediction');
-      let el;
-      if (patternPanel && patternPanel.style.display !== 'none') {
-        el = document.getElementById('prediction-result');
-      } else {
-        el = document.getElementById('prediction-result-tab');
-      }
+      const isPredTab = predPanel && predPanel.style.display !== 'none';
+      const el = isPredTab ? elTab : (elPattern || elTab);
       if (!el) return;
       el.style.display = '';
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
