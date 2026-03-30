@@ -2169,33 +2169,48 @@
     <div id="tab-datacollect" class="tab-content" style="display:none;">
       <div class="sp-page">
 
-        <!-- 단계 안내 -->
-        <div class="sp-card"
-          style="background:linear-gradient(135deg,#161B22,#1a2030);border:1px solid #2A2A2A;margin-bottom:20px;">
-          <div style="font-size:1rem;font-weight:800;color:#4f8fff;margin-bottom:12px;">📋 퀀트 트레이딩 시스템 구성 요소</div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-            <div style="background:#0D1117;border-radius:10px;padding:14px;border:2px solid #4f8fff;">
-              <div style="font-size:1.2rem;margin-bottom:6px;">1️⃣</div>
-              <div style="font-weight:700;color:#4f8fff;margin-bottom:4px;">데이터 수집</div>
-              <div style="font-size:0.78rem;color:#9CA3AF;">주가, 재무제표, 거시지표 등 과거 데이터를 모읍니다</div>
-            </div>
-            <div style="background:#0D1117;border-radius:10px;padding:14px;border:1px solid #2A2A2A;">
-              <div style="font-size:1.2rem;margin-bottom:6px;">2️⃣</div>
-              <div style="font-weight:700;color:#E5E7EB;margin-bottom:4px;">전략 모델링</div>
-              <div style="font-size:0.78rem;color:#9CA3AF;">특정 조건이 충족되면 매수/매도하는 수학적 규칙을 만듭니다</div>
-            </div>
-            <div style="background:#0D1117;border-radius:10px;padding:14px;border:1px solid #2A2A2A;">
-              <div style="font-size:1.2rem;margin-bottom:6px;">3️⃣</div>
-              <div style="font-weight:700;color:#E5E7EB;margin-bottom:4px;">백테스팅</div>
-              <div style="font-size:0.78rem;color:#9CA3AF;">과거 데이터에 전략을 적용해 성과를 검증합니다</div>
-            </div>
-            <div style="background:#0D1117;border-radius:10px;padding:14px;border:1px solid #2A2A2A;">
-              <div style="font-size:1.2rem;margin-bottom:6px;">4️⃣</div>
-              <div style="font-weight:700;color:#E5E7EB;margin-bottom:4px;">자동 실행</div>
-              <div style="font-size:0.78rem;color:#9CA3AF;">검증된 알고리즘을 통해 자동으로 매매를 수행합니다</div>
+        <!-- 탭바 -->
+        <div id="dcTabBar" style="display:flex;gap:0;margin-bottom:20px;border-radius:12px;overflow:hidden;border:1px solid #2A2A2A;background:#1E242C;">
+          <button id="dcTabStock" onclick="switchDcTab('stock')"
+            style="flex:1;padding:12px;border:none;background:#4f8fff;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
+            🔍 종목 분석
+          </button>
+          <button id="dcTabKorea" onclick="switchDcTab('korea')"
+            style="flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
+            🇰🇷 한국 시장 TOP 10
+          </button>
+        </div>
+
+        <!-- ===== 종목 분석 패널 ===== -->
+        <div id="dcPanelStock">
+
+          <!-- 단계 안내 -->
+          <div class="sp-card"
+            style="background:linear-gradient(135deg,#161B22,#1a2030);border:1px solid #2A2A2A;margin-bottom:20px;">
+            <div style="font-size:1rem;font-weight:800;color:#4f8fff;margin-bottom:12px;">📋 퀀트 트레이딩 시스템 구성 요소</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+              <div style="background:#0D1117;border-radius:10px;padding:14px;border:2px solid #4f8fff;">
+                <div style="font-size:1.2rem;margin-bottom:6px;">1️⃣</div>
+                <div style="font-weight:700;color:#4f8fff;margin-bottom:4px;">데이터 수집</div>
+                <div style="font-size:0.78rem;color:#9CA3AF;">주가, 재무제표, 거시지표 등 과거 데이터를 모읍니다</div>
+              </div>
+              <div style="background:#0D1117;border-radius:10px;padding:14px;border:1px solid #2A2A2A;">
+                <div style="font-size:1.2rem;margin-bottom:6px;">2️⃣</div>
+                <div style="font-weight:700;color:#E5E7EB;margin-bottom:4px;">전략 모델링</div>
+                <div style="font-size:0.78rem;color:#9CA3AF;">특정 조건이 충족되면 매수/매도하는 수학적 규칙을 만듭니다</div>
+              </div>
+              <div style="background:#0D1117;border-radius:10px;padding:14px;border:1px solid #2A2A2A;">
+                <div style="font-size:1.2rem;margin-bottom:6px;">3️⃣</div>
+                <div style="font-weight:700;color:#E5E7EB;margin-bottom:4px;">백테스팅</div>
+                <div style="font-size:0.78rem;color:#9CA3AF;">과거 데이터에 전략을 적용해 성과를 검증합니다</div>
+              </div>
+              <div style="background:#0D1117;border-radius:10px;padding:14px;border:1px solid #2A2A2A;">
+                <div style="font-size:1.2rem;margin-bottom:6px;">4️⃣</div>
+                <div style="font-weight:700;color:#E5E7EB;margin-bottom:4px;">자동 실행</div>
+                <div style="font-size:0.78rem;color:#9CA3AF;">검증된 알고리즘을 통해 자동으로 매매를 수행합니다</div>
+              </div>
             </div>
           </div>
-        </div>
 
         <!-- 통합 종목 검색 + 분석 -->
         <div class="sp-card" style="margin-bottom:20px;">
@@ -2261,15 +2276,27 @@
           <div id="dc-history-result"></div>
         </div>
 
-        <!-- 한국 시장 TOP 10 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🇰🇷 한국 시장 TOP 10</div>
-            <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-green sp-btn-sm">수급 분석</button>
+      </div>
+        </div><!-- /dcPanelStock -->
+
+        <!-- ===== 한국 시장 TOP 10 패널 ===== -->
+        <div id="dcPanelKorea" style="display:none;">
+          <div class="sp-card"
+            style="background:linear-gradient(135deg,#161B22,#1a2030);border:1px solid #2A2A2A;margin-bottom:20px;">
+            <div style="font-size:1rem;font-weight:800;color:#22c55e;margin-bottom:6px;">🇰🇷 한국 시장 TOP 10</div>
+            <div style="font-size:0.83rem;color:#9CA3AF;">거래량 + RSI 복합 점수 기반 상위 종목 분석</div>
           </div>
-          <p style="font-size:0.82rem;color:#636366;margin-bottom:14px;">거래량 + RSI 복합 점수 기반 상위 종목</p>
-          <div id="koreaResult"></div>
-        </div>
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div class="sp-card-title">🇰🇷 한국 시장 TOP 10</div>
+              <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-green sp-btn-sm">🔄 수급 분석</button>
+            </div>
+            <p style="font-size:0.82rem;color:#636366;margin-bottom:14px;">거래량 + RSI 복합 점수 기반 상위 종목</p>
+            <div id="koreaResult">
+              <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">수급 분석 버튼을 눌러주세요</div>
+            </div>
+          </div>
+        </div><!-- /dcPanelKorea -->
 
       </div>
     </div>
@@ -2622,7 +2649,7 @@
               style="margin-top:16px;padding:12px;background:#1E242C;border-radius:8px;font-size:0.8rem;color:#9CA3AF;">
               <div style="font-weight:700;color:#E5E7EB;margin-bottom:6px;">📖 신호 방식 설명</div>
               <div style="margin-bottom:4px;">🟢 <strong>MACD 골든크로스</strong> — 단기 이평선이 장기 이평선을 상향 돌파 시 매수</div>
-              <div style="margin-bottom:4px;">🟡 <strong>RSI 과매도</strong> — RSI &lt; 35 구간에서 매수 신호 (35 권장)</div>
+              <div style="margin-bottom:4px;">🟡 <strong>RSI 과매도</strong> — RSI &lt; 40 구간에서 매수 신호</div>
               <div>🔴 <strong>익절/손절</strong> — 설정한 % 도달 시 자동 매도</div>
             </div>
           </div>
@@ -2891,7 +2918,7 @@
                     <div>
                       <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟡 RSI 과매도 반등</div>
                       <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold"
-                          value="35" min="20" max="50"
+                          value="40" min="20" max="50"
                           style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;">
                         구간 진입</div>
                     </div>
@@ -4121,6 +4148,23 @@
     }
 
     // ===== 미국/한국 탭 전환 =====
+    // ===== 데이터 수집 탭 전환 =====
+    window.switchDcTab = function (tab) {
+      const stockPanel = document.getElementById('dcPanelStock');
+      const koreaPanel = document.getElementById('dcPanelKorea');
+      const stockBtn = document.getElementById('dcTabStock');
+      const koreaBtn = document.getElementById('dcTabKorea');
+      const activeStyle = 'flex:1;padding:12px;border:none;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;';
+      const inactiveStyle = 'flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;';
+
+      if (stockPanel) stockPanel.style.display = tab === 'stock' ? '' : 'none';
+      if (koreaPanel) koreaPanel.style.display = tab === 'korea' ? '' : 'none';
+      if (stockBtn) stockBtn.style.cssText = tab === 'stock' ? activeStyle + 'background:#4f8fff;' : inactiveStyle;
+      if (koreaBtn) koreaBtn.style.cssText = tab === 'korea' ? activeStyle + 'background:#22c55e;' : inactiveStyle;
+
+      if (tab === 'korea') { if (typeof loadKoreaAnalysis === 'function') loadKoreaAnalysis(); }
+    };
+
     window.switchQuantTab = function (tab) {
       const usPanel = document.getElementById('quantPanelUs');
       const krPanel = document.getElementById('quantPanelKr');
@@ -4140,7 +4184,7 @@
       autoBtn.style.cssText = tab === 'auto' ? 'flex:1;padding:12px;border:none;background:#0f172a;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#4f46e5;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); loadAutoStrategyLog(); }
-      if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); loadCombinedSignal(); }
+      if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); }
       // 퀀트 탭 진입 시 성향 체크 (매번 확인)
       checkInvestorProfile();
     };
@@ -4228,7 +4272,7 @@
         document.getElementById('asSma200Filter').checked = s.sma200_filter ?? true;
         document.getElementById('asUseMacd').checked = s.use_macd ?? true;
         document.getElementById('asUseRsi').checked = s.use_rsi ?? true;
-        document.getElementById('asRsiThreshold').value = s.rsi_threshold ?? 35;
+        document.getElementById('asRsiThreshold').value = s.rsi_threshold ?? 40;
         document.getElementById('asUseBb').checked = s.use_bb ?? true;
         document.getElementById('asBalanceRatio').value = Math.round((s.balance_ratio ?? 0.2) * 100);
         document.getElementById('asMaxPositions').value = s.max_positions ?? 5;
@@ -4875,25 +4919,17 @@
           if (subMenu) subMenu.classList.add('open');
           if (parentBtnEl) parentBtnEl.classList.add('open');
         }
-        // switchQuantTab 호출
-        if (typeof switchQuantTab === 'function') switchQuantTab(subKey);
+        // switchQuantTab 호출 (자동매매)
+        if (tabKey === 'quant' && typeof switchQuantTab === 'function') switchQuantTab(subKey);
+        // switchDcTab 호출 (데이터 수집)
+        if (tabKey === 'datacollect' && typeof switchDcTab === 'function') switchDcTab(subKey);
       }
 
-      // performance 탭은 switchTab 이전에 처리
-      if (tabKey === 'performance') {
-        const perfTab = document.getElementById('tab-performance');
-        if (perfTab) { perfTab.style.display = 'block'; }
+      // datacollect 탭 - 서브키 없이 진입 시 기본 탭(stock) 활성화
+      if (tabKey === 'datacollect' && !subKey) {
         setTimeout(() => {
-          if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
-          if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
-          if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
-          if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
-          if (typeof loadTradeHistory === 'function') loadTradeHistory();
-          if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
-          if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
-          if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
-        }, 300);
-        return;
+          if (typeof switchDcTab === 'function') switchDcTab('stock');
+        }, 100);
       }
 
       // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
@@ -5349,102 +5385,37 @@
       const wrap = document.getElementById('bt-save-wrap');
       if (wrap) wrap.style.display = 'block';
     };
-    // ── saveAutoTradeSettings 오버라이드 ─────────────────────────────
-    // 버그 수정: _origSave 선언 순서 수정 + API 이중 호출 제거
-    const _origSave = typeof window.saveAutoTradeSettings === 'function'
-      ? window.saveAutoTradeSettings : null;
+    const _origSave = window.saveAutoTradeSettings;
     window.saveAutoTradeSettings = async function (...args) {
+      // 기존 저장 실행
+      if (typeof _origSave === 'function') await _origSave.apply(this, args);
+      // 팩터 설정 추가 저장
       try {
-        if (typeof _origSave === 'function') await _origSave.apply(this, args);
         const factorStrategy = document.getElementById('atFactorStrategy')?.value || 'value_quality';
         const factorMarket = _selectedMarket || 'nasdaq';
+        const cur = await (await fetch('/api/auto-trade/settings')).json();
         await fetch('/api/auto-trade/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ factor_strategy: factorStrategy, factor_market: factorMarket })
+          body: JSON.stringify({ ...cur, factor_strategy: factorStrategy, factor_market: factorMarket })
         });
       } catch (e) { console.error('팩터 설정 저장 오류:', e); }
       setTimeout(renderAtSavedSettings, 500);
     };
 
-    // ── loadAutoTradeSettings 오버라이드 ─────────────────────────────
-    const _origLoad = typeof window.loadAutoTradeSettings === 'function'
-      ? window.loadAutoTradeSettings : null;
+    // loadAutoTradeSettings 오버라이드 — 팩터 설정도 복원
+    const _origLoad = window.loadAutoTradeSettings;
     window.loadAutoTradeSettings = async function (...args) {
+      if (typeof _origLoad === 'function') await _origLoad.apply(this, args);
       try {
-        if (typeof _origLoad === 'function') await _origLoad.apply(this, args);
         const d = await (await fetch('/api/auto-trade/settings')).json();
+        // 팩터 전략 복원
         const fs = document.getElementById('atFactorStrategy');
         if (fs && d.factor_strategy) fs.value = d.factor_strategy;
+        // 시장 선택 복원
         if (d.factor_market) setMarket(d.factor_market);
-      } catch (e) { console.error('설정 로드 오류:', e); }
+      } catch (e) { }
       renderAtSavedSettings();
-    };
-
-    // ── 단순 자동매매 실시간 폴링 (30초) ─────────────────────────────
-    let _simpleTradePoller = null;
-    const _origToggleSimple = typeof window.toggleSimpleAutoTrade === 'function'
-      ? window.toggleSimpleAutoTrade : null;
-    window.toggleSimpleAutoTrade = async function (...args) {
-      if (typeof _origToggleSimple === 'function') await _origToggleSimple.apply(this, args);
-      setTimeout(async () => {
-        try {
-          const d = await (await fetch('/api/simple-auto-trade/state')).json();
-          const enabled = d.state?.enabled;
-          if (enabled) {
-            if (!_simpleTradePoller) {
-              _simpleTradePoller = setInterval(() => {
-                if (typeof loadSimpleTradeState === 'function') loadSimpleTradeState();
-              }, 30000);
-            }
-          } else {
-            if (_simpleTradePoller) { clearInterval(_simpleTradePoller); _simpleTradePoller = null; }
-          }
-        } catch (e) {}
-      }, 500);
-    };
-
-    // ── 성과 스냅샷 자동 저장 스케줄러 (KST 06:05 = 미국 장 마감 후) ─
-    (function autoSnapshotScheduler() {
-      function msUntilSnapshot() {
-        const now = new Date();
-        const target = new Date();
-        target.setHours(6, 5, 0, 0);
-        if (now >= target) target.setDate(target.getDate() + 1);
-        return target - now;
-      }
-      function scheduleSnapshot() {
-        setTimeout(async () => {
-          try {
-            const res = await fetch('/api/performance/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-            const d = await res.json();
-            if (d.ok) console.log('[spagenio] 성과 스냅샷 자동 저장 완료');
-          } catch (e) {}
-          scheduleSnapshot();
-        }, msUntilSnapshot());
-      }
-      scheduleSnapshot();
-    })();
-
-    // TOP5 분석 결과 캐싱 (탭 재진입 시 즉시 표시, 5분 유효)
-    let _topPicksCache = null;
-    let _topPicksCacheTime = 0;
-    const _origLoadTopPicks = typeof window.loadTopPicks === 'function'
-      ? window.loadTopPicks : null;
-    window.loadTopPicks = async function (...args) {
-      const now = Date.now();
-      if (_topPicksCache && (now - _topPicksCacheTime) < 5 * 60 * 1000) {
-        const el = document.getElementById('topPicksList');
-        if (el) { el.innerHTML = _topPicksCache; return; }
-      }
-      if (typeof _origLoadTopPicks === 'function') {
-        await _origLoadTopPicks.apply(this, args);
-        const el = document.getElementById('topPicksList');
-        if (el && el.innerHTML && !el.innerHTML.includes('분석 버튼')) {
-          _topPicksCache = el.innerHTML;
-          _topPicksCacheTime = Date.now();
-        }
-      }
     };
   </script>
 </body>
