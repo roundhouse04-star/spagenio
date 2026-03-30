@@ -559,13 +559,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/lotto/prediction/check', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      const { prediction_id, actual_round } = req.body;
-      if (!prediction_id || !actual_round) return res.status(400).json({ error: '필수값 누락' });
+      const { prediction_id } = req.body;
+      if (!prediction_id) return res.status(400).json({ error: '필수값 누락' });
       const pred = db.prepare('SELECT * FROM lotto_predictions WHERE id=?').get(prediction_id);
       if (!pred) return res.status(404).json({ error: '예측 없음' });
       const picks = JSON.parse(pred.picks);
       // based_on_round 다음 회차로 자동 계산
-      const nextRound = actual_round || (pred.based_on_round + 1);
+      const actual_round = pred.predicted_for_round || (pred.based_on_round + 1);
       const actual = db.prepare('SELECT numbers FROM lotto_history WHERE drw_no=?').get(nextRound);
       if (!actual) return res.status(200).json({ ok: false, pending: true, error: `${nextRound}회 아직 추첨 전입니다` });
       const actualNums = JSON.parse(actual.numbers);
