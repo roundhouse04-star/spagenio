@@ -2510,12 +2510,20 @@
 
         // 회차 콤보박스 채우기
         if (updateFilter) {
-          const rounds = [...new Set(d.predictions.map(p => p.predicted_for_round || p.based_on_round + 1))].sort((a,b) => b-a);
           const sel = document.getElementById('pred-round-filter');
           if (sel) {
             const curVal = sel.value;
-            sel.innerHTML = '<option value="">전체 회차</option>' +
-              rounds.map(r => `<option value="${r}" ${curVal == r ? 'selected' : ''}>${r}회 예측</option>`).join('');
+            let maxRound = 1218;
+            try {
+              const hr = await fetch('/api/lotto/history-full?limit=1');
+              const hd = await hr.json();
+              if (hd.history?.length) maxRound = hd.history[0].drw_no + 1;
+            } catch(e) {}
+            let options = '<option value="">전체 회차</option>';
+            for (let r = maxRound; r >= 800; r--) {
+              options += `<option value="${r}" ${curVal == r ? 'selected' : ''}>${r}회</option>`;
+            }
+            sel.innerHTML = options;
           }
         }
         // 선택된 회차 필터링
