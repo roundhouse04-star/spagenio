@@ -619,43 +619,20 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined', factor_strategy: 'value_quality', factor_market: 'nasdaq' });
   });
 
-  // 레버리지/인버스/선물 ETF 블랙리스트 (서버 사이드)
-  const SERVER_BLOCKED_SYMBOLS = new Set([
-    'TQQQ','SQQQ','UPRO','SPXU','UDOW','SDOW','TNA','TZA','LABU','LABD',
-    'NUGT','DUST','JNUG','JDST','TECL','TECS','FAS','FAZ','ERX','ERY',
-    'NAIL','DRN','DRV','CURE','DFEN','WANT','WEBS','RETL','SOXL','SOXS',
-    'FNGU','FNGD','BULZ','BERZ','HIBS','HIBL','DPST','DSOS','UCO','SCO',
-    'BOIL','KOLD','UNG','UGAZ','DGAZ','USO','BNO','DBO','UGA',
-    'SH','PSQ','DOG','RWM','MYY','SBB','REK','EFZ','EUM','SRS',
-    'DDM','QID','SDS','SRTY','SPDN','HDGE','BITO','BITI',
-    'VXX','UVXY','SVXY','VIXY','VIXM','ZIV',
-    'TMF','TMV','TBT','TBF','TTT','PST','TYO',
-  ]);
-  const filterBlockedSymbols = (symbolStr) => {
-    if (!symbolStr) return symbolStr;
-    return symbolStr.split(',')
-      .map(s => s.trim()).filter(Boolean)
-      .filter(s => !SERVER_BLOCKED_SYMBOLS.has(s.toUpperCase()))
-      .join(',');
-  };
-
   router.post('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market } = req.body;
     const fs = factor_strategy || 'value_quality';
     const fm = factor_market || 'nasdaq';
-    // 저장 시 레버리지/인버스/선물 ETF 자동 필터링
-    const filteredSymbols = filterBlockedSymbols(symbols);
-    const blockedCount = (symbols || '').split(',').filter(s => SERVER_BLOCKED_SYMBOLS.has(s.trim().toUpperCase())).length;
     const existing = db.prepare('SELECT id FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
     if (existing) {
       db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-        .run(enabled ? 1 : 0, filteredSymbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, req.user.id);
+        .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, req.user.id);
     } else {
       db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market) VALUES (?,?,?,?,?,?,?,?,?)')
-        .run(req.user.id, enabled ? 1 : 0, filteredSymbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm);
+        .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm);
     }
-    res.json({ ok: true, filtered: blockedCount > 0, blocked_count: blockedCount });
+    res.json({ ok: true });
   });
 
   router.get('/api/auto-trade/log', (req, res) => {
@@ -818,83 +795,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         } catch(e) {}
       }));
 
-      // 인버스/레버리지/선물 ETF 필터링
-      const BLOCKED_US = new Set([
-        // 레버리지 ETF
-        'TQQQ','SQQQ','UPRO','SPXU','UDOW','SDOW','TNA','TZA','LABU','LABD',
-        'NUGT','DUST','JNUG','JDST','TECL','TECS','FAS','FAZ','ERX','ERY',
-        'NAIL','DRN','DRV','CURE','DFEN','WANT','WEBS','RETL','SOXL','SOXS',
-        'FNGU','FNGD','BULZ','BERZ','HIBS','HIBL','DPST','DSOS','UCO','SCO',
-        'BOIL','KOLD','UNG','UGAZ','DGAZ','USO','BNO','DBO','UGA',
-        // 인버스 ETF
-        'SH','PSQ','DOG','RWM','MYY','SBB','REK','EFZ','EUM','SRS',
-        'DDM','QID','SDS','SRTY','SPDN','HDGE','BITO','BITI',
-        // 변동성 관련
-        'VXX','UVXY','SVXY','VIXY','VIXM','ZIV',
-        // 채권/금리 레버리지
-        'TMF','TMV','TBT','TBF','TTT','SPTL','PST','TYO',
-      ]);
-      // 심볼 패턴으로 추가 필터 (2x, 3x, -1x, -2x, -3x 등)
-      const isBlockedUs = (sym) => {
-        if (BLOCKED_US.has(sym)) return true;
-        if (/^(PRO|ULT|UPR|3X|2X)/i.test(sym)) return true;
-        return false;
-      };
-      const filteredScored = scored.filter(s => !isBlockedUs(s.symbol));
-      filteredScored.sort((a, b) => b.score - a.score);
-      res.json({ ok: true, picks: filteredScored.slice(0, 5), total_analyzed: symbols.length });
-    } catch(e) { res.status(500).json({ error: e.message }); }
-  });
-
-  // ✅ 한국 TOP-PICKS (일반 자동매매 한국 탭용)
-  router.get('/api/auto-trade/kr-top-picks', async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    try {
-      // quant 서버(stock_server.py)의 /api/quant/korea 호출
-      const quantBase = process.env.QUANT_SERVER_URL || 'http://localhost:5002';
-      const koreaRes = await fetch(`${quantBase}/api/quant/korea`);
-      if (!koreaRes.ok) return res.status(502).json({ error: '한국 시장 분석 실패' });
-      const data = await koreaRes.json();
-      const top10 = data.top10 || [];
-      if (!top10.length) return res.json({ ok: true, picks: [] });
-
-      // 인버스/레버리지/ETN/선물 한국 종목 필터링
-      const KR_BLOCKED_KEYWORDS = [
-        '인버스','레버리지','곱버스','선물','ETN','합성','단기','울트라',
-        'INVERSE','LEVERAGE','FUTURES','SHORT','ULTRA','2X','3X',
-        '인덱스스왑','스왑','파생','옵션','자산배분','혼합'
-      ];
-      const isBlockedKr = (item) => {
-        const name = (item.name || '').toUpperCase();
-        const ticker = (item.ticker || '').toUpperCase();
-        // ETN 계열 (심볼 580xxx, 590xxx 대역)
-        const code = ticker.replace(/\.(KS|KQ)$/, '');
-        if (/^(58|59)\d{4}$/.test(code)) return true;
-        // 이름에 키워드 포함
-        return KR_BLOCKED_KEYWORDS.some(kw => name.includes(kw.toUpperCase()));
-      };
-      const filteredTop10 = top10.filter(item => !isBlockedKr(item));
-
-      // TOP5만 추려서 top-picks 형식으로 변환
-      const picks = filteredTop10.slice(0, 5).map((item, i) => {
-        const signals = [];
-        if (item.volume_ratio && item.volume_ratio > 1.5) signals.push(`📊 거래량 ${item.volume_ratio.toFixed(1)}x`);
-        if (item.rsi && item.rsi < 40) signals.push(`RSI ${item.rsi.toFixed(0)} 과매도`);
-        if (item.rsi && item.rsi > 60) signals.push(`RSI ${item.rsi.toFixed(0)} 강세`);
-        if (item.score) signals.push(`점수 ${item.score}`);
-        return {
-          symbol: item.ticker,
-          name: item.name || item.ticker,
-          score: item.score || (10 - i),
-          price: item.price || 0,
-          change_pct: item.change_pct || 0,
-          signals,
-          rsi: item.rsi || null,
-          market: item.ticker.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI'
-        };
-      });
-
-      res.json({ ok: true, picks, total_analyzed: top10.length });
+      scored.sort((a, b) => b.score - a.score);
+      res.json({ ok: true, picks: scored.slice(0, 5), total_analyzed: symbols.length });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -934,18 +836,44 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const userId = req.user.user_id || req.user.id;
       const { symbol, stop_loss_pct = 0.05, risk_ratio = 0.02 } = req.body;
       if (!symbol) return res.status(400).json({ error: 'symbol 필수' });
-      const keys = getUserAlpacaKeys(userId, null);
-      if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
-      const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
-      const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
-      const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
-      const balance = parseFloat(account.equity) || 0;
-      // 현재가 조회
-      const end = new Date().toISOString().split('T')[0];
-      const start = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=5`, { headers })).json()).bars || [];
-      const price = bars.length ? bars[bars.length - 1].c : 0;
-      if (!price) return res.status(400).json({ error: '현재가 조회 실패' });
+
+      // 계좌 잔고 조회 (Alpaca)
+      let balance = 100000; // 기본값
+      try {
+        const keys = getUserAlpacaKeys(userId, null);
+        if (keys) {
+          const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+          const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
+          const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+          balance = parseFloat(account.equity) || balance;
+        }
+      } catch(e) {}
+
+      // 현재가 조회 - stock_server.py(yfinance) 우선, 실패 시 Alpaca
+      let price = 0;
+      try {
+        const stockBase = process.env.STOCK_SERVER_URL || 'http://localhost:5001';
+        const priceRes = await fetch(`${stockBase}/api/stock/prices?symbols=${symbol}`);
+        const priceData = await priceRes.json();
+        const stock = (priceData.stocks || [])[0];
+        if (stock?.price) price = stock.price;
+      } catch(e) {}
+
+      // yfinance 실패 시 Alpaca bars 시도
+      if (!price) {
+        try {
+          const keys = getUserAlpacaKeys(userId, null);
+          if (keys) {
+            const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
+            const end = new Date().toISOString().split('T')[0];
+            const start = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=5`, { headers })).json()).bars || [];
+            if (bars.length) price = bars[bars.length - 1].c;
+          }
+        } catch(e) {}
+      }
+
+      if (!price) return res.status(400).json({ error: '현재가 조회 실패 — 종목 심볼을 확인해주세요' });
       const result = calcRiskPosition(balance, price, stop_loss_pct, risk_ratio);
       res.json({ ok: true, symbol, price, balance, ...result });
     } catch(e) { res.status(500).json({ error: e.message }); }
