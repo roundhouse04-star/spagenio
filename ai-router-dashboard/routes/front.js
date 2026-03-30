@@ -222,7 +222,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const quantPath = req.path.replace('/proxy/quant', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5002${quantPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
-      res.json(await response.json());
+      const rawText = await response.text();
+      const cleanText = rawText.replace(/:\s*NaN/g, ': null').replace(/:\s*Infinity/g, ': null').replace(/:\s*-Infinity/g, ': null');
+      res.json(JSON.parse(cleanText));
     } catch (error) { res.status(500).json({ error: '퀀트 서버 연결 실패', detail: error.message }); }
   });
 
