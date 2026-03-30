@@ -642,7 +642,7 @@ async function searchStock(query) {
         ? `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#fff7ed;color:#c2410c;font-weight:700;">${r.symbol.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI'}</span>`
         : `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-weight:700;">${r.exchange}</span>`;
       return `
-        <div onclick="selectStock('${r.symbol}')"
+        <div data-symbol="${r.symbol}" data-name="${r.name||r.shortname||r.longname||r.symbol}" onclick="selectStock(this.dataset.symbol, this.dataset.name)"
           style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background 0.1s;"
           onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
           <div>
