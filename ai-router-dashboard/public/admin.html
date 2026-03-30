@@ -983,6 +983,10 @@
             style="flex:1;padding:10px;border:none;background:var(--panel2,#f8fafc);color:var(--muted,#64748b);font-weight:700;font-size:0.9rem;cursor:pointer;">
             📊 패턴분석
           </button>
+          <button id="lotto-tab-prediction" onclick="switchLottoTab('prediction')"
+            style="flex:1;padding:10px;border:none;background:var(--panel2,#f8fafc);color:var(--muted,#64748b);font-weight:700;font-size:0.9rem;cursor:pointer;">
+            🎯 예측번호
+          </button>
         </div>
 
         <!-- 메인 탭 -->
@@ -1232,6 +1236,45 @@
             </div>
           </div>
         </div><!-- /lotto-panel-pattern -->
+
+        <!-- 예측번호 패널 -->
+        <div id="lotto-panel-prediction" style="display:none;">
+
+          <!-- 예측 실행 카드 -->
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div style="font-weight:700;font-size:1rem;">🎯 다음 회차 예측</div>
+                <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">이월확률 + 구간균형 + DB가중치 종합 알고리즘</div>
+              </div>
+              <button onclick="loadLottoPrediction()" class="btn" style="background:#22c55e;color:#fff;font-weight:700;padding:10px 20px;">🎯 예측 실행</button>
+            </div>
+            <div id="prediction-result-tab" style="display:none;"></div>
+          </div>
+
+          <!-- 예측 이력 카드 -->
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">📋 예측 이력</div>
+              <button onclick="loadPredictionHistoryTab()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+            </div>
+            <div id="prediction-history-tab">
+              <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+            </div>
+          </div>
+
+          <!-- 가중치 현황 카드 -->
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">⚖️ 번호별 가중치 현황</div>
+              <button onclick="loadWeightsTable()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+            </div>
+            <div id="weights-table">
+              <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+            </div>
+          </div>
+
+        </div><!-- /lotto-panel-prediction -->
 
       </div>
 
@@ -1645,6 +1688,42 @@
           </tr>
         `).join('') || '<tr><td colspan="7" class="empty">가입자 없음</td></tr>';
       } catch (e) { console.error(e); }
+    }
+
+    // 가중치 현황 테이블
+    async function loadWeightsTable() {
+      const el = document.getElementById('weights-table');
+      if (!el) return;
+      try {
+        const res = await fetch('/api/lotto/weights');
+        if (!res.ok) { el.innerHTML = '<div style="color:#ef4444;padding:12px;">가중치 조회 실패</div>'; return; }
+        const d = await res.json();
+        const weights = d.weights || [];
+        if (!weights.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">가중치 데이터 없음</div>'; return; }
+        const bColors = ['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC = n => n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        // 가중치 높은 순 정렬
+        const sorted = [...weights].sort((a,b) => b.weight - a.weight);
+        const maxW = Math.max(...weights.map(w => w.weight));
+        const html = `
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:12px;">
+            총 ${weights.length}개 번호 · 최고 가중치: ${maxW.toFixed(2)} · 
+            <span style="color:#22c55e;">초록 = 높음</span> / 
+            <span style="color:#ef4444;">빨강 = 낮음</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">
+            ${sorted.map(w => {
+              const pct = (w.weight / maxW * 100).toFixed(0);
+              const color = w.weight >= 1.2 ? '#22c55e' : w.weight <= 0.8 ? '#ef4444' : getC(w.num);
+              return `<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;border:1px solid ${color}33;">
+                <div style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${getC(w.num)}22;border:2px solid ${getC(w.num)};color:${getC(w.num)};font-weight:800;font-size:13px;margin-bottom:4px;">${w.num}</div>
+                <div style="font-size:0.72rem;font-weight:700;color:${color};">${w.weight.toFixed(2)}</div>
+                <div style="font-size:0.65rem;color:var(--muted);">${w.hit_count}/${w.appear_count}회</div>
+              </div>`;
+            }).join('')}
+          </div>`;
+        el.innerHTML = html;
+      } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`; }
     }
 
     async function toggleLottoAutoSend(userId, enabled) {
@@ -2150,8 +2229,8 @@
 
     // ===== 로또 탭 전환 =====
     function switchLottoTab(tab) {
-      const panels = { main: 'lotto-panel-main', repeat: 'lotto-panel-repeat', pattern: 'lotto-panel-pattern' };
-      const btns = { main: 'lotto-tab-main', repeat: 'lotto-tab-repeat', pattern: 'lotto-tab-pattern' };
+      const panels = { main: 'lotto-panel-main', repeat: 'lotto-panel-repeat', pattern: 'lotto-panel-pattern', prediction: 'lotto-panel-prediction' };
+      const btns = { main: 'lotto-tab-main', repeat: 'lotto-tab-repeat', pattern: 'lotto-tab-pattern', prediction: 'lotto-tab-prediction' };
       Object.keys(panels).forEach(t => {
         const p = document.getElementById(panels[t]);
         const b = document.getElementById(btns[t]);
@@ -2160,6 +2239,7 @@
       });
       if (tab === 'repeat') loadRepeatNumbers();
       if (tab === 'pattern') loadPatternAnalysis();
+      if (tab === 'prediction') { loadLottoPredictionTab(); loadPredictionHistoryTab(); loadWeightsTable(); }
     }
 
     // ===== 반복출현번호 =====
@@ -2283,7 +2363,24 @@
       } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
     }
 
+    // 예측번호 탭용 - prediction-result-tab에 렌더링
+    async function loadLottoPredictionTab() {
+      const el = document.getElementById('prediction-result-tab');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
+      await _runLottoPrediction(el);
+    }
+
     async function loadLottoPrediction() {
+      const el = document.getElementById('prediction-result') || document.getElementById('prediction-result-tab');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
+      await _runLottoPrediction(el);
+    }
+
+    async function _runLottoPrediction(el) {
       const el = document.getElementById('prediction-result');
       if (!el) return;
       el.style.display = '';
@@ -2348,7 +2445,19 @@
         else spAlert(d.error||'오류','오류','❌');
       } catch(e) { spAlert(e.message,'오류','❌'); }
     }
+    async function loadPredictionHistoryTab() {
+      const el = document.getElementById('prediction-history-tab');
+      if (!el) return;
+      await _renderPredictionHistory(el);
+    }
+
     async function loadPredictionHistory() {
+      const el = document.getElementById('prediction-history');
+      if (!el) return;
+      await _renderPredictionHistory(el);
+    }
+
+    async function _renderPredictionHistory(el) {
       const el = document.getElementById('prediction-history');
       if (!el) return;
       try {
@@ -2358,12 +2467,13 @@
         if (!d.ok||!d.predictions?.length) { el.innerHTML='<div style="font-size:0.8rem;color:#636366;padding:8px;">저장된 예측 없음</div>'; return; }
         const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
         const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
-        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력</div>'+d.predictions.map(p=>{
+        const rows = d.predictions.map(p=>{
           const picks=JSON.parse(p.picks);
           const balls=picks.map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:11px;margin:1px;">${n}</span>`).join('');
           const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<button onclick="checkPrediction(${p.id},${p.predicted_for_round||p.based_on_round+1})" style="font-size:0.72rem;padding:3px 10px;border-radius:999px;border:none;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">🔍 결과 확인</button>`;
           return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.based_on_round}회 기반</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
         }).join('');
+        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+d.predictions.length+'건)</div>'+rows;
       } catch(e) {}
     }
 
