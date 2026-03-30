@@ -2469,9 +2469,26 @@
         const res = await fetch('/api/lotto/prediction/history');
         const d = await res.json();
         if (!d.ok||!d.predictions?.length) { el.innerHTML='<div style="font-size:0.8rem;color:#636366;padding:8px;">저장된 예측 없음</div>'; return; }
+
+        // 회차 콤보박스 채우기
+        if (updateFilter) {
+          const rounds = [...new Set(d.predictions.map(p => p.based_on_round))].sort((a,b) => b-a);
+          const sel = document.getElementById('pred-round-filter');
+          if (sel) {
+            const curVal = sel.value;
+            sel.innerHTML = '<option value="">전체 회차</option>' +
+              rounds.map(r => `<option value="${r}" ${curVal == r ? 'selected' : ''}>${r}회</option>`).join('');
+          }
+        }
+        // 선택된 회차 필터링
+        const filterRound = document.getElementById('pred-round-filter')?.value;
+        const filtered = filterRound
+          ? d.predictions.filter(p => p.based_on_round == filterRound)
+          : d.predictions;
+
         const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
         const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
-        const rows = d.predictions.map(p=>{
+        const rows = filtered.map(p=>{
           const picks=JSON.parse(p.picks);
           const balls=picks.map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:11px;margin:1px;">${n}</span>`).join('');
           const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<button onclick="checkPrediction(${p.id},${p.predicted_for_round||p.based_on_round+1})" style="font-size:0.72rem;padding:3px 10px;border-radius:999px;border:none;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">🔍 결과 확인</button>`;
