@@ -1928,6 +1928,100 @@ setInterval(async () => {
 }, 60 * 1000); // 1분마다 체크
 
 // ============================================================
+// 로또 예측 자동 발송 (서버 시작 시)
+// ============================================================
+async function sendLottoPredictionOnStartup() {
+  try {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const weekNo = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+    const weekKey = `${now.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+
+    const alreadySent = db.prepare('SELECT id FROM lotto_auto_send_log WHERE week_key=?').get(weekKey);
+    if (alreadySent) { console.log(`  🍀 로또 예측: 이번 주(${weekKey}) 이미 발송됨 — 스킵`); return; }
+
+    const latest = db.prepare('SELECT drw_no, numbers FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
+    if (!latest) { console.log('  🍀 로또 예측: 당첨번호 없음'); return; }
+    const latestNums = JSON.parse(latest.numbers);
+
+    const allHistory = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all().map(r => JSON.parse(r.numbers));
+    const numCarry = {};
+    for (let n = 1; n <= 45; n++) numCarry[n] = { appear: 0, carry: 0 };
+    for (let i = 1; i < allHistory.length; i++) {
+      const prev = allHistory[i-1], cur = new Set(allHistory[i]);
+      prev.forEach(n => { numCarry[n].appear++; if (cur.has(n)) numCarry[n].carry++; });
+    }
+    const carryPct = {};
+    for (let n = 1; n <= 45; n++) carryPct[n] = numCarry[n].appear > 0 ? numCarry[n].carry / numCarry[n].appear : 0;
+
+    const getDec = n => n<=9?0:n<=19?1:n<=29?2:n<=39?3:4;
+    const decCarry = Array(5).fill(null).map(()=>({appear:0,carry:0}));
+    for (let i = 1; i < allHistory.length; i++) {
+      const prev = allHistory[i-1], curDecs = new Set(allHistory[i].map(getDec));
+      prev.forEach(n => { const d = getDec(n); decCarry[d].appear++; if (curDecs.has(d)) decCarry[d].carry++; });
+    }
+    const decPct = decCarry.map(d => d.appear > 0 ? d.carry / d.appear : 0);
+
+    const recent20 = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no DESC LIMIT 20').all().map(r => JSON.parse(r.numbers));
+    const recentBonus = {};
+    for (let n = 1; n <= 45; n++) recentBonus[n] = 0;
+    recent20.forEach((nums, idx) => { const w = (20 - idx) / 20; nums.forEach(n => { recentBonus[n] += w * 0.5; }); });
+
+    const dbWeights = {};
+    try { db.prepare('SELECT num, weight FROM lotto_weights').all().forEach(r => { dbWeights[r.num] = r.weight; }); } catch(e) {}
+
+    const scores = {};
+    for (let n = 1; n <= 45; n++) {
+      let s = carryPct[n] * 100 + decPct[getDec(n)] * 30 + recentBonus[n] * 20;
+      if (latestNums.includes(n)) s += carryPct[n] * 50;
+      scores[n] = s * (dbWeights[n] || 1.0);
+    }
+
+    const games = [];
+    for (let g = 0; g < 10; g++) {
+      const picks = new Set();
+      const carryPick = [...latestNums].sort((a,b) => carryPct[b] - carryPct[a])[g % latestNums.length];
+      picks.add(carryPick);
+      const zoneRanges = [[1,9],[10,19],[20,29],[30,39],[40,45]];
+      for (const [lo, hi] of zoneRanges) {
+        if (picks.size >= 6) break;
+        const zone = Object.entries(scores).filter(([n])=>{ const x=parseInt(n); return x>=lo&&x<=hi&&!picks.has(x); }).sort((a,b)=>b[1]-a[1]);
+        if (zone.length > 0) {
+          const top = zone.slice(0, Math.min(5, zone.length));
+          const total = top.reduce((s,[,w])=>s+w, 0);
+          let r = Math.random() * total;
+          let chosen = parseInt(top[0][0]);
+          for (const [n, w] of top) { r -= w; if (r <= 0) { chosen = parseInt(n); break; } }
+          picks.add(chosen);
+        }
+      }
+      const rem = Object.entries(scores).filter(([n])=>!picks.has(parseInt(n))).sort((a,b)=>b[1]-a[1]);
+      for (const [n] of rem) { if (picks.size >= 6) break; picks.add(parseInt(n)); }
+      games.push([...picks].sort((a,b)=>a-b));
+    }
+
+    // lotto_auto_send=1 인 유저만 발송
+    const tgUsers = db.prepare('SELECT ut.* FROM user_telegram ut JOIN users u ON ut.user_id=u.id WHERE u.lotto_auto_send=1').all();
+    for (const tg of tgUsers) {
+      const token = tg.bot_token || process.env.TG_BOT_TOKEN;
+      if (!token || !tg.chat_id) continue;
+      const lines = games.map((g, i) => `${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
+      const msg = `🎯 *이월 패턴 예측 번호* (${latest.drw_no}회 기반)\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합`;
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: tg.chat_id, text: msg, parse_mode: 'Markdown' })
+      }).catch(e => console.log('  텔레그램 오류:', e.message));
+    }
+
+    db.prepare('INSERT OR IGNORE INTO lotto_auto_send_log (week_key, round_no, picks) VALUES (?,?,?)').run(weekKey, latest.drw_no, JSON.stringify(games));
+    games.forEach(picks => {
+      try { db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)').run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)); } catch(e) {}
+    });
+    console.log(`  🍀 로또 예측 발송 완료: ${latest.drw_no}회 기반 10게임 → ${tgUsers.length}명 발송`);
+  } catch(e) { console.log('  🍀 로또 예측 오류:', e.message); }
+}
+
+// ============================================================
 // 서버 시작
 // ============================================================
 // 스케줄러 초기화
@@ -1941,4 +2035,6 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`  ${C.cyan}포트${C.reset}     : ${C.white}${port}${C.reset}`);
   console.log(`  ${C.cyan}Claude${C.reset}   : ${CONFIG.hasKeys.anthropic ? C.green + '✅ 연결됨' : C.red + '❌ API 키 없음'}${C.reset}`);
   console.log('');
+  // 서버 시작 시 로또 예측 자동 발송 (이번 주 미발송 시에만)
+  setTimeout(() => sendLottoPredictionOnStartup(), 3000);
 });

@@ -12,13 +12,22 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
   router.get('/api/admin/users', (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { search } = req.query;
-    let query = 'SELECT id, username, email, created_at, last_login FROM users WHERE 1=1';
+    let query = 'SELECT id, username, email, created_at, last_login, lotto_auto_send FROM users WHERE 1=1';
     const params = [];
     if (search) { query += ' AND username LIKE ?'; params.push('%' + search + '%'); }
     query += ' ORDER BY created_at DESC';
     const users = db.prepare(query).all(...params);
     const result = users.map(u => ({ ...u, email: u.email ? (decryptEmail(u.email) || '(복호화 실패)') : '-' }));
     return res.json({ users: result });
+  });
+
+  // ✅ 로또 자동발송 토글
+  router.post('/api/admin/users/:id/lotto-auto-send', (req, res) => {
+    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+    const { enabled } = req.body;
+    const uid = parseInt(req.params.id);
+    db.prepare('UPDATE users SET lotto_auto_send=? WHERE id=?').run(enabled ? 1 : 0, uid);
+    res.json({ ok: true });
   });
 
   // ✅ 가입자 삭제

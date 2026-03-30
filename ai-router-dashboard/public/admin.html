@@ -678,12 +678,13 @@
                   <th>이메일</th>
                   <th>가입일</th>
                   <th>마지막 로그인</th>
+                  <th>🍀 로또 자동발송</th>
                   <th>관리</th>
                 </tr>
               </thead>
               <tbody id="usersTable">
                 <tr>
-                  <td colspan="6" class="empty">로딩 중...</td>
+                  <td colspan="7" class="empty">로딩 중...</td>
                 </tr>
               </tbody>
             </table>
@@ -968,25 +969,6 @@
       <div class="page" id="page-lotto">
         <div class="page-title">🍀 로또 관리</div>
 
-        <!-- 로또 내부 탭바 -->
-        <div style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
-          <button id="lotto-tab-main" onclick="switchLottoTab('main')"
-            style="flex:1;padding:10px;border:none;background:#6366f1;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">
-            🎯 로또 관리
-          </button>
-          <button id="lotto-tab-repeat" onclick="switchLottoTab('repeat')"
-            style="flex:1;padding:10px;border:none;background:var(--panel2);color:var(--muted);font-weight:700;font-size:0.9rem;cursor:pointer;">
-            🔁 반복출현번호
-          </button>
-          <button id="lotto-tab-pattern" onclick="switchLottoTab('pattern')"
-            style="flex:1;padding:10px;border:none;background:var(--panel2);color:var(--muted);font-weight:700;font-size:0.9rem;cursor:pointer;">
-            📊 패턴분석
-          </button>
-        </div>
-
-        <!-- 메인 탭 -->
-        <div id="lotto-panel-main">
-
         <!-- 통계 -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
           <div class="card" style="text-align:center;padding:18px;">
@@ -1185,54 +1167,6 @@
           </div>
           <div id="lotto-detail-games"></div>
         </div>
-
-        </div><!-- /lotto-panel-main -->
-
-        <!-- 반복출현번호 탭 -->
-        <div id="lotto-panel-repeat" style="display:none;">
-          <div class="card" style="margin-bottom:16px;max-width:100%;overflow:hidden;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-              <div style="font-weight:700;font-size:1rem;">🔁 반복출현번호 분석</div>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <label style="font-size:0.85rem;color:var(--muted);">이월수</label>
-                <input type="number" id="repeat-carry-count" value="5" min="1" max="20"
-                  style="width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);font-size:0.85rem;">
-                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--muted);cursor:pointer;">
-                  <input type="checkbox" id="repeat-include-bonus" checked style="width:16px;height:16px;">
-                  보너스 포함
-                </label>
-                <button onclick="loadRepeatNumbers()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
-              </div>
-            </div>
-            <div id="repeat-result" style="overflow-x:auto;min-width:0;">
-              <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
-            </div>
-          </div>
-        </div><!-- /lotto-panel-repeat -->
-
-        <!-- 패턴분석 탭 -->
-        <div id="lotto-panel-pattern" style="display:none;">
-          <div class="card" style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-              <div style="font-weight:700;font-size:1rem;">📊 패턴분석표</div>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <label style="font-size:0.85rem;color:var(--muted);">회차</label>
-                <input type="number" id="pattern-round" value="1217" min="1"
-                  style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel2);color:var(--text);font-size:0.85rem;">
-                <button onclick="patternPrev()" class="btn" style="padding:6px 12px;background:var(--panel2);color:var(--text);">◀</button>
-                <button onclick="patternNext()" class="btn" style="padding:6px 12px;background:var(--panel2);color:var(--text);">▶</button>
-                <button onclick="loadPatternAnalysis()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
-                <button onclick="loadLottoPrediction()" class="btn" style="background:#22c55e;color:#fff;font-size:0.85rem;">🎯 예측</button>
-              </div>
-            </div>
-            <!-- 예측 결과 -->
-            <div id="prediction-result" style="display:none;margin-bottom:16px;"></div>
-            <!-- 격자 + 연결선 SVG -->
-            <div id="pattern-result" style="overflow-x:auto;">
-              <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
-            </div>
-          </div>
-        </div><!-- /lotto-panel-pattern -->
 
       </div>
 
@@ -1632,10 +1566,33 @@
             <td class="tag">${u.email || '-'}</td>
             <td class="tag">${u.created_at?.slice(0, 16) || '-'}</td>
             <td class="tag">${u.last_login?.slice(0, 16) || '미접속'}</td>
-            <td>${u.username !== 'admin' ? `<button class="btn danger" style="padding:5px 12px;font-size:0.8rem;" onclick="deleteUser(${u.id}, '${u.username}')">삭제</button>` : '-'}</td>
+            <td style="text-align:center;">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" ${u.lotto_auto_send ? 'checked' : ''}
+                onchange="toggleLottoAutoSend(${u.id}, this.checked)"
+                style="width:16px;height:16px;cursor:pointer;">
+              <span style="font-size:0.78rem;color:${u.lotto_auto_send ? '#22c55e' : 'var(--muted)'};">
+                ${u.lotto_auto_send ? '활성' : '비활성'}
+              </span>
+            </label>
+          </td>
+          <td>${u.username !== 'admin' ? `<button class="btn danger" style="padding:5px 12px;font-size:0.8rem;" onclick="deleteUser(${u.id}, '${u.username}')">삭제</button>` : '-'}</td>
           </tr>
-        `).join('') || '<tr><td colspan="6" class="empty">가입자 없음</td></tr>';
+        `).join('') || '<tr><td colspan="7" class="empty">가입자 없음</td></tr>';
       } catch (e) { console.error(e); }
+    }
+
+    async function toggleLottoAutoSend(userId, enabled) {
+      try {
+        const res = await fetch('/api/admin/users/' + userId + '/lotto-auto-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ enabled: enabled ? 1 : 0 })
+        });
+        const d = await res.json();
+        if (d.ok) loadUsers();
+        else spAlert(d.error || '변경 실패', '오류', '❌');
+      } catch(e) { spAlert(e.message, '오류', '❌'); }
     }
 
     async function deleteUser(id, username) {
@@ -2125,414 +2082,6 @@
       const msg = e.reason instanceof Error ? e.reason.message : String(e.reason);
       sendAdminError({ event_type: 'ADMIN_UNHANDLED_REJECTION', error_message: msg, stack_trace: e.reason?.stack || '' });
     });
-
-    // ===== 로또 탭 전환 =====
-    function switchLottoTab(tab) {
-      const panels = { main: 'lotto-panel-main', repeat: 'lotto-panel-repeat', pattern: 'lotto-panel-pattern' };
-      const btns = { main: 'lotto-tab-main', repeat: 'lotto-tab-repeat', pattern: 'lotto-tab-pattern' };
-      Object.keys(panels).forEach(t => {
-        const p = document.getElementById(panels[t]);
-        const b = document.getElementById(btns[t]);
-        if (p) p.style.display = t === tab ? '' : 'none';
-        if (b) { b.style.background = t === tab ? '#6366f1' : 'var(--panel2)'; b.style.color = t === tab ? '#fff' : 'var(--muted)'; }
-      });
-      if (tab === 'repeat') loadRepeatNumbers();
-      if (tab === 'pattern') loadPatternAnalysis();
-    }
-
-    // ===== 패턴분석 =====
-    let _patternHistory = null;
-
-    async function ensurePatternHistory() {
-      if (_patternHistory) return _patternHistory;
-      const res = await fetch('/api/lotto/history-full?limit=500');
-      const d = await res.json();
-      _patternHistory = d.history || [];
-      return _patternHistory;
-    }
-
-    function patternPrev() {
-      const inp = document.getElementById('pattern-round');
-      if (inp && parseInt(inp.value) > 1) { inp.value = parseInt(inp.value) - 1; loadPatternAnalysis(); }
-    }
-    function patternNext() {
-      const inp = document.getElementById('pattern-round');
-      if (inp) { inp.value = parseInt(inp.value) + 1; loadPatternAnalysis(); }
-    }
-
-    // ===== 로또 예측 알고리즘 =====
-    async function loadLottoPrediction() {
-      const el = document.getElementById('prediction-result');
-      el.style.display = '';
-      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
-
-      try {
-        const history = await ensurePatternHistory();
-        if (history.length < 10) { el.innerHTML = '<div style="color:#ef4444;padding:12px;">데이터 부족</div>'; return; }
-
-        const sorted = history.slice().sort((a,b) => b.drw_no - a.drw_no);
-        const latest = sorted[0]; // 최신 회차
-        const latestNums = Array.isArray(latest.numbers) ? latest.numbers : JSON.parse(latest.numbers);
-
-        // ── 1. 번호별 이월 확률 계산 (전체 히스토리 기반) ──
-        const numCarry = {};
-        for (let n = 1; n <= 45; n++) numCarry[n] = { appear: 0, carry: 0 };
-        const asc = history.slice().sort((a,b) => a.drw_no - b.drw_no);
-        for (let i = 1; i < asc.length; i++) {
-          const prev = asc[i-1].numbers;
-          const cur = new Set(asc[i].numbers);
-          prev.forEach(n => {
-            numCarry[n].appear++;
-            if (cur.has(n)) numCarry[n].carry++;
-          });
-        }
-        const carryPct = {};
-        for (let n = 1; n <= 45; n++) {
-          const {appear, carry} = numCarry[n];
-          carryPct[n] = appear > 0 ? carry / appear : 0;
-        }
-
-        // ── 2. 십의자리별 이월 확률 ──
-        const getDec = n => n<=9?0:n<=19?1:n<=29?2:n<=39?3:4;
-        const decCarry = Array(5).fill(null).map(()=>({appear:0,carry:0}));
-        for (let i = 1; i < asc.length; i++) {
-          const prev = asc[i-1].numbers;
-          const curDecs = new Set(asc[i].numbers.map(getDec));
-          prev.forEach(n => {
-            const dec = getDec(n);
-            decCarry[dec].appear++;
-            if (curDecs.has(dec)) decCarry[dec].carry++;
-          });
-        }
-        const decPct = decCarry.map(d => d.appear > 0 ? d.carry / d.appear : 0);
-
-        // ── 3. 최근 N회 출현 가중치 (최근일수록 가중치 높음) ──
-        const recentBonus = {};
-        for (let n = 1; n <= 45; n++) recentBonus[n] = 0;
-        const recentRounds = sorted.slice(0, 20);
-        recentRounds.forEach((h, idx) => {
-          const weight = (20 - idx) / 20; // 최신 회차일수록 높은 가중치
-          h.numbers.forEach(n => recentBonus[n] += weight * 0.5);
-        });
-
-        // ── 4. 이번 회차 번호 기반 이월 예상 점수 계산 ──
-        const scores = {};
-        for (let n = 1; n <= 45; n++) {
-          // 기본 이월 확률
-          let score = carryPct[n] * 100;
-          // 십의자리 가중치
-          score += decPct[getDec(n)] * 30;
-          // 최근 출현 가중치
-          score += recentBonus[n] * 20;
-          // 이번 회차에 나온 번호면 이월 확률 직접 반영
-          if (latestNums.includes(n)) score += carryPct[n] * 50;
-          scores[n] = Math.round(score * 10) / 10;
-        }
-
-        // ── 5. 이월 예상 개수 ──
-        // 통계: 0개=42.9%, 1개=42.9%, 2개=12.9%, 3개=1.2%
-        const latestCarryScores = latestNums.map(n => carryPct[n]);
-        const expectedCarry = Math.round(latestCarryScores.reduce((a,b)=>a+b,0) * 10) / 10;
-
-        // ── 6. 추천 번호 선택 ──
-        // 이번 회차 번호 중 이월 확률 높은 것 1~2개 포함
-        const latestSorted = [...latestNums].sort((a,b) => carryPct[b] - carryPct[a]);
-        const carryPicks = latestSorted.slice(0, 2); // 이월 후보 2개
-
-        // 전체 점수 순위에서 나머지 채우기 (이번 회차 번호 제외)
-        const allScored = Object.entries(scores)
-          .filter(([n]) => !latestNums.includes(parseInt(n)))
-          .sort((a,b) => b[1] - a[1]);
-
-        // 구간 균형 맞추기 (각 구간 최소 1개)
-        const picks = new Set(carryPicks);
-        const zones = [
-          allScored.filter(([n])=>parseInt(n)<=9),
-          allScored.filter(([n])=>{const x=parseInt(n); return x>=10&&x<=19;}),
-          allScored.filter(([n])=>{const x=parseInt(n); return x>=20&&x<=29;}),
-          allScored.filter(([n])=>{const x=parseInt(n); return x>=30&&x<=39;}),
-          allScored.filter(([n])=>parseInt(n)>=40),
-        ];
-        // 부족한 구간 채우기
-        for (const zone of zones) {
-          if (picks.size >= 6) break;
-          const candidate = zone.find(([n]) => !picks.has(parseInt(n)));
-          if (candidate) picks.add(parseInt(candidate[0]));
-        }
-        // 나머지는 점수 순으로
-        for (const [n] of allScored) {
-          if (picks.size >= 6) break;
-          picks.add(parseInt(n));
-        }
-
-        const finalPicks = [...picks].sort((a,b)=>a-b);
-        const ballColors = ['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
-        const getColor = n => n<=9?ballColors[0]:n<=19?ballColors[1]:n<=29?ballColors[2]:n<=39?ballColors[3]:ballColors[4];
-
-        // ── 렌더링 ──
-        const carryBalls = latestNums.sort((a,b)=>a-b).map(n => {
-          const pct = Math.round(carryPct[n]*100);
-          const c = getColor(n);
-          const isCarryPick = carryPicks.includes(n);
-          return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:4px;">
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;
-              background:${isCarryPick ? c : c+'22'};border:2px solid ${c};
-              color:${isCarryPick ? '#fff' : c};font-weight:800;font-size:15px;">${n}</span>
-            <span style="font-size:10px;color:${pct>=15?'#22c55e':pct>=10?'#f59e0b':'#9CA3AF'};font-weight:700;">${pct}%</span>
-          </div>`;
-        }).join('');
-
-        const pickBalls = finalPicks.map(n => {
-          const c = getColor(n);
-          const isCarry = carryPicks.includes(n);
-          return `<span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;
-            background:${c};border:3px solid ${isCarry ? '#fff' : c};
-            color:#fff;font-weight:800;font-size:16px;margin:4px;
-            box-shadow:${isCarry ? '0 0 0 3px '+c : 'none'};">${n}</span>`;
-        }).join('');
-
-        el.innerHTML = `
-          <div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;">
-            <div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">
-              🎯 ${latest.drw_no}회 기반 다음 회차 예측
-            </div>
-
-            <!-- 이번 회차 이월 분석 -->
-            <div style="margin-bottom:16px;">
-              <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">
-                📌 ${latest.drw_no}회 번호별 이월 확률 <span style="color:#22c55e;font-weight:700;">(강조 = 이월 유력)</span>
-              </div>
-              <div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div>
-            </div>
-
-            <!-- 예상 이월 개수 -->
-            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-              <div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;">
-                <div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div>
-                <div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div>
-              </div>
-              <div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;">
-                <div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 확률 분포</div>
-                <div style="font-size:0.8rem;color:#e2e8f0;line-height:1.8;">
-                  0개: 42.9% · 1개: 42.9%<br>2개: 12.9% · 3개: 1.2%
-                </div>
-              </div>
-              <div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;">
-                <div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div>
-                <div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div>
-              </div>
-            </div>
-
-            <!-- 추천 번호 -->
-            <div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #6366f1;">
-              <div style="font-size:0.78rem;color:#a5b4fc;margin-bottom:12px;font-weight:700;">
-                ✨ 다음 회차 추천 번호 (이월 확률 + 구간 균형 + 출현 빈도 종합)
-              </div>
-              <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">${pickBalls}</div>
-              <div style="font-size:0.72rem;color:#636366;margin-top:10px;text-align:center;">
-                ※ 통계 기반 확률 예측이며 당첨을 보장하지 않습니다
-              </div>
-            </div>
-          </div>`;
-
-      } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`;
-      }
-    }
-
-    async function loadPatternAnalysis() {
-      const el = document.getElementById('pattern-result');
-      const roundNo = parseInt(document.getElementById('pattern-round')?.value);
-      if (!roundNo) return;
-      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
-      try {
-        const history = await ensurePatternHistory();
-        const cur = history.find(h => h.drw_no === roundNo);
-        if (!cur) { el.innerHTML = `<div style="text-align:center;color:var(--muted);padding:24px;">${roundNo}회 데이터 없음</div>`; return; }
-
-        const nums = Array.isArray(cur.numbers) ? cur.numbers : JSON.parse(cur.numbers || '[]');
-        const bonus = cur.bonus;
-        const allPicked = [...nums, bonus];
-
-        // 격자: 7열 × 7행 (1~45 + 빈칸)
-        const COLS = 7;
-        const CELL = 52; // 셀 크기
-        const PAD = 20;
-        const totalW = COLS * CELL + PAD * 2;
-        const totalH = Math.ceil(45 / COLS) * CELL + PAD * 2 + 60; // 헤더 포함
-
-        // 번호 → 격자 좌표
-        function getPos(n) {
-          const idx = n - 1;
-          const col = idx % COLS;
-          const row = Math.floor(idx / COLS);
-          return { x: PAD + col * CELL + CELL / 2, y: PAD + 60 + row * CELL + CELL / 2 };
-        }
-
-        // SVG 생성
-        let svg = `<svg width="${totalW}" height="${totalH}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">`;
-
-        // 헤더
-        svg += `<rect x="0" y="0" width="${totalW}" height="56" rx="8" fill="#6366f1"/>`;
-        svg += `<text x="${totalW/2}" y="36" text-anchor="middle" font-size="24" font-weight="800" fill="white" font-family="Arial">${roundNo}회 (${cur.drw_date})</text>`;
-
-        // 배경
-        svg += `<rect x="0" y="56" width="${totalW}" height="${totalH - 56}" fill="#f5f0e8" rx="0"/>`;
-
-        // 연결선 먼저 (공 아래에 그려지도록)
-        const sortedNums = [...nums].sort((a, b) => a - b);
-        for (let i = 0; i < sortedNums.length - 1; i++) {
-          const p1 = getPos(sortedNums[i]);
-          const p2 = getPos(sortedNums[i + 1]);
-          svg += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>`;
-        }
-
-        // 셀 그리기
-        for (let n = 1; n <= 45; n++) {
-          const { x, y } = getPos(n);
-          const picked = nums.includes(n);
-          const isBonus = n === bonus;
-          const cx = x, cy = y, r = CELL / 2 - 4;
-
-          if (picked) {
-            // 당첨번호: 진한 원
-            svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#444" stroke="#333" stroke-width="1.5"/>`;
-            svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="white" font-family="Arial">${n}</text>`;
-          } else if (isBonus) {
-            // 보너스: 테두리만
-            svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"/>`;
-            svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="#ef4444" font-family="Arial">${n}</text>`;
-          } else {
-            // 일반: 빈 사각형 테두리
-            svg += `<rect x="${cx - r}" y="${cy - r}" width="${r*2}" height="${r*2}" fill="none" stroke="#cc3333" stroke-width="1.5" rx="3"/>`;
-            svg += `<text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="13" fill="#cc3333" font-family="Arial">${n}</text>`;
-          }
-        }
-
-        svg += '</svg>';
-
-        // 번호 요약
-        const ballColors = ['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
-        const ballLabels = nums.sort((a,b)=>a-b).map(n => {
-          const c = n<=10?0:n<=20?1:n<=30?2:n<=40?3:4;
-          return `<span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${ballColors[c]}22;border:2px solid ${ballColors[c]};color:${ballColors[c]};font-weight:800;font-size:14px;margin:2px;">${n}</span>`;
-        }).join('');
-        const bonusColor = bonus<=10?ballColors[0]:bonus<=20?ballColors[1]:bonus<=30?ballColors[2]:bonus<=40?ballColors[3]:ballColors[4];
-
-        el.innerHTML = `
-          <div style="margin-bottom:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            ${ballLabels}
-            <span style="font-size:1rem;color:var(--muted);margin:0 4px;">+</span>
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:2px dashed ${bonusColor};color:${bonusColor};font-weight:800;font-size:14px;margin:2px;">${bonus}</span>
-          </div>
-          ${svg}`;
-      } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`;
-      }
-    }
-
-    // ===== 반복출현번호 분석 =====
-    function getLottoBallColor(n) {
-      if (n <= 10) return '#f59e0b';
-      if (n <= 20) return '#3b82f6';
-      if (n <= 30) return '#ef4444';
-      if (n <= 40) return '#888888';
-      return '#22c55e';
-    }
-
-    // 공 + 화살표 묶음 (화살표 없으면 투명으로 자리 유지 → 높이 통일)
-    function makeBallSlot(n, isBonus = false, arrowCount = 0) {
-      const size = 42;
-      const color = getLottoBallColor(n);
-      const border = isBonus ? `2px dashed ${color}` : `2px solid ${color}`;
-      const bg = isBonus ? 'transparent' : color + '22';
-      const ball = `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;border:${border};background:${bg};color:${color};font-weight:800;font-size:${Math.round(size*0.42)}px;">${n}</span>`;
-      const arrow = arrowCount > 0
-        ? `<span style="font-size:10px;color:#ef4444;font-weight:700;height:16px;line-height:16px;text-align:center;">↑${arrowCount}</span>`
-        : `<span style="font-size:10px;color:transparent;height:16px;line-height:16px;">↑0</span>`;
-      return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;">${ball}${arrow}</div>`;
-    }
-
-    function makeBall(n, size = 42, isBonus = false) {
-      return makeBallSlot(n, isBonus, 0);
-    }
-
-    async function loadRepeatNumbers() {
-      const el = document.getElementById('repeat-result');
-      const carryCount = parseInt(document.getElementById('repeat-carry-count')?.value || 5);
-      const includeBonus = document.getElementById('repeat-include-bonus')?.checked ?? true;
-      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
-      try {
-        // 토큰 가져오기 (admin 또는 일반 auth)
-        // 공개 API - 인증 불필요
-        const res = await fetch('/api/lotto/history-full?limit=500');
-        if (!res.ok) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">서버 오류: ${res.status}</div>`; return; }
-        const d = await res.json();
-        const history = d.history || [];
-        if (!history.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">당첨번호 데이터가 없습니다</div>'; return; }
-
-        // carryCount 회차 슬라이딩 윈도우로 반복 출현 분석
-        const rows = history.slice(0, 30); // 최근 30회
-        let html = `<div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;">최근 ${rows.length}회차 분석 · 이월수: ${carryCount}회 · 보너스 ${includeBonus ? '포함' : '제외'}</div>`;
-        html += '<div style="overflow-x:auto;">';
-
-        for (let i = 0; i < rows.length; i++) {
-          const cur = rows[i];
-          const nums = Array.isArray(cur.numbers) ? cur.numbers : JSON.parse(cur.numbers || '[]');
-          const bonus = cur.bonus;
-          const allNums = includeBonus ? [...nums, bonus] : [...nums];
-
-          // 이전 carryCount 회차에서 반복 출현한 번호 찾기
-          const repeats = {}; // num -> {count, rounds}
-          for (let j = i + 1; j <= i + carryCount && j < rows.length; j++) {
-            const prev = rows[j];
-            const prevNums = Array.isArray(prev.numbers) ? prev.numbers : JSON.parse(prev.numbers || '[]');
-            const prevBonus = prev.bonus;
-            const prevAll = includeBonus ? [...prevNums, prevBonus] : [...prevNums];
-            allNums.forEach(n => {
-              if (prevAll.includes(n)) {
-                if (!repeats[n]) repeats[n] = { count: 0, fromRound: rows[j].drw_no };
-                repeats[n].count++;
-                repeats[n].fromRound = rows[j].drw_no;
-              }
-            });
-          }
-
-          html += `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border);min-width:1000px;">`;
-          html += `<div style="min-width:75px;font-size:0.9rem;font-weight:700;color:var(--muted);padding-top:10px;">${cur.drw_no}회</div>`;
-          html += `<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:flex-end;flex:1;">`;
-
-          nums.forEach(n => {
-            const rep = repeats[n];
-            html += makeBallSlot(n, false, rep ? rep.count : 0);
-          });
-
-          // 보너스
-          if (includeBonus && bonus) {
-            html += `<span style="margin:0 8px;font-size:1.2rem;color:var(--muted);line-height:42px;">+</span>`;
-            const rep = repeats[bonus];
-            html += makeBallSlot(bonus, true, rep ? rep.count : 0);
-          }
-
-          html += '</div>';
-
-          // 반복 출현 번호 요약
-          const repNums = Object.keys(repeats).filter(n => repeats[n].count > 0);
-          if (repNums.length) {
-            html += `<div style="margin-left:12px;font-size:0.82rem;color:#ef4444;white-space:nowrap;font-weight:600;">
-              반복: ${repNums.map(n => `<span style="font-weight:800;">${n}</span>`).join(', ')}
-            </div>`;
-          }
-
-          html += '</div>';
-        }
-
-        html += '</div>';
-        el.innerHTML = html;
-      } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`;
-      }
-    }
 
     // ===== 로또 관리 =====
     async function adminGenLotto() {
