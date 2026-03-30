@@ -4924,19 +4924,9 @@
         if (tabKey === 'datacollect' && typeof switchDcTab === 'function') switchDcTab(subKey);
       }
 
-      // datacollect 탭 - 서브키 없이 진입 시 기본 탭(stock) 활성화
-      if (tabKey === 'datacollect' && !subKey) {
-        setTimeout(() => {
-          if (typeof switchDcTab === 'function') switchDcTab('stock');
-        }, 100);
-      }
+      // ── switchTab return 이전에 처리해야 하는 탭들 ──────────────────
 
-      // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
-      if (typeof switchTab === 'function' && !subKey) {
-        switchTab(tabKey);
-        return; // switchTab이 탭 표시까지 처리
-      }
-
+      // performance 탭 (switchTab이 return해버리므로 반드시 이전에 처리)
       if (tabKey === 'performance') {
         const perfTab = document.getElementById('tab-performance');
         if (perfTab) { perfTab.style.display = 'block'; }
@@ -4949,10 +4939,26 @@
           if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
           if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
           if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
-        }, 500);
+        }, 300);
+        return;
       }
+
+      // datacollect 탭 - 서브키 없이 진입 시 기본 탭(stock) 활성화
+      if (tabKey === 'datacollect' && !subKey) {
+        setTimeout(() => {
+          if (typeof switchDcTab === 'function') switchDcTab('stock');
+        }, 100);
+      }
+
+      // quant 탭 성향 체크
       if (tabKey === 'quant' && !subKey) {
         setTimeout(() => { if (typeof checkInvestorProfile === 'function') checkInvestorProfile(); }, 50);
+      }
+
+      // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
+      if (typeof switchTab === 'function' && !subKey) {
+        switchTab(tabKey);
+        return; // switchTab이 탭 표시까지 처리
       }
     }
 
