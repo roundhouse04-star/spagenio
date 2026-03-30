@@ -669,6 +669,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
       db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(req.user.id, symbol);
+      db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
+      db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(req.user.id, symbol);
       res.json({ ok: true, order });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -691,6 +693,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           const plPct = parseFloat(pos.unrealized_plpc) || 0;
           db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
           db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(req.user.id, symbol);
+          db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
+          db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(req.user.id, symbol);
           results.push(symbol);
         } catch (e) { }
       }
@@ -722,7 +726,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/auto-trade/log', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const rows = db.prepare('SELECT * FROM auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.id);
+    const rows = db.prepare("SELECT tl.*, CASE tl.trade_type WHEN 1 THEN '수동' WHEN 2 THEN '단순자동' WHEN 3 THEN '완전자동' WHEN 4 THEN '일반자동' ELSE '기타' END as type_name FROM trade_log tl WHERE tl.user_id=? ORDER BY tl.created_at DESC LIMIT 100").all(req.user.id);
     res.json({ logs: rows });
   });
 
@@ -755,6 +759,33 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
+
+  // ── 수동 거래 trade_log 저장 API ──
+  router.post('/api/manual-trade/log', (req, res) => {
+    try {
+      const { symbol, action, qty, price, order_id, reason } = req.body;
+      if (!symbol || !action || !qty || !price) return res.status(400).json({ error: '필수값 누락' });
+      if (action === 'BUY') {
+        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,1,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'BUY', qty, price, reason||'수동 매수', order_id||'', 0, 'active');
+      } else if (action === 'SELL') {
+        // 평균단가 조회해서 수익률 계산
+        const buyLog = db.prepare("SELECT price, qty FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(req.user.id, symbol);
+        const profitPct = buyLog ? ((price - buyLog.price) / buyLog.price * 100) : 0;
+        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,1,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL', qty, price, reason||'수동 매도', order_id||'', profitPct, 'closed');
+        db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active'").run(req.user.id, symbol);
+      }
+      res.json({ ok: true });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── 수동 보유종목 조회 (trade_type=1 active) ──
+  router.get('/api/manual-trade/positions', (req, res) => {
+    try {
+      const rows = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC").all(req.user.id);
+      res.json({ positions: rows });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
     const logs = db.prepare('SELECT * FROM simple_auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 20').all(userId);
     res.json({ ok: true, state: state || null, logs });
   });

@@ -205,6 +205,12 @@ async function buyStock() {
     if (res.ok && data.id) {
       resultEl.style.color = 'var(--green)';
       resultEl.textContent = `✅ 매수 주문 완료\n종목: ${symbol} / 수량: ${qty}주\n주문ID: ${data.id}`;
+      // ✅ trade_log에 수동 매수 기록 (trade_type=1)
+      await fetch('/api/manual-trade/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol, action: 'BUY', qty, price: currentPrice, order_id: data.id, reason: '수동 매수' })
+      }).catch(() => {});
     } else {
       resultEl.style.color = 'var(--red)';
       resultEl.textContent = `❌ 오류: ${data.message || data.error || JSON.stringify(data)}`;
@@ -301,6 +307,12 @@ async function sellStock() {
     if (res.ok && data.id) {
       resultEl.style.color = 'var(--red)';
       resultEl.textContent = `✅ 매도 주문 완료\n종목: ${symbol} / 수량: ${qty}주\n주문ID: ${data.id}`;
+      // ✅ trade_log에 수동 매도 기록 (trade_type=1)
+      await fetch('/api/manual-trade/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol, action: 'SELL', qty, price: parseFloat(data.filled_avg_price || currentPrice || 0), order_id: data.id, reason: '수동 매도' })
+      }).catch(() => {});
     } else {
       resultEl.textContent = `❌ Error: ${data.message || data.error || JSON.stringify(data)}`;
     }
@@ -313,14 +325,40 @@ async function sellStock() {
 // ===== 보유 Symbol =====
 async function loadPositions() {
   try {
-    const res = await fetch('/api/alpaca-user/v2/positions');
-    const data = await res.json();
-    if (data.no_account || !res.ok) {
+    // ✅ trade_log type=1(수동) active 조회 + Alpaca 실제 포지션으로 현재가 보완
+    const [manualRes, alpacaRes] = await Promise.all([
+      fetch('/api/manual-trade/positions'),
+      fetch('/api/alpaca-user/v2/positions')
+    ]);
+    const manualData = manualRes.ok ? await manualRes.json() : { positions: [] };
+    const alpacaData = alpacaRes.ok ? await alpacaRes.json() : [];
+
+    if (manualData.error && manualData.error.includes('계좌')) {
       document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">🔑 Alpaca 계좌를 먼저 등록해주세요.</p>';
       return;
     }
-    // 수정5: Alpaca는 포지션을 배열로 직접 반환
-    const positions = Array.isArray(data) ? data : (data.positions || []);
+
+    const manualPositions = manualData.positions || [];
+    const alpacaPositions = Array.isArray(alpacaData) ? alpacaData : (alpacaData.positions || []);
+
+    // Alpaca 포지션을 symbol 기준으로 맵핑 (현재가/손익 보완용)
+    const alpacaMap = {};
+    alpacaPositions.forEach(p => { alpacaMap[p.symbol] = p; });
+
+    // 수동 포지션 없으면 빈 메시지
+    const positions = manualPositions.map(m => {
+      const ap = alpacaMap[m.symbol] || {};
+      return {
+        symbol: m.symbol,
+        qty: m.qty,
+        avg_entry_price: m.price,
+        current_price: ap.current_price || m.price,
+        market_value: (ap.current_price || m.price) * m.qty,
+        unrealized_pl: ap.unrealized_pl || 0,
+        unrealized_plpc: ap.unrealized_plpc || 0,
+      };
+    });
+
     if (!positions.length) {
       document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">보유 종목이 없습니다</p>';
       return;
