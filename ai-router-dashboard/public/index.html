@@ -4678,8 +4678,32 @@
       });
     }
 
+    // 레버리지/인버스/선물 ETF 필터 (저장 + 분석 이중 필터)
+    const BLOCKED_SYMBOLS = new Set([
+      'TQQQ','SQQQ','UPRO','SPXU','UDOW','SDOW','TNA','TZA','LABU','LABD',
+      'NUGT','DUST','JNUG','JDST','TECL','TECS','FAS','FAZ','ERX','ERY',
+      'NAIL','DRN','DRV','CURE','DFEN','WANT','WEBS','RETL','SOXL','SOXS',
+      'FNGU','FNGD','BULZ','BERZ','HIBS','HIBL','DPST','DSOS','UCO','SCO',
+      'BOIL','KOLD','UNG','UGAZ','DGAZ','USO','BNO','DBO','UGA',
+      'SH','PSQ','DOG','RWM','MYY','SBB','REK','EFZ','EUM','SRS',
+      'DDM','QID','SDS','SRTY','SPDN','HDGE','BITO','BITI',
+      'VXX','UVXY','SVXY','VIXY','VIXM','ZIV',
+      'TMF','TMV','TBT','TBF','TTT','PST','TYO',
+    ]);
+    const isBlockedSymbol = (sym) => {
+      if (BLOCKED_SYMBOLS.has(sym.toUpperCase())) return true;
+      if (/^(PRO|ULT|UPR)/i.test(sym)) return true;
+      return false;
+    };
+
     window.saveOneSymbol = async function (symbol) {
       try {
+        // 레버리지/인버스/선물 ETF 차단
+        if (isBlockedSymbol(symbol)) {
+          await spAlert('🚫', '저장 불가', `${symbol}은 레버리지·인버스·선물 ETF로 추천 종목에서 제외됩니다.\n일반 주식이나 일반 ETF를 선택해주세요.`);
+          return;
+        }
+
         const cur = await (await fetch('/api/auto-trade/settings')).json();
         const existing = (cur.symbols || '').split(',').map(s => s.trim()).filter(Boolean);
 
