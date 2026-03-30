@@ -857,9 +857,7 @@
             <div class="card-title" style="margin-bottom:0;">⏱️ 스케줄러 목록</div>
             <button class="btn secondary" onclick="loadSchedulers()" style="font-size:0.82rem;">🔄 새로고침</button>
           </div>
-          <div id="schedulerList">
-            <p class="empty">로딩 중...</p>
-          </div>
+          <div id="schedulerList"><p class="empty">로딩 중...</p></div>
         </div>
       </div>
 
@@ -874,8 +872,7 @@
           </div>
 
           <!-- 메뉴 추가 폼 -->
-          <div id="addMenuForm"
-            style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
+          <div id="addMenuForm" style="display:none;background:var(--panel2);border-radius:10px;padding:14px;margin-bottom:12px;">
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
               <input type="text" id="newMenuName" placeholder="메뉴 이름" />
               <input type="text" id="newMenuIcon" placeholder="아이콘 (예: 📊)" />
@@ -889,16 +886,13 @@
               <input type="number" id="newMenuSort" placeholder="순서" value="0" />
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;">
-              <button class="btn secondary"
-                onclick="document.getElementById('addMenuForm').style.display='none'">취소</button>
+              <button class="btn secondary" onclick="document.getElementById('addMenuForm').style.display='none'">취소</button>
               <button class="btn" onclick="addMenu()">추가</button>
             </div>
           </div>
 
           <!-- 메뉴 트리 -->
-          <div id="menuTree">
-            <p class="empty">로딩 중...</p>
-          </div>
+          <div id="menuTree"><p class="empty">로딩 중...</p></div>
         </div>
       </div>
 
@@ -976,8 +970,7 @@
         <div class="page-title">🍀 로또 관리</div>
 
         <!-- 로또 내부 탭바 -->
-        <div
-          style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid var(--line, #e2e8f0);">
+        <div style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid var(--line, #e2e8f0);">
           <button id="lotto-tab-main" onclick="switchLottoTab('main')"
             style="flex:1;padding:10px;border:none;background:#6366f1;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">
             🎯 로또 관리
@@ -999,224 +992,221 @@
         <!-- 메인 탭 -->
         <div id="lotto-panel-main">
 
-          <!-- 통계 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
-            <div class="card" style="text-align:center;padding:18px;">
-              <div style="font-size:1.6rem;font-weight:800;color:#6366f1;" id="stat-round">-</div>
-              <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">분석 회차</div>
+        <!-- 통계 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="card" style="text-align:center;padding:18px;">
+            <div style="font-size:1.6rem;font-weight:800;color:#6366f1;" id="stat-round">-</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">분석 회차</div>
+          </div>
+          <div class="card" style="text-align:center;padding:18px;">
+            <div style="font-size:1.4rem;font-weight:800;color:#22c55e;" id="stat-hot">-</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">최근 핫넘버</div>
+          </div>
+          <div class="card" style="text-align:center;padding:18px;">
+            <div style="font-size:1.6rem;font-weight:800;color:#f97316;" id="stat-cold">-</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">미출현 최장</div>
+          </div>
+        </div>
+
+        <!-- 알고리즘 비중 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">⚙️ 알고리즘 비중</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="lottoResetWeights()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
+              <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()" class="btn"
+                style="background:#6366f1;color:#fff;font-size:0.82rem;">💾 저장</button>
             </div>
-            <div class="card" style="text-align:center;padding:18px;">
-              <div style="font-size:1.4rem;font-weight:800;color:#22c55e;" id="stat-hot">-</div>
-              <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">최근 핫넘버</div>
+          </div>
+          <div id="lotto-algo-grid"
+            style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+        </div>
+
+        <!-- 번호 추천 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">🎰 번호 추천</div>
+            <select id="lotto-game-count" class="input-box" style="width:100px;">
+              <option value="1">1게임</option>
+              <option value="3">3게임</option>
+              <option value="5" selected>5게임</option>
+              <option value="10">10게임</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <button onclick="lottoGenerate()" class="btn" style="flex:1;background:#6366f1;color:#fff;">🎯 번호
+              추천받기</button>
+            <button onclick="lottoSaveAndSend()" class="btn"
+              style="background:#229ED9;color:#fff;white-space:nowrap;">💾 저장+전송</button>
+          </div>
+          <div id="lotto-results">
+            <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <!-- 텔레그램 설정 -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">📱 텔레그램 설정</div>
+              <span id="lotto-tg-status" style="font-size:0.78rem;color:var(--muted);"></span>
             </div>
-            <div class="card" style="text-align:center;padding:18px;">
-              <div style="font-size:1.6rem;font-weight:800;color:#f97316;" id="stat-cold">-</div>
-              <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">미출현 최장</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <input id="lotto-tg-chatid" placeholder="Chat ID" class="input-box">
+              <input id="lotto-tg-token" type="password" placeholder="Bot Token" class="input-box">
+              <div style="display:flex;gap:8px;">
+                <button onclick="lottoSaveTg()" class="btn" style="flex:1;background:#6366f1;color:#fff;">저장</button>
+                <button onclick="lottoTestTg()" class="btn"
+                  style="background:var(--panel2);color:var(--text);">테스트</button>
+              </div>
             </div>
           </div>
 
-          <!-- 알고리즘 비중 -->
-          <div class="card" style="margin-bottom:16px;">
+          <!-- 자동 발송 스케줄 -->
+          <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-weight:700;">⚙️ 알고리즘 비중</div>
-              <div style="display:flex;gap:8px;">
-                <button onclick="lottoResetWeights()" class="btn"
+              <div style="font-weight:700;">⏰ 자동 발송 설정</div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="lottoResetSchedule()" class="btn"
                   style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
-                <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()" class="btn"
-                  style="background:#6366f1;color:#fff;font-size:0.82rem;">💾 저장</button>
+                <button onclick="lottoSaveSchedule()" class="btn"
+                  style="background:#6366f1;color:#fff;font-size:0.82rem;">저장</button>
               </div>
             </div>
-            <div id="lotto-algo-grid"
-              style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">요일 선택</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)">월</button>
+                <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)">화</button>
+                <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)">수</button>
+                <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)">목</button>
+                <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)">금</button>
+                <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)">토</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+              <div style="flex:1;">
+                <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">발송 시각</div>
+                <select id="lotto-sch-hour" class="input-box">
+                  <option value="" disabled selected>시각 선택</option>
+                  <option value="0">00시</option>
+                  <option value="1">01시</option>
+                  <option value="2">02시</option>
+                  <option value="3">03시</option>
+                  <option value="4">04시</option>
+                  <option value="5">05시</option>
+                  <option value="6">06시</option>
+                  <option value="7">07시</option>
+                  <option value="8">08시</option>
+                  <option value="9">09시</option>
+                  <option value="10">10시</option>
+                  <option value="11">11시</option>
+                  <option value="12">12시</option>
+                  <option value="13">13시</option>
+                  <option value="14">14시</option>
+                  <option value="15">15시</option>
+                  <option value="16">16시</option>
+                  <option value="17">17시</option>
+                  <option value="18">18시</option>
+                  <option value="19">19시</option>
+                  <option value="20">20시</option>
+                  <option value="21">21시</option>
+                  <option value="22">22시</option>
+                  <option value="23">23시</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">게임 수</div>
+                <select id="lotto-sch-count" class="input-box">
+                  <option value="" disabled selected>게임 선택</option>
+                  <option value="1">1게임</option>
+                  <option value="3">3게임</option>
+                  <option value="5">5게임</option>
+                  <option value="10">10게임</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-last"></div>
+            <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-next"></div>
+            <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감</div>
+            <div id="lotto-sch-current"
+              style="margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px;">
+              <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
+              <div id="lotto-sch-current-text" style="font-size:0.85rem;">스케줄 없음</div>
+            </div>
           </div>
+        </div>
 
-          <!-- 번호 추천 -->
-          <div class="card" style="margin-bottom:16px;">
+        <!-- 추천 이력 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">📋 추천 이력</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="lottoCheckAllUnconfirmed()" class="btn"
+                style="background:#6366f1;color:#fff;font-size:0.82rem;" id="lotto-check-all-btn">🎯 전체 당첨확인</button>
+              <button onclick="lottoLoadHistory()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+            </div>
+          </div>
+          <div id="lotto-history-list">
+            <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+          </div>
+        </div>
+
+        <!-- 자동발송 이력 + 스케줄 이력 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-weight:700;">🎰 번호 추천</div>
-              <select id="lotto-game-count" class="input-box" style="width:100px;">
-                <option value="1">1게임</option>
-                <option value="3">3게임</option>
-                <option value="5" selected>5게임</option>
-                <option value="10">10게임</option>
-              </select>
+              <div style="font-weight:700;">🤖 자동발송 이력</div>
+              <button onclick="lottoLoadAutoHistory()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:16px;">
-              <button onclick="lottoGenerate()" class="btn" style="flex:1;background:#6366f1;color:#fff;">🎯 번호
-                추천받기</button>
-              <button onclick="lottoSaveAndSend()" class="btn"
-                style="background:#229ED9;color:#fff;white-space:nowrap;">💾 저장+전송</button>
-            </div>
-            <div id="lotto-results">
-              <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
-            </div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-            <!-- 텔레그램 설정 -->
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <div style="font-weight:700;">📱 텔레그램 설정</div>
-                <span id="lotto-tg-status" style="font-size:0.78rem;color:var(--muted);"></span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <input id="lotto-tg-chatid" placeholder="Chat ID" class="input-box">
-                <input id="lotto-tg-token" type="password" placeholder="Bot Token" class="input-box">
-                <div style="display:flex;gap:8px;">
-                  <button onclick="lottoSaveTg()" class="btn" style="flex:1;background:#6366f1;color:#fff;">저장</button>
-                  <button onclick="lottoTestTg()" class="btn"
-                    style="background:var(--panel2);color:var(--text);">테스트</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 자동 발송 스케줄 -->
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <div style="font-weight:700;">⏰ 자동 발송 설정</div>
-                <div style="display:flex;gap:6px;">
-                  <button onclick="lottoResetSchedule()" class="btn"
-                    style="background:var(--panel2);color:var(--text);font-size:0.82rem;">초기화</button>
-                  <button onclick="lottoSaveSchedule()" class="btn"
-                    style="background:#6366f1;color:#fff;font-size:0.82rem;">저장</button>
-                </div>
-              </div>
-              <div style="margin-bottom:12px;">
-                <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">요일 선택</div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)">월</button>
-                  <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)">화</button>
-                  <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)">수</button>
-                  <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)">목</button>
-                  <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)">금</button>
-                  <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)">토</button>
-                </div>
-              </div>
-              <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
-                <div style="flex:1;">
-                  <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">발송 시각</div>
-                  <select id="lotto-sch-hour" class="input-box">
-                    <option value="" disabled selected>시각 선택</option>
-                    <option value="0">00시</option>
-                    <option value="1">01시</option>
-                    <option value="2">02시</option>
-                    <option value="3">03시</option>
-                    <option value="4">04시</option>
-                    <option value="5">05시</option>
-                    <option value="6">06시</option>
-                    <option value="7">07시</option>
-                    <option value="8">08시</option>
-                    <option value="9">09시</option>
-                    <option value="10">10시</option>
-                    <option value="11">11시</option>
-                    <option value="12">12시</option>
-                    <option value="13">13시</option>
-                    <option value="14">14시</option>
-                    <option value="15">15시</option>
-                    <option value="16">16시</option>
-                    <option value="17">17시</option>
-                    <option value="18">18시</option>
-                    <option value="19">19시</option>
-                    <option value="20">20시</option>
-                    <option value="21">21시</option>
-                    <option value="22">22시</option>
-                    <option value="23">23시</option>
-                  </select>
-                </div>
-                <div style="flex:1;">
-                  <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">게임 수</div>
-                  <select id="lotto-sch-count" class="input-box">
-                    <option value="" disabled selected>게임 선택</option>
-                    <option value="1">1게임</option>
-                    <option value="3">3게임</option>
-                    <option value="5">5게임</option>
-                    <option value="10">10게임</option>
-                  </select>
-                </div>
-              </div>
-              <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-last"></div>
-              <div style="font-size:0.78rem;color:var(--muted);" id="lotto-sch-next"></div>
-              <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감</div>
-              <div id="lotto-sch-current"
-                style="margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px;">
-                <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
-                <div id="lotto-sch-current-text" style="font-size:0.85rem;">스케줄 없음</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 추천 이력 -->
-          <div class="card" style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-weight:700;">📋 추천 이력</div>
-              <div style="display:flex;gap:8px;">
-                <button onclick="lottoCheckAllUnconfirmed()" class="btn"
-                  style="background:#6366f1;color:#fff;font-size:0.82rem;" id="lotto-check-all-btn">🎯 전체 당첨확인</button>
-                <button onclick="lottoLoadHistory()" class="btn"
-                  style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
-              </div>
-            </div>
-            <div id="lotto-history-list">
+            <div id="lotto-auto-history-list">
               <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
             </div>
           </div>
-
-          <!-- 자동발송 이력 + 스케줄 이력 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <div style="font-weight:700;">🤖 자동발송 이력</div>
-                <button onclick="lottoLoadAutoHistory()" class="btn"
-                  style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
-              </div>
-              <div id="lotto-auto-history-list">
-                <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
-              </div>
-            </div>
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <div style="font-weight:700;">📅 스케줄 이력</div>
-                <button onclick="lottoLoadScheduleLog()" class="btn"
-                  style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
-              </div>
-              <div id="lotto-schedule-log-list">
-                <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 당첨 확인 -->
-          <div class="card" id="lotto-detail-card" style="display:none;">
+          <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <div style="font-weight:700;" id="lotto-detail-title">📅 상세</div>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input id="lotto-check-drwno" type="number" placeholder="회차 (예: 1162)" class="input-box"
-                  style="width:140px;">
-                <button onclick="lottoCheckResult()" class="btn" style="background:#6366f1;color:#fff;">당첨 확인</button>
-              </div>
+              <div style="font-weight:700;">📅 스케줄 이력</div>
+              <button onclick="lottoLoadScheduleLog()" class="btn"
+                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
             </div>
-            <div id="lotto-detail-games"></div>
+            <div id="lotto-schedule-log-list">
+              <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+            </div>
           </div>
+        </div>
+
+        <!-- 당첨 확인 -->
+        <div class="card" id="lotto-detail-card" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;" id="lotto-detail-title">📅 상세</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="lotto-check-drwno" type="number" placeholder="회차 (예: 1162)" class="input-box"
+                style="width:140px;">
+              <button onclick="lottoCheckResult()" class="btn" style="background:#6366f1;color:#fff;">당첨 확인</button>
+            </div>
+          </div>
+          <div id="lotto-detail-games"></div>
+        </div>
 
         </div><!-- /lotto-panel-main -->
 
         <!-- 반복출현번호 패널 -->
         <div id="lotto-panel-repeat" style="display:none;">
           <div class="card" style="margin-bottom:16px;">
-            <div
-              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
               <div style="font-weight:700;font-size:1rem;">🔁 반복출현번호 분석</div>
               <div style="display:flex;gap:8px;align-items:center;">
                 <label style="font-size:0.85rem;color:var(--muted);">이월수</label>
                 <input type="number" id="repeat-carry-count" value="5" min="1" max="20"
                   style="width:60px;padding:6px 8px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);font-size:0.85rem;">
-                <label
-                  style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--muted);cursor:pointer;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--muted);cursor:pointer;">
                   <input type="checkbox" id="repeat-include-bonus" checked style="width:16px;height:16px;">
                   보너스 포함
                 </label>
-                <button onclick="loadRepeatNumbers()" class="btn"
-                  style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
+                <button onclick="loadRepeatNumbers()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
               </div>
             </div>
             <div id="repeat-result" style="overflow-x:auto;min-width:0;">
@@ -1228,23 +1218,18 @@
         <!-- 패턴분석 패널 -->
         <div id="lotto-panel-pattern" style="display:none;">
           <div class="card" style="margin-bottom:16px;">
-            <div
-              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
               <div style="font-weight:700;font-size:1rem;">📊 패턴분석표</div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <label style="font-size:0.85rem;color:var(--muted);">회차</label>
                 <input type="number" id="pattern-round" value="1217" min="1"
                   style="width:80px;padding:6px 8px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);font-size:0.85rem;">
-                <button onclick="patternPrev()" class="btn"
-                  style="padding:6px 12px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);">◀</button>
-                <button onclick="patternNext()" class="btn"
-                  style="padding:6px 12px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);">▶</button>
-                <button onclick="loadPatternAnalysis()" class="btn"
-                  style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
-
+                <button onclick="patternPrev()" class="btn" style="padding:6px 12px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);">◀</button>
+                <button onclick="patternNext()" class="btn" style="padding:6px 12px;background:var(--panel2,#f8fafc);color:var(--text,#1e293b);">▶</button>
+                <button onclick="loadPatternAnalysis()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
+                <button onclick="loadLottoPrediction()" class="btn" style="background:#22c55e;color:#fff;font-size:0.85rem;">🎯 예측</button>
               </div>
             </div>
-
             <div id="prediction-result" style="display:none;margin-bottom:16px;"></div>
             <div id="pattern-result" style="overflow-x:auto;">
               <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
@@ -1257,30 +1242,26 @@
 
           <!-- 예측 실행 카드 -->
           <div class="card" style="margin-bottom:16px;">
-            <div
-              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
               <div>
                 <div style="font-weight:700;font-size:1rem;">🎯 다음 회차 예측</div>
                 <div style="font-size:0.8rem;color:var(--muted);margin-top:4px;">이월확률 + 구간균형 + DB가중치 종합 알고리즘</div>
               </div>
-              <button onclick="runPrediction()" class="btn"
-                style="background:#22c55e;color:#fff;font-weight:700;padding:10px 20px;">🎯 예측 실행</button>
+              <button onclick="loadLottoPrediction('pred')" class="btn" style="background:#22c55e;color:#fff;font-weight:700;padding:10px 20px;">🎯 예측 실행</button>
             </div>
-            <div id="prediction-result-tab"></div>
+            <div id="prediction-result-pred"></div>
           </div>
 
           <!-- 예측 이력 카드 -->
           <div class="card" style="margin-bottom:16px;">
-            <div
-              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
               <div style="font-weight:700;">📋 예측 이력</div>
               <div style="display:flex;gap:8px;align-items:center;">
                 <select id="pred-round-filter" onchange="loadPredictionHistoryTab()"
                   style="padding:6px 10px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);font-size:0.85rem;">
                   <option value="">전체 회차</option>
                 </select>
-                <button onclick="loadPredictionHistoryTab()" class="btn"
-                  style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+                <button onclick="loadPredictionHistoryTab()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
               </div>
             </div>
             <div id="prediction-history-tab">
@@ -1292,8 +1273,7 @@
           <div class="card" style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div style="font-weight:700;">⚖️ 번호별 가중치 현황</div>
-              <button onclick="loadWeightsTable()" class="btn"
-                style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+              <button onclick="loadWeightsTable()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
             </div>
             <div id="weights-table">
               <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
@@ -1726,10 +1706,10 @@
         const d = await res.json();
         const weights = d.weights || [];
         if (!weights.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">가중치 데이터 없음</div>'; return; }
-        const bColors = ['#f59e0b', '#3b82f6', '#ef4444', '#888888', '#22c55e'];
-        const getC = n => n <= 9 ? bColors[0] : n <= 19 ? bColors[1] : n <= 29 ? bColors[2] : n <= 39 ? bColors[3] : bColors[4];
+        const bColors = ['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC = n => n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
         // 가중치 높은 순 정렬
-        const sorted = [...weights].sort((a, b) => b.weight - a.weight);
+        const sorted = [...weights].sort((a,b) => b.weight - a.weight);
         const maxW = Math.max(...weights.map(w => w.weight));
         const html = `
           <div style="font-size:0.8rem;color:var(--muted);margin-bottom:12px;">
@@ -1739,17 +1719,17 @@
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">
             ${sorted.map(w => {
-          const pct = (w.weight / maxW * 100).toFixed(0);
-          const color = w.weight >= 1.2 ? '#22c55e' : w.weight <= 0.8 ? '#ef4444' : getC(w.num);
-          return `<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;border:1px solid ${color}33;">
+              const pct = (w.weight / maxW * 100).toFixed(0);
+              const color = w.weight >= 1.2 ? '#22c55e' : w.weight <= 0.8 ? '#ef4444' : getC(w.num);
+              return `<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;border:1px solid ${color}33;">
                 <div style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:${getC(w.num)}22;border:2px solid ${getC(w.num)};color:${getC(w.num)};font-weight:800;font-size:13px;margin-bottom:4px;">${w.num}</div>
                 <div style="font-size:0.72rem;font-weight:700;color:${color};">${w.weight.toFixed(2)}</div>
                 <div style="font-size:0.65rem;color:var(--muted);">${w.hit_count}/${w.appear_count}회</div>
               </div>`;
-        }).join('')}
+            }).join('')}
           </div>`;
         el.innerHTML = html;
-      } catch (e) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`; }
+      } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`; }
     }
 
     async function toggleLottoAutoSend(userId, enabled) {
@@ -1762,7 +1742,7 @@
         const d = await res.json();
         if (d.ok) loadUsers();
         else spAlert(d.error || '변경 실패', '오류', '❌');
-      } catch (e) { spAlert(e.message, '오류', '❌'); }
+      } catch(e) { spAlert(e.message, '오류', '❌'); }
     }
 
     async function deleteUser(id, username) {
@@ -2254,13 +2234,6 @@
     });
 
     // ===== 로또 탭 전환 =====
-    async function runPrediction() {
-      const el = document.getElementById('prediction-result-tab');
-      if (!el) { alert('prediction-result-tab not found'); return; }
-      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
-      await _runLottoPrediction(el);
-    }
-
     function switchLottoTab(tab) {
       const panels = { main: 'lotto-panel-main', repeat: 'lotto-panel-repeat', pattern: 'lotto-panel-pattern', prediction: 'lotto-panel-prediction' };
       const btns = { main: 'lotto-tab-main', repeat: 'lotto-tab-repeat', pattern: 'lotto-tab-pattern', prediction: 'lotto-tab-prediction' };
@@ -2288,7 +2261,7 @@
       const color = getLottoBallColor(n);
       const border = isBonus ? `2px dashed ${color}` : `2px solid ${color}`;
       const bg = isBonus ? 'transparent' : color + '22';
-      const ball = `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;border:${border};background:${bg};color:${color};font-weight:800;font-size:${Math.round(size * 0.42)}px;">${n}</span>`;
+      const ball = `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;border:${border};background:${bg};color:${color};font-weight:800;font-size:${Math.round(size*0.42)}px;">${n}</span>`;
       const arrow = arrowCount > 0
         ? `<span style="font-size:10px;color:#ef4444;font-weight:700;height:16px;line-height:16px;text-align:center;">↑${arrowCount}</span>`
         : `<span style="font-size:10px;color:transparent;height:16px;line-height:16px;">↑0</span>`;
@@ -2331,12 +2304,12 @@
           }
           html += '</div>';
           const repNums = Object.keys(repeats).filter(n => repeats[n].count > 0);
-          if (repNums.length) html += `<div style="margin-left:12px;font-size:0.82rem;color:#ef4444;white-space:nowrap;font-weight:600;">반복: ${repNums.map(n => `<span style="font-weight:800;">${n}</span>`).join(', ')}</div>`;
+          if (repNums.length) html += `<div style="margin-left:12px;font-size:0.82rem;color:#ef4444;white-space:nowrap;font-weight:600;">반복: ${repNums.map(n=>`<span style="font-weight:800;">${n}</span>`).join(', ')}</div>`;
           html += '</div>';
         }
         html += '</div>';
         el.innerHTML = html;
-      } catch (e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
+      } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
     }
 
     // ===== 패턴분석 =====
@@ -2364,36 +2337,36 @@
         const bonus = cur.bonus;
         const COLS = 7, CELL = 52, PAD = 20;
         const totalW = COLS * CELL + PAD * 2, totalH = Math.ceil(45 / COLS) * CELL + PAD * 2 + 60;
-        function getPos(n) { const idx = n - 1; return { x: PAD + (idx % COLS) * CELL + CELL / 2, y: PAD + 60 + Math.floor(idx / COLS) * CELL + CELL / 2 }; }
+        function getPos(n) { const idx = n-1; return { x: PAD + (idx%COLS)*CELL + CELL/2, y: PAD + 60 + Math.floor(idx/COLS)*CELL + CELL/2 }; }
         let svg = `<svg width="${totalW}" height="${totalH}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">`;
         svg += `<rect x="0" y="0" width="${totalW}" height="56" rx="8" fill="#6366f1"/>`;
-        svg += `<text x="${totalW / 2}" y="36" text-anchor="middle" font-size="22" font-weight="800" fill="white" font-family="Arial">${roundNo}회 (${cur.drw_date})</text>`;
-        svg += `<rect x="0" y="56" width="${totalW}" height="${totalH - 56}" fill="#f5f0e8"/>`;
-        const sortedNums = [...nums].sort((a, b) => a - b);
-        for (let i = 0; i < sortedNums.length - 1; i++) {
-          const p1 = getPos(sortedNums[i]), p2 = getPos(sortedNums[i + 1]);
+        svg += `<text x="${totalW/2}" y="36" text-anchor="middle" font-size="22" font-weight="800" fill="white" font-family="Arial">${roundNo}회 (${cur.drw_date})</text>`;
+        svg += `<rect x="0" y="56" width="${totalW}" height="${totalH-56}" fill="#f5f0e8"/>`;
+        const sortedNums = [...nums].sort((a,b)=>a-b);
+        for (let i = 0; i < sortedNums.length-1; i++) {
+          const p1 = getPos(sortedNums[i]), p2 = getPos(sortedNums[i+1]);
           svg += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>`;
         }
         for (let n = 1; n <= 45; n++) {
-          const { x, y } = getPos(n), r = CELL / 2 - 4;
+          const {x, y} = getPos(n), r = CELL/2-4;
           if (nums.includes(n)) {
             svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="#444" stroke="#333" stroke-width="1.5"/>`;
-            svg += `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="white" font-family="Arial">${n}</text>`;
+            svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="800" fill="white" font-family="Arial">${n}</text>`;
           } else if (n === bonus) {
             svg += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"/>`;
-            svg += `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="#ef4444" font-family="Arial">${n}</text>`;
+            svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="700" fill="#ef4444" font-family="Arial">${n}</text>`;
           } else {
-            svg += `<rect x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}" fill="none" stroke="#cc3333" stroke-width="1.5" rx="3"/>`;
-            svg += `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="13" fill="#cc3333" font-family="Arial">${n}</text>`;
+            svg += `<rect x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}" fill="none" stroke="#cc3333" stroke-width="1.5" rx="3"/>`;
+            svg += `<text x="${x}" y="${y+5}" text-anchor="middle" font-size="13" fill="#cc3333" font-family="Arial">${n}</text>`;
           }
         }
         svg += '</svg>';
-        const bColors = ['#f59e0b', '#3b82f6', '#ef4444', '#888888', '#22c55e'];
-        const getC = n => n <= 9 ? bColors[0] : n <= 19 ? bColors[1] : n <= 29 ? bColors[2] : n <= 39 ? bColors[3] : bColors[4];
-        const ballRow = nums.sort((a, b) => a - b).map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${getC(n)}22;border:2px solid ${getC(n)};color:${getC(n)};font-weight:800;font-size:14px;margin:2px;">${n}</span>`).join('');
+        const bColors = ['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC = n => n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        const ballRow = nums.sort((a,b)=>a-b).map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${getC(n)}22;border:2px solid ${getC(n)};color:${getC(n)};font-weight:800;font-size:14px;margin:2px;">${n}</span>`).join('');
         const bC = getC(bonus);
         el.innerHTML = `<div style="margin-bottom:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${ballRow}<span style="font-size:1rem;color:var(--muted);margin:0 4px;">+</span><span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:2px dashed ${bC};color:${bC};font-weight:800;font-size:14px;margin:2px;">${bonus}</span></div>${svg}`;
-      } catch (e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
+      } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
     }
 
     // 예측번호 탭용 - prediction-result-tab에 렌더링
@@ -2405,13 +2378,10 @@
       await _runLottoPrediction(el);
     }
 
-    async function loadLottoPrediction() {
-      // 보이는 패널의 결과 엘리먼트에 렌더링
-      const elTab = document.getElementById('prediction-result-tab');
-      const elPattern = document.getElementById('prediction-result');
-      const predPanel = document.getElementById('lotto-panel-prediction');
-      const isPredTab = predPanel && predPanel.style.display !== 'none';
-      const el = isPredTab ? elTab : (elPattern || elTab);
+    async function loadLottoPrediction(target) {
+      // target: 'pred' = 예측번호탭, 없으면 패턴분석탭
+      const elId = target === 'pred' ? 'prediction-result-pred' : 'prediction-result';
+      const el = document.getElementById(elId);
       if (!el) return;
       el.style.display = '';
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
@@ -2423,66 +2393,64 @@
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
       try {
         const history = await ensurePatternHistory();
-        const sorted = history.slice().sort((a, b) => b.drw_no - a.drw_no);
+        const sorted = history.slice().sort((a,b)=>b.drw_no-a.drw_no);
         const latest = sorted[0];
         const latestNums = Array.isArray(latest.numbers) ? latest.numbers : JSON.parse(latest.numbers);
-        const asc = history.slice().sort((a, b) => a.drw_no - b.drw_no);
+        const asc = history.slice().sort((a,b)=>a.drw_no-b.drw_no);
         const numCarry = {};
-        for (let n = 1; n <= 45; n++) numCarry[n] = { appear: 0, carry: 0 };
-        for (let i = 1; i < asc.length; i++) {
-          const prev = Array.isArray(asc[i - 1].numbers) ? asc[i - 1].numbers : JSON.parse(asc[i - 1].numbers || '[]');
-          const cur = new Set(Array.isArray(asc[i].numbers) ? asc[i].numbers : JSON.parse(asc[i].numbers || '[]'));
-          prev.forEach(n => { numCarry[n].appear++; if (cur.has(n)) numCarry[n].carry++; });
+        for (let n=1;n<=45;n++) numCarry[n]={appear:0,carry:0};
+        for (let i=1;i<asc.length;i++) {
+          const prev=Array.isArray(asc[i-1].numbers)?asc[i-1].numbers:JSON.parse(asc[i-1].numbers||'[]');
+          const cur=new Set(Array.isArray(asc[i].numbers)?asc[i].numbers:JSON.parse(asc[i].numbers||'[]'));
+          prev.forEach(n=>{numCarry[n].appear++;if(cur.has(n))numCarry[n].carry++;});
         }
-        const carryPct = {};
-        for (let n = 1; n <= 45; n++) carryPct[n] = numCarry[n].appear > 0 ? numCarry[n].carry / numCarry[n].appear : 0;
-        const getDec = n => n <= 9 ? 0 : n <= 19 ? 1 : n <= 29 ? 2 : n <= 39 ? 3 : 4;
-        const decCarry = Array(5).fill(null).map(() => ({ appear: 0, carry: 0 }));
-        for (let i = 1; i < asc.length; i++) { const prev = Array.isArray(asc[i - 1].numbers) ? asc[i - 1].numbers : JSON.parse(asc[i - 1].numbers || '[]'); const curNums = Array.isArray(asc[i].numbers) ? asc[i].numbers : JSON.parse(asc[i].numbers || '[]'); const curDecs = new Set(curNums.map(getDec)); prev.forEach(n => { const d = getDec(n); decCarry[d].appear++; if (curDecs.has(d)) decCarry[d].carry++; }); }
-        const decPct = decCarry.map(d => d.appear > 0 ? d.carry / d.appear : 0);
-        const recent20 = sorted.slice(0, 20);
-        const rBonus = {}; for (let n = 1; n <= 45; n++)rBonus[n] = 0;
-        recent20.forEach((h, idx) => { const w = (20 - idx) / 20; const nums = Array.isArray(h.numbers) ? h.numbers : JSON.parse(h.numbers || '[]'); nums.forEach(n => { rBonus[n] += w * 0.5; }); });
-        let dbW = {};
-        try { const wr = await fetch('/api/lotto/weights'); if (wr.ok) { const wd = await wr.json(); (wd.weights || []).forEach(w => { dbW[w.num] = w.weight; }); } } catch (e) { }
-        const scores = {};
-        for (let n = 1; n <= 45; n++) { let s = carryPct[n] * 100 + decPct[getDec(n)] * 30 + rBonus[n] * 20; if (latestNums.includes(n)) s += carryPct[n] * 50; scores[n] = s * (dbW[n] || 1.0); }
-        const carryPicks = [...latestNums].sort((a, b) => carryPct[b] - carryPct[a]).slice(0, 2);
-        const picks = new Set(carryPicks);
-        const zones = [[1, 9], [10, 19], [20, 29], [30, 39], [40, 45]];
-        for (const [lo, hi] of zones) { if (picks.size >= 6) break; const z = Object.entries(scores).filter(([n]) => { const x = parseInt(n); return x >= lo && x <= hi && !picks.has(x); }).sort((a, b) => b[1] - a[1]); if (z.length) picks.add(parseInt(z[0][0])); }
-        const rem = Object.entries(scores).filter(([n]) => !picks.has(parseInt(n))).sort((a, b) => b[1] - a[1]);
-        for (const [n] of rem) { if (picks.size >= 6) break; picks.add(parseInt(n)); }
-        const finalPicks = [...picks].sort((a, b) => a - b);
-        const bColors = ['#f59e0b', '#3b82f6', '#ef4444', '#888888', '#22c55e'];
-        const getC = n => n <= 9 ? bColors[0] : n <= 19 ? bColors[1] : n <= 29 ? bColors[2] : n <= 39 ? bColors[3] : bColors[4];
-        const carryBalls = latestNums.sort((a, b) => a - b).map(n => { const p = Math.round(carryPct[n] * 100); const c = getC(n); const isCP = carryPicks.includes(n); return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:4px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:${isCP ? c : c + '22'};border:2px solid ${c};color:${isCP ? '#fff' : c};font-weight:800;font-size:15px;">${n}</span><span style="font-size:10px;color:${p >= 15 ? '#22c55e' : p >= 10 ? '#f59e0b' : '#9CA3AF'};font-weight:700;">${p}%</span></div>`; }).join('');
-        const pickBalls = finalPicks.map(n => { const c = getC(n); const isC = carryPicks.includes(n); return `<span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:${c};color:#fff;font-weight:800;font-size:16px;margin:4px;box-shadow:${isC ? '0 0 0 3px ' + c : 'none'};">${n}</span>`; }).join('');
-        const expectedCarry = Math.round([...latestNums].map(n => carryPct[n]).reduce((a, b) => a + b, 0) * 10) / 10;
-        el.innerHTML = `<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div></div></div><div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #6366f1;"><div style="font-size:0.78rem;color:#a5b4fc;margin-bottom:12px;font-weight:700;">✨ 추천 번호</div><div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">${pickBalls}</div><div style="font-size:0.72rem;color:#636366;margin-top:10px;text-align:center;">※ 통계 기반 확률 예측이며 당첨을 보장하지 않습니다</div></div><div style="display:flex;gap:8px;margin-top:12px;"><button onclick="savePrediction(${latest.drw_no},[${finalPicks}])" style="flex:1;padding:10px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">💾 저장하기</button></div></div>`;
-      } catch (e) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
+        const carryPct={};
+        for(let n=1;n<=45;n++) carryPct[n]=numCarry[n].appear>0?numCarry[n].carry/numCarry[n].appear:0;
+        const getDec=n=>n<=9?0:n<=19?1:n<=29?2:n<=39?3:4;
+        const decCarry=Array(5).fill(null).map(()=>({appear:0,carry:0}));
+        for(let i=1;i<asc.length;i++){const prev=Array.isArray(asc[i-1].numbers)?asc[i-1].numbers:JSON.parse(asc[i-1].numbers||'[]');const curNums=Array.isArray(asc[i].numbers)?asc[i].numbers:JSON.parse(asc[i].numbers||'[]');const curDecs=new Set(curNums.map(getDec));prev.forEach(n=>{const d=getDec(n);decCarry[d].appear++;if(curDecs.has(d))decCarry[d].carry++;});}
+        const decPct=decCarry.map(d=>d.appear>0?d.carry/d.appear:0);
+        const recent20=sorted.slice(0,20);
+        const rBonus={};for(let n=1;n<=45;n++)rBonus[n]=0;
+        recent20.forEach((h,idx)=>{const w=(20-idx)/20;const nums=Array.isArray(h.numbers)?h.numbers:JSON.parse(h.numbers||'[]');nums.forEach(n=>{rBonus[n]+=w*0.5;});});
+        let dbW={};
+        try{const wr=await fetch('/api/lotto/weights');if(wr.ok){const wd=await wr.json();(wd.weights||[]).forEach(w=>{dbW[w.num]=w.weight;});}}catch(e){}
+        const scores={};
+        for(let n=1;n<=45;n++){let s=carryPct[n]*100+decPct[getDec(n)]*30+rBonus[n]*20;if(latestNums.includes(n))s+=carryPct[n]*50;scores[n]=s*(dbW[n]||1.0);}
+        const carryPicks=[...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]).slice(0,2);
+        const picks=new Set(carryPicks);
+        const zones=[[1,9],[10,19],[20,29],[30,39],[40,45]];
+        for(const[lo,hi]of zones){if(picks.size>=6)break;const z=Object.entries(scores).filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);}).sort((a,b)=>b[1]-a[1]);if(z.length)picks.add(parseInt(z[0][0]));}
+        const rem=Object.entries(scores).filter(([n])=>!picks.has(parseInt(n))).sort((a,b)=>b[1]-a[1]);
+        for(const[n]of rem){if(picks.size>=6)break;picks.add(parseInt(n));}
+        const finalPicks=[...picks].sort((a,b)=>a-b);
+        const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        const carryBalls=latestNums.sort((a,b)=>a-b).map(n=>{const p=Math.round(carryPct[n]*100);const c=getC(n);const isCP=carryPicks.includes(n);return`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:4px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:${isCP?c:c+'22'};border:2px solid ${c};color:${isCP?'#fff':c};font-weight:800;font-size:15px;">${n}</span><span style="font-size:10px;color:${p>=15?'#22c55e':p>=10?'#f59e0b':'#9CA3AF'};font-weight:700;">${p}%</span></div>`;}).join('');
+        const pickBalls=finalPicks.map(n=>{const c=getC(n);const isC=carryPicks.includes(n);return`<span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:${c};color:#fff;font-weight:800;font-size:16px;margin:4px;box-shadow:${isC?'0 0 0 3px '+c:'none'};">${n}</span>`;}).join('');
+        const expectedCarry=Math.round([...latestNums].map(n=>carryPct[n]).reduce((a,b)=>a+b,0)*10)/10;
+        el.innerHTML=`<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div></div></div><div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #6366f1;"><div style="font-size:0.78rem;color:#a5b4fc;margin-bottom:12px;font-weight:700;">✨ 추천 번호</div><div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">${pickBalls}</div><div style="font-size:0.72rem;color:#636366;margin-top:10px;text-align:center;">※ 통계 기반 확률 예측이며 당첨을 보장하지 않습니다</div></div><div style="display:flex;gap:8px;margin-top:12px;"><button onclick="savePrediction(${latest.drw_no},[${finalPicks}])" style="flex:1;padding:10px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">💾 저장하기</button></div></div>`;
+      } catch(e) { el.innerHTML=`<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
     }
 
     async function savePrediction(basedOn, picks) {
       try {
         const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
-        const res = await fetch('/api/lotto/prediction/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _t }, body: JSON.stringify({ based_on_round: basedOn, predicted_for_round: basedOn + 1, picks }) });
+        const res = await fetch('/api/lotto/prediction/save', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_t}, body:JSON.stringify({based_on_round:basedOn,predicted_for_round:basedOn+1,picks}) });
         const d = await res.json();
         if (d.ok) { spAlert(`${basedOn}회 기반 예측 저장 완료!`, '저장', '💾'); loadPredictionHistory(); }
-      } catch (e) { spAlert('저장 실패: ' + e.message, '오류', '❌'); }
+      } catch(e) { spAlert('저장 실패: '+e.message,'오류','❌'); }
     }
     async function checkPrediction(predId, actualRound) {
       try {
         const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
-        const res = await fetch('/api/lotto/prediction/check', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _t }, body: JSON.stringify({ prediction_id: predId, actual_round: actualRound }) });
+        const res = await fetch('/api/lotto/prediction/check', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_t}, body:JSON.stringify({prediction_id:predId,actual_round:actualRound}) });
         const d = await res.json();
-        if (d.ok) {
-          spAlert(`결과: ${d.hit_count}개 적중!
-맞춘 번호: ${d.hits.join(', ') || '없음'}
-가중치 자동 업데이트됨`, '결과 확인', '🎯'); loadPredictionHistory();
-        }
-        else spAlert(d.error || '오류', '오류', '❌');
-      } catch (e) { spAlert(e.message, '오류', '❌'); }
+        if (d.ok) { spAlert(`결과: ${d.hit_count}개 적중!
+맞춘 번호: ${d.hits.join(', ')||'없음'}
+가중치 자동 업데이트됨`,'결과 확인','🎯'); loadPredictionHistory(); }
+        else spAlert(d.error||'오류','오류','❌');
+      } catch(e) { spAlert(e.message,'오류','❌'); }
     }
     async function loadPredictionHistoryTab() {
       const el = document.getElementById('prediction-history-tab');
@@ -2502,11 +2470,11 @@
       try {
         const res = await fetch('/api/lotto/prediction/history');
         const d = await res.json();
-        if (!d.ok || !d.predictions?.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#636366;padding:8px;">저장된 예측 없음</div>'; return; }
+        if (!d.ok||!d.predictions?.length) { el.innerHTML='<div style="font-size:0.8rem;color:#636366;padding:8px;">저장된 예측 없음</div>'; return; }
 
         // 회차 콤보박스 채우기
         if (updateFilter) {
-          const rounds = [...new Set(d.predictions.map(p => p.based_on_round))].sort((a, b) => b - a);
+          const rounds = [...new Set(d.predictions.map(p => p.based_on_round))].sort((a,b) => b-a);
           const sel = document.getElementById('pred-round-filter');
           if (sel) {
             const curVal = sel.value;
@@ -2520,24 +2488,24 @@
           ? d.predictions.filter(p => p.based_on_round == filterRound)
           : d.predictions;
 
-        const bColors = ['#f59e0b', '#3b82f6', '#ef4444', '#888888', '#22c55e'];
-        const getC = n => n <= 9 ? bColors[0] : n <= 19 ? bColors[1] : n <= 29 ? bColors[2] : n <= 39 ? bColors[3] : bColors[4];
-        const rows = filtered.map(p => {
-          const picks = JSON.parse(p.picks);
-          const balls = picks.map(n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:11px;margin:1px;">${n}</span>`).join('');
-          const badge = p.result_checked ? `<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>` : `<button onclick="checkPrediction(${p.id},${p.predicted_for_round || p.based_on_round + 1})" style="font-size:0.72rem;padding:3px 10px;border-radius:999px;border:none;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">🔍 결과 확인</button>`;
-          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.based_on_round}회 기반</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
+        const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
+        const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
+        const rows = filtered.map(p=>{
+          const picks=JSON.parse(p.picks);
+          const balls=picks.map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:11px;margin:1px;">${n}</span>`).join('');
+          const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<button onclick="checkPrediction(${p.id},${p.predicted_for_round||p.based_on_round+1})" style="font-size:0.72rem;padding:3px 10px;border-radius:999px;border:none;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">🔍 결과 확인</button>`;
+          return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.based_on_round}회 기반</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
         }).join('');
-        el.innerHTML = '<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 (' + filtered.length + '건' + (filterRound ? ' · ' + filterRound + '회' : '') + ')</div>' + rows;
-      } catch (e) { el.innerHTML = '<div style="color:#ef4444;padding:8px;">오류: ' + e.message + '</div>'; }
+        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+filtered.length+'건' + (filterRound ? ' · '+filterRound+'회' : '') + ')</div>'+rows;
+      } catch(e) { el.innerHTML='<div style="color:#ef4444;padding:8px;">오류: '+e.message+'</div>'; }
     }
 
     async function toggleLottoAutoSend(userId, enabled) {
       try {
-        const res = await fetch('/api/admin/users/' + userId + '/lotto-auto-send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ enabled: enabled ? 1 : 0 }) });
+        const res = await fetch('/api/admin/users/' + userId + '/lotto-auto-send', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({enabled:enabled?1:0}) });
         const d = await res.json();
-        if (d.ok) loadUsers(); else spAlert(d.error || '변경 실패', '오류', '❌');
-      } catch (e) { spAlert(e.message, '오류', '❌'); }
+        if (d.ok) loadUsers(); else spAlert(d.error||'변경 실패','오류','❌');
+      } catch(e) { spAlert(e.message,'오류','❌'); }
     }
 
     // ===== 로또 관리 =====
@@ -2827,7 +2795,7 @@
 
         el.innerHTML = d.schedulers.map(s => {
           const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('ko-KR') : '미실행';
-          const intervalMin = s.interval_sec >= 3600 ? `${s.interval_sec / 3600}시간` : s.interval_sec >= 60 ? `${s.interval_sec / 60}분` : `${s.interval_sec}초`;
+          const intervalMin = s.interval_sec >= 3600 ? `${s.interval_sec/3600}시간` : s.interval_sec >= 60 ? `${s.interval_sec/60}분` : `${s.interval_sec}초`;
           return `
             <div style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
@@ -2859,7 +2827,7 @@
               </div>
             </div>`;
         }).join('');
-      } catch (e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
     }
 
     async function toggleScheduler(key, enabled) {
@@ -2872,7 +2840,7 @@
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         loadSchedulers();
-      } catch (e) { await spAlert(e.message, '오류', '❌'); }
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function updateInterval(key) {
@@ -2889,7 +2857,7 @@
         if (d.ok) await spAlert('저장됐습니다.', '완료', '✅');
         else await spAlert(d.error, '오류', '❌');
         loadSchedulers();
-      } catch (e) { await spAlert(e.message, '오류', '❌'); }
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     // ===== 스케줄러 관리 JS =====
@@ -2905,10 +2873,10 @@
           d.schedulers.map(s => {
             const lastRun = s.last_run ? new Date(s.last_run).toLocaleString('ko-KR') : '실행 안 됨';
             const intervalLabel = s.interval_sec >= 3600
-              ? `${s.interval_sec / 3600}시간`
+              ? `${s.interval_sec/3600}시간`
               : s.interval_sec >= 60
-                ? `${s.interval_sec / 60}분`
-                : `${s.interval_sec}초`;
+              ? `${s.interval_sec/60}분`
+              : `${s.interval_sec}초`;
             return `
               <div style="border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--panel2);">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -2933,13 +2901,13 @@
                     <span style="font-size:0.78rem;color:var(--muted);">주기:</span>
                     <select onchange="updateInterval('${s.key}', this.value)" 
                       style="padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:0.8rem;">
-                      <option value="10" ${s.interval_sec == 10 ? 'selected' : ''}>10초</option>
-                      <option value="30" ${s.interval_sec == 30 ? 'selected' : ''}>30초</option>
-                      <option value="60" ${s.interval_sec == 60 ? 'selected' : ''}>1분</option>
-                      <option value="300" ${s.interval_sec == 300 ? 'selected' : ''}>5분</option>
-                      <option value="600" ${s.interval_sec == 600 ? 'selected' : ''}>10분</option>
-                      <option value="1800" ${s.interval_sec == 1800 ? 'selected' : ''}>30분</option>
-                      <option value="3600" ${s.interval_sec == 3600 ? 'selected' : ''}>1시간</option>
+                      <option value="10" ${s.interval_sec==10?'selected':''}>10초</option>
+                      <option value="30" ${s.interval_sec==30?'selected':''}>30초</option>
+                      <option value="60" ${s.interval_sec==60?'selected':''}>1분</option>
+                      <option value="300" ${s.interval_sec==300?'selected':''}>5분</option>
+                      <option value="600" ${s.interval_sec==600?'selected':''}>10분</option>
+                      <option value="1800" ${s.interval_sec==1800?'selected':''}>30분</option>
+                      <option value="3600" ${s.interval_sec==3600?'selected':''}>1시간</option>
                     </select>
                   </div>
                   <div style="font-size:0.78rem;color:var(--muted);">
@@ -2951,7 +2919,7 @@
                 </div>
               </div>`;
           }).join('') + '</div>';
-      } catch (e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
     }
 
     async function toggleScheduler(key, enabled) {
@@ -2966,7 +2934,7 @@
         await spAlert(`스케줄러가 ${enabled ? '시작' : '정지'}됐습니다.
 서버 재시작 후 적용됩니다.`, '완료', enabled ? '🟢' : '⏸️');
         loadSchedulers();
-      } catch (e) { await spAlert(e.message, '오류', '❌'); }
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function updateInterval(key, interval_sec) {
@@ -2979,7 +2947,7 @@
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         await spAlert('주기 변경 완료 (서버 재시작 후 적용)', '완료', '✅');
-      } catch (e) { await spAlert(e.message, '오류', '❌'); }
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     // ===== 메뉴 관리 JS =====
@@ -3021,7 +2989,7 @@
                   <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);">
                     <span>${k.icon}</span>
                     <span style="flex:1;font-size:0.88rem;">${k.name}</span>
-                    <span style="font-size:0.72rem;color:var(--muted);">sub:${k.sub_key || '-'}</span>
+                    <span style="font-size:0.72rem;color:var(--muted);">sub:${k.sub_key||'-'}</span>
                     <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;cursor:pointer;">
                       <input type="checkbox" ${k.enabled ? 'checked' : ''} onchange="updateMenuEnabled(${k.id}, this.checked)" />
                       <span>${k.enabled ? '활성' : '비활성'}</span>
@@ -3031,7 +2999,7 @@
               </div>` : ''}
             </div>`;
         }).join('');
-      } catch (e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
     }
 
     function showAddMenuForm() {
@@ -3061,7 +3029,7 @@
         document.getElementById('newMenuSubKey').value = '';
         document.getElementById('addMenuForm').style.display = 'none';
         loadMenus();
-      } catch (e) { await spAlert(e.message, '오류', '❌'); }
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     async function updateMenuEnabled(id, enabled) {
@@ -3072,7 +3040,7 @@
           body: JSON.stringify({ enabled: enabled ? 1 : 0 })
         });
         loadMenus();
-      } catch (e) { await spAlert('변경 실패', '오류', '❌'); }
+      } catch(e) { await spAlert('변경 실패', '오류', '❌'); }
     }
 
     async function deleteMenu(id) {
@@ -3082,7 +3050,7 @@
         const d = await res.json();
         if (!d.ok) { await spAlert(d.error, '오류', '❌'); return; }
         loadMenus();
-      } catch (e) { await spAlert(e.message, '오류', '❌'); }
+      } catch(e) { await spAlert(e.message, '오류', '❌'); }
     }
 
     function adminLogout() {
