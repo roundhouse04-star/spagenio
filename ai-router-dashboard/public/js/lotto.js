@@ -180,34 +180,8 @@
         // ── DB 반복출현 가중치 기반 기본 점수 ──
         const dbW = lottoDbWeights[n] || 1.0;
 
-        // ── 연속 반복 패턴 멀티플라이어 ──
-        // lottoHistory 기반으로 현재 연속 횟수 / 최대 연속 횟수 계산
-        const maxStreak = {};
-        const curStreak = {};
-        for (let i = 1; i < lottoHistory.length; i++) {
-          const prev = new Set(lottoHistory[i-1]);
-          const cur  = new Set(lottoHistory[i]);
-          for (let x = 1; x <= 45; x++) {
-            if (prev.has(x) && cur.has(x)) {
-              curStreak[x] = (curStreak[x] || 0) + 1;
-              if ((curStreak[x] || 0) > (maxStreak[x] || 0)) maxStreak[x] = curStreak[x];
-            } else {
-              curStreak[x] = 0;
-            }
-          }
-        }
-        const cs = curStreak[n] || 0;
-        const ms = maxStreak[n] || 0;
-        let streakMul = 1.0;
-        if (cs === 0) {
-          streakMul = 1.0;                          // 연속 없음 → 중립
-        } else if (ms > 0 && cs >= ms) {
-          streakMul = 0.3;                          // 최대 도달 → 강한 DOWN
-        } else if (ms > 0 && cs >= ms * 0.7) {
-          streakMul = 0.6;                          // 최대 70% 이상 → DOWN
-        } else {
-          streakMul = 1.0 + (cs * 0.3);            // 여유 있음 → UP
-        }
+        // 캐시된 streakMultiplier 사용 (lottoGenerate에서 1회 계산)
+        const streakMul = _streakCache ? (_streakCache[n] || 1.0) : 1.0;
 
         let score = dbW * streakMul;  // 반복출현 패턴 × 연속 패턴 동시 반영
 
@@ -781,14 +755,50 @@
         }
       };
 
+      // ── streak 캐시 (예측 실행 시 1회만 계산) ──
+      let _streakCache = null;
+
+      function buildStreakCache() {
+        const maxStreak = {}, curStreak = {};
+        for (let i = 1; i < lottoHistory.length; i++) {
+          const prev = new Set(lottoHistory[i-1]);
+          const cur  = new Set(lottoHistory[i]);
+          for (let x = 1; x <= 45; x++) {
+            if (prev.has(x) && cur.has(x)) {
+              curStreak[x] = (curStreak[x] || 0) + 1;
+              if ((curStreak[x]||0) > (maxStreak[x]||0)) maxStreak[x] = curStreak[x];
+            } else {
+              curStreak[x] = 0;
+            }
+          }
+        }
+        // streakMultiplier 미리 계산
+        const mul = {};
+        for (let x = 1; x <= 45; x++) {
+          const cs = curStreak[x] || 0;
+          const ms = maxStreak[x] || 0;
+          if (cs === 0)                        mul[x] = 1.0;
+          else if (ms > 0 && cs >= ms)         mul[x] = 0.3;
+          else if (ms > 0 && cs >= ms * 0.7)   mul[x] = 0.6;
+          else                                  mul[x] = 1.0 + (cs * 0.3);
+        }
+        return mul;
+      }
+
       window.lottoGenerate = function lottoGenerate() {
         lottoNormalizeWeights();
+
+        // streak 캐시 1회 계산
+        _streakCache = buildStreakCache();
 
         const count = Number($id('lotto-game-count')?.value || 5);
         const games = Array.from({ length: count }, () => generateOneGame());
 
         lottoLastGames = games;
         renderGames(games);
+
+        // 사용 후 캐시 초기화
+        _streakCache = null;
       };
 
       async function lottoFetchHistoryData() {
