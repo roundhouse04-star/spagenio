@@ -403,6 +403,10 @@ def get_stock_data(symbol, period_days=60):
         hist = ticker.history(period=f"{period_days}d")
         if hist.empty:
             return None
+        # NaN 행 제거 (장 마감 전 당일 데이터 등)
+        hist = hist.dropna(subset=['Close'])
+        if hist.empty:
+            return None
         closes = list(hist['Close'].values)
         volumes = list(hist['Volume'].values)
         return {
