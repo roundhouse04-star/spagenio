@@ -2502,6 +2502,7 @@
     }
 
     let _predPage = 1;
+    let _predTotalPages = 1;
     const _predPageSize = 10;
     async function _renderPredictionHistory(el, updateFilter = false) {
       if (!el) return;
@@ -2550,7 +2551,7 @@
           (totalPages > 1 ? '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#e2e8f0);">' +
             '<button onclick="_predPage=Math.max(1,_predPage-1);loadPredictionHistoryTab()" ' + (_predPage<=1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);cursor:pointer;">← 이전</button>' +
             '<span style="font-size:0.85rem;color:var(--muted);">'+_predPage+' / '+totalPages+'</span>' +
-            '<button onclick="_predPage=Math.min(totalPages,_predPage+1);loadPredictionHistoryTab()" ' + (_predPage>=totalPages?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);cursor:pointer;">다음 →</button>' +
+            '<button onclick="_predPage=Math.min(_predTotalPages,_predPage+1);loadPredictionHistoryTab()" ' + (_predPage>=_predTotalPages?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);cursor:pointer;">다음 →</button>' +
           '</div>' : '');
       } catch(e) { el.innerHTML='<div style="color:#ef4444;padding:8px;">오류: '+e.message+'</div>'; }
     }
