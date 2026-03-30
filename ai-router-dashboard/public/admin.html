@@ -2256,6 +2256,7 @@
           });
           const rd = await r.json();
           if (rd.ok) successCount++;
+          else if (rd.pending) continue; // 아직 추첨 전 - 스킵
         }
         await spAlert(`${successCount}건 확인 완료! 가중치 업데이트됨`, '완료', '✅');
         loadPredictionHistoryTab();

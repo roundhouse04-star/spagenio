@@ -564,8 +564,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const pred = db.prepare('SELECT * FROM lotto_predictions WHERE id=?').get(prediction_id);
       if (!pred) return res.status(404).json({ error: '예측 없음' });
       const picks = JSON.parse(pred.picks);
-      const actual = db.prepare('SELECT numbers FROM lotto_history WHERE drw_no=?').get(actual_round);
-      if (!actual) return res.status(404).json({ error: `${actual_round}회 당첨번호 없음` });
+      // based_on_round 다음 회차로 자동 계산
+      const nextRound = actual_round || (pred.based_on_round + 1);
+      const actual = db.prepare('SELECT numbers FROM lotto_history WHERE drw_no=?').get(nextRound);
+      if (!actual) return res.status(200).json({ ok: false, pending: true, error: `${nextRound}회 아직 추첨 전입니다` });
       const actualNums = JSON.parse(actual.numbers);
       const hits = picks.filter(n => actualNums.includes(n));
       const updateWeight = db.prepare('UPDATE lotto_weights SET weight=MAX(0.1,MIN(5.0,weight*?)),appear_count=appear_count+1,hit_count=hit_count+?,updated_at=CURRENT_TIMESTAMP WHERE num=?');
