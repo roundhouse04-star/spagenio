@@ -2132,7 +2132,8 @@
       const includeBonus = document.getElementById('repeat-include-bonus')?.checked ?? true;
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
       try {
-        const res = await fetch('/api/lotto/history?limit=100', { headers: { 'Authorization': 'Bearer ' + token } });
+        // lotto/history API 호출 (full 데이터 포함 버전)
+        const res = await fetch('/api/lotto/history-full?limit=100', { headers: { 'Authorization': 'Bearer ' + token } });
         const d = await res.json();
         const history = d.history || [];
         if (!history.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">당첨번호 데이터가 없습니다</div>'; return; }
@@ -2144,7 +2145,7 @@
 
         for (let i = 0; i < rows.length; i++) {
           const cur = rows[i];
-          const nums = JSON.parse(cur.numbers || '[]');
+          const nums = Array.isArray(cur.numbers) ? cur.numbers : JSON.parse(cur.numbers || '[]');
           const bonus = cur.bonus;
           const allNums = includeBonus ? [...nums, bonus] : [...nums];
 

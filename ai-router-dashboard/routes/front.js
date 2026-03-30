@@ -536,6 +536,22 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  // 반복출현번호 분석용 - drw_no, numbers, bonus, drw_date 전체 반환
+  router.get('/api/lotto/history-full', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const limit = parseInt(req.query.limit) || 100;
+      const rows = db.prepare('SELECT drw_no, numbers, bonus, drw_date FROM lotto_history ORDER BY drw_no DESC LIMIT ?').all(limit);
+      const history = rows.map(r => ({
+        drw_no: r.drw_no,
+        numbers: typeof r.numbers === 'string' ? JSON.parse(r.numbers) : r.numbers,
+        bonus: r.bonus,
+        drw_date: r.drw_date
+      }));
+      res.json({ ok: true, history, count: history.length });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   router.get('/api/lotto/algorithm-weights', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const DEFAULT_WEIGHTS = { freq: 20, hot: 20, cold: 10, balance: 15, zone: 10, ac: 10, prime: 5, delta: 10 };
@@ -801,36 +817,6 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 거래량 급등 감지
-
-  // ✅ 한국 TOP-PICKS (일반 자동매매 한국 탭용)
-  router.get('/api/auto-trade/kr-top-picks', async (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    try {
-      const quantBase = process.env.QUANT_SERVER_URL || 'http://localhost:5002';
-      const koreaRes = await fetch(`${quantBase}/api/quant/korea`);
-      if (!koreaRes.ok) return res.status(502).json({ error: '한국 시장 분석 실패' });
-      const data = await koreaRes.json();
-      const top10 = data.top10 || [];
-      if (!top10.length) return res.json({ ok: true, picks: [] });
-      const KR_BLOCKED_KEYWORDS = ['인버스','레버리지','곱버스','선물','ETN','합성','단기','울트라','INVERSE','LEVERAGE','FUTURES','SHORT','ULTRA','2X','3X'];
-      const isBlockedKr = (item) => {
-        const name = (item.name || '').toUpperCase();
-        const code = (item.ticker || '').replace(/\.(KS|KQ)$/, '');
-        if (/^(58|59)\d{4}$/.test(code)) return true;
-        return KR_BLOCKED_KEYWORDS.some(kw => name.includes(kw.toUpperCase()));
-      };
-      const filtered = top10.filter(item => !isBlockedKr(item));
-      const picks = filtered.slice(0, 5).map((item, i) => {
-        const signals = [];
-        if (item.volume_ratio && item.volume_ratio > 1.5) signals.push(`📊 거래량 ${item.volume_ratio.toFixed(1)}x`);
-        if (item.rsi && item.rsi < 40) signals.push(`RSI ${item.rsi.toFixed(0)} 과매도`);
-        if (item.rsi && item.rsi > 60) signals.push(`RSI ${item.rsi.toFixed(0)} 강세`);
-        if (item.score) signals.push(`점수 ${item.score}`);
-        return { symbol: item.ticker, name: item.name || item.ticker, score: item.score || (10 - i), price: item.price || 0, change_pct: item.change_pct || 0, signals, rsi: item.rsi || null, market: item.ticker.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI' };
-      });
-      res.json({ ok: true, picks, total_analyzed: top10.length });
-    } catch(e) { res.status(500).json({ error: e.message }); }
-  });
   router.get('/api/auto-trade/volume-surge', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
