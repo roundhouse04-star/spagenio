@@ -697,7 +697,7 @@ app.use((req, res, next) => {
 });
 
 function authMiddleware(req, res, next) {
-  const publicApis = ['/api/auth/login', '/api/auth/admin-login', '/api/auth/verify', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/send-email-code', '/api/auth/verify-email-code', '/api/auth/check-username', '/api/auth/check-email'];
+  const publicApis = ['/api/auth/login', '/api/auth/admin-login', '/api/auth/verify', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/send-email-code', '/api/auth/verify-email-code', '/api/auth/check-username', '/api/auth/check-email', '/api/lotto/history-full'];
   if (!req.path.startsWith('/api/')) return next();
   const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
   if (token) {
