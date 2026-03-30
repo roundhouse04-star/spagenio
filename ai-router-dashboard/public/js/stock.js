@@ -60,10 +60,10 @@ async function loadAccount() {
     const activeAcc = keyData.accounts?.find(a => a.is_active) || keyData.accounts?.[0];
     const mode = activeAcc?.alpaca_paper ? '🧪 Paper' : '💰 Live';
     el.innerHTML = `
-      <div class="account-metric"><div class="lbl">Cash</div><div class="val">$${parseFloat(data.cash).toLocaleString()}</div></div>
-      <div class="account-metric"><div class="lbl">Portfolio</div><div class="val">$${parseFloat(data.portfolio_value).toLocaleString()}</div></div>
-      <div class="account-metric"><div class="lbl">Buying Power</div><div class="val">$${parseFloat(data.buying_power).toLocaleString()}</div></div>
-      <div class="account-metric"><div class="lbl">Equity</div><div class="val">$${parseFloat(data.equity).toLocaleString()}</div></div>
+      <div class="account-metric"><div class="lbl">Cash</div><div class="val" style="color:#4f8fff;">$${parseFloat(data.cash).toLocaleString()}</div></div>
+      <div class="account-metric"><div class="lbl">Portfolio</div><div class="val" style="color:#10b981;">$${parseFloat(data.portfolio_value).toLocaleString()}</div></div>
+      <div class="account-metric"><div class="lbl">Buying Power</div><div class="val" style="color:#f59e0b;">$${parseFloat(data.buying_power).toLocaleString()}</div></div>
+      <div class="account-metric"><div class="lbl">Equity</div><div class="val" style="color:#a78bfa;">$${parseFloat(data.equity).toLocaleString()}</div></div>
     `;
   } catch (e) {
     el.innerHTML = `<div class="mini-card" style="color:#ef4444;">서버 연결 Error: ${e.message}</div>`;
