@@ -578,7 +578,6 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   router.get('/api/lotto/prediction/history', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const rows = db.prepare('SELECT * FROM lotto_predictions ORDER BY created_at DESC LIMIT 20').all();
       res.json({ ok: true, predictions: rows });
