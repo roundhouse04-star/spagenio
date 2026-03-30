@@ -473,3 +473,160 @@ async function loadOrders() {
 }
 
 // ===== 뉴스 =====
+// ===== 호가창 =====
+let _obRefreshTimer = null;
+
+async function loadOrderBook() {
+  const symbol = document.getElementById('tradeSymbol')?.value?.trim().toUpperCase();
+  const priceEl = document.getElementById('obPriceCard');
+  const tableEl = document.getElementById('obTable');
+  const statusEl = document.getElementById('obStatus');
+  if (!symbol || symbol.length < 1) return;
+
+  if (statusEl) statusEl.textContent = '조회 중...';
+
+  try {
+    // 1. 최신 체결가 조회
+    const [tradeRes, quoteRes, barRes] = await Promise.all([
+      fetch(`/api/alpaca-user/v2/stocks/${symbol}/trades/latest`),
+      fetch(`/api/alpaca-user/v2/stocks/${symbol}/quotes/latest`),
+      fetch(`/api/alpaca-user/v2/stocks/${symbol}/bars/latest?timeframe=1Day`)
+    ]);
+
+    const tradeData = tradeRes.ok ? await tradeRes.json() : null;
+    const quoteData = quoteRes.ok ? await quoteRes.json() : null;
+    const barData   = barRes.ok   ? await barRes.json()   : null;
+
+    const trade = tradeData?.trade || {};
+    const quote = quoteData?.quote || {};
+    const bar   = barData?.bar    || {};
+
+    const latestPrice = parseFloat(trade.p) || parseFloat(quote.ap) || 0;
+    const askPrice    = parseFloat(quote.ap) || 0;
+    const bidPrice    = parseFloat(quote.bp) || 0;
+    const askSize     = parseInt(quote.as)   || 0;
+    const bidSize     = parseInt(quote.bs)   || 0;
+    const open        = parseFloat(bar.o)    || 0;
+    const high        = parseFloat(bar.h)    || 0;
+    const low         = parseFloat(bar.l)    || 0;
+    const prevClose   = parseFloat(bar.c)    || latestPrice;
+    const volume      = bar.v || 0;
+
+    const change    = latestPrice - open;
+    const changePct = open > 0 ? (change / open * 100) : 0;
+    const isUp      = change >= 0;
+    const upColor   = '#16a34a';
+    const dnColor   = '#dc2626';
+    const priceColor = isUp ? upColor : dnColor;
+
+    // ── 현재가 카드 ──
+    if (priceEl) {
+      priceEl.innerHTML = `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:1.6rem;font-weight:800;color:${priceColor};">
+            $${latestPrice.toFixed(2)}
+          </div>
+          <div style="font-size:0.82rem;font-weight:700;color:${priceColor};margin-top:2px;">
+            ${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)} (${Math.abs(changePct).toFixed(2)}%)
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.78rem;">
+          <div style="background:#f8fafc;border-radius:6px;padding:6px 8px;">
+            <div style="color:#6B7280;">시가</div>
+            <div style="font-weight:700;">$${open.toFixed(2)}</div>
+          </div>
+          <div style="background:#f8fafc;border-radius:6px;padding:6px 8px;">
+            <div style="color:#6B7280;">전일종가</div>
+            <div style="font-weight:700;">$${prevClose.toFixed(2)}</div>
+          </div>
+          <div style="background:#f8fafc;border-radius:6px;padding:6px 8px;">
+            <div style="color:#16a34a;">고가</div>
+            <div style="font-weight:700;color:#16a34a;">$${high.toFixed(2)}</div>
+          </div>
+          <div style="background:#f8fafc;border-radius:6px;padding:6px 8px;">
+            <div style="color:#dc2626;">저가</div>
+            <div style="font-weight:700;color:#dc2626;">$${low.toFixed(2)}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:0.75rem;color:#6B7280;border-top:1px solid #f3f4f6;padding-top:8px;">
+          거래량: ${volume ? Number(volume).toLocaleString() : '-'}
+        </div>`;
+    }
+
+    // ── 호가창 ──
+    if (tableEl) {
+      const spread = askPrice > 0 && bidPrice > 0 ? (askPrice - bidPrice) : 0;
+      const spreadPct = bidPrice > 0 ? (spread / bidPrice * 100) : 0;
+      const maxSize = Math.max(askSize, bidSize, 1);
+      const askBarW = Math.round(askSize / maxSize * 100);
+      const bidBarW = Math.round(bidSize / maxSize * 100);
+
+      tableEl.innerHTML = `
+        <div style="font-size:0.75rem;color:#6B7280;margin-bottom:6px;font-weight:700;">매도 호가</div>
+        <div style="background:#fff0f0;border-radius:8px;padding:10px 12px;margin-bottom:4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:0.75rem;color:#6B7280;">잔량</span>
+            <span style="font-size:0.75rem;color:#6B7280;">매도호가</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:0.82rem;color:#6B7280;">${askSize.toLocaleString()}</span>
+            <span style="font-size:1.1rem;font-weight:800;color:#dc2626;">
+              $${askPrice > 0 ? askPrice.toFixed(2) : '-'}
+            </span>
+          </div>
+          <div style="margin-top:6px;height:6px;background:#fee2e2;border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${askBarW}%;background:#dc2626;border-radius:3px;float:right;"></div>
+          </div>
+        </div>
+
+        <div style="text-align:center;font-size:0.72rem;color:#6B7280;padding:6px 0;border-top:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;margin:4px 0;">
+          스프레드 ${spread > 0 ? '$'+spread.toFixed(2)+' ('+spreadPct.toFixed(3)+'%)' : '-'}
+        </div>
+
+        <div style="font-size:0.75rem;color:#6B7280;margin-bottom:6px;margin-top:4px;font-weight:700;">매수 호가</div>
+        <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:0.75rem;color:#6B7280;">잔량</span>
+            <span style="font-size:0.75rem;color:#6B7280;">매수호가</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:0.82rem;color:#6B7280;">${bidSize.toLocaleString()}</span>
+            <span style="font-size:1.1rem;font-weight:800;color:#16a34a;">
+              $${bidPrice > 0 ? bidPrice.toFixed(2) : '-'}
+            </span>
+          </div>
+          <div style="margin-top:6px;height:6px;background:#dcfce7;border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${bidBarW}%;background:#16a34a;border-radius:3px;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;font-size:0.72rem;color:#9CA3AF;text-align:center;">
+          Alpaca 최우선 호가 (Free Plan)
+        </div>`;
+    }
+
+    if (statusEl) {
+      const now = new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+      statusEl.textContent = now + ' 기준';
+    }
+
+    // 30초마다 자동 갱신
+    clearTimeout(_obRefreshTimer);
+    _obRefreshTimer = setTimeout(() => loadOrderBook(), 30000);
+
+  } catch(e) {
+    if (priceEl) priceEl.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:12px;">조회 실패: ${e.message}</div>`;
+    if (statusEl) statusEl.textContent = '오류';
+  }
+}
+
+// 종목 검색 팝업에서 선택 시 호가창도 자동 로드
+const _origSelectStock = window.selectStock;
+if (typeof _origSelectStock === 'function') {
+  window.selectStock = function(symbol, name) {
+    _origSelectStock(symbol, name);
+    setTimeout(() => {
+      if (document.getElementById('tradeSymbol')?.value === symbol) loadOrderBook();
+    }, 100);
+  };
+}
