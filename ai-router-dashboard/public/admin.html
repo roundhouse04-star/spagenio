@@ -2132,8 +2132,10 @@
       const includeBonus = document.getElementById('repeat-include-bonus')?.checked ?? true;
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
       try {
+        // 토큰 가져오기 (admin 또는 일반 auth)
+        const _token = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
         // lotto/history API 호출 (full 데이터 포함 버전)
-        const res = await fetch('/api/lotto/history-full?limit=100', { headers: { 'Authorization': 'Bearer ' + token } });
+        const res = await fetch('/api/lotto/history-full?limit=100', { headers: { 'Authorization': 'Bearer ' + _token } });
         const d = await res.json();
         const history = d.history || [];
         if (!history.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">당첨번호 데이터가 없습니다</div>'; return; }
