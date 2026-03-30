@@ -1173,21 +1173,40 @@ async function runSimpleAutoTrade(userId) {
       const top = scored[0];
       if (!top) { db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId); return; }
 
-      // 매수 금액 계산 (계좌 30%)
+      // 매수 금액 계산 (계좌 잔고 비율)
+      const buyingPowerSimple = parseFloat(account.buying_power) || 0;
       const buyAmount = equity * (state.balance_ratio || 0.3);
       const qty = Math.floor(buyAmount / top.price);
-      if (qty < 1) return;
+
+      // ✅ 1주 미만 체크
+      if (qty < 1) {
+        console.log(`[단순매매] ${top.symbol} 매수 스킵: 1주 미만 (buyAmount=$${buyAmount.toFixed(0)}, price=$${top.price})`);
+        db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
+        return;
+      }
+      // ✅ 잔고 부족 체크
+      if (qty * top.price > buyingPowerSimple) {
+        const maxQty = Math.floor(buyingPowerSimple / top.price);
+        if (maxQty < 1) {
+          console.log(`[단순매매] ${top.symbol} 매수 스킵: 잔고 부족 (buying_power=$${buyingPowerSimple.toFixed(0)})`);
+          db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
+          return;
+        }
+        // 최대 매수 가능 수량으로 조정
+        console.log(`[단순매매] ${top.symbol} 수량 조정: ${qty}주 → ${maxQty}주 (잔고 부족)`);
+      }
+      const finalQty = Math.min(qty, Math.floor(buyingPowerSimple / top.price));
 
       const order = await (await fetch(`${baseUrl}/v2/orders`, {
         method: 'POST', headers,
-        body: JSON.stringify({ symbol: top.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' })
+        body: JSON.stringify({ symbol: top.symbol, qty: String(finalQty), side: 'buy', type: 'market', time_in_force: 'day' })
       })).json();
 
       if (order.id) {
         db.prepare('INSERT INTO simple_auto_trade_log (user_id,symbol,action,qty,price,profit_pct,reason) VALUES (?,?,?,?,?,?,?)')
-          .run(userId, top.symbol, 'BUY', qty, top.price, 0, `점수 ${top.score}점 TOP1 매수`);
+          .run(userId, top.symbol, 'BUY', finalQty, top.price, 0, `점수 ${top.score}점 TOP1 매수`);
         db.prepare('UPDATE simple_auto_trade SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-          .run('holding', top.symbol, qty, top.price, order.id, userId);
+          .run('holding', top.symbol, finalQty, top.price, order.id, userId);
 
         // 텔레그램 알림
         try {
@@ -1334,7 +1353,26 @@ async function runAutoTradeForUser(userId) {
         if (m?.goldenCross) { buySignal = true; reason = '팩터+MACD 골든크로스'; }
         // RSI 과매도 체크 (MACD 미충족 시)
         if (!buySignal) { const rsi = calcRSI(closes); if (rsi && rsi < 40) { buySignal = true; reason = `팩터+RSI 과매도 (${rsi.toFixed(1)})`; } }
-        if (buySignal && currentPrice > 0) { const qty = Math.floor(buyAmount / currentPrice); if (qty < 1) continue; const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json(); if (order.id) { db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active'); results.push({ symbol, action: '매수', qty, reason }); boughtCount++; remainingBuyPower -= qty * currentPrice; heldSymbols.add(symbol); } }
+        if (buySignal && currentPrice > 0) {
+          const qty = Math.floor(buyAmount / currentPrice);
+          if (qty < 1) { console.log(`[자동매매] ${symbol} 매수 스킵: 1주 미만 (buyAmount=$${buyAmount.toFixed(0)}, price=$${currentPrice})`); continue; }
+          // ✅ 잔고 재확인 (동시 다발 매수 시 잔고 초과 방지)
+          if (qty * currentPrice > remainingBuyPower) { console.log(`[자동매매] ${symbol} 매수 스킵: 잔고 부족`); continue; }
+          // ✅ 이미 보유 중 재확인 (포지션 조회와 DB 불일치 방지)
+          const alreadyHeld = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").get(userId, symbol);
+          if (alreadyHeld) { heldSymbols.add(symbol); continue; }
+          const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
+          if (order.id) {
+            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active');
+            results.push({ symbol, action: '매수', qty, reason });
+            boughtCount++;
+            remainingBuyPower -= qty * currentPrice;
+            heldSymbols.add(symbol);
+          } else {
+            // 주문 실패 시 로그
+            saveErrorLog({ event_type: 'AUTO_TRADE_ORDER_FAIL', error_message: order.message || JSON.stringify(order), meta: { symbol, qty, userId } });
+          }
+        }
       } catch (e) { saveErrorLog({ event_type: 'AUTO_TRADE_ERROR', error_message: e.message, stack_trace: e.stack, meta: { symbol, userId } }); }
     }
   } catch (e) { return { ok: false, message: e.message }; }
@@ -1800,12 +1838,19 @@ async function runAutoStrategy(userId) {
 
         if (signals >= 2) {
           const qty = Math.floor(buyAmount / currentPrice);
-          if (qty < 1) continue;
+          if (qty < 1) { console.log(`[완전자동] ${row.symbol} 매수 스킵: 1주 미만`); continue; }
+          // ✅ 잔고 재확인
+          if (qty * currentPrice > remainingBuyingPower) { console.log(`[완전자동] ${row.symbol} 매수 스킵: 잔고 부족`); continue; }
+          // ✅ DB 이중 매수 방지
+          const alreadyHeld = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").get(userId, row.symbol);
+          if (alreadyHeld) { heldSymbols.add(row.symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: row.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
             db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, row.symbol, 'BUY', qty, currentPrice, `퀀트전략:3단계(${reasons.join('+')})`, order.id, 'active');
             heldSymbols.add(row.symbol);
-            remainingBuyingPower -= qty * currentPrice; // 매수 후 잔여 매수력 차감
+            remainingBuyingPower -= qty * currentPrice;
+          } else {
+            saveErrorLog({ event_type: 'AUTO_STRATEGY_ORDER_FAIL', error_message: order.message || JSON.stringify(order), meta: { symbol: row.symbol, qty, userId } });
           }
         }
       } catch (e) { saveErrorLog({ event_type: 'AUTO_STRATEGY_BUY_ERROR', error_message: e.message, meta: { symbol: row.symbol, userId } }); }
