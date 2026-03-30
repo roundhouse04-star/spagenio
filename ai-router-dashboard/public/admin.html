@@ -1200,7 +1200,7 @@
                 <button onclick="loadRepeatNumbers()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
               </div>
             </div>
-            <div id="repeat-result">
+            <div id="repeat-result" style="overflow-x:auto;">
               <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
             </div>
           </div>
@@ -2120,7 +2120,7 @@
       return '#22c55e';
     }
 
-    function makeBall(n, size = 32, isBonus = false) {
+    function makeBall(n, size = 42, isBonus = false) {
       const color = getLottoBallColor(n);
       const border = isBonus ? '2px dashed ' + color : '2px solid ' + color;
       return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;border:${border};background:${isBonus ? 'transparent' : color}22;color:${color};font-weight:800;font-size:${size*0.42}px;margin:1px;">${n}</span>`;
@@ -2167,13 +2167,13 @@
             });
           }
 
-          html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">`;
-          html += `<div style="min-width:70px;font-size:0.82rem;font-weight:700;color:var(--muted);">${cur.drw_no}회</div>`;
-          html += `<div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">`;
+          html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border);">`;
+          html += `<div style="min-width:80px;font-size:0.88rem;font-weight:700;color:var(--muted);">${cur.drw_no}회</div>`;
+          html += `<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;">`;
 
           nums.forEach(n => {
             const rep = repeats[n];
-            const ballHtml = makeBall(n, 34);
+            const ballHtml = makeBall(n, 42);
             if (rep) {
               html += `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;">
                 ${ballHtml}
@@ -2190,7 +2190,7 @@
             const rep = repeats[bonus];
             if (rep) {
               html += `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;">
-                ${makeBall(bonus, 34, true)}
+                ${makeBall(bonus, 42, true)}
                 <span style="font-size:10px;color:#ef4444;font-weight:700;">↑${rep.count}</span>
               </div>`;
             } else {
@@ -2203,8 +2203,8 @@
           // 반복 출현 번호 요약
           const repNums = Object.keys(repeats).filter(n => repeats[n].count > 0);
           if (repNums.length) {
-            html += `<div style="margin-left:8px;font-size:0.75rem;color:#ef4444;white-space:nowrap;">
-              반복: ${repNums.map(n => `<span style="font-weight:700;">${n}</span>`).join(', ')}
+            html += `<div style="margin-left:12px;font-size:0.82rem;color:#ef4444;white-space:nowrap;font-weight:600;">
+              반복: ${repNums.map(n => `<span style="font-weight:800;">${n}</span>`).join(', ')}
             </div>`;
           }
 
