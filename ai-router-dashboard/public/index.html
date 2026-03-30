@@ -4473,7 +4473,7 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div>
               <span style="font-weight:800;font-size:0.95rem;color:#FFFFFF;">${medals[i]} ${item.symbol}</span>
-              <span style="margin-left:6px;font-size:0.68rem;padding:1px 6px;border-radius:999px;background:${item.above_sma200 ? '#dcfce7' : '#fee2e2'};color:${item.above_sma200 ? '#166534' : '#991b1b'};font-weight:700;">${item.above_sma200 ? '▲ 200일선 위' : '▼ 200일선 아래'}</span>
+              <span style="margin-left:6px;font-size:0.68rem;padding:1px 6px;border-radius:999px;background:${item.above_sma200 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};color:${item.above_sma200 ? '#10b981' : '#ef4444'};font-weight:700;">${item.above_sma200 ? '▲ 200일선 위' : '▼ 200일선 아래'}</span>
             </div>
             <div style="text-align:right;font-size:0.78rem;">
               <span style="font-weight:700;color:#FFFFFF;">$${item.price?.toFixed(2) ?? '-'}</span>
@@ -4481,12 +4481,12 @@
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:0.7rem;color:#9CA3AF;">
-            ${item.roe ? `<span style="background:rgba(79,143,255,0.15);color:#3730a3;padding:1px 6px;border-radius:999px;">ROE ${item.roe}%</span>` : ''}
-            ${item.debt_to_equity != null ? `<span style="background:rgba(255,214,10,0.12);color:#92400e;padding:1px 6px;border-radius:999px;">부채 ${item.debt_to_equity}%</span>` : ''}
-            ${item.revenue_growth ? `<span style="background:rgba(255,59,48,0.15);color:#166534;padding:1px 6px;border-radius:999px;">매출성장 ${item.revenue_growth}%</span>` : ''}
-            ${item.momentum_6m != null ? `<span style="background:rgba(30,123,255,0.08);color:#0369a1;padding:1px 6px;border-radius:999px;">6M ${item.momentum_6m > 0 ? '+' : ''}${item.momentum_6m}%</span>` : ''}
-            ${item.news_label && item.news_label !== '뉴스없음' ? `<span style="padding:1px 6px;border-radius:999px;background:${item.news_score > 0.3 ? '#dcfce7' : item.news_score < -0.3 ? '#fee2e2' : '#f1f5f9'};color:${item.news_score > 0.3 ? '#166534' : item.news_score < -0.3 ? '#991b1b' : '#6b7280'};">${item.news_label} ${item.news_count}건</span>` : ''}
-            ${item.macro_risk < -1 ? `<span style="padding:1px 6px;border-radius:999px;background:rgba(30,123,255,0.15);color:#991b1b;font-weight:700;">⚠️ 거시악재</span>` : ''}
+            ${item.roe ? `<span style="background:rgba(79,143,255,0.15);color:#4f8fff;padding:1px 6px;border-radius:999px;">ROE ${item.roe}%</span>` : ''}
+            ${item.debt_to_equity != null ? `<span style="background:rgba(255,214,10,0.12);color:#FFD60A;padding:1px 6px;border-radius:999px;">부채 ${item.debt_to_equity}%</span>` : ''}
+            ${item.revenue_growth ? `<span style="background:rgba(255,59,48,0.12);color:#FF3B30;padding:1px 6px;border-radius:999px;">매출성장 ${item.revenue_growth}%</span>` : ''}
+            ${item.momentum_6m != null ? `<span style="background:rgba(30,123,255,0.08);color:#4f8fff;padding:1px 6px;border-radius:999px;">6M ${item.momentum_6m > 0 ? '+' : ''}${item.momentum_6m}%</span>` : ''}
+            ${item.news_label && item.news_label !== '뉴스없음' ? `<span style="padding:1px 6px;border-radius:999px;background:${item.news_score > 0.3 ? 'rgba(16,185,129,0.15)' : item.news_score < -0.3 ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)'};color:${item.news_score > 0.3 ? '#10b981' : item.news_score < -0.3 ? '#ef4444' : '#9CA3AF'};">${item.news_label} ${item.news_count}건</span>` : ''}
+            ${item.macro_risk < -1 ? `<span style="padding:1px 6px;border-radius:999px;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;">⚠️ 거시악재</span>` : ''}
           </div>
         </div>`).join('');
 
