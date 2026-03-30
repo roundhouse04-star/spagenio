@@ -19,12 +19,25 @@
       let lottoHistory = [];
       let lottoLastGames = [];
       let lottoAlgos = DEFAULT_ALGOS.map(a => ({ ...a }));
+      let lottoDbWeights = {};  // DB에서 로드한 번호별 가중치 (반복출현 패턴 반영)
 
       function $id(id) {
         return document.getElementById(id);
       }
 
       async function lottoLoadWeights() {
+        // ── DB 번호별 가중치 로드 (반복출현 패턴) ──
+        try {
+          const wRes = await fetch('/api/lotto/weights');
+          if (wRes.ok) {
+            const wData = await wRes.json();
+            if (wData.weights?.length) {
+              lottoDbWeights = {};
+              wData.weights.forEach(w => { lottoDbWeights[w.num] = parseFloat(w.weight) || 1.0; });
+            }
+          }
+        } catch(e) {}
+
         try {
           // 서버에서 사용자별 비중 로드 시도
           const res = await fetch('/api/lotto/algorithm-weights');
@@ -164,24 +177,45 @@
       }
 
       function getNumberScore(n) {
-        let score = 1;
+        // ── DB 반복출현 가중치 기반 기본 점수 ──
+        // lottoDbWeights[n]: 800~1217회 반복출현 패턴 분석값 (0.5 ~ 5.0)
+        const dbW = lottoDbWeights[n] || 1.0;
+        let score = dbW;  // 반복출현 패턴이 기본 점수에 직접 반영
 
-        const hotSet = new Set([3, 7, 14, 18, 23, 27, 34, 40, 42]);
-        const coldSet = new Set([1, 5, 9, 12, 20, 28, 33, 38, 44]);
+        // ── 이력 기반 동적 hot/cold 계산 ──
         const primeSet = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
+
+        // 최근 10회차에서 동적으로 hot/cold 계산
+        const recentHistory = lottoHistory.slice(-10);
+        const recentFlat = recentHistory.flat ? recentHistory.flat() : [].concat(...recentHistory);
+        const recentFreq = {};
+        recentFlat.forEach(num => { recentFreq[num] = (recentFreq[num] || 0) + 1; });
+        const hotThreshold = 2;  // 최근 10회차 중 2번 이상 = hot
+        const isHot = (recentFreq[n] || 0) >= hotThreshold;
+        const isCold = (recentFreq[n] || 0) === 0;  // 최근 10회차 미출현 = cold
+
+        // 전체 이력 출현 빈도
+        const allFlat = lottoHistory.flat ? lottoHistory.flat() : [].concat(...lottoHistory);
+        const totalFreq = {};
+        allFlat.forEach(num => { totalFreq[num] = (totalFreq[num] || 0) + 1; });
+        const avgFreq = allFlat.length / 45;
+        const freqRatio = (totalFreq[n] || 0) / (avgFreq || 1);
 
         for (const algo of lottoAlgos) {
           if (algo.weight <= 0) continue;
 
           switch (algo.id) {
             case 'freq':
-              score += algo.weight * (n % 9 + 1) * 0.01;
+              // 실제 전체 이력 출현 빈도 반영
+              score += algo.weight * freqRatio * 0.03;
               break;
             case 'hot':
-              if (hotSet.has(n)) score += algo.weight * 0.08;
+              // 동적 hot: 최근 10회차 출현 빈도 기반
+              if (isHot) score += algo.weight * (recentFreq[n] || 0) * 0.05;
               break;
             case 'cold':
-              if (coldSet.has(n)) score += algo.weight * 0.07;
+              // 동적 cold: 최근 미출현 번호 반영
+              if (isCold) score += algo.weight * 0.07;
               break;
             case 'balance':
               if ((n % 2) === 0) score += algo.weight * 0.02;
