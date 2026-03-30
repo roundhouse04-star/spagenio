@@ -2495,7 +2495,7 @@
           return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.based_on_round}회 기반</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
         }).join('');
         el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+filtered.length+'건' + (filterRound ? ' · '+filterRound+'회' : '') + ')</div>'+rows;
-      } catch(e) {}
+      } catch(e) { el.innerHTML='<div style="color:#ef4444;padding:8px;">오류: '+e.message+'</div>'; }
     }
 
     async function toggleLottoAutoSend(userId, enabled) {
