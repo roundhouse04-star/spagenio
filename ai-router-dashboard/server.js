@@ -1988,11 +1988,53 @@ async function sendLottoPredictionOnStartup() {
     const dbWeights = {};
     try { db.prepare('SELECT num, weight FROM lotto_weights').all().forEach(r => { dbWeights[r.num] = r.weight; }); } catch(e) {}
 
+    // ── 연속 반복 패턴 분석 ──────────────────────────────────
+    // 각 번호별 현재 연속 반복 횟수 + 최대 연속 횟수 계산
+    const maxStreak = {};   // 번호별 역대 최대 연속 횟수
+    const curStreak = {};   // 번호별 현재 연속 횟수 (마지막 회차 기준)
+    for (let n = 1; n <= 45; n++) { maxStreak[n] = 0; curStreak[n] = 0; }
+    for (let i = 1; i < allHistory.length; i++) {
+      const prev = new Set(allHistory[i-1]);
+      const cur  = new Set(allHistory[i]);
+      for (let n = 1; n <= 45; n++) {
+        if (prev.has(n) && cur.has(n)) {
+          curStreak[n]++;
+          if (curStreak[n] > maxStreak[n]) maxStreak[n] = curStreak[n];
+        } else {
+          curStreak[n] = 0;
+        }
+      }
+    }
+
+    // 연속 반복 패턴 기반 가중치 조정
+    // - 현재 연속 중이고 최대에 근접 → DOWN (곧 끊길 가능성)
+    // - 현재 연속 중이지만 최대까지 여유 → UP (계속될 가능성)
+    // - 연속 없음 → 중립
+    const streakMultiplier = {};
+    for (let n = 1; n <= 45; n++) {
+      const cur = curStreak[n];
+      const max = maxStreak[n];
+      if (cur === 0) {
+        // 연속 없음 → 중립 (1.0)
+        streakMultiplier[n] = 1.0;
+      } else if (max > 0 && cur >= max) {
+        // 최대 연속 도달 → 강하게 DOWN (끊길 확률 매우 높음)
+        streakMultiplier[n] = 0.3;
+      } else if (max > 0 && cur >= max * 0.7) {
+        // 최대의 70% 이상 → 약하게 DOWN
+        streakMultiplier[n] = 0.6;
+      } else {
+        // 연속 중이지만 최대까지 여유 → UP
+        streakMultiplier[n] = 1.0 + (cur * 0.3);
+      }
+    }
+
     const scores = {};
     for (let n = 1; n <= 45; n++) {
       let s = carryPct[n] * 100 + decPct[getDec(n)] * 30 + recentBonus[n] * 20;
       if (latestNums.includes(n)) s += carryPct[n] * 50;
-      scores[n] = s * (dbWeights[n] || 1.0);
+      // DB 가중치 × 연속 반복 패턴 멀티플라이어 동시 적용
+      scores[n] = s * (dbWeights[n] || 1.0) * streakMultiplier[n];
     }
 
     const games = [];
