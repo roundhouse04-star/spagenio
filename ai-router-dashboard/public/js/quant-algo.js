@@ -21,7 +21,8 @@
       const grid = document.getElementById('lotto-algo-grid');
       if (!grid) return;
 
-      grid.innerHTML = lottoAlgos.map(a => `
+      // 수정8: lottoAlgos(lotto.js 변수) → ALGOS(quant-algo.js 로컬 변수) 사용
+      grid.innerHTML = ALGOS.map(a => `
     <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
       <div style="display:flex;justify-content:space-between;">
         <b>${a.name}</b>

@@ -46,7 +46,8 @@
   }
 
   // 사용자 활동 감지 이벤트
-  const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click', 'userActivity'];
+  // 수정7: mousemove 제거 (마우스만 움직여도 리셋되어 실질적 자동로그아웃 불가)
+  const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click', 'userActivity'];
   events.forEach(e => document.addEventListener(e, resetTimer, { passive: true }));
 
   // 시작

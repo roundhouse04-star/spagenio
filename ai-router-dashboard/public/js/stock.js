@@ -105,62 +105,110 @@ async function loadPrices() {
 
 // ===== 매수 =====
 async function buyStock() {
-  const symbol = document.getElementById('tradeSymbol').value.toUpperCase();
-  const qty = document.getElementById('tradeQty').value;
-  if (!symbol) { await spAlert('Symbol 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
+  const symbol = document.getElementById('tradeSymbol').value.trim().toUpperCase();
+  const qtyRaw = document.getElementById('tradeQty').value;
   const resultEl = document.getElementById('tradeResult');
+
+  // 수정1: 입력값 검증
+  if (!symbol) { await spAlert('종목 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
+  const qty = parseInt(qtyRaw);
+  if (!qty || qty < 1 || isNaN(qty)) { await spAlert('수량은 1 이상 정수로 입력해주세요', '입력 오류', '⚠️'); return; }
+
+  // 수정2: 장 시간 체크 (EST 09:30~16:00)
+  const now = new Date();
+  const estHour = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(now));
+  const estMin  = parseInt(new Intl.DateTimeFormat('en-US', { minute: 'numeric', timeZone: 'America/New_York' }).format(now));
+  const estTime = estHour * 60 + estMin;
+  if (estTime < 9 * 60 + 30 || estTime >= 16 * 60) {
+    const ok = await spConfirm(
+      `현재 미국 장외 시간입니다 (EST ${String(estHour).padStart(2,'0')}:${String(estMin).padStart(2,'0')}).
+장외 매수 주문은 다음날 체결될 수 있어요. 계속할까요?`,
+      '장외 시간 경고', '⚠️', '계속', '#f59e0b'
+    );
+    if (!ok) return;
+  }
+
+  resultEl.style.color = 'var(--muted)';
+  resultEl.textContent = '⏳ 주문 중...';
   try {
-    // 키 등록 여부 먼저 확인
     const keyRes = await fetch('/api/user/broker-keys');
     const keyData = await keyRes.json();
     if (!keyData.registered) {
-      resultEl.textContent = '❌ Alpaca key not registered. Please add your key above.';
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = '❌ Alpaca 키가 등록되지 않았습니다. 위에서 먼저 등록해주세요.';
       return;
     }
+    // 수정3: time_in_force gtc→day
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty: Number(qty), side: 'buy', type: 'market', time_in_force: 'gtc' })
+      body: JSON.stringify({ symbol, qty, side: 'buy', type: 'market', time_in_force: 'day' })
     });
     const data = await res.json();
     if (res.ok && data.id) {
-      resultEl.textContent = `✅ Buy order submitted
-Symbol: ${symbol}
-Qty: ${qty}주
-Order ID: ${data.id}`;
+      resultEl.style.color = 'var(--green)';
+      resultEl.textContent = `✅ 매수 주문 완료\n종목: ${symbol} / 수량: ${qty}주\n주문ID: ${data.id}`;
     } else {
-      resultEl.textContent = `❌ Error: ${data.message || data.error || JSON.stringify(data)}`;
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = `❌ 오류: ${data.message || data.error || JSON.stringify(data)}`;
     }
-    loadAccount(); loadPositions();
+    // 수정4: 주문 후 계좌/포지션/주문내역 모두 새로고침
+    setTimeout(() => { loadAccount(); loadPositions(); loadOrders(); }, 1500);
   } catch (e) {
-    resultEl.textContent = `❌ Error: ${e.message}`;
+    resultEl.style.color = 'var(--red)';
+    resultEl.textContent = `❌ 오류: ${e.message}`;
   }
 }
 
 // ===== 매도 =====
 async function sellStock() {
-  const symbol = document.getElementById('tradeSymbol').value.toUpperCase();
-  const qty = document.getElementById('tradeQty').value;
-  if (!symbol) { await spAlert('Symbol 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
+  const symbol = document.getElementById('tradeSymbol').value.trim().toUpperCase();
+  const qtyRaw = document.getElementById('tradeQty').value;
   const resultEl = document.getElementById('tradeResult');
+
+  // 수정1: 입력값 검증
+  if (!symbol) { await spAlert('종목 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
+  const qty = parseInt(qtyRaw);
+  if (!qty || qty < 1 || isNaN(qty)) { await spAlert('수량은 1 이상 정수로 입력해주세요', '입력 오류', '⚠️'); return; }
+
+  // 수정2: 보유 포지션 확인
+  const ok = await spConfirm(`${symbol} ${qty}주를 매도할까요?`, '매도 확인', '🔴', '매도', '#ef4444');
+  if (!ok) return;
+
+  // 수정3: 장 시간 체크
+  const now = new Date();
+  const estHour = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(now));
+  const estMin  = parseInt(new Intl.DateTimeFormat('en-US', { minute: 'numeric', timeZone: 'America/New_York' }).format(now));
+  const estTime = estHour * 60 + estMin;
+  if (estTime < 9 * 60 + 30 || estTime >= 16 * 60) {
+    const proceed = await spConfirm(
+      `현재 미국 장외 시간입니다 (EST ${String(estHour).padStart(2,'0')}:${String(estMin).padStart(2,'0')}).
+장외 매도 주문은 다음날 체결될 수 있어요. 계속할까요?`,
+      '장외 시간 경고', '⚠️', '계속', '#f59e0b'
+    );
+    if (!proceed) return;
+  }
+
+  resultEl.style.color = 'var(--muted)';
+  resultEl.textContent = '⏳ 주문 중...';
   try {
     const keyRes = await fetch('/api/user/broker-keys');
     const keyData = await keyRes.json();
     if (!keyData.registered) {
-      resultEl.textContent = '❌ Alpaca key not registered. Please add your key above.';
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = '❌ Alpaca 키가 등록되지 않았습니다.';
       return;
     }
+    // 수정4: time_in_force gtc→day
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty: Number(qty), side: 'sell', type: 'market', time_in_force: 'gtc' })
+      body: JSON.stringify({ symbol, qty, side: 'sell', type: 'market', time_in_force: 'day' })
     });
     const data = await res.json();
     if (res.ok && data.id) {
-      resultEl.textContent = `✅ Sell order submitted
-Symbol: ${symbol}
-Qty: ${qty}주
-Order ID: ${data.id}`;
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = `✅ 매도 주문 완료\n종목: ${symbol} / 수량: ${qty}주\n주문ID: ${data.id}`;
     } else {
       resultEl.textContent = `❌ Error: ${data.message || data.error || JSON.stringify(data)}`;
     }
@@ -179,7 +227,9 @@ async function loadPositions() {
       document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">🔑 Alpaca 계좌를 먼저 등록해주세요.</p>';
       return;
     }
-    if (!data.positions?.length) {
+    // 수정5: Alpaca는 포지션을 배열로 직접 반환
+    const positions = Array.isArray(data) ? data : (data.positions || []);
+    if (!positions.length) {
       document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">보유 종목이 없습니다</p>';
       return;
     }
@@ -187,7 +237,7 @@ async function loadPositions() {
       <table class="stock-table">
         <thead><tr><th>종목</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>실시간</th></tr></thead>
         <tbody>
-          ${data.positions.map(p => {
+          ${positions.map(p => {
             const pl = parseFloat(p.unrealized_pl) || 0;
             const plpc = parseFloat(p.unrealized_plpc) || 0;
             return `
@@ -292,7 +342,9 @@ async function loadOrders() {
       document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">🔑 Alpaca 계좌를 먼저 등록해주세요.</p>';
       return;
     }
-    if (!data.orders?.length) {
+    // 수정6: Alpaca는 주문을 배열로 직접 반환
+    const orders = Array.isArray(data) ? data : (data.orders || []);
+    if (!orders.length) {
       document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">주문 내역이 없습니다</p>';
       return;
     }
@@ -302,7 +354,7 @@ async function loadOrders() {
       <table class="stock-table">
         <thead><tr><th>종목</th><th>구분</th><th>수량</th><th>주문유형</th><th>상태</th><th>체결가</th><th>체결금액</th><th>날짜</th></tr></thead>
         <tbody>
-          ${data.orders.map(o => {
+          ${orders.map(o => {
             const isBuy = o.side?.includes('buy');
             const filled = parseFloat(o.filled_avg_price) || 0;
             const qty = parseFloat(o.filled_qty || o.qty) || 0;
