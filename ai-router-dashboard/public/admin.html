@@ -1254,9 +1254,15 @@
 
           <!-- 예측 이력 카드 -->
           <div class="card" style="margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
               <div style="font-weight:700;">📋 예측 이력</div>
-              <button onclick="loadPredictionHistoryTab()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <select id="pred-round-filter" onchange="loadPredictionHistoryTab()"
+                  style="padding:6px 10px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);font-size:0.85rem;">
+                  <option value="">전체 회차</option>
+                </select>
+                <button onclick="loadPredictionHistoryTab()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+              </div>
             </div>
             <div id="prediction-history-tab">
               <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
@@ -2447,7 +2453,7 @@
     async function loadPredictionHistoryTab() {
       const el = document.getElementById('prediction-history-tab');
       if (!el) return;
-      await _renderPredictionHistory(el);
+      await _renderPredictionHistory(el, true);
     }
 
     async function loadPredictionHistory() {
@@ -2456,7 +2462,7 @@
       await _renderPredictionHistory(el);
     }
 
-    async function _renderPredictionHistory(el) {
+    async function _renderPredictionHistory(el, updateFilter = false) {
       if (!el) return;
       try {
         const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
@@ -2471,7 +2477,7 @@
           const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<button onclick="checkPrediction(${p.id},${p.predicted_for_round||p.based_on_round+1})" style="font-size:0.72rem;padding:3px 10px;border-radius:999px;border:none;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">🔍 결과 확인</button>`;
           return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.based_on_round}회 기반</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
         }).join('');
-        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+d.predictions.length+'건)</div>'+rows;
+        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+filtered.length+'건' + (filterRound ? ' · '+filterRound+'회' : '') + ')</div>'+rows;
       } catch(e) {}
     }
 
