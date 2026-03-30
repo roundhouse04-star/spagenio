@@ -536,26 +536,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // 반복출현번호 분석용 - 전체 데이터 반환 (admin용, 인증 불필요)
-  router.get('/api/lotto/history-full', (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit) || 100;
-      const rows = db.prepare('SELECT drw_no, numbers, bonus, drw_date FROM lotto_history ORDER BY drw_no DESC LIMIT ?').all(limit);
-      const history = rows.map(r => ({
-        drw_no: r.drw_no,
-        numbers: typeof r.numbers === 'string' ? JSON.parse(r.numbers) : r.numbers,
-        bonus: r.bonus,
-        drw_date: r.drw_date
-      }));
-      res.json({ ok: true, history, count: history.length });
-    } catch(e) { res.status(500).json({ error: e.message }); }
-  });
-
   // 반복출현번호 분석용 - drw_no, numbers, bonus, drw_date 전체 반환
   router.get('/api/lotto/history-full', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      const limit = parseInt(req.query.limit) || 100;
+      const limit = Math.min(parseInt(req.query.limit) || 100, 500);
       const rows = db.prepare('SELECT drw_no, numbers, bonus, drw_date FROM lotto_history ORDER BY drw_no DESC LIMIT ?').all(limit);
       const history = rows.map(r => ({
         drw_no: r.drw_no,
