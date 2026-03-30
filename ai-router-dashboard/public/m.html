@@ -1091,6 +1091,8 @@ async function mLoadSimpleTrade() {
   } catch(e) {}
 }
 
+let _mSimplePoller = null;
+
 async function mToggleSimpleTrade() {
   _simpleEnabled = !_simpleEnabled;
   const balance_ratio = parseFloat(document.getElementById('m-simple-ratio').value||30) / 100;
@@ -1105,6 +1107,12 @@ async function mToggleSimpleTrade() {
     body: JSON.stringify({ enabled: _simpleEnabled })
   });
   mLoadSimpleTrade();
+  // 폴링 시작/중지 (30초마다 상태 갱신)
+  if (_simpleEnabled) {
+    if (!_mSimplePoller) _mSimplePoller = setInterval(mLoadSimpleTrade, 30000);
+  } else {
+    if (_mSimplePoller) { clearInterval(_mSimplePoller); _mSimplePoller = null; }
+  }
 }
 
 // ── 자동매매 현황 ──
@@ -1168,15 +1176,24 @@ async function mStopAllTrade() {
 }
 
 // ── TOP5 추천 ──
+let _mTopPicksCache = null;
+let _mTopPicksCacheTime = 0;
+
 async function mLoadTopPicks() {
   const el = document.getElementById('m-top-picks-list');
+  // 5분 이내 캐시가 있으면 즉시 표시
+  const now = Date.now();
+  if (_mTopPicksCache && (now - _mTopPicksCacheTime) < 5 * 60 * 1000) {
+    el.innerHTML = _mTopPicksCache;
+    return;
+  }
   el.innerHTML = '<div class="m-loading">분석 중... (10~20초)</div>';
   try {
     const res = await fetch('/api/auto-trade/top-picks');
     const d = await res.json();
     if (!d.picks?.length) { el.innerHTML = '<div class="m-empty">추천 종목 없음</div>'; return; }
     const rankIcons = ['🥇','🥈','🥉','4위','5위'];
-    el.innerHTML = d.picks.map((p, i) => {
+    const html = d.picks.map((p, i) => {
       const color = p.change_pct >= 0 ? 'var(--success)' : 'var(--danger)';
       return `<div class="m-card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1195,6 +1212,10 @@ async function mLoadTopPicks() {
         </div>
       </div>`;
     }).join('');
+    el.innerHTML = html;
+    // 캐시 저장 (5분 유효)
+    _mTopPicksCache = html;
+    _mTopPicksCacheTime = Date.now();
   } catch(e) { el.innerHTML = '<div class="m-empty" style="color:var(--danger);">오류: ' + e.message + '</div>'; }
 }
 
