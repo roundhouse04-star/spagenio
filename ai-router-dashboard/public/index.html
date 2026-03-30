@@ -2115,7 +2115,11 @@
             <div class="sp-grid-2" style="margin-bottom:14px;">
               <div>
                 <label class="sp-label">Symbol</label>
-                <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" />
+                <div style="display:flex;gap:6px;">
+                  <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" style="flex:1;" />
+                  <button onclick="openStockSearch('tradeSymbol', false)"
+                    class="sp-btn sp-btn-outline" title="종목 검색" style="flex-shrink:0;padding:0 10px;">🔍</button>
+                </div>
               </div>
               <div>
                 <label class="sp-label">Qty</label>
