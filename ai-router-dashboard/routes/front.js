@@ -86,6 +86,19 @@ function calcRiskPosition(accountBalance, price, stopLossPct = 0.05, riskRatio =
   };
 }
 
+
+// ============================================================
+// 공통 유틸: NaN/Infinity → null 안전 변환
+// ============================================================
+function safeJson(text) {
+  return JSON.parse(text.replace(/:\s*NaN/g, ': null').replace(/:\s*Infinity/g, ': null').replace(/:\s*-Infinity/g, ': null'));
+}
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, options);
+  const text = await response.text();
+  return { response, data: safeJson(text) };
+}
+
 export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, __dirname }) {
 
   // ✅ 페이지 라우트
@@ -223,8 +236,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5002${quantPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
       const rawText = await response.text();
-      const cleanText = rawText.replace(/:\s*NaN/g, ': null').replace(/:\s*Infinity/g, ': null').replace(/:\s*-Infinity/g, ': null');
-      res.json(JSON.parse(cleanText));
+      res.json(safeJson(rawText));
     } catch (error) { res.status(500).json({ error: '퀀트 서버 연결 실패', detail: error.message }); }
   });
 
@@ -233,7 +245,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const stockPath = req.path.replace('/proxy/stock', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5001${stockPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
-      res.json(await response.json());
+      const rawText = await response.text();
+      res.json(safeJson(rawText));
     } catch (error) { res.status(500).json({ error: '주식 서버 연결 실패', detail: error.message }); }
   });
 
@@ -768,6 +781,84 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       db.prepare('INSERT INTO simple_auto_trade (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
     }
     res.json({ ok: true });
+  });
+
+
+  // ✅ 한국 TOP5 추천 종목 (KOSPI/KOSDAQ)
+  router.get('/api/auto-trade/kr-top-picks', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const KR_SYMBOLS = [
+        { symbol: '005930.KS', name: '삼성전자', market: 'KOSPI' },
+        { symbol: '000660.KS', name: 'SK하이닉스', market: 'KOSPI' },
+        { symbol: '035420.KS', name: 'NAVER', market: 'KOSPI' },
+        { symbol: '005380.KS', name: '현대차', market: 'KOSPI' },
+        { symbol: '051910.KS', name: 'LG화학', market: 'KOSPI' },
+        { symbol: '006400.KS', name: '삼성SDI', market: 'KOSPI' },
+        { symbol: '035720.KS', name: '카카오', market: 'KOSPI' },
+        { symbol: '068270.KS', name: '셀트리온', market: 'KOSPI' },
+        { symbol: '105560.KS', name: 'KB금융', market: 'KOSPI' },
+        { symbol: '055550.KS', name: '신한지주', market: 'KOSPI' },
+        { symbol: '247540.KQ', name: '에코프로비엠', market: 'KOSDAQ' },
+        { symbol: '086520.KQ', name: '에코프로', market: 'KOSDAQ' },
+        { symbol: '028300.KQ', name: 'HLB', market: 'KOSDAQ' },
+        { symbol: '041510.KQ', name: '에스엠', market: 'KOSDAQ' },
+        { symbol: '112040.KQ', name: 'Wisekey', market: 'KOSDAQ' },
+      ];
+      const results = await Promise.allSettled(KR_SYMBOLS.map(async (item) => {
+        try {
+          const r = await fetch(`http://localhost:5001/stock/${item.symbol}`);
+          const text = await r.text();
+          const d = safeJson(text);
+          const closes = (d.closes || []).filter(v => v !== null && !isNaN(v));
+          const volumes = (d.volumes || []).filter(v => v !== null && !isNaN(v));
+          if (closes.length < 15) return null;
+          // RSI 계산
+          const period = 14;
+          const changes = closes.slice(1).map((c, i) => c - closes[i]);
+          const recent = changes.slice(-period);
+          const avgGain = recent.filter(c => c > 0).reduce((a, b) => a + b, 0) / period;
+          const avgLoss = recent.filter(c => c < 0).reduce((a, b) => a - b, 0) / period;
+          const rsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+          const last = closes[closes.length - 1];
+          const prev = closes[closes.length - 2];
+          const change_pct = prev ? ((last - prev) / prev * 100) : 0;
+          // 거래량 급등
+          const avgVol = volumes.slice(-20, -1).reduce((a, b) => a + b, 0) / Math.max(volumes.slice(-20, -1).length, 1);
+          const volRatio = avgVol > 0 ? (volumes[volumes.length - 1] || 0) / avgVol : 1;
+          // SMA20 vs SMA5
+          const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+          const sma5 = closes.slice(-5).reduce((a, b) => a + b, 0) / 5;
+          const signals = [];
+          let score = 0;
+          if (rsi < 30) { signals.push(`RSI ${rsi.toFixed(0)} 강한매수`); score += 3; }
+          else if (rsi < 40) { signals.push(`RSI ${rsi.toFixed(0)} 과매도`); score += 2; }
+          else if (rsi < 50) { signals.push(`RSI ${rsi.toFixed(0)}`); score += 1; }
+          if (volRatio > 2) { signals.push(`거래량 ${volRatio.toFixed(1)}x 급등`); score += 3; }
+          else if (volRatio > 1.5) { signals.push(`거래량 ${volRatio.toFixed(1)}x`); score += 2; }
+          if (sma5 > sma20) { signals.push('단기 상승추세'); score += 1; }
+          if (change_pct < -3) { signals.push(`${change_pct.toFixed(1)}% 급락조정`); score += 1; }
+          if (score === 0) return null;
+          return {
+            symbol: item.symbol.replace('.KS', '').replace('.KQ', ''),
+            full_symbol: item.symbol,
+            name: item.name,
+            market: item.market,
+            price: last,
+            change_pct: parseFloat(change_pct.toFixed(2)),
+            rsi: parseFloat(rsi.toFixed(1)),
+            score,
+            signals
+          };
+        } catch(e) { return null; }
+      }));
+      const picks = results
+        .filter(r => r.status === 'fulfilled' && r.value)
+        .map(r => r.value)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+      return res.json({ ok: true, picks });
+    } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
   // ✅ 오늘의 추천 종목 (거래량 + 뉴스 + 기술적 신호 종합)
