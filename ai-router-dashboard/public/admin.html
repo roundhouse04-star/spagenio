@@ -2245,7 +2245,7 @@
       });
       if (tab === 'repeat') loadRepeatNumbers();
       if (tab === 'pattern') loadPatternAnalysis();
-      if (tab === 'prediction') { loadLottoPredictionTab(); loadPredictionHistoryTab(); loadWeightsTable(); }
+      if (tab === 'prediction') { loadPredictionHistoryTab(); loadWeightsTable(); }
     }
 
     // ===== 반복출현번호 =====
@@ -2453,6 +2453,7 @@
     async function loadPredictionHistoryTab() {
       const el = document.getElementById('prediction-history-tab');
       if (!el) return;
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>';
       await _renderPredictionHistory(el, true);
     }
 
