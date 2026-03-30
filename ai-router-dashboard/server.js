@@ -1092,12 +1092,12 @@ async function runSimpleAutoTrade(userId) {
           db.prepare('INSERT INTO simple_auto_trade_log (user_id,symbol,action,qty,price,profit_pct,reason) VALUES (?,?,?,?,?,?,?)')
             .run(userId, state.symbol, 'SELL', qty, currentPrice, plPct * 100, reason);
 
-          // 강제청산이면 당일 재매수 안 함
+          // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
           if (estTime >= forceCloseTime) {
             db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,order_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-              .run('idle', userId);
+              .run('closed_today', userId);
           } else {
-            // 매도 후 즉시 재분석 → 재매수
+            // 매도 후 재분석 → 재매수 (장 마감 충분히 전일 때만)
             db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
               .run('analyzing', userId);
             setTimeout(() => runSimpleAutoTrade(userId), 3000);
@@ -1130,6 +1130,7 @@ async function runSimpleAutoTrade(userId) {
     }
 
     // === idle/analyzing 상태: 재분석 후 매수 ===
+    // closed_today는 매수 시도 안 함 (강제청산 당일 재매수 방지)
     if ((state.status === 'idle' || state.status === 'analyzing') && estTime < forceCloseTime) {
       // TOP1 종목 분석
       const settingsRow = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
@@ -1138,7 +1139,7 @@ async function runSimpleAutoTrade(userId) {
         : ['AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'AMD', 'QQQ', 'SPY'];
 
       const end = new Date().toISOString().split('T')[0];
-      const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const start = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       function calcEMA(prices, period) { const k = 2 / (period + 1); let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period; for (let i = period; i < prices.length; i++)ema = prices[i] * k + ema * (1 - k); return ema; }
       function calcMACD(closes) { if (closes.length < 35) return null; const ml = []; for (let i = 26; i <= closes.length; i++)ml.push(calcEMA(closes.slice(0, i), 12) - calcEMA(closes.slice(0, i), 26)); if (ml.length < 9) return null; const m = ml[ml.length - 1], s = calcEMA(ml, 9), pm = ml[ml.length - 2], ps = calcEMA(ml.slice(0, -1), 9); return { macd: m, signal: s, goldenCross: pm < ps && m > s }; }
       function calcRSI(closes, period = 14) { if (closes.length < period + 1) return null; const ch = closes.slice(1).map((c, i) => c - closes[i]); const ag = ch.slice(-period).filter(c => c > 0).reduce((a, b) => a + b, 0) / period; const al = ch.slice(-period).filter(c => c < 0).reduce((a, b) => a - b, 0) / period; return al === 0 ? 100 : 100 - (100 / (1 + ag / al)); }
@@ -1146,7 +1147,7 @@ async function runSimpleAutoTrade(userId) {
       const scored = [];
       await Promise.allSettled(symbols.map(async (symbol) => {
         try {
-          const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key } });
+          const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=250`, { headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key } });
           const json = await resp.json();
           const bars = json.bars || [];
           if (bars.length < 35) return;
@@ -1255,8 +1256,30 @@ async function runAutoTradeForUser(userId) {
     const positions = Array.isArray(posData) ? posData : (posData.positions || []);
     for (const pos of positions) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
-      if (plPct >= (settings.take_profit || 0.05)) { try { const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json(); db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed'); db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol); results.push({ symbol: pos.symbol, action: '익절 매도' }); } catch (e) { } }
-      else if (plPct <= -(settings.stop_loss || 0.05)) { try { const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json(); db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed'); db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol); results.push({ symbol: pos.symbol, action: '손절 매도' }); } catch (e) { } }
+      // 매수 기준으로 중복 매도 방지
+      const buyLog = db.prepare("SELECT created_at FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
+      const buyTime = buyLog?.created_at || '1970-01-01';
+      if (plPct >= (settings.take_profit || 0.05)) {
+        const existing = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT' AND created_at>?").get(userId, pos.symbol, buyTime);
+        if (!existing) {
+          try {
+            const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
+            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
+            db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
+            results.push({ symbol: pos.symbol, action: '익절 매도' });
+          } catch (e) { }
+        }
+      } else if (plPct <= -(settings.stop_loss || 0.05)) {
+        const existing = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_LOSS' AND created_at>?").get(userId, pos.symbol, buyTime);
+        if (!existing) {
+          try {
+            const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
+            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
+            db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
+            results.push({ symbol: pos.symbol, action: '손절 매도' });
+          } catch (e) { }
+        }
+      }
     }
     const heldSymbols = new Set(positions.map(p => p.symbol));
     const autoHeld = db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
@@ -1292,12 +1315,17 @@ async function runAutoTradeForUser(userId) {
     }
 
     // ── 2단계: MACD/RSI 타이밍 체크 후 매수 ─────────────────────
-    const buyAmount = buyingPower * (settings.balance_ratio || 0.1); let boughtCount = 0;
+    // needMore: 실제 포지션 기준으로 재계산 (DB status 불일치 방지)
+    const currentHeldCount = positions.filter(p => heldSymbols.has(p.symbol)).length;
+    const needMoreFixed = Math.max(0, (settings.max_positions || 3) - currentHeldCount);
+    let remainingBuyPower = buyingPower; // 매수마다 차감
+    let boughtCount = 0;
     for (const symbol of candidatePool) {
-      if (boughtCount >= needMore || heldSymbols.has(symbol) || buyAmount < 10) continue;
+      const buyAmount = remainingBuyPower * (settings.balance_ratio || 0.1);
+      if (boughtCount >= needMoreFixed || heldSymbols.has(symbol) || buyAmount < 10) continue;
       try {
-        const end = new Date().toISOString().split('T')[0], start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers })).json()).bars || [];
+        const end = new Date().toISOString().split('T')[0], start = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=250`, { headers })).json()).bars || [];
         if (bars.length < 35) continue;
         const closes = bars.map(b => b.c), currentPrice = closes[closes.length - 1];
         let buySignal = false, reason = '';
@@ -1306,7 +1334,7 @@ async function runAutoTradeForUser(userId) {
         if (m?.goldenCross) { buySignal = true; reason = '팩터+MACD 골든크로스'; }
         // RSI 과매도 체크 (MACD 미충족 시)
         if (!buySignal) { const rsi = calcRSI(closes); if (rsi && rsi < 40) { buySignal = true; reason = `팩터+RSI 과매도 (${rsi.toFixed(1)})`; } }
-        if (buySignal && currentPrice > 0) { const qty = Math.floor(buyAmount / currentPrice); if (qty < 1) continue; const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json(); if (order.id) { db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active'); results.push({ symbol, action: '매수', qty, reason }); boughtCount++; } }
+        if (buySignal && currentPrice > 0) { const qty = Math.floor(buyAmount / currentPrice); if (qty < 1) continue; const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json(); if (order.id) { db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active'); results.push({ symbol, action: '매수', qty, reason }); boughtCount++; remainingBuyPower -= qty * currentPrice; heldSymbols.add(symbol); } }
       } catch (e) { saveErrorLog({ event_type: 'AUTO_TRADE_ERROR', error_message: e.message, stack_trace: e.stack, meta: { symbol, userId } }); }
     }
   } catch (e) { return { ok: false, message: e.message }; }
@@ -1374,6 +1402,10 @@ setInterval(async () => {
     const now = new Date();
     const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
+    // 장 종료 후 closed_today → idle 자동 리셋 (KST 다음날 오전 6시 = UTC 21:00)
+    if (utcHour === 21 && utcMin === 0) {
+      db.prepare("UPDATE simple_auto_trade SET status='idle' WHERE status='closed_today'").run();
+    }
     if (!isMarketHours) return;
     updateSchedulerRun('simple_trade');
     const users = db.prepare('SELECT user_id FROM simple_auto_trade WHERE enabled=1').all();
