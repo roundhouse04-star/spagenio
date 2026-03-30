@@ -772,6 +772,30 @@ def execute_quant_trade(symbol, signal, strategy, price, qty=1):
 
 # ===== API 엔드포인트 =====
 
+
+import math as _math
+
+def _sanitize(obj):
+    if isinstance(obj, float) and (_math.isnan(obj) or _math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(v) for v in obj]
+    return obj
+
+@app.after_request
+def sanitize_nan(response):
+    if response.content_type == 'application/json':
+        try:
+            data = response.get_json(force=True, silent=True)
+            if data is not None:
+                import json
+                response.set_data(json.dumps(_sanitize(data)))
+        except Exception:
+            pass
+    return response
+
 @app.route('/api/quant/analyze', methods=['POST'])
 def analyze():
     """단일 종목 퀀트 분석"""

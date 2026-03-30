@@ -24,6 +24,24 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+
+// ── NaN/Infinity 공통 처리 (모든 res.json에 자동 적용) ──
+app.use((req, res, next) => {
+  const _json = res.json.bind(res);
+  res.json = function(obj) {
+    try {
+      const cleaned = JSON.parse(JSON.stringify(obj, (_, v) =>
+        typeof v === 'number' && !isFinite(v) ? null : v
+      ));
+      return _json(cleaned);
+    } catch(e) {
+      return _json(obj);
+    }
+  };
+  next();
+});
+
+
 const port = Number(process.env.PORT || 3000);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
