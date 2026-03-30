@@ -3092,10 +3092,24 @@
           <div class="sp-card" style="margin-bottom:20px;">
             <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
               <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
-              <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <!-- 미국/한국 토글 -->
+                <div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid #374151;">
+                  <button id="dayPicksUsBtn" onclick="switchDayPicksMarket('us')"
+                    style="padding:5px 12px;border:none;background:#6366f1;color:#fff;font-size:0.78rem;font-weight:700;cursor:pointer;">
+                    🇺🇸 미국
+                  </button>
+                  <button id="dayPicksKrBtn" onclick="switchDayPicksMarket('kr')"
+                    style="padding:5px 12px;border:none;background:#1E242C;color:#9CA3AF;font-size:0.78rem;font-weight:700;cursor:pointer;">
+                    🇰🇷 한국
+                  </button>
+                </div>
+                <button id="dayPicksAnalyzeBtn" onclick="loadDayPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+              </div>
             </div>
-            <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천
-              종목이에요</div>
+            <div id="dayPicksMarketLabel" style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">
+              거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천 종목이에요 (미국 시장)
+            </div>
             <div id="topPicksList">
               <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)
               </div>
@@ -4189,6 +4203,79 @@
     };
 
     // ===== 통합 매매 신호 =====
+    // ===== 일반 자동매매 미국/한국 시장 전환 =====
+    let _dayPicksMarket = 'us';
+    let _dayPicksCacheUs = null, _dayPicksCacheKr = null;
+    let _dayPicksCacheTimeUs = 0, _dayPicksCacheTimeKr = 0;
+
+    window.switchDayPicksMarket = function(market) {
+      _dayPicksMarket = market;
+      const usBtn = document.getElementById('dayPicksUsBtn');
+      const krBtn = document.getElementById('dayPicksKrBtn');
+      const label = document.getElementById('dayPicksMarketLabel');
+      if (usBtn) usBtn.style.cssText = `padding:5px 12px;border:none;font-size:0.78rem;font-weight:700;cursor:pointer;${market==='us'?'background:#6366f1;color:#fff;':'background:#1E242C;color:#9CA3AF;'}`;
+      if (krBtn) krBtn.style.cssText = `padding:5px 12px;border:none;font-size:0.78rem;font-weight:700;cursor:pointer;${market==='kr'?'background:#22c55e;color:#fff;':'background:#1E242C;color:#9CA3AF;'}`;
+      if (label) label.textContent = market === 'us'
+        ? '거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천 종목이에요 (미국 시장)'
+        : '거래량 + RSI 복합 점수 기반 상위 한국 종목이에요 (KOSPI/KOSDAQ)';
+      // 캐시 있으면 즉시 표시
+      const now = Date.now();
+      const cache = market === 'us' ? _dayPicksCacheUs : _dayPicksCacheKr;
+      const cacheTime = market === 'us' ? _dayPicksCacheTimeUs : _dayPicksCacheTimeKr;
+      const el = document.getElementById('topPicksList');
+      if (cache && (now - cacheTime) < 5 * 60 * 1000) {
+        if (el) el.innerHTML = cache;
+      } else {
+        if (el) el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요</div>';
+      }
+    };
+
+    window.loadDayPicks = async function() {
+      const el = document.getElementById('topPicksList');
+      if (!el) return;
+      const now = Date.now();
+      const cache = _dayPicksMarket === 'us' ? _dayPicksCacheUs : _dayPicksCacheKr;
+      const cacheTime = _dayPicksMarket === 'us' ? _dayPicksCacheTimeUs : _dayPicksCacheTimeKr;
+      // 5분 캐시
+      if (cache && (now - cacheTime) < 5 * 60 * 1000) { el.innerHTML = cache; return; }
+
+      if (_dayPicksMarket === 'us') {
+        // 기존 미국 분석 (loadTopPicks 활용)
+        if (typeof loadTopPicks === 'function') {
+          await loadTopPicks();
+          const html = el.innerHTML;
+          if (html && !html.includes('분석 버튼')) { _dayPicksCacheUs = html; _dayPicksCacheTimeUs = Date.now(); }
+        }
+      } else {
+        // 한국 분석
+        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">⏳ 한국 시장 분석 중...</div>';
+        try {
+          const res = await fetch('/api/auto-trade/kr-top-picks');
+          const d = await res.json();
+          if (!d.ok || !d.picks?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">추천 종목 없음</div>'; return; }
+          const rankIcons = ['🥇','🥈','🥉','4위','5위'];
+          const html = d.picks.map((p, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.2rem;">${rankIcons[i]}</span>
+                <div>
+                  <div style="font-weight:800;font-size:0.95rem;">${p.symbol} <span style="font-size:0.72rem;color:#6b7280;background:#f3f4f6;padding:1px 6px;border-radius:4px;">${p.market||'KOSPI'}</span></div>
+                  <div style="font-size:0.75rem;color:#6b7280;">${p.name||''}</div>
+                  <div style="font-size:0.72rem;color:#9CA3AF;margin-top:2px;">${p.signals.slice(0,2).join(' · ')}</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:700;">₩${(p.price||0).toLocaleString()}</div>
+                <div style="font-size:0.75rem;font-weight:700;color:${(p.change_pct||0)>=0?'#ef4444':'#3b82f6'};">${(p.change_pct||0)>=0?'▲':'▼'} ${Math.abs(p.change_pct||0).toFixed(2)}%</div>
+                <div style="font-size:0.7rem;color:#6366f1;">점수 ${p.score}</div>
+              </div>
+            </div>`).join('');
+          el.innerHTML = html;
+          _dayPicksCacheKr = html; _dayPicksCacheTimeKr = Date.now();
+        } catch(e) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`; }
+      }
+    };
+
     window.loadCombinedSignal = async function () {
       const el = document.getElementById('combinedSignalList');
       if (!el) return;

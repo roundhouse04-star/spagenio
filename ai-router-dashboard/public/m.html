@@ -599,8 +599,19 @@
       <!-- TOP5 추천 -->
       <div id="m-trade-picks" style="display:none;">
         <div class="m-card">
-          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">거래량·뉴스·기술적 신호 종합 분석</p>
-          <button class="m-btn m-btn-primary m-btn-full" onclick="mLoadTopPicks()">🔍 분석 시작 (10~20초)</button>
+          <!-- 미국/한국 토글 -->
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button id="mDayPicksUsBtn" onclick="mSwitchPicksMarket('us')"
+              style="flex:1;padding:8px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;">
+              🇺🇸 미국
+            </button>
+            <button id="mDayPicksKrBtn" onclick="mSwitchPicksMarket('kr')"
+              style="flex:1;padding:8px;border:none;border-radius:8px;background:var(--surface2);color:var(--muted);font-size:0.8rem;font-weight:700;cursor:pointer;">
+              🇰🇷 한국
+            </button>
+          </div>
+          <p id="mPicksLabel" style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">거래량·뉴스·기술적 신호 종합 분석 (미국)</p>
+          <button class="m-btn m-btn-primary m-btn-full" onclick="mLoadDayPicks()">🔍 분석 시작</button>
         </div>
         <div id="m-top-picks-list"></div>
       </div>
@@ -1091,8 +1102,6 @@ async function mLoadSimpleTrade() {
   } catch(e) {}
 }
 
-let _mSimplePoller = null;
-
 async function mToggleSimpleTrade() {
   _simpleEnabled = !_simpleEnabled;
   const balance_ratio = parseFloat(document.getElementById('m-simple-ratio').value||30) / 100;
@@ -1107,12 +1116,6 @@ async function mToggleSimpleTrade() {
     body: JSON.stringify({ enabled: _simpleEnabled })
   });
   mLoadSimpleTrade();
-  // 폴링 시작/중지 (30초마다 상태 갱신)
-  if (_simpleEnabled) {
-    if (!_mSimplePoller) _mSimplePoller = setInterval(mLoadSimpleTrade, 30000);
-  } else {
-    if (_mSimplePoller) { clearInterval(_mSimplePoller); _mSimplePoller = null; }
-  }
 }
 
 // ── 자동매매 현황 ──
@@ -1176,24 +1179,79 @@ async function mStopAllTrade() {
 }
 
 // ── TOP5 추천 ──
-let _mTopPicksCache = null;
-let _mTopPicksCacheTime = 0;
+let _mPicksMarket = 'us';
+let _mPicksCacheUs = null, _mPicksCacheKr = null;
+let _mPicksCacheTimeUs = 0, _mPicksCacheTimeKr = 0;
+
+function mSwitchPicksMarket(market) {
+  _mPicksMarket = market;
+  const usBtn = document.getElementById('mDayPicksUsBtn');
+  const krBtn = document.getElementById('mDayPicksKrBtn');
+  const label = document.getElementById('mPicksLabel');
+  if (usBtn) { usBtn.style.background = market === 'us' ? 'var(--accent)' : 'var(--surface2)'; usBtn.style.color = market === 'us' ? '#fff' : 'var(--muted)'; }
+  if (krBtn) { krBtn.style.background = market === 'kr' ? '#22c55e' : 'var(--surface2)'; krBtn.style.color = market === 'kr' ? '#fff' : 'var(--muted)'; }
+  if (label) label.textContent = market === 'us' ? '거래량·뉴스·기술적 신호 종합 분석 (미국)' : '거래량 + RSI 복합 점수 기반 (KOSPI/KOSDAQ)';
+  // 캐시 있으면 즉시 표시
+  const now = Date.now();
+  const cache = market === 'us' ? _mPicksCacheUs : _mPicksCacheKr;
+  const cacheTime = market === 'us' ? _mPicksCacheTimeUs : _mPicksCacheTimeKr;
+  const el = document.getElementById('m-top-picks-list');
+  if (cache && (now - cacheTime) < 5 * 60 * 1000) { if (el) el.innerHTML = cache; }
+  else { if (el) el.innerHTML = ''; }
+}
+
+async function mLoadDayPicks() {
+  const el = document.getElementById('m-top-picks-list');
+  if (!el) return;
+  const now = Date.now();
+  const cache = _mPicksMarket === 'us' ? _mPicksCacheUs : _mPicksCacheKr;
+  const cacheTime = _mPicksMarket === 'us' ? _mPicksCacheTimeUs : _mPicksCacheTimeKr;
+  if (cache && (now - cacheTime) < 5 * 60 * 1000) { el.innerHTML = cache; return; }
+
+  if (_mPicksMarket === 'us') {
+    await mLoadTopPicks();
+    const html = el.innerHTML;
+    if (html && !html.includes('분석 중')) { _mPicksCacheUs = html; _mPicksCacheTimeUs = Date.now(); }
+  } else {
+    el.innerHTML = '<div class="m-loading">한국 시장 분석 중...</div>';
+    try {
+      const res = await fetch('/api/auto-trade/kr-top-picks');
+      const d = await res.json();
+      if (!d.ok || !d.picks?.length) { el.innerHTML = '<div class="m-empty">추천 종목 없음</div>'; return; }
+      const rankIcons = ['🥇','🥈','🥉','4위','5위'];
+      const html = d.picks.map((p, i) => `
+        <div class="m-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:1.3rem;">${rankIcons[i]}</span>
+              <div>
+                <div style="font-weight:800;font-size:1rem;">${p.symbol} <span style="font-size:0.65rem;background:var(--surface2);color:var(--muted);padding:1px 5px;border-radius:4px;">${p.market||'KOSPI'}</span></div>
+                <div style="font-size:0.72rem;color:var(--muted);">${p.name||''}</div>
+                <div style="font-size:0.7rem;color:var(--muted);">${p.signals.slice(0,2).join(' · ')}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;">₩${(p.price||0).toLocaleString()}</div>
+              <div style="font-size:0.75rem;font-weight:700;color:${(p.change_pct||0)>=0?'var(--success)':'var(--danger)'};">${(p.change_pct||0)>=0?'▲':'▼'} ${Math.abs(p.change_pct||0).toFixed(2)}%</div>
+              <div style="font-size:0.7rem;color:var(--accent2);">점수 ${p.score}</div>
+            </div>
+          </div>
+        </div>`).join('');
+      el.innerHTML = html;
+      _mPicksCacheKr = html; _mPicksCacheTimeKr = Date.now();
+    } catch(e) { el.innerHTML = `<div class="m-empty" style="color:var(--danger);">오류: ${e.message}</div>`; }
+  }
+}
 
 async function mLoadTopPicks() {
   const el = document.getElementById('m-top-picks-list');
-  // 5분 이내 캐시가 있으면 즉시 표시
-  const now = Date.now();
-  if (_mTopPicksCache && (now - _mTopPicksCacheTime) < 5 * 60 * 1000) {
-    el.innerHTML = _mTopPicksCache;
-    return;
-  }
   el.innerHTML = '<div class="m-loading">분석 중... (10~20초)</div>';
   try {
     const res = await fetch('/api/auto-trade/top-picks');
     const d = await res.json();
     if (!d.picks?.length) { el.innerHTML = '<div class="m-empty">추천 종목 없음</div>'; return; }
     const rankIcons = ['🥇','🥈','🥉','4위','5위'];
-    const html = d.picks.map((p, i) => {
+    el.innerHTML = d.picks.map((p, i) => {
       const color = p.change_pct >= 0 ? 'var(--success)' : 'var(--danger)';
       return `<div class="m-card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1212,10 +1270,6 @@ async function mLoadTopPicks() {
         </div>
       </div>`;
     }).join('');
-    el.innerHTML = html;
-    // 캐시 저장 (5분 유효)
-    _mTopPicksCache = html;
-    _mTopPicksCacheTime = Date.now();
   } catch(e) { el.innerHTML = '<div class="m-empty" style="color:var(--danger);">오류: ' + e.message + '</div>'; }
 }
 

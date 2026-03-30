@@ -800,6 +800,41 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
+  // ✅ 한국 TOP-PICKS (일반 자동매매 한국 탭용)
+  router.get('/api/auto-trade/kr-top-picks', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      // quant 서버(stock_server.py)의 /api/quant/korea 호출
+      const quantBase = process.env.QUANT_SERVER_URL || 'http://localhost:5002';
+      const koreaRes = await fetch(`${quantBase}/api/quant/korea`);
+      if (!koreaRes.ok) return res.status(502).json({ error: '한국 시장 분석 실패' });
+      const data = await koreaRes.json();
+      const top10 = data.top10 || [];
+      if (!top10.length) return res.json({ ok: true, picks: [] });
+
+      // TOP5만 추려서 top-picks 형식으로 변환
+      const picks = top10.slice(0, 5).map((item, i) => {
+        const signals = [];
+        if (item.volume_ratio && item.volume_ratio > 1.5) signals.push(`📊 거래량 ${item.volume_ratio.toFixed(1)}x`);
+        if (item.rsi && item.rsi < 40) signals.push(`RSI ${item.rsi.toFixed(0)} 과매도`);
+        if (item.rsi && item.rsi > 60) signals.push(`RSI ${item.rsi.toFixed(0)} 강세`);
+        if (item.score) signals.push(`점수 ${item.score}`);
+        return {
+          symbol: item.ticker,
+          name: item.name || item.ticker,
+          score: item.score || (10 - i),
+          price: item.price || 0,
+          change_pct: item.change_pct || 0,
+          signals,
+          rsi: item.rsi || null,
+          market: item.ticker.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI'
+        };
+      });
+
+      res.json({ ok: true, picks, total_analyzed: top10.length });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ✅ 거래량 급등 감지
   router.get('/api/auto-trade/volume-surge', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
