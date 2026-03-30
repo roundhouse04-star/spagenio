@@ -2381,7 +2381,6 @@
     }
 
     async function _runLottoPrediction(el) {
-      const el = document.getElementById('prediction-result');
       if (!el) return;
       el.style.display = '';
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
@@ -2458,7 +2457,6 @@
     }
 
     async function _renderPredictionHistory(el) {
-      const el = document.getElementById('prediction-history');
       if (!el) return;
       try {
         const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
