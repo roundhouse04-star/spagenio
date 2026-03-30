@@ -139,40 +139,61 @@ async function buyStock() {
       return;
     }
 
-    // ✅ 잔고 부족 체크: 현재가 × 수량 > buying_power 이면 차단
+    // ✅ 체크1: 계좌 잔고 조회
     const accountRes = await fetch('/api/alpaca-user/v2/account');
     const accountData = await accountRes.json();
     const buyingPower = parseFloat(accountData.buying_power) || 0;
 
-    // 현재가 조회 (stock_server)
+    // ✅ 체크2: 현재가 조회 + 종목 유효성 검증
     const priceRes = await fetch(`/proxy/stock/api/stock/prices?symbols=${symbol}`);
     const priceData = await priceRes.json();
-    const currentPrice = priceData.stocks?.[0]?.price || 0;
+    const stockInfo = priceData.stocks?.[0];
+    const currentPrice = stockInfo?.price || 0;
 
-    if (currentPrice > 0) {
-      const totalCost = currentPrice * qty;
-      if (totalCost > buyingPower) {
-        await spAlert(
-          `잔고가 부족합니다.
-
-필요 금액: $${totalCost.toLocaleString('en', {maximumFractionDigits:2})}
-매수 가능 금액: $${buyingPower.toLocaleString('en', {maximumFractionDigits:2})}`,
-          '잔고 부족', '💰'
-        );
-        resultEl.style.color = 'var(--red)';
-        resultEl.textContent = `❌ 잔고 부족 — 필요: $${totalCost.toFixed(2)} / 보유: $${buyingPower.toFixed(2)}`;
-        return;
-      }
-      // 매수 확인 팝업
-      const confirm = await spConfirm(
-        `${symbol} ${qty}주 매수할까요?
-
-예상 금액: $${totalCost.toFixed(2)}
-잔여 매수력: $${(buyingPower - totalCost).toFixed(2)}`,
-        '매수 확인', '🟢', '매수', '#10b981'
+    if (!stockInfo || currentPrice <= 0) {
+      await spAlert(
+        `${symbol} 종목을 찾을 수 없습니다.\n심볼을 다시 확인해주세요.`,
+        '종목 없음', '❌'
       );
-      if (!confirm) { resultEl.textContent = ''; return; }
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = `❌ ${symbol} 종목을 찾을 수 없습니다.`;
+      return;
     }
+
+    // ✅ 체크3: 이미 보유 중인 종목 경고
+    try {
+      const posRes = await fetch(`/api/alpaca-user/v2/positions/${symbol}`);
+      if (posRes.ok) {
+        const posData = await posRes.json();
+        const heldQty = parseFloat(posData.qty) || 0;
+        const avgPrice = parseFloat(posData.avg_entry_price) || 0;
+        const ok = await spConfirm(
+          `${symbol}을 이미 ${heldQty}주 보유 중입니다 (평균단가 $${avgPrice.toFixed(2)}).\n추가 매수할까요?`,
+          '이미 보유 중', '⚠️', '추가 매수', '#f59e0b'
+        );
+        if (!ok) { resultEl.textContent = ''; return; }
+      }
+    } catch(e) {}
+
+    // ✅ 체크4: 잔고 부족 (최대 매수 가능 수량 안내)
+    const totalCost = currentPrice * qty;
+    if (totalCost > buyingPower) {
+      const maxQty = Math.floor(buyingPower / currentPrice);
+      await spAlert(
+        `잔고가 부족합니다.\n\n필요 금액: $${totalCost.toFixed(2)}\n매수 가능 금액: $${buyingPower.toFixed(2)}\n최대 매수 가능 수량: ${maxQty}주`,
+        '잔고 부족', '💰'
+      );
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = `❌ 잔고 부족 — 필요: $${totalCost.toFixed(2)} / 보유: $${buyingPower.toFixed(2)} / 최대: ${maxQty}주`;
+      return;
+    }
+
+    // ✅ 체크5: 최종 매수 확인 팝업 (현재가/예상금액/잔여매수력)
+    const confirmBuy = await spConfirm(
+      `${symbol} ${qty}주 매수할까요?\n\n현재가: $${currentPrice.toFixed(2)}\n예상 금액: $${totalCost.toFixed(2)}\n매수 후 잔여 매수력: $${(buyingPower - totalCost).toFixed(2)}`,
+      '매수 확인', '🟢', '매수', '#10b981'
+    );
+    if (!confirmBuy) { resultEl.textContent = ''; return; }
 
     resultEl.textContent = '⏳ 주문 중...';
     const res = await fetch('/api/alpaca-user/v2/orders', {
