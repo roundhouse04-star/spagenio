@@ -1186,7 +1186,7 @@
 
         <!-- 반복출현번호 탭 -->
         <div id="lotto-panel-repeat" style="display:none;">
-          <div class="card" style="margin-bottom:16px;">
+          <div class="card" style="margin-bottom:16px;max-width:100%;overflow:hidden;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
               <div style="font-weight:700;font-size:1rem;">🔁 반복출현번호 분석</div>
               <div style="display:flex;gap:8px;align-items:center;">
@@ -1200,7 +1200,7 @@
                 <button onclick="loadRepeatNumbers()" class="btn" style="background:#6366f1;color:#fff;font-size:0.85rem;">🔍 분석</button>
               </div>
             </div>
-            <div id="repeat-result" style="overflow-x:auto;">
+            <div id="repeat-result" style="overflow-x:auto;min-width:0;">
               <div style="text-align:center;color:var(--muted);padding:32px;font-size:0.9rem;">분석 버튼을 눌러주세요</div>
             </div>
           </div>
@@ -2167,9 +2167,9 @@
             });
           }
 
-          html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border);">`;
-          html += `<div style="min-width:80px;font-size:0.88rem;font-weight:700;color:var(--muted);">${cur.drw_no}회</div>`;
-          html += `<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;">`;
+          html += `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 4px;border-bottom:1px solid var(--border);min-width:700px;">`;
+          html += `<div style="min-width:75px;font-size:0.9rem;font-weight:700;color:var(--muted);padding-top:10px;">${cur.drw_no}회</div>`;
+          html += `<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;flex:1;">`;
 
           nums.forEach(n => {
             const rep = repeats[n];
