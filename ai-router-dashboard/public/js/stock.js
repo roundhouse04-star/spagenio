@@ -486,26 +486,30 @@ async function loadOrderBook() {
   if (statusEl) statusEl.textContent = '조회 중...';
 
   try {
-    // yfinance 기반 현재가 조회 (Paper 계좌 data API 제한 우회)
-    const [priceRes, quoteRes] = await Promise.all([
-      fetch(`/proxy/stock/api/stock/prices?symbols=${symbol}`),
+    // yfinance 실시간 가격 조회 (/api/stock/price - 실시간, 지연없음)
+    const [priceRes, histRes, quoteRes] = await Promise.all([
+      fetch(`/proxy/stock/api/stock/price?symbol=${symbol}`),
+      fetch(`/proxy/stock/api/stock/history?symbol=${symbol}&period=5`),
       fetch(`/api/alpaca-user/v2/stocks/${symbol}/quotes/latest`).catch(() => null)
     ]);
-    const priceData = priceRes.ok ? await priceRes.json() : {};
-    const stockInfo = (priceData.stocks || [])[0] || {};
+    const stockInfo = priceRes.ok ? await priceRes.json() : {};
+    const histData  = histRes.ok  ? await histRes.json()  : {};
     const quoteData = quoteRes && quoteRes.ok ? await quoteRes.json() : {};
     const quote = quoteData.quote || {};
+
+    // 오늘 고가/저가는 히스토리 마지막 행에서
+    const todayBar = (histData.data || []).slice(-1)[0] || {};
 
     const latestPrice = parseFloat(stockInfo.price) || 0;
     const askPrice = parseFloat(quote.ap) || (latestPrice > 0 ? parseFloat((latestPrice + 0.01).toFixed(2)) : 0);
     const bidPrice = parseFloat(quote.bp) || (latestPrice > 0 ? parseFloat((latestPrice - 0.01).toFixed(2)) : 0);
     const askSize  = parseInt(quote.as) || 0;
     const bidSize  = parseInt(quote.bs) || 0;
-    const open     = parseFloat(stockInfo.open)   || latestPrice;
-    const high     = parseFloat(stockInfo.high)   || latestPrice;
-    const low      = parseFloat(stockInfo.low)    || latestPrice;
-    const prevClose = parseFloat(stockInfo.prev_close) || latestPrice;
-    const volume = stockInfo.volume || 0;
+    const open     = parseFloat(stockInfo.open)    || latestPrice;
+    const high     = parseFloat(todayBar.high)     || latestPrice;
+    const low      = parseFloat(todayBar.low)      || latestPrice;
+    const prevClose = parseFloat(stockInfo.price)  || latestPrice;
+    const volume   = stockInfo.volume || 0;
 
     const change    = latestPrice - open;
     const changePct = open > 0 ? (change / open * 100) : 0;
