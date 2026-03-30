@@ -2403,18 +2403,19 @@
         const numCarry = {};
         for (let n=1;n<=45;n++) numCarry[n]={appear:0,carry:0};
         for (let i=1;i<asc.length;i++) {
-          const prev=asc[i-1].numbers; const cur=new Set(asc[i].numbers);
+          const prev=Array.isArray(asc[i-1].numbers)?asc[i-1].numbers:JSON.parse(asc[i-1].numbers||'[]');
+          const cur=new Set(Array.isArray(asc[i].numbers)?asc[i].numbers:JSON.parse(asc[i].numbers||'[]'));
           prev.forEach(n=>{numCarry[n].appear++;if(cur.has(n))numCarry[n].carry++;});
         }
         const carryPct={};
         for(let n=1;n<=45;n++) carryPct[n]=numCarry[n].appear>0?numCarry[n].carry/numCarry[n].appear:0;
         const getDec=n=>n<=9?0:n<=19?1:n<=29?2:n<=39?3:4;
         const decCarry=Array(5).fill(null).map(()=>({appear:0,carry:0}));
-        for(let i=1;i<asc.length;i++){const prev=asc[i-1].numbers;const curDecs=new Set(asc[i].numbers.map(getDec));prev.forEach(n=>{const d=getDec(n);decCarry[d].appear++;if(curDecs.has(d))decCarry[d].carry++;});}
+        for(let i=1;i<asc.length;i++){const prev=Array.isArray(asc[i-1].numbers)?asc[i-1].numbers:JSON.parse(asc[i-1].numbers||'[]');const curNums=Array.isArray(asc[i].numbers)?asc[i].numbers:JSON.parse(asc[i].numbers||'[]');const curDecs=new Set(curNums.map(getDec));prev.forEach(n=>{const d=getDec(n);decCarry[d].appear++;if(curDecs.has(d))decCarry[d].carry++;});}
         const decPct=decCarry.map(d=>d.appear>0?d.carry/d.appear:0);
         const recent20=sorted.slice(0,20);
         const rBonus={};for(let n=1;n<=45;n++)rBonus[n]=0;
-        recent20.forEach((h,idx)=>{const w=(20-idx)/20;h.numbers.forEach(n=>{rBonus[n]+=w*0.5;});});
+        recent20.forEach((h,idx)=>{const w=(20-idx)/20;const nums=Array.isArray(h.numbers)?h.numbers:JSON.parse(h.numbers||'[]');nums.forEach(n=>{rBonus[n]+=w*0.5;});});
         let dbW={};
         try{const wr=await fetch('/api/lotto/weights');if(wr.ok){const wd=await wr.json();(wd.weights||[]).forEach(w=>{dbW[w.num]=w.weight;});}}catch(e){}
         const scores={};
