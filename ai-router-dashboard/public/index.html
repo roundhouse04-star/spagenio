@@ -2106,8 +2106,8 @@
           </div>
         </div>
 
-        <!-- 매수/매도 + 보유Symbol -->
-        <div class="sp-grid-2">
+        <!-- 매수/매도 + 호가창 (3열) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
           <div class="sp-card">
             <div class="sp-card-header">
               <div class="sp-card-title">🔄 Buy / Sell</div>
@@ -2116,7 +2116,8 @@
               <div>
                 <label class="sp-label">Symbol</label>
                 <div style="display:flex;gap:6px;">
-                  <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" style="flex:1;" />
+                  <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" style="flex:1;"
+                    oninput="clearTimeout(window._obTimer);window._obTimer=setTimeout(()=>loadOrderBook(),700)" />
                   <button onclick="openStockSearch('tradeSymbol', false)"
                     class="sp-btn sp-btn-outline" title="종목 검색" style="flex-shrink:0;padding:0 10px;">🔍</button>
                 </div>
@@ -2128,23 +2129,34 @@
             </div>
             <div style="display:flex;gap:10px;margin-bottom:16px;">
               <button onclick="buyStock()" class="sp-btn btn-buy"
-                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">
-                📈 BUY</button>
+                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📈 BUY</button>
               <button onclick="sellStock()" class="sp-btn btn-sell"
-                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">
-                📉 SELL</button>
+                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📉 SELL</button>
             </div>
             <label class="sp-label">Trade Result</label>
             <pre id="tradeResult" class="sp-result" style="min-height:80px;">Waiting for trade...</pre>
           </div>
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면
-                  실시간 가격)</small></div>
-              <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+              <div class="sp-card-title">📊 현재가</div>
+              <button onclick="loadOrderBook()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
             </div>
-            <div id="positionsTable"></div>
+            <div id="obPriceCard"><div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div></div>
           </div>
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div class="sp-card-title">📋 호가창</div>
+              <span id="obStatus" style="font-size:0.72rem;color:#4B5563;"></span>
+            </div>
+            <div id="obTable"><div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div></div>
+          </div>
+        </div>
+        <div class="sp-card" style="margin-bottom:16px;">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면 실시간 가격)</small></div>
+            <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+          </div>
+          <div id="positionsTable"></div>
         </div>
 
         <!-- 주문 내역 -->
