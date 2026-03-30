@@ -536,9 +536,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // 반복출현번호 분석용 - 전체 데이터 반환
+  // 반복출현번호 분석용 - 전체 데이터 반환 (admin용, 인증 불필요)
   router.get('/api/lotto/history-full', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const limit = parseInt(req.query.limit) || 100;
       const rows = db.prepare('SELECT drw_no, numbers, bonus, drw_date FROM lotto_history ORDER BY drw_no DESC LIMIT ?').all(limit);
