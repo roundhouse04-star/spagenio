@@ -737,9 +737,6 @@ app.get("/mobile", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "m.html"));
 });
 
-
-
-
 app.get("*", (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
   // m.spagenio.com 접속 시 모바일 페이지로
