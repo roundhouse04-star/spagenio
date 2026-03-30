@@ -2501,6 +2501,8 @@
       await _renderPredictionHistory(el);
     }
 
+    let _predPage = 1;
+    const _predPageSize = 10;
     async function _renderPredictionHistory(el, updateFilter = false) {
       if (!el) return;
       try {
@@ -2531,6 +2533,10 @@
         const filtered = filterRound
           ? d.predictions.filter(p => (p.predicted_for_round || p.based_on_round + 1) == filterRound)
           : d.predictions;
+        // 페이징
+        const totalPages = Math.ceil(filtered.length / _predPageSize);
+        if (_predPage > totalPages) _predPage = Math.max(1, totalPages);
+        const paged = filtered.slice((_predPage - 1) * _predPageSize, _predPage * _predPageSize);
 
         const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
         const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
@@ -2540,7 +2546,12 @@
           const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.1);color:#6366f1;font-weight:700;">⏳ 미확인</span>`;
           return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.predicted_for_round || p.based_on_round + 1}회 예측</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
         }).join('');
-        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+filtered.length+'건' + (filterRound ? ' · '+filterRound+'회' : '') + ')</div>'+rows;
+        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+filtered.length+'건' + (filterRound ? ' · '+filterRound+'회' : '') + ')</div>'+rows +
+          (totalPages > 1 ? '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#e2e8f0);">' +
+            '<button onclick="_predPage=Math.max(1,_predPage-1);loadPredictionHistoryTab()" ' + (_predPage<=1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);cursor:pointer;">← 이전</button>' +
+            '<span style="font-size:0.85rem;color:var(--muted);">'+_predPage+' / '+totalPages+'</span>' +
+            '<button onclick="_predPage=Math.min(totalPages,_predPage+1);loadPredictionHistoryTab()" ' + (_predPage>=totalPages?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);cursor:pointer;">다음 →</button>' +
+          '</div>' : '');
       } catch(e) { el.innerHTML='<div style="color:#ef4444;padding:8px;">오류: '+e.message+'</div>'; }
     }
 
