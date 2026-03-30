@@ -2133,10 +2133,8 @@
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 분석 중...</div>';
       try {
         // 토큰 가져오기 (admin 또는 일반 auth)
-        const _token = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
-        // lotto/history API 호출 (full 데이터 포함 버전)
-        const res = await fetch('/api/lotto/history-full?limit=100', { headers: { 'Authorization': 'Bearer ' + _token } });
-        if (res.status === 401) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">로그인이 필요합니다. 페이지를 새로고침 해주세요.</div>'; return; }
+        // 공개 API - 인증 불필요
+        const res = await fetch('/api/lotto/history-full?limit=100');
         if (!res.ok) { el.innerHTML = `<div style="color:#ef4444;padding:16px;">서버 오류: ${res.status}</div>`; return; }
         const d = await res.json();
         const history = d.history || [];
