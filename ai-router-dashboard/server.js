@@ -1940,6 +1940,48 @@ setInterval(async () => {
     });
 
     console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료: ${winning.join(', ')} + ${data.bnusNo}`);
+
+    // ── 당첨번호 수집 후 lotto_weights 자동 업데이트 ──────────
+    // 전체 이력 기반 반복출현 확률 + 연속 반복 패턴 재계산
+    try {
+      const allRows = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all();
+      const allHist = allRows.map(r => JSON.parse(r.numbers));
+
+      // 1. 반복출현 확률 계산
+      const repeatCount = {}, appearCount = {};
+      for (let n = 1; n <= 45; n++) { repeatCount[n] = 0; appearCount[n] = 0; }
+      for (let i = 1; i < allHist.length; i++) {
+        const prev = allHist[i-1], curSet = new Set(allHist[i]);
+        prev.forEach(n => { appearCount[n]++; if (curSet.has(n)) repeatCount[n]++; });
+      }
+      const pcts = {};
+      for (let n = 1; n <= 45; n++) pcts[n] = appearCount[n] > 0 ? repeatCount[n] / appearCount[n] : 0;
+      const avgPct = Object.values(pcts).reduce((a,b)=>a+b,0) / 45;
+
+      // 2. 반복출현 확률 → weight 변환 (0.5 ~ 3.0)
+      const newWeights = {};
+      for (let n = 1; n <= 45; n++) {
+        const ratio = avgPct > 0 ? pcts[n] / avgPct : 1.0;
+        newWeights[n] = Math.round(Math.min(3.0, Math.max(0.5, ratio)) * 10000) / 10000;
+      }
+
+      // 3. 최근 3회차 부스트
+      const recent3 = allHist.slice(-3);
+      recent3.forEach((nums, i) => {
+        const boost = 0.5 * (i + 1);
+        nums.forEach(n => { newWeights[n] = Math.round(Math.min(5.0, newWeights[n] + boost) * 10000) / 10000; });
+      });
+
+      // 4. DB 업데이트
+      for (let n = 1; n <= 45; n++) {
+        db.prepare('UPDATE lotto_weights SET weight=?, appear_count=?, hit_count=? WHERE num=?')
+          .run(newWeights[n], appearCount[n], repeatCount[n], n);
+      }
+      console.log(`[로또] lotto_weights 자동 업데이트 완료 (${allHist.length}회 이력 기반)`);
+    } catch(e) {
+      console.log('[로또] lotto_weights 업데이트 오류:', e.message);
+    }
+
   } catch (e) {
     saveErrorLog({ event_type: 'LOTTO_HISTORY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack });
   }

@@ -178,9 +178,38 @@
 
       function getNumberScore(n) {
         // ── DB 반복출현 가중치 기반 기본 점수 ──
-        // lottoDbWeights[n]: 800~1217회 반복출현 패턴 분석값 (0.5 ~ 5.0)
         const dbW = lottoDbWeights[n] || 1.0;
-        let score = dbW;  // 반복출현 패턴이 기본 점수에 직접 반영
+
+        // ── 연속 반복 패턴 멀티플라이어 ──
+        // lottoHistory 기반으로 현재 연속 횟수 / 최대 연속 횟수 계산
+        const maxStreak = {};
+        const curStreak = {};
+        for (let i = 1; i < lottoHistory.length; i++) {
+          const prev = new Set(lottoHistory[i-1]);
+          const cur  = new Set(lottoHistory[i]);
+          for (let x = 1; x <= 45; x++) {
+            if (prev.has(x) && cur.has(x)) {
+              curStreak[x] = (curStreak[x] || 0) + 1;
+              if ((curStreak[x] || 0) > (maxStreak[x] || 0)) maxStreak[x] = curStreak[x];
+            } else {
+              curStreak[x] = 0;
+            }
+          }
+        }
+        const cs = curStreak[n] || 0;
+        const ms = maxStreak[n] || 0;
+        let streakMul = 1.0;
+        if (cs === 0) {
+          streakMul = 1.0;                          // 연속 없음 → 중립
+        } else if (ms > 0 && cs >= ms) {
+          streakMul = 0.3;                          // 최대 도달 → 강한 DOWN
+        } else if (ms > 0 && cs >= ms * 0.7) {
+          streakMul = 0.6;                          // 최대 70% 이상 → DOWN
+        } else {
+          streakMul = 1.0 + (cs * 0.3);            // 여유 있음 → UP
+        }
+
+        let score = dbW * streakMul;  // 반복출현 패턴 × 연속 패턴 동시 반영
 
         // ── 이력 기반 동적 hot/cold 계산 ──
         const primeSet = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
