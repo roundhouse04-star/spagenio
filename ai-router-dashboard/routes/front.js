@@ -258,7 +258,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const getLinkFromBlock = (block) => {
         // 방법1: <link>URL</link> 형식
         const r1 = /<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i.exec(block);
-        if (r1 && r1[1].trim().startsWith('http')) return r1[1].trim();
+        if (r1 && r1[1].trim().startsWith("http") && r1[1].trim().split("/").length > 4) return r1[1].trim();
         // 방법2: <link>뒤에 바로 URL이 오는 형식 (BBC 등)
         const r2 = /<link\s*\/?>([^<]+)/i.exec(block);
         if (r2 && r2[1].trim().startsWith('http')) return r2[1].trim();
