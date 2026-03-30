@@ -438,7 +438,13 @@ if (schCount.cnt === 0) {
   ins.run('단순 자동매매', 'simple_trade', 1, 60, 'TOP1 종목 당일 자동매매 (장시간, 15:55 강제청산)');
   ins.run('완전 자동매매', 'auto_strategy', 1, 60, '팩터 스크리닝 기반 완전자동매매 (장시간)');
   ins.run('로또 당첨번호 수집', 'lotto_history', 1, 60, '토요일 KST 21:00 당첨번호 자동 수집');
+  ins.run('성과 스냅샷 자동저장', 'performance_snapshot', 1, 60, '매일 KST 06:05 (미국 장 마감 후) 전체 유저 성과 스냅샷 자동 저장');
 }
+// 기존 schedulers에 performance_snapshot 없으면 추가 (마이그레이션)
+try {
+  db.prepare("INSERT OR IGNORE INTO schedulers (name, key, enabled, interval_sec, description) VALUES (?,?,?,?,?)")
+    .run('성과 스냅샷 자동저장', 'performance_snapshot', 1, 60, '매일 KST 06:05 (미국 장 마감 후) 전체 유저 성과 스냅샷 자동 저장');
+} catch (e) {}
 
 try { db.exec("CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch (e) { }
 
@@ -1910,6 +1916,72 @@ setInterval(async () => {
     console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료: ${winning.join(', ')} + ${data.bnusNo}`);
   } catch (e) {
     saveErrorLog({ event_type: 'LOTTO_HISTORY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack });
+  }
+}, 60 * 1000); // 1분마다 체크
+
+// ============================================================
+// 성과 스냅샷 자동 저장 스케줄러 (매일 KST 06:05 = UTC 21:05 전날)
+// DB schedulers 테이블의 performance_snapshot key로 관리
+// ============================================================
+setInterval(async () => {
+  try {
+    if (!isSchedulerEnabled('performance_snapshot')) return;
+    const now = new Date();
+    const kstHour = (now.getUTCHours() + 9) % 24;
+    const kstMin = now.getUTCMinutes();
+    // KST 06:05 에만 실행 (미국 동부 16:05 = 장 마감 후)
+    if (kstHour !== 6 || kstMin > 5) return;
+    updateSchedulerRun('performance_snapshot');
+
+    // Alpaca 키가 등록된 모든 유저에 대해 스냅샷 저장
+    const users = db.prepare('SELECT DISTINCT user_id FROM user_broker_keys WHERE is_active=1').all();
+    const today = new Date().toISOString().split('T')[0];
+
+    for (const { user_id } of users) {
+      try {
+        const keys = getUserAlpacaKeys(user_id, null);
+        if (!keys) continue;
+
+        const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+        const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
+
+        const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+        const equity = parseFloat(account.equity) || 0;
+        const cash = parseFloat(account.cash) || 0;
+        const portfolioValue = parseFloat(account.portfolio_value) || 0;
+
+        const yesterday = db.prepare(`SELECT total_equity, total_pnl, peak_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(user_id);
+        const prevEquity = yesterday?.total_equity || equity;
+        const dailyPnl = equity - prevEquity;
+        const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
+
+        const trades = db.prepare(`SELECT action FROM auto_trade_log WHERE user_id=? AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS')`).all(user_id);
+        const winCount = trades.filter(t => t.action.includes('PROFIT')).length;
+        const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS')).length;
+
+        const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date ASC LIMIT 1`).get(user_id);
+        const initialEquity = first?.total_equity || equity;
+        const totalPnl = equity - initialEquity;
+        const totalPnlPct = initialEquity > 0 ? (totalPnl / initialEquity * 100) : 0;
+
+        const allPeaks = db.prepare(`SELECT MAX(peak_equity) as peak FROM portfolio_performance WHERE user_id=?`).get(user_id);
+        const maxPeak = Math.max(allPeaks?.peak || equity, equity);
+        const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
+        const maxDrawdown = maxPeak > 0 ? ((maxPeak - equity) / maxPeak * 100) : 0;
+
+        db.prepare(`INSERT OR REPLACE INTO portfolio_performance
+          (user_id, snapshot_date, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .run(user_id, today, equity||0, cash||0, portfolioValue||0, dailyPnl||0, dailyPnlPct||0, totalPnl||0, totalPnlPct||0, winCount||0, lossCount||0, maxDrawdown||0, peakEquity||equity||0);
+
+        console.log(`[성과스냅샷] user_id=${user_id} equity=$${equity.toFixed(2)} dailyPnl=$${dailyPnl.toFixed(2)}`);
+      } catch (e) {
+        saveErrorLog({ event_type: 'PERFORMANCE_SNAPSHOT_ERROR', error_message: e.message, stack_trace: e.stack });
+      }
+    }
+    console.log(`[성과스냅샷] ${today} 전체 유저 스냅샷 완료 (${users.length}명)`);
+  } catch (e) {
+    saveErrorLog({ event_type: 'PERFORMANCE_SNAPSHOT_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack });
   }
 }, 60 * 1000); // 1분마다 체크
 
