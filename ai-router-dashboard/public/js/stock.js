@@ -480,7 +480,7 @@ async function loadOrders() {
     }
     const statusMap = { filled:'체결', partially_filled:'부분체결', canceled:'취소', pending_new:'대기', new:'접수', expired:'만료' };
     document.getElementById('ordersTable').innerHTML = `
-      <div style="font-size:0.82rem;color:#6b7280;margin-bottom:8px;">최근 ${data.orders.length}건</div>
+      <div style="font-size:0.82rem;color:#6b7280;margin-bottom:8px;">최근 ${orders.length}건</div>
       <table class="stock-table">
         <thead><tr><th>종목</th><th>구분</th><th>수량</th><th>주문유형</th><th>상태</th><th>체결가</th><th>체결금액</th><th>날짜</th></tr></thead>
         <tbody>
