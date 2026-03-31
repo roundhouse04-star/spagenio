@@ -124,8 +124,8 @@ try {
     console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
   }
   // ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
-  try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
-  try { db.exec('DROP TABLE IF EXISTS simple_auto_trade_log'); console.log('[trade_log] simple_auto_trade_log 테이블 삭제 완료'); } catch(e) {}
+  // try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
+  // try { db.exec('DROP TABLE IF EXISTS simple_auto_trade_log'); console.log('[trade_log] simple_auto_trade_log 테이블 삭제 완료'); } catch(e) {}
 } catch(e) {}
 
 // ── trade_log 백업 테이블 4개 (타입별 별도 관리) ──
