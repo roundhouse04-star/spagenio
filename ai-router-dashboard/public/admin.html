@@ -2453,7 +2453,22 @@
         try{const wr=await fetch('/api/lotto/weights');if(wr.ok){const wd=await wr.json();(wd.weights||[]).forEach(w=>{dbW[w.num]=w.weight;});}}catch(e){}
         const scores={};
         for(let n=1;n<=45;n++){let s=carryPct[n]*100+decPct[getDec(n)]*30+rBonus[n]*20;if(latestNums.includes(n))s+=carryPct[n]*50;scores[n]=s*(dbW[n]||1.0);}
-        const carryPicks=[...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]).slice(0,2);
+        // 이월 확률 기반으로 1~2개 확률적 선택 (실제 통계: 보통 1~2개 이월)
+        const sortedByCarry=[...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]);
+        const carryPicks=[];
+        // 1개는 확률 높은 번호 중 가중치 샘플링으로 선택
+        const carryWeights=sortedByCarry.map(n=>Math.max(carryPct[n],0.01));
+        const totalW=carryWeights.reduce((a,b)=>a+b,0);
+        let r1=Math.random()*totalW,cum=0;
+        for(let i=0;i<sortedByCarry.length;i++){cum+=carryWeights[i];if(cum>=r1){carryPicks.push(sortedByCarry[i]);break;}}
+        // 2번째: 50% 확률로 추가 (실제 2개 이월 빈도 ~50%)
+        if(Math.random()<0.5){
+          const rem2=sortedByCarry.filter(n=>!carryPicks.includes(n));
+          const w2=rem2.map(n=>Math.max(carryPct[n],0.01));
+          const tw2=w2.reduce((a,b)=>a+b,0);
+          let r2=Math.random()*tw2,c2=0;
+          for(let i=0;i<rem2.length;i++){c2+=w2[i];if(c2>=r2){carryPicks.push(rem2[i]);break;}}
+        }
         const picks=new Set(carryPicks);
         const zones=[[1,9],[10,19],[20,29],[30,39],[40,45]];
         for(const[lo,hi]of zones){if(picks.size>=6)break;const z=Object.entries(scores).filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);}).sort((a,b)=>b[1]-a[1]);if(z.length)picks.add(parseInt(z[0][0]));}
