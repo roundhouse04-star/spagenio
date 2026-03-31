@@ -231,12 +231,21 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     try {
       if (!req.user || !req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
       const { type } = req.query;
-      const files = fs.existsSync(errorLogDir) ? fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl')).sort().reverse() : [];
-      const dates = files.map(f => f.replace('.jsonl', '')).filter(date => {
-        if (!type || type === 'ALL') return true;
+      const files = fs.existsSync(errorLogDir)
+        ? fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl')).sort().reverse()
+        : [];
+      // ✅ ALL이면 파일 읽지 않고 바로 반환 (블로킹 방지)
+      if (!type || type === 'ALL') {
+        const dates = files.map(f => f.replace('.jsonl', ''));
+        return res.json({ ok: true, dates });
+      }
+      // ✅ type 필터 시 최근 30개만 체크 (무한 블로킹 방지)
+      const dates = files.slice(0, 30).map(f => f.replace('.jsonl', '')).filter(date => {
         try {
           const content = fs.readFileSync(path.join(errorLogDir, `${date}.jsonl`), 'utf8');
-          return content.split('\n').filter(Boolean).some(line => { try { return JSON.parse(line).event_type?.startsWith(type); } catch { return false; } });
+          return content.split('\n').filter(Boolean).some(line => {
+            try { return JSON.parse(line).event_type?.startsWith(type); } catch { return false; }
+          });
         } catch { return false; }
       });
       res.json({ ok: true, dates });
