@@ -4466,9 +4466,11 @@
         });
         const d = await res.json();
         if (!d.ok || !d.top?.length) { el.innerHTML = '<div style="padding:12px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음</div>'; return; }
-
-        // 추가 필터 적용
-        let filtered = d.top.filter(item => {
+          const saveBtn = !isKr
+            ? (timing === 'AVOID'
+              ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid rgba(255,59,48,0.3);background:rgba(255,59,48,0.08);color:#FF3B30;font-size:0.75rem;font-weight:700;cursor:pointer;">⚠️ ${item.symbol} AVOID — 그래도 저장</button>`
+              : `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`)
+            : '';
           if (item.roe && item.roe < roeMin) return false;
           if (item.debt_to_equity && item.debt_to_equity > debtMax) return false;
           if (item.revenue_growth && item.revenue_growth < revMin) return false;
