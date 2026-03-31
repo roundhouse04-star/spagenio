@@ -2571,7 +2571,7 @@
                 <label class="sp-label">🏦 분석 시장</label>
                 <div style="display:flex;gap:6px;">
                   <button id="marketBtnNasdaq" onclick="setMarket('nasdaq')"
-                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(79,143,255,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;">
                     📊 나스닥100
                   </button>
                   <button id="marketBtnDow" onclick="setMarket('dow')"
@@ -2695,7 +2695,7 @@
                 <label class="sp-label">🏦 분석 시장</label>
                 <div style="display:flex;gap:6px;">
                   <button id="krMarketBtnKospi" onclick="setKrMarket('kospi')"
-                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #dc2626;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.78rem;">
                     🏛 코스피200
                   </button>
                   <button id="krMarketBtnKosdaq" onclick="setKrMarket('kosdaq')"
@@ -2727,8 +2727,7 @@
                     style="border-color:#ef4444;" />
                 </div>
               </div>
-              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-red" style="width:100%;margin-bottom:4px;">🔍
-                스크리닝</button>
+              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
               <div style="font-size:0.7rem;color:#636366;text-align:center;">코스피200/코스닥150 · 1~2분</div>
             </div>
           </div>
@@ -2820,7 +2819,7 @@
                 <label class="sp-label">🏦 대상 시장</label>
                 <div style="display:flex;gap:6px;">
                   <button id="asBtnNasdaq" onclick="setAutoMarket('nasdaq')"
-                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(79,143,255,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;">
                     📊 나스닥100
                   </button>
                   <button id="asBtnDow" onclick="setAutoMarket('dow')"
@@ -4191,12 +4190,12 @@
           html += '<div style="font-size:0.75rem;font-weight:700;color:#6366f1;margin-bottom:8px;">🔥 거래량 + 뉴스 동시 감지</div>';
           html += combined.map(s => {
             const news = catalysts.find(c => c.symbol === s.symbol);
-            return `<div style="padding:12px;border:2px solid #6366f1;border-radius:10px;margin-bottom:8px;background:#eef2ff;">
+            return `<div style="padding:12px;border:2px solid #6366f1;border-radius:10px;margin-bottom:8px;background:rgba(99,102,241,0.1);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <span style="font-weight:800;font-size:1rem;color:#4338ca;">${s.symbol}</span>
                 <div style="display:flex;gap:6px;">
-                  <span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:#fff;color:#6366f1;font-weight:700;">📊 ${s.volume_ratio}x</span>
-                  <span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:#fff;color:#f59e0b;font-weight:700;">📰 뉴스</span>
+                  <span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.2);color:#a5b4fc;font-weight:700;">📊 ${s.volume_ratio}x</span>
+                  <span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(245,158,11,0.2);color:#fbbf24;font-weight:700;">📰 뉴스</span>
                 </div>
               </div>
               <div style="font-size:0.78rem;color:#4338ca;">${news?.latest_title || ''}</div>
@@ -4207,7 +4206,7 @@
         if (surgeOnly.length) {
           html += '<div style="font-size:0.75rem;font-weight:700;color:#f59e0b;margin:12px 0 8px;">⚡ 거래량 급등 (뉴스 미감지)</div>';
           html += surgeOnly.map(s => `
-            <div style="padding:10px;border:1px solid #fde68a;border-radius:10px;margin-bottom:6px;background:#fffbeb;">
+            <div style="padding:10px;border:1px solid rgba(245,158,11,0.3);border-radius:10px;margin-bottom:6px;background:rgba(245,158,11,0.08);">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-weight:800;color:#92400e;">${s.symbol}</span>
                 <span style="font-size:0.75rem;color:#92400e;">${s.volume_ratio}x · ${currency}${s.price?.toFixed(2)}</span>
@@ -4446,7 +4445,7 @@
 
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
         const rows = filtered.slice(0, 10).map((item, i) => `
-        <div style="padding:10px 12px;background:${i === 0 ? '#f0fdf4' : '#f9fafb'};border-radius:8px;border:1px solid ${i === 0 ? '#bbf7d0' : '#e5e7eb'};margin-bottom:6px;">
+        <div style="padding:10px 12px;background:${i === 0 ? 'rgba(99,102,241,0.1)' : '#1E242C'};border-radius:8px;border:1px solid ${i === 0 ? '#6366f1' : '#2A2A2A'};margin-bottom:6px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div>
               <span style="font-weight:800;font-size:0.95rem;color:#E5E7EB;">${medals[i]} ${item.symbol}</span>
@@ -4458,7 +4457,7 @@
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:0.7rem;color:#9CA3AF;">
-            ${item.roe ? `<span style="background:rgba(79,143,255,0.15);color:#3730a3;padding:1px 6px;border-radius:999px;">ROE ${item.roe}%</span>` : ''}
+            ${item.roe ? `<span style="background:rgba(99,102,241,0.2);color:#a5b4fc;padding:1px 6px;border-radius:999px;">ROE ${item.roe}%</span>` : ''}
             ${item.debt_to_equity != null ? `<span style="background:rgba(255,214,10,0.12);color:#92400e;padding:1px 6px;border-radius:999px;">부채 ${item.debt_to_equity}%</span>` : ''}
             ${item.revenue_growth ? `<span style="background:rgba(255,59,48,0.15);color:#166534;padding:1px 6px;border-radius:999px;">매출성장 ${item.revenue_growth}%</span>` : ''}
             ${item.momentum_6m != null ? `<span style="background:rgba(30,123,255,0.08);color:#0369a1;padding:1px 6px;border-radius:999px;">6M ${item.momentum_6m > 0 ? '+' : ''}${item.momentum_6m}%</span>` : ''}
@@ -4589,11 +4588,11 @@
       const kospiBtn = document.getElementById('krMarketBtnKospi');
       const kosdaqBtn = document.getElementById('krMarketBtnKosdaq');
       if (market === 'kospi') {
-        kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #dc2626;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
+        kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
         kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
       } else {
         kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
-        kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #dc2626;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
+        kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
       }
     };
 
@@ -4629,13 +4628,13 @@
         const items = isKr ? d.top : d.results;
         if (!d.ok || !items?.length) { el.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음 — 전략을 바꿔보세요</div>'; return; }
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-        const tBg = { BUY: 'rgba(255,59,48,0.08)', WATCH: 'rgba(255,214,10,0.06)', AVOID: 'rgba(30,123,255,0.08)' };
-        const tBor = { BUY: 'rgba(255,59,48,0.3)', WATCH: 'rgba(255,214,10,0.3)', AVOID: 'rgba(30,123,255,0.3)' };
+        const tBg = { BUY: 'rgba(99,102,241,0.12)', WATCH: 'rgba(245,158,11,0.08)', AVOID: 'rgba(30,123,255,0.06)' };
+        const tBor = { BUY: '#6366f1', WATCH: 'rgba(245,158,11,0.4)', AVOID: '#2A2A2A' };
         const tCol = { BUY: '#FF3B30', WATCH: '#FFD60A', AVOID: '#1E7BFF' };
         const rows = items.map((item, i) => {
           const timing = item.timing || 'WATCH';
-          const bg = isKr ? (i === 0 ? 'rgba(255,59,48,0.08)' : '#1E242C') : (tBg[timing] || '#1E242C');
-          const bor = isKr ? (i === 0 ? 'rgba(255,59,48,0.3)' : '#2A2A2A') : (tBor[timing] || '#2A2A2A');
+          const bg = isKr ? (i === 0 ? 'rgba(99,102,241,0.12)' : '#1E242C') : (tBg[timing] || '#1E242C');
+          const bor = isKr ? (i === 0 ? '#6366f1' : '#2A2A2A') : (tBor[timing] || '#2A2A2A');
           const timingColor = tCol[timing] || '#9CA3AF';
           const badge = isKr
             ? `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:rgba(255,214,10,0.12);color:#FFD60A;font-weight:700;">📊 분석용</span>`
@@ -4780,11 +4779,11 @@
       const nb = document.getElementById('marketBtnNasdaq');
       const db = document.getElementById('marketBtnDow');
       if (market === 'nasdaq') {
-        nb.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(79,143,255,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.85rem;';
+        nb.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.85rem;';
         db.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
       } else {
         nb.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
-        db.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(79,143,255,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.85rem;';
+        db.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.85rem;';
       }
     };
 
