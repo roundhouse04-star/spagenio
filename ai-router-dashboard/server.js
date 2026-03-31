@@ -81,14 +81,14 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS auto_trade_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
-  CREATE TABLE IF NOT EXISTS auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT NOT NULL, action TEXT NOT NULL, qty REAL, price REAL, reason TEXT, order_id TEXT, profit_pct REAL, status TEXT DEFAULT 'active', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  // [레거시 제거] auto_trade_log → trade_log(trade_type=4)로 통합됨
   CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
-  CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  // [레거시 제거] simple_auto_trade_log → trade_log(trade_type=2)로 통합됨
 `);
 
-try { db.exec("ALTER TABLE auto_trade_log ADD COLUMN status TEXT DEFAULT 'active'"); } catch (e) { }
+// [레거시 제거] auto_trade_log ALTER 제거됨
 
 // ── trade_log 통합 테이블 ──
 try {
@@ -112,7 +112,7 @@ try {
 // ── 기존 데이터 마이그레이션 ──
 try {
   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=4").get().c === 0) {
-    const rows = db.prepare("SELECT * FROM auto_trade_log").all();
+    const rows = (function(){ try { return db.prepare("SELECT * FROM auto_trade_log").all(); } catch(e) { return []; } })();
     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (id,user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status,created_at) VALUES (?,?,4,?,?,?,?,?,?,?,?,?)");
     rows.forEach(r => ins.run(r.id, r.user_id, r.symbol, r.action, r.qty, r.price, r.reason, r.order_id, r.profit_pct||0, r.status||'active', r.created_at));
     console.log('[trade_log] 일반자동 마이그레이션:', rows.length, '건');
@@ -120,12 +120,67 @@ try {
 } catch(e) {}
 try {
   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=2").get().c === 0) {
-    const rows = db.prepare("SELECT * FROM simple_auto_trade_log").all();
+    const rows = (function(){ try { return db.prepare("SELECT * FROM simple_auto_trade_log").all(); } catch(e) { return []; } })();
     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status,created_at) VALUES (?,2,?,?,?,?,?,?,?,?)");
     rows.forEach(r => ins.run(r.user_id, r.symbol, r.action, r.qty, r.price, r.profit_pct||0, r.reason, r.action==='BUY'?'active':'closed', r.created_at));
     console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
   }
+  // ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
+  try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
+  try { db.exec('DROP TABLE IF EXISTS simple_auto_trade_log'); console.log('[trade_log] simple_auto_trade_log 테이블 삭제 완료'); } catch(e) {}
 } catch(e) {}
+
+// ── trade_log 백업 테이블 4개 (타입별 별도 관리) ──
+try {
+  const backupCols = `(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_log_id INTEGER,
+    user_id INTEGER NOT NULL,
+    symbol TEXT NOT NULL,
+    action TEXT NOT NULL,
+    qty REAL,
+    price REAL,
+    reason TEXT,
+    order_id TEXT,
+    profit_pct REAL DEFAULT 0,
+    status TEXT DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`;
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_manual'  + backupCols); // type=1 수동
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_simple'  + backupCols); // type=2 단순자동
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_full'    + backupCols); // type=3 완전자동
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_general' + backupCols); // type=4 일반자동
+} catch(e) {}
+
+// ── saveTradeLog 헬퍼: trade_log + 타입별 백업 테이블 동시 INSERT ──
+function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status }) {
+  order_id   = order_id   || '';
+  profit_pct = profit_pct || 0;
+  reason     = reason     || '';
+  status     = status     || 'active';
+
+  // 1. 통합 trade_log INSERT
+  const result = db.prepare(
+    'INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?,?)'
+  ).run(user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status);
+
+  const trade_log_id = result.lastInsertRowid;
+
+  // 2. 타입별 백업 테이블 INSERT
+  const backupTableMap = { 1: 'trade_log_manual', 2: 'trade_log_simple', 3: 'trade_log_full', 4: 'trade_log_general' };
+  const backupTable = backupTableMap[trade_type];
+  if (backupTable) {
+    try {
+      db.prepare(
+        `INSERT INTO ${backupTable} (trade_log_id,user_id,symbol,action,qty,price,reason,order_id,profit_pct,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`
+      ).run(trade_log_id, user_id, symbol, action, qty, price, reason, order_id, profit_pct, status);
+    } catch(e) { console.error('[saveTradeLog] 백업 실패:', backupTable, e.message); }
+  }
+
+  return trade_log_id;
+}
+
 try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_strategy TEXT DEFAULT 'value_quality'"); } catch (e) { }
 try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_market TEXT DEFAULT 'nasdaq'"); } catch (e) { }
 
@@ -434,18 +489,6 @@ const comments = [
   ['auto_trade_settings', 'stop_loss', '손절 기준 손실률 (0.05=5%)'],
   ['auto_trade_settings', 'signal_mode', '매수 신호 방식 (macd/combined)'],
   ['auto_trade_settings', 'updated_at', '최종 수정 시각'],
-  // auto_trade_log
-  ['auto_trade_log', 'id', '자동 증가 PK'],
-  ['auto_trade_log', 'user_id', 'users.id 참조'],
-  ['auto_trade_log', 'symbol', '매매 종목 심볼'],
-  ['auto_trade_log', 'action', '매매 구분 (BUY/SELL_PROFIT/SELL_LOSS)'],
-  ['auto_trade_log', 'qty', '매매 수량 (주)'],
-  ['auto_trade_log', 'price', '체결 가격 ($)'],
-  ['auto_trade_log', 'reason', '매매 사유 (예: MACD 골든크로스, 익절 +5.2%)'],
-  ['auto_trade_log', 'order_id', 'Alpaca 주문 ID'],
-  ['auto_trade_log', 'profit_pct', '수익률 (%) — 매도 시 기록'],
-  ['auto_trade_log', 'status', '포지션 상태 (active/closed)'],
-  ['auto_trade_log', 'created_at', '체결 시각'],
   // quant_analysis_log
   ['quant_analysis_log', 'id', '자동 증가 PK'],
   ['quant_analysis_log', 'user_id', 'users.id 참조'],
@@ -530,7 +573,7 @@ try {
 } catch (e) { console.error('데이터수집 서브메뉴 마이그레이션 오류:', e.message); }
 
 try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch (e) { }
-try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, symbol TEXT, action TEXT, qty REAL, price REAL, profit_pct REAL, reason TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch (e) { }
+// [레거시 제거] simple_auto_trade_log 생성 제거됨
 
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
 if (!adminExists) {
@@ -796,7 +839,7 @@ app.use((req, res, next) => { requestStats.total += 1; res.setHeader('Cache-Cont
 // 라우트 연결
 // ============================================================
 const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
-const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3 };
+const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog };
 
 app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
@@ -1126,9 +1169,8 @@ async function runSimpleAutoTrade(userId) {
             body: JSON.stringify({ symbol: state.symbol, qty: String(qty), side: 'sell', type: 'market', time_in_force: 'day' })
           })).json();
 
-          db.prepare('INSERT INTO simple_auto_trade_log (user_id,symbol,action,qty,price,profit_pct,reason) VALUES (?,?,?,?,?,?,?)')
-            .run(userId, state.symbol, 'SELL', qty, currentPrice, plPct * 100, reason);
-          db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status) VALUES (?,2,?,?,?,?,?,?,?)').run(userId, state.symbol, 'SELL', qty, currentPrice, plPct * 100, reason, 'closed');
+          // [레거시 제거] simple_auto_trade_log SELL → trade_log(type=2)만 사용
+          saveTradeLog({ user_id:userId, trade_type:2, symbol:state.symbol, action:'SELL', qty, price:currentPrice, profit_pct:plPct*100, reason, status:'closed' });
           db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=2 AND action='BUY' AND status='active'").run(userId, state.symbol);
 
           // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
@@ -1251,9 +1293,8 @@ async function runSimpleAutoTrade(userId) {
       })).json();
 
       if (order.id) {
-        db.prepare('INSERT INTO simple_auto_trade_log (user_id,symbol,action,qty,price,profit_pct,reason) VALUES (?,?,?,?,?,?,?)')
-          .run(userId, top.symbol, 'BUY', finalQty, top.price, 0, `점수 ${top.score}점 TOP1 매수`);
-        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status) VALUES (?,2,?,?,?,?,?,?,?)').run(userId, top.symbol, 'BUY', finalQty, top.price, 0, `점수 ${top.score}점 TOP1 매수`, 'active');
+        // [레거시 제거] simple_auto_trade_log BUY → trade_log(type=2)만 사용
+        saveTradeLog({ user_id:userId, trade_type:2, symbol:top.symbol, action:'BUY', qty:finalQty, price:top.price, profit_pct:0, reason:`점수 ${top.score}점 TOP1 매수`, status:'active' });
         db.prepare('UPDATE simple_auto_trade SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
           .run('holding', top.symbol, finalQty, top.price, order.id, userId);
 
@@ -1325,28 +1366,26 @@ async function runAutoTradeForUser(userId) {
     for (const pos of positions) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       // 매수 기준으로 중복 매도 방지
-      const buyLog = db.prepare("SELECT created_at FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
+      const buyLog = db.prepare("SELECT created_at FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
       const buyTime = buyLog?.created_at || '1970-01-01';
       if (plPct >= (settings.take_profit || 0.05)) {
-        const existing = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT' AND created_at>?").get(userId, pos.symbol, buyTime);
+        const existing = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='SELL_PROFIT' AND created_at>?").get(userId, pos.symbol, buyTime);
         if (!existing) {
           try {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
-            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
-            db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
-            db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT', pos.qty, pos.current_price, `익절 +${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
+            // [레거시 제거] auto_trade_log SELL_PROFIT 제거
+            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_PROFIT', qty:pos.qty, price:pos.current_price, reason:`익절 +${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
             db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(userId, pos.symbol);
             results.push({ symbol: pos.symbol, action: '익절 매도' });
           } catch (e) { }
         }
       } else if (plPct <= -(settings.stop_loss || 0.05)) {
-        const existing = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_LOSS' AND created_at>?").get(userId, pos.symbol, buyTime);
+        const existing = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='SELL_LOSS' AND created_at>?").get(userId, pos.symbol, buyTime);
         if (!existing) {
           try {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
-            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
-            db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
-            db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_LOSS', pos.qty, pos.current_price, `손절 ${(plPct * 100).toFixed(2)}%`, order.id || '', plPct * 100, 'closed');
+            // [레거시 제거] auto_trade_log SELL_LOSS 제거
+            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_LOSS', qty:pos.qty, price:pos.current_price, reason:`손절 ${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
             db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(userId, pos.symbol);
             results.push({ symbol: pos.symbol, action: '손절 매도' });
           } catch (e) { }
@@ -1357,7 +1396,7 @@ async function runAutoTradeForUser(userId) {
     // ✅ 수동 보유 종목(trade_type=1)은 자동매매 대상에서 제외
     const manualHeld = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
     manualHeld.forEach(s => heldSymbols.add(s));
-    const autoHeld = db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
+    const autoHeld = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
     const needMore = (settings.max_positions || 3) - autoHeld.filter(s => heldSymbols.has(s)).length;
 
     // ── 1단계: 팩터 스크리닝으로 candidatePool 동적 생성 ──────────
@@ -1415,12 +1454,11 @@ async function runAutoTradeForUser(userId) {
           // ✅ 잔고 재확인 (동시 다발 매수 시 잔고 초과 방지)
           if (qty * currentPrice > remainingBuyPower) { console.log(`[자동매매] ${symbol} 매수 스킵: 잔고 부족`); continue; }
           // ✅ 이미 보유 중 재확인 (포지션 조회와 DB 불일치 방지)
-          const alreadyHeld = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").get(userId, symbol);
+          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").get(userId, symbol);
           if (alreadyHeld) { heldSymbols.add(symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
-            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active');
-            db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(userId, symbol, 'BUY', qty, currentPrice, reason, order.id, 0, 'active');
+            saveTradeLog({ user_id:userId, trade_type:4, symbol, action:'BUY', qty, price:currentPrice, reason, order_id:order.id, profit_pct:0, status:'active' });
             results.push({ symbol, action: '매수', qty, reason });
             boughtCount++;
             remainingBuyPower -= qty * currentPrice;
@@ -1800,7 +1838,7 @@ async function runAutoStrategy(userId) {
             for (const pos of (Array.isArray(positions) ? positions : [])) {
               if (!poolSymbols.has(pos.symbol)) {
                 await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-                db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,status) VALUES (?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_FACTOR', pos.qty, pos.current_price, '퀀트전략:팩터 이탈 매도', 'closed');
+                saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_FACTOR', qty:pos.qty, price:pos.current_price, reason:'퀀트전략:팩터 이탈 매도', status:'closed' });
               }
             }
           }
@@ -1827,38 +1865,36 @@ async function runAutoStrategy(userId) {
       const qty = parseFloat(pos.qty);
 
       // 매수 기준으로 1차/2차 익절 중복 방지 (BUY 로그의 created_at 이후)
-      const buyLog = db.prepare("SELECT created_at FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
+      const buyLog = db.prepare("SELECT created_at FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
       const buyTime = buyLog?.created_at || '1970-01-01';
 
       // 2차 익절 (전량 매도) — 1차보다 먼저 체크해서 else if로 1차 건너뜀
       if (plPct >= s.take_profit2) {
-        const existing2 = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT2' AND created_at>?").get(userId, pos.symbol, buyTime);
+        const existing2 = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND action='SELL_PROFIT2' AND created_at>?").get(userId, pos.symbol, buyTime);
         if (!existing2) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT2', qty, currentPrice, `퀀트전략:2차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
-          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
-          db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,3,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT2', qty, currentPrice, `퀀트전략:2차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
+          // [레거시 제거] auto_trade_log SELL_PROFIT2 제거
+          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT2', qty, price:currentPrice, reason:`퀀트전략:2차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
           db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=3 AND action='BUY' AND status='active'").run(userId, pos.symbol);
         }
       // 1차 익절 (절반 매도) — 2차 미달 시만 실행
       } else if (plPct >= s.take_profit1) {
         const halfQty = Math.floor(qty / 2);
         if (halfQty >= 1) {
-          const existing1 = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_PROFIT1' AND created_at>?").get(userId, pos.symbol, buyTime);
+          const existing1 = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND action='SELL_PROFIT1' AND created_at>?").get(userId, pos.symbol, buyTime);
           if (!existing1) {
             await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: String(halfQty), side: 'sell', type: 'market', time_in_force: 'day' }) });
-            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT1', halfQty, currentPrice, `퀀트전략:1차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
-            db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,3,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_PROFIT1', halfQty, currentPrice, `퀀트전략:1차 익절 +${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
+            // [레거시 제거] auto_trade_log SELL_PROFIT1 제거
+            saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT1', qty:halfQty, price:currentPrice, reason:`퀀트전략:1차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
           }
         }
       // 손절 — 익절 조건 미달 시만 실행
       } else if (plPct <= -s.stop_loss) {
-        const existingStop = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='SELL_STOP' AND created_at>?").get(userId, pos.symbol, buyTime);
+        const existingStop = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND action='SELL_STOP' AND created_at>?").get(userId, pos.symbol, buyTime);
         if (!existingStop) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_STOP', qty, currentPrice, `퀀트전략:손절 ${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
-          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(userId, pos.symbol);
-          db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,profit_pct,status) VALUES (?,3,?,?,?,?,?,?,?)').run(userId, pos.symbol, 'SELL_STOP', qty, currentPrice, `퀀트전략:손절 ${(plPct * 100).toFixed(2)}%`, plPct * 100, 'closed');
+          // [레거시 제거] auto_trade_log SELL_STOP 제거
+          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_STOP', qty, price:currentPrice, reason:`퀀트전략:손절 ${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
           db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=3 AND action='BUY' AND status='active'").run(userId, pos.symbol);
         }
       }
@@ -1907,12 +1943,11 @@ async function runAutoStrategy(userId) {
           // ✅ 잔고 재확인
           if (qty * currentPrice > remainingBuyingPower) { console.log(`[완전자동] ${row.symbol} 매수 스킵: 잔고 부족`); continue; }
           // ✅ DB 이중 매수 방지
-          const alreadyHeld = db.prepare("SELECT id FROM auto_trade_log WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").get(userId, row.symbol);
+          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND action='BUY' AND status='active'").get(userId, row.symbol);
           if (alreadyHeld) { heldSymbols.add(row.symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: row.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
-            db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,status) VALUES (?,?,?,?,?,?,?,?)').run(userId, row.symbol, 'BUY', qty, currentPrice, `퀀트전략:3단계(${reasons.join('+')})`, order.id, 'active');
-            db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,status) VALUES (?,3,?,?,?,?,?,?,?)').run(userId, row.symbol, 'BUY', qty, currentPrice, `퀀트전략:3단계(${reasons.join('+')})`, order.id, 'active');
+            saveTradeLog({ user_id:userId, trade_type:3, symbol:row.symbol, action:'BUY', qty, price:currentPrice, reason:`퀀트전략:3단계(${reasons.join('+')})`, order_id:order.id, status:'active' });
             heldSymbols.add(row.symbol);
             remainingBuyingPower -= qty * currentPrice;
           } else {

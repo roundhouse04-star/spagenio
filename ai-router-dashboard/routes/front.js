@@ -99,7 +99,7 @@ async function fetchJson(url, options = {}) {
   return { response, data: safeJson(text) };
 }
 
-export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, __dirname }) {
+export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname }) {
 
   // ✅ 페이지 라우트
   router.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -650,7 +650,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
       const posData = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
       const positions = Array.isArray(posData) ? posData : (posData.positions || []);
-      const autoSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(req.user.id).map(r => r.symbol));
+      const autoSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(req.user.id).map(r => r.symbol));
       res.json({ positions: positions.filter(p => autoSymbols.has(p.symbol)) });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -667,9 +667,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       if (!pos.qty) return res.status(404).json({ error: '포지션 없음' });
       const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
-      db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
-      db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(req.user.id, symbol);
-      db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
+      // [레거시 제거] auto_trade_log SELL_MANUAL 제거
+      saveTradeLog({ user_id:req.user.id, trade_type:4, symbol, action:'SELL_MANUAL', qty:pos.qty, price:pos.current_price, reason:'수동 취소', order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
       db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(req.user.id, symbol);
       res.json({ ok: true, order });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -683,7 +682,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
       const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
       db.prepare('UPDATE auto_trade_settings SET enabled=0 WHERE user_id=?').run(req.user.id);
-      const autoSymbols = db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(req.user.id);
+      const autoSymbols = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(req.user.id);
       const results = [];
       for (const { symbol } of autoSymbols) {
         try {
@@ -691,9 +690,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           if (!pos.qty) continue;
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
           const plPct = parseFloat(pos.unrealized_plpc) || 0;
-          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
-          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(req.user.id, symbol);
-          db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
+          // [레거시 제거] auto_trade_log SELL_STOP_ALL 제거
+          saveTradeLog({ user_id:req.user.id, trade_type:4, symbol, action:'SELL_STOP_ALL', qty:pos.qty, price:pos.current_price, reason:'전체 종료', order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
           db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(req.user.id, symbol);
           results.push(symbol);
         } catch (e) { }
@@ -761,12 +759,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const { symbol, action, qty, price, order_id, reason } = req.body;
       if (!symbol || !action || !qty || !price) return res.status(400).json({ error: '필수값 누락' });
       if (action === 'BUY') {
-        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,1,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'BUY', qty, price, reason||'수동 매수', order_id||'', 0, 'active');
+        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'BUY', qty, price, reason:reason||'수동 매수', order_id:order_id||'', profit_pct:0, status:'active' });
       } else if (action === 'SELL') {
         // 평균단가 조회해서 수익률 계산
         const buyLog = db.prepare("SELECT price, qty FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(req.user.id, symbol);
         const profitPct = buyLog ? ((price - buyLog.price) / buyLog.price * 100) : 0;
-        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,1,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL', qty, price, reason||'수동 매도', order_id||'', profitPct, 'closed');
+        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'SELL', qty, price, reason:reason||'수동 매도', order_id:order_id||'', profit_pct:profitPct, status:'closed' });
         db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active'").run(req.user.id, symbol);
       }
       res.json({ ok: true });
@@ -787,7 +785,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
-    const logs = db.prepare('SELECT * FROM simple_auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 20').all(userId);
+    const logs = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=2 ORDER BY created_at DESC LIMIT 20").all(userId);
     res.json({ ok: true, state: state || null, logs });
   });
 
