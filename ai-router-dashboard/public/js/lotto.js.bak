@@ -116,7 +116,31 @@
         }
       }
 
-      
+      function lottoRenderAlgos() {
+        const wrap = $id('lotto-algo-grid');
+        if (!wrap) return;
+
+        wrap.innerHTML = lottoAlgos.map(algo => `
+        <div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;background:#fff;">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;">
+            <div style="font-weight:800;color:#111827;">${algo.name}</div>
+            <div style="font-size:0.82rem;color:#6366f1;font-weight:800;">
+              <span id="lotto-weight-label-${algo.id}">${algo.weight}</span>%
+            </div>
+          </div>
+          <div style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;">${algo.desc}</div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value="${algo.weight}"
+            oninput="lottoUpdateWeight('${algo.id}', this.value)"
+            style="width:100%;"
+          />
+        </div>
+      `).join('');
+      }
 
       function lottoUpdateWeightInternal(id, value) {
         const target = lottoAlgos.find(a => a.id === id);
@@ -140,7 +164,17 @@
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
-      
+      function pickWeighted(items) {
+        const total = items.reduce((sum, item) => sum + item.weight, 0);
+        if (total <= 0) return items[randInt(0, items.length - 1)];
+
+        let r = Math.random() * total;
+        for (const item of items) {
+          r -= item.weight;
+          if (r <= 0) return item;
+        }
+        return items[items.length - 1];
+      }
 
       function getNumberScore(n) {
         // ── DB 반복출현 가중치 기반 기본 점수 ──
@@ -275,7 +309,15 @@
       `).join('');
       }
 
-      
+      function updateStats() {
+        const statRound = $id('stat-round');
+        const statHot = $id('stat-hot');
+        const statCold = $id('stat-cold');
+
+        if (statRound) statRound.textContent = lottoHistory.length ? lottoHistory.length : 1180;
+        if (statHot) statHot.textContent = '34';
+        if (statCold) statCold.textContent = '44';
+      }
 
       function loadTelegramSettings() {
         const tokenEl = $id('lotto-tg-token');
