@@ -2030,16 +2030,15 @@
         <div class="sp-card" id="alpacaKeyCard">
           <div class="sp-card-header">
             <div class="sp-card-title">🔑 Alpaca Account</div>
-            <button onclick="toggleAlpacaKeyForm()" id="alpacaKeyToggleBtn" class="sp-btn sp-btn-indigo sp-btn-sm">+ Add
-              Account</button>
+            <button onclick="toggleAlpacaKeyForm()" id="alpacaKeyToggleBtn" class="sp-btn sp-btn-indigo sp-btn-sm">+ 계좌 추가</button>
           </div>
           <div id="alpacaAccountList"></div>
           <div id="alpacaKeyForm" style="display:none;margin-top:16px;border-top:1px solid #2A2A2A;padding-top:18px;">
-            <div style="font-weight:700;font-size:0.9rem;color:#E5E7EB;margin-bottom:14px;">New Account</div>
+            <div style="font-weight:700;font-size:0.9rem;color:#E5E7EB;margin-bottom:14px;">새 계좌 등록</div>
             <div class="sp-grid-2" style="margin-bottom:12px;">
               <div>
-                <label class="sp-label">Account Name</label>
-                <input type="text" id="inputAccountName" placeholder="e.g. Paper Trading, Live Trading"
+                <label class="sp-label">계좌 이름</label>
+                <input type="text" id="inputAccountName" placeholder="예: 수동 거래 계좌, 자동매매 계좌"
                   class="sp-input" />
               </div>
               <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:2px;">
@@ -2047,7 +2046,7 @@
                   style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.87rem;font-weight:600;color:#9CA3AF;">
                   <input type="checkbox" id="inputAlpacaPaper" checked
                     style="width:16px;height:16px;accent-color:#6366f1;" />
-                  Paper Trading (Test Mode)
+                  페이퍼 트레이딩 (테스트 모드)
                 </label>
               </div>
             </div>
@@ -2073,8 +2072,8 @@
               </div>
             </div>
             <div style="display:flex;gap:10px;">
-              <button onclick="saveAlpacaKeys()" class="sp-btn sp-btn-indigo" style="flex:1;">Save</button>
-              <button onclick="toggleAlpacaKeyForm()" class="sp-btn sp-btn-outline">Cancel</button>
+              <button onclick="saveAlpacaKeys()" class="sp-btn sp-btn-indigo" style="flex:1;">저장</button>
+              <button onclick="toggleAlpacaKeyForm()" class="sp-btn sp-btn-outline">취소</button>
             </div>
             <div id="alpacaKeyMsg"
               style="font-size:0.85rem;display:none;margin-top:10px;padding:10px 14px;border-radius:8px;"></div>
@@ -2085,8 +2084,8 @@
         <div class="sp-grid-2">
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">💰 Account Info</div>
-              <button onclick="loadAccount()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+              <div class="sp-card-title">💰 계좌 정보</div>
+              <button onclick="loadAccount()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
             </div>
             <div id="accountCards" class="sp-grid-4"></div>
           </div>
@@ -2146,7 +2145,7 @@
             <div class="sp-card-header">
               <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면
                   실시간 가격)</small></div>
-              <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+              <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
             </div>
             <div id="positionsTable"></div>
           </div>
@@ -2156,7 +2155,7 @@
         <div class="sp-card">
           <div class="sp-card-header">
             <div class="sp-card-title">📝 매수/매도 이력</div>
-            <button onclick="loadOrders()" class="sp-btn sp-btn-outline sp-btn-sm">Refresh</button>
+            <button onclick="loadOrders()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
           </div>
           <div id="ordersTable"></div>
         </div>

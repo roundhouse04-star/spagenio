@@ -2,21 +2,21 @@ async function loadAlpacaKeyStatus() {
   const listEl = document.getElementById('alpacaAccountList');
   if (!listEl) return;
 
-  listEl.innerHTML = '<div style="color:#9ca3af;font-size:0.87rem;padding:8px 0;">Loading accounts...</div>';
+  listEl.innerHTML = '<div style="color:#9ca3af;font-size:0.87rem;padding:8px 0;">계좌 목록 불러오는 중...</div>';
 
   try {
     const res = await fetch('/api/user/broker-keys');
     const { ok, data } = await safeJson(res);
     if (!ok) {
-      listEl.innerHTML = '<div style="color:#ef4444;font-size:0.87rem;">Failed to load account info.</div>';
+      listEl.innerHTML = '<div style="color:#ef4444;font-size:0.87rem;">계좌 정보를 불러올 수 없습니다.</div>';
       return;
     }
 
     if (!data.registered || !data.accounts?.length) {
       listEl.innerHTML = `
         <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 18px;">
-          <div style="font-weight:700;color:#92400e;margin-bottom:4px;">🔑 No accounts registered</div>
-          <div style="color:#78350f;font-size:0.87rem;">Click "+ Add Account" to register your Alpaca account.</div>
+          <div style="font-weight:700;color:#92400e;margin-bottom:4px;">🔑 등록된 계좌가 없습니다</div>
+          <div style="color:#78350f;font-size:0.87rem;">"+ 계좌 추가" 버튼을 눌러 Alpaca 계좌를 등록해주세요.</div>
         </div>`;
       activeAccountId = null;
       return;
@@ -28,7 +28,7 @@ async function loadAlpacaKeyStatus() {
 
     listEl.innerHTML = data.accounts.map(acc => {
       const isSelected = acc.id === activeAccountId;
-      const mode = acc.alpaca_paper ? '🧪 Paper' : '💰 Live';
+      const mode = acc.alpaca_paper ? '🧪 페이퍼' : '💰 실거래';
       return `
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--line)'};background:${isSelected ? '#eef2ff' : '#fff'};margin-bottom:8px;cursor:pointer;"
           onclick="selectAccount(${acc.id})">
@@ -38,14 +38,14 @@ async function loadAlpacaKeyStatus() {
               <span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:${acc.alpaca_paper ? '#fef3c7' : '#d1fae5'};color:${acc.alpaca_paper ? '#92400e' : '#065f46'};font-weight:700;">${mode}</span>
               ${acc.account_type === 1 ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#ede9fe;color:#7c3aed;font-weight:700;">✋ 수동전용</span>' : ''}
               ${acc.account_type === 2 ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;">🤖 자동전용</span>' : ''}
-              ${isSelected ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#eef2ff;color:var(--accent);font-weight:700;">Active</span>' : ''}
+              ${isSelected ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#eef2ff;color:var(--accent);font-weight:700;">활성</span>' : ''}
             </div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">Last updated: ${acc.updated_at?.slice(0, 16) || '-'}</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">최종 수정: ${acc.updated_at?.slice(0, 16) || '-'}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
             ${!acc.is_active ? `<button onclick="event.stopPropagation();activateAccount(${acc.id})"
               style="padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
-              Select
+              선택
             </button>` : ''}
             <button onclick="event.stopPropagation();changeAccountType(${acc.id}, ${acc.account_type || 0})"
               style="padding:5px 10px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
@@ -53,7 +53,7 @@ async function loadAlpacaKeyStatus() {
             </button>
             <button onclick="event.stopPropagation();deleteAccount(${acc.id})"
               style="padding:5px 10px;background:#fff0f0;color:#ef4444;border:1px solid #fecaca;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
-              Delete
+              삭제
             </button>
           </div>
         </div>`;
@@ -176,20 +176,20 @@ async function saveAlpacaKeys() {
   const paper = document.getElementById('inputAlpacaPaper')?.checked;
 
   if (!api_key && !secret_key) {
-    showAlpacaMsg('error', '⚠️ Please enter both API Key and Secret Key.');
+    showAlpacaMsg('error', '⚠️ API Key와 Secret Key를 모두 입력해주세요.');
     return;
   }
   if (!api_key) {
-    showAlpacaMsg('error', '⚠️ Please enter your Alpaca API Key.');
+    showAlpacaMsg('error', '⚠️ Alpaca API Key를 입력해주세요.');
     return;
   }
   if (!secret_key) {
-    showAlpacaMsg('error', '⚠️ Please enter your Alpaca Secret Key.');
+    showAlpacaMsg('error', '⚠️ Alpaca Secret Key를 입력해주세요.');
     return;
   }
 
   // 연동 중 팝업 표시
-  showAlpacaPopup('loading', '🔄 Connecting to Alpaca...');
+  showAlpacaPopup('loading', '🔄 Alpaca 연동 중...');
 
   try {
     // 1. 먼저 Alpaca API 키 유효성 검증
@@ -217,7 +217,7 @@ async function saveAlpacaKeys() {
     const data = await res.json();
 
     if (res.ok) {
-      showAlpacaPopup('success', '✅ Connected!');
+      showAlpacaPopup('success', '✅ 연동 완료!');
       const nameEl = document.getElementById('inputAccountName');
       const keyEl = document.getElementById('inputAlpacaKey');
       const secretEl = document.getElementById('inputAlpacaSecret');
@@ -239,7 +239,7 @@ async function saveAlpacaKeys() {
     }
   } catch (e) {
     hideAlpacaPopup();
-    showAlpacaMsg('error', '서버 연결 Error: ' + e.message);
+    showAlpacaMsg('error', '서버 연결 오류: ' + e.message);
   }
 }
 
@@ -257,7 +257,7 @@ function showAlpacaPopup(type, msg) {
     <div style="background:#fff;border-radius:16px;padding:36px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);min-width:280px;">
       <div style="font-size:2.5rem;margin-bottom:14px;">${type === 'loading' ? '🔄' : type === 'success' ? '✅' : '❌'}</div>
       <div style="font-size:1.05rem;font-weight:700;color:${colors[type] || '#111'};">${msg}</div>
-      ${type === 'loading' ? '<div style="margin-top:12px;color:#9ca3af;font-size:0.85rem;">Please wait...</div>' : ''}
+      ${type === 'loading' ? '<div style="margin-top:12px;color:#9ca3af;font-size:0.85rem;">잠시 기다려주세요...</div>' : ''}
     </div>`;
   popup.style.display = 'flex';
 }
