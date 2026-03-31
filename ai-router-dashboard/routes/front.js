@@ -1533,5 +1533,38 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
   });
 
+  // 로또 이력 일괄 수집 (1회 ~ 지정 회차)
+  router.post('/api/lotto/history/bulk', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { from = 1, to = 799 } = req.body;
+    const fetch = (await import('node-fetch')).default;
+
+    let saved = 0, skipped = 0, errors = 0;
+    // 5개씩 병렬 처리
+    const CHUNK = 5;
+    for (let start = from; start <= to; start += CHUNK) {
+      const chunk = [];
+      for (let i = start; i < start + CHUNK && i <= to; i++) chunk.push(i);
+      await Promise.all(chunk.map(async (drw_no) => {
+        try {
+          const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
+          if (existing) { skipped++; return; }
+          const r = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000)
+          });
+          if (!r.ok) { errors++; return; }
+          const d = await r.json();
+          if (!d.drwtNo1) { errors++; return; }
+          const winning = [d.drwtNo1,d.drwtNo2,d.drwtNo3,d.drwtNo4,d.drwtNo5,d.drwtNo6].sort((a,b)=>a-b);
+          const bonus = d.bnusNo;
+          db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
+            .run(drw_no, JSON.stringify(winning), bonus, d.drwNoDate || '');
+          saved++;
+        } catch(e) { errors++; }
+      }));
+    }
+    res.json({ ok: true, saved, skipped, errors, total: to - from + 1 });
+  });
+
   return router;
 }
