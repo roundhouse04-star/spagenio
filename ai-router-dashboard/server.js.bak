@@ -1173,18 +1173,9 @@ async function runSimpleAutoTrade(userId) {
     if ((state.status === 'idle' || state.status === 'analyzing') && estTime < forceCloseTime) {
       // TOP1 종목 분석
       const settingsRow = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
-      let symbols = settingsRow?.candidate_symbols
+      const symbols = settingsRow?.candidate_symbols
         ? settingsRow.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
         : ['AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'AMD', 'QQQ', 'SPY'];
-
-      // ✅ 수동 보유 종목(trade_type=1)은 단순자동매매 후보에서 제외
-      const manualHeldST = new Set(
-        db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol)
-      );
-      if (manualHeldST.size > 0) {
-        symbols = symbols.filter(s => !manualHeldST.has(s));
-        console.log(`[단순매매] 수동보유 종목 제외: ${[...manualHeldST].join(',')} → 후보 ${symbols.length}개`);
-      }
 
       const end = new Date().toISOString().split('T')[0];
       const start = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -1866,9 +1857,6 @@ async function runAutoStrategy(userId) {
 
     // 매수 체크 (풀에서 타이밍 조건 확인)
     const heldSymbols = new Set(posList.map(p => p.symbol));
-    // ✅ 수동 보유 종목(trade_type=1)은 자동매매 대상에서 제외
-    const manualHeldAS = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
-    manualHeldAS.forEach(s => heldSymbols.add(s));
     const pool = db.prepare('SELECT symbol FROM auto_strategy_pool WHERE user_id=? ORDER BY factor_score DESC').all(userId);
     const maxPos = s.max_positions || 5;
     let remainingBuyingPower = buyingPower; // 매수마다 차감하여 잔고 초과 방지

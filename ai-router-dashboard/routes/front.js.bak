@@ -1309,10 +1309,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const dailyPnl = equity - prevEquity;
       const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
 
-      // 매매 이력에서 승/패 집계 (trade_log 전체 기반 — 수동/단순/완전/일반 모두 포함)
-      const trades = db.prepare(`SELECT action, profit_pct FROM trade_log WHERE user_id=? AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS','SELL','SELL_MANUAL','SELL_STOP_ALL','SELL_FACTOR')`).all(req.user.id);
-      const winCount = trades.filter(t => t.action.includes('PROFIT') || (t.action === 'SELL' || t.action === 'SELL_MANUAL' ? (t.profit_pct || 0) > 0 : false)).length;
-      const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS') || (t.action === 'SELL' || t.action === 'SELL_MANUAL' ? (t.profit_pct || 0) <= 0 : false)).length;
+      // 매매 이력에서 승/패 집계
+      const trades = db.prepare(`SELECT action, profit_pct FROM auto_trade_log WHERE user_id=? AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS')`).all(req.user.id);
+      const winCount = trades.filter(t => t.action.includes('PROFIT')).length;
+      const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS')).length;
 
       // 초기 자본 (첫 스냅샷 기준)
       const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date ASC LIMIT 1`).get(req.user.id);
