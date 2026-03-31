@@ -2026,7 +2026,20 @@
     <div id="tab-stock" class="tab-content" style="display:none;">
       <div class="sp-page">
 
-        <!-- Alpaca 계좌 관리 -->
+        <!-- 주식 탭 서브탭 -->
+        <div style="display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid #2A2A2A;padding-bottom:12px;">
+          <button id="stockSubTab-trade" onclick="switchStockSubTab('trade')"
+            style="padding:7px 18px;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;border:none;background:#6366f1;color:#fff;transition:all 0.15s;">
+            📈 매수/매도
+          </button>
+          <button id="stockSubTab-account" onclick="switchStockSubTab('account')"
+            style="padding:7px 18px;border-radius:8px;font-size:0.85rem;font-weight:700;cursor:pointer;border:none;background:transparent;color:#9CA3AF;transition:all 0.15s;">
+            🔑 계좌 관리
+          </button>
+        </div>
+
+        <!-- 계좌 관리 패널 -->
+        <div id="stockPanel-account" style="display:none;">
         <div class="sp-card" id="alpacaKeyCard">
           <div class="sp-card-header">
             <div class="sp-card-title">🔑 Alpaca Account</div>
@@ -2079,7 +2092,10 @@
               style="font-size:0.85rem;display:none;margin-top:10px;padding:10px 14px;border-radius:8px;"></div>
           </div>
         </div>
+        </div><!-- /stockPanel-account -->
 
+        <!-- 매수/매도 패널 -->
+        <div id="stockPanel-trade">
         <!-- 계좌 정보 + 가격 Search -->
         <div class="sp-grid-2">
           <div class="sp-card">
@@ -2168,6 +2184,8 @@
           </div>
           <div id="quantTradeLog"></div>
         </div>
+
+        </div><!-- /stockPanel-trade -->
 
       </div>
     </div>
@@ -2507,6 +2525,10 @@
             style="flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
             ⚡ 일반 자동매매
           </button>
+          <button id="quantTabLog" onclick="switchQuantTab('log')"
+            style="flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
+            📋 거래내역
+          </button>
         </div>
 
         <!-- ===== 🇺🇸 미국 자동매매 ===== -->
@@ -2635,16 +2657,7 @@
             </div>
           </div>
 
-          <!-- 자동매매 이력 -->
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">🤖 자동매매 이력</div>
-              <button onclick="loadAutoTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-            </div>
-            <div id="autoTradeLog">
-              <div style="text-align:center;color:#9CA3AF;padding:24px;font-size:0.9rem;">로딩 중...</div>
-            </div>
-          </div>
+          <!-- 자동매매 이력 → 거래내역 탭으로 통합됨 -->
 
         </div><!-- /quantPanelUs -->
 
@@ -2774,18 +2787,7 @@
             </div>
           </div>
 
-          <!-- 매매 이력 (비활성) -->
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">🤖 매매 이력</div>
-              <span
-                style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">준비
-                중</span>
-            </div>
-            <div style="text-align:center;padding:32px;color:#636366;">
-              <div style="font-size:0.85rem;">키움증권 API 연동 후 매매 이력이 표시됩니다</div>
-            </div>
-          </div>
+          <!-- 한국 매매 이력 → 거래내역 탭으로 통합됨 -->
 
         </div><!-- /quantPanelKr -->
 
@@ -3045,16 +3047,7 @@
                 </div>
               </div>
 
-              <!-- 매매 이력 -->
-              <div class="sp-card">
-                <div class="sp-card-header">
-                  <div class="sp-card-title">🤖 완전자동 매매 이력</div>
-                  <button onclick="loadAutoStrategyLog()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
-                </div>
-                <div id="asTradeLog">
-                  <div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">로딩 중...</div>
-                </div>
-              </div>
+              <!-- 완전자동 매매 이력 → 거래내역 탭으로 통합됨 -->
 
             </div>
           </div>
@@ -3121,13 +3114,7 @@
               <div style="text-align:center;color:#6b7280;font-size:0.85rem;">자동매매 비활성 상태입니다</div>
             </div>
 
-            <!-- 매매 이력 -->
-            <div>
-              <div style="font-size:0.82rem;font-weight:700;color:#6b7280;margin-bottom:8px;">📋 매매 이력</div>
-              <div id="simpleTradeLog" style="max-height:200px;overflow-y:auto;">
-                <div style="text-align:center;color:#6b7280;font-size:0.82rem;padding:12px;">이력 없음</div>
-              </div>
-            </div>
+            <!-- 단순자동 매매 이력 → 거래내역 탭으로 통합됨 -->
           </div>
 
           <!-- 3열 그리드: 거래량 급등 / 뉴스 촉매 / 리스크 계산 -->
@@ -3200,6 +3187,41 @@
           </div>
 
         </div><!-- /quantPanelDay -->
+
+        <!-- ===== 📋 거래내역 통합 ===== -->
+        <div id="quantPanelLog" style="display:none;">
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div class="sp-card-title">📋 자동매매 거래내역</div>
+              <button onclick="loadUnifiedTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
+            </div>
+
+            <!-- 필터 탭 -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+              <button onclick="setUnifiedLogFilter('all')" id="unifiedLogBtn-all"
+                style="padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+                전체
+              </button>
+              <button onclick="setUnifiedLogFilter('2')" id="unifiedLogBtn-2"
+                style="padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                단순자동
+              </button>
+              <button onclick="setUnifiedLogFilter('3')" id="unifiedLogBtn-3"
+                style="padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                완전자동
+              </button>
+              <button onclick="setUnifiedLogFilter('4')" id="unifiedLogBtn-4"
+                style="padding:4px 14px;border-radius:999px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                일반자동
+              </button>
+              <span id="unifiedLogCount" style="margin-left:auto;font-size:0.75rem;color:#636366;"></span>
+            </div>
+
+            <div id="unifiedTradeLogTable">
+              <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">로딩 중...</div>
+            </div>
+          </div>
+        </div><!-- /quantPanelLog -->
 
       </div>
     </div>
@@ -4151,21 +4173,26 @@
       const krPanel = document.getElementById('quantPanelKr');
       const autoPanel = document.getElementById('quantPanelAuto');
       const dayPanel = document.getElementById('quantPanelDay');
+      const logPanel = document.getElementById('quantPanelLog');
       const usBtn = document.getElementById('quantTabUs');
       const krBtn = document.getElementById('quantTabKr');
       const autoBtn = document.getElementById('quantTabAuto');
       const dayBtn = document.getElementById('quantTabDay');
+      const logBtn = document.getElementById('quantTabLog');
       const inactiveStyle = 'flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;';
       usPanel.style.display = tab === 'us' ? '' : 'none';
       krPanel.style.display = tab === 'kr' ? '' : 'none';
       autoPanel.style.display = tab === 'auto' ? '' : 'none';
       if (dayPanel) dayPanel.style.display = tab === 'day' ? '' : 'none';
+      if (logPanel) logPanel.style.display = tab === 'log' ? '' : 'none';
       usBtn.style.cssText = tab === 'us' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       krBtn.style.cssText = tab === 'kr' ? 'flex:1;padding:12px;border:none;background:#dc2626;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       autoBtn.style.cssText = tab === 'auto' ? 'flex:1;padding:12px;border:none;background:#0f172a;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#4f46e5;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
-      if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); loadAutoStrategyLog(); }
+      if (logBtn) logBtn.style.cssText = tab === 'log' ? 'flex:1;padding:12px;border:none;background:#0f766e;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
+      if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); }
       if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); loadCombinedSignal(); }
+      if (tab === 'log') { loadUnifiedTradeLog(); }
       // 퀀트 탭 진입 시 성향 체크 (매번 확인)
       checkInvestorProfile();
     };
@@ -5067,6 +5094,125 @@
         }).join('')}
         </div>`;
       } catch (e) { legendEl.innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">Alpaca 연결 필요</div>'; }
+    }
+
+    // ── 주식 탭 서브탭 전환 ──
+    function switchStockSubTab(tab) {
+      const tradePanel = document.getElementById('stockPanel-trade');
+      const accountPanel = document.getElementById('stockPanel-account');
+      const tradeBtn = document.getElementById('stockSubTab-trade');
+      const accountBtn = document.getElementById('stockSubTab-account');
+      if (tradePanel) tradePanel.style.display = tab === 'trade' ? '' : 'none';
+      if (accountPanel) accountPanel.style.display = tab === 'account' ? '' : 'none';
+      if (tradeBtn) {
+        tradeBtn.style.background = tab === 'trade' ? '#6366f1' : 'transparent';
+        tradeBtn.style.color = tab === 'trade' ? '#fff' : '#9CA3AF';
+      }
+      if (accountBtn) {
+        accountBtn.style.background = tab === 'account' ? '#6366f1' : 'transparent';
+        accountBtn.style.color = tab === 'account' ? '#fff' : '#9CA3AF';
+      }
+      if (tab === 'account') loadAlpacaKeyStatus();
+    }
+
+    // ── 통합 거래내역 (자동매매 거래내역 탭) ──
+    let _unifiedLogFilter = 'all';
+
+    function setUnifiedLogFilter(type) {
+      _unifiedLogFilter = type;
+      const types = ['all', '2', '3', '4'];
+      const colors = { all: '#6366f1', '2': '#fb923c', '3': '#34d399', '4': '#60a5fa' };
+      types.forEach(t => {
+        const btn = document.getElementById(`unifiedLogBtn-${t}`);
+        if (!btn) return;
+        const isActive = t === type;
+        btn.style.background = isActive ? colors[t] : 'transparent';
+        btn.style.color = isActive ? '#fff' : '#9CA3AF';
+        btn.style.borderColor = isActive ? colors[t] : '#2A2A2A';
+      });
+      loadUnifiedTradeLog();
+    }
+
+    async function loadUnifiedTradeLog() {
+      const el = document.getElementById('unifiedTradeLogTable');
+      const countEl = document.getElementById('unifiedLogCount');
+      if (!el) return;
+      el.innerHTML = '<div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">로딩 중...</div>';
+      try {
+        const res = await fetch('/api/auto-trade/log');
+        const d = await res.json();
+        // 자동매매만 (trade_type 2,3,4)
+        let logs = (d.logs || []).filter(l => l.trade_type !== 1);
+        // 필터 적용
+        if (_unifiedLogFilter !== 'all') {
+          logs = logs.filter(l => String(l.trade_type) === _unifiedLogFilter);
+        }
+
+        if (countEl) countEl.textContent = `${logs.length}건`;
+
+        if (!logs.length) {
+          el.innerHTML = '<div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">거래 내역이 없습니다</div>';
+          return;
+        }
+
+        const typeConfig = {
+          2: { label: '단순자동', color: '#fb923c', bg: 'rgba(251,146,60,0.13)' },
+          3: { label: '완전자동', color: '#34d399', bg: 'rgba(52,211,153,0.13)' },
+          4: { label: '일반자동', color: '#60a5fa', bg: 'rgba(96,165,250,0.13)' },
+        };
+        const actionMap = {
+          BUY: '매수', SELL: '매도', SELL_PROFIT: '익절', SELL_PROFIT1: '1차익절',
+          SELL_PROFIT2: '2차익절', SELL_LOSS: '손절', SELL_STOP: '손절',
+          SELL_FACTOR: '팩터매도', SELL_STOP_ALL: '전체종료'
+        };
+        const statusConfig = {
+          active: { label: '보유중', color: '#f59e0b', bg: 'rgba(245,158,11,0.13)' },
+          closed: { label: '종료', color: '#6b7280', bg: 'rgba(107,114,128,0.13)' },
+        };
+
+        el.innerHTML = `<div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <thead>
+              <tr style="border-bottom:1px solid #2A2A2A;">
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;white-space:nowrap;">일시</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">종목</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">타입</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">구분</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">수량</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">가격</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">손익</th>
+                <th style="padding:7px 10px;text-align:left;font-size:0.7rem;color:#9CA3AF;font-weight:700;">상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${logs.slice(0, 100).map(l => {
+                const isBuy = l.action === 'BUY';
+                const isProfit = l.action.includes('PROFIT');
+                const isLoss = l.action.includes('LOSS') || l.action.includes('STOP');
+                const actionColor = isBuy ? '#60a5fa' : isProfit ? '#34d399' : isLoss ? '#f87171' : '#9CA3AF';
+                const pnlVal = parseFloat(l.profit_pct || 0);
+                const pnlColor = pnlVal > 0 ? '#34d399' : pnlVal < 0 ? '#f87171' : '#9CA3AF';
+                const pnl = (l.profit_pct != null && l.profit_pct !== 0) ? `${pnlVal > 0 ? '+' : ''}${pnlVal.toFixed(2)}%` : '-';
+                const tc = typeConfig[l.trade_type] || { label: '기타', color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
+                const sc = statusConfig[l.status] || { label: l.status, color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
+                const dt = new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                return `<tr onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-size:0.75rem;color:#636366;white-space:nowrap;">${dt}</td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-weight:800;color:#E5E7EB;">${l.symbol}</td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.7rem;font-weight:700;background:${tc.bg};color:${tc.color};">${tc.label}</span></td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${actionColor}22;color:${actionColor};">${actionMap[l.action] || l.action}</span></td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;color:#E5E7EB;">${parseFloat(l.qty || 0)}주</td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;color:#E5E7EB;">$${parseFloat(l.price || 0).toFixed(2)}</td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-weight:700;color:${pnlColor};">${pnl}</td>
+                  <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.7rem;font-weight:600;background:${sc.bg};color:${sc.color};">${sc.label}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</div>`;
+      }
     }
 
     // 성과 대시보드 계좌 타입 선택
