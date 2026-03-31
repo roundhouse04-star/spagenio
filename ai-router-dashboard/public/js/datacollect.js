@@ -341,7 +341,7 @@ window.loadAutoTradeLog = async function() {
 // 기존 runAutoTrade 호환성 유지
 async function runAutoTrade() { await window.runAutoTradeNow(); }
 
-async function loadTradeLog() {
+async function loadQuantTradeLog() {
   const el = document.getElementById('quantTradeLog');
   try {
     const res = await fetch(`${QUANT_API}/api/quant/trade/log`);
