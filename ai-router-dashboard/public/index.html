@@ -4633,7 +4633,7 @@
             : `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:${timingColor}22;color:${timingColor};font-weight:700;">${item.timing_icon || ''} ${timing}</span>`;
           const techRow = !isKr ? `<div style="margin-bottom:4px;"><span style="font-size:0.7rem;color:#9CA3AF;font-weight:600;">타이밍: </span>${(item.tech_reasons || []).filter(Boolean).map(r => `<span style="font-size:0.7rem;padding:1px 6px;background:rgba(255,59,48,0.12);color:#FF3B30;border-radius:4px;margin-right:2px;">${r}</span>`).join('')}</div>` : '';
           const saveBtn = isKr
-            ? `<button onclick="event.stopPropagation();saveKrSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #16a34a40;background:rgba(22,163,74,0.1);color:#16a34a;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`
+            ? `<button onclick="event.stopPropagation();saveKrSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`
             : (timing !== 'AVOID' ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>` : '');
           return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart('${item.symbol}')">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -4660,7 +4660,8 @@
           ${saveBtn}
         </div>`;
         }).join('');
-        if (isKr) { const ks = document.getElementById('krSavedSettings'); if (ks) ks.innerHTML = rows; }
+        // 스크리닝 후 저장된 종목 새로고침 (스크리닝 결과와 별도 표시)
+        if (isKr) { setTimeout(() => { if (typeof renderKrSavedSettings === 'function') renderKrSavedSettings(); }, 300); }
 
         // ✅ 미국 탭: BUY/WATCH 종목만 atSymbols에 반영 (AVOID 제외)
         if (!isKr) {
