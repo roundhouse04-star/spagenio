@@ -2306,28 +2306,100 @@ async function sendLottoPredictionOnStartup() {
       scores[n] = s * (dbWeights[n] || 1.0) * streakMultiplier[n];
     }
 
-    const games = [];
-    for (let g = 0; g < 10; g++) {
-      const picks = new Set();
-      const carryPick = [...latestNums].sort((a,b) => carryPct[b] - carryPct[a])[g % latestNums.length];
-      picks.add(carryPick);
-      const zoneRanges = [[1,9],[10,19],[20,29],[30,39],[40,45]];
-      for (const [lo, hi] of zoneRanges) {
-        if (picks.size >= 6) break;
-        const zone = Object.entries(scores).filter(([n])=>{ const x=parseInt(n); return x>=lo&&x<=hi&&!picks.has(x); }).sort((a,b)=>b[1]-a[1]);
-        if (zone.length > 0) {
-          const top = zone.slice(0, Math.min(5, zone.length));
-          const total = top.reduce((s,[,w])=>s+w, 0);
-          let r = Math.random() * total;
-          let chosen = parseInt(top[0][0]);
-          for (const [n, w] of top) { r -= w; if (r <= 0) { chosen = parseInt(n); break; } }
-          picks.add(chosen);
+    // ── bias_map DB에서 로드 ──
+    let carryBiasMap = {
+      '0':[0.18,0.25,0.22,0.20,0.15],'1':[0.19,0.18,0.23,0.26,0.14],
+      '2':[0.19,0.24,0.20,0.25,0.12],'3':[0.21,0.23,0.23,0.21,0.12],
+      '4':[0.23,0.22,0.22,0.22,0.12],'0+0':[0.18,0.25,0.21,0.25,0.11],
+      '0+1':[0.17,0.24,0.25,0.18,0.15],'0+2':[0.19,0.22,0.23,0.22,0.15],
+      '0+3':[0.22,0.23,0.14,0.19,0.22],'0+4':[0.17,0.31,0.19,0.25,0.08],
+      '1+1':[0.18,0.20,0.23,0.25,0.14],'1+2':[0.20,0.25,0.19,0.19,0.17],
+      '1+3':[0.25,0.18,0.26,0.18,0.12],'1+4':[0.23,0.23,0.18,0.25,0.11],
+      '2+2':[0.20,0.10,0.20,0.35,0.15],'2+3':[0.17,0.23,0.20,0.23,0.17],
+      '2+4':[0.19,0.31,0.22,0.22,0.06],'3+3':[0.21,0.29,0.18,0.18,0.14],
+      '3+4':[0.14,0.38,0.27,0.08,0.14],
+    };
+    try {
+      const bmRow = db.prepare('SELECT data FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if (bmRow) carryBiasMap = JSON.parse(bmRow.data);
+    } catch(e) {}
+
+    const baseZoneSpecs = [
+      {range:[1,9],   dist:[0.16,0.53,0.25,0.06,0.00]},
+      {range:[10,19], dist:[0.18,0.49,0.22,0.11,0.00]},
+      {range:[20,29], dist:[0.13,0.49,0.29,0.08,0.01]},
+      {range:[30,39], dist:[0.21,0.40,0.27,0.11,0.01]},
+      {range:[40,45], dist:[0.41,0.40,0.18,0.01,0.00]},
+    ];
+
+    function getZoneIdx(n) { if(n<=9)return 0;if(n<=19)return 1;if(n<=29)return 2;if(n<=39)return 3;return 4; }
+
+    function sampleCount(baseDist, zoneIdx, biasWeights) {
+      let dist = [...baseDist];
+      if (biasWeights) {
+        const bt = Math.round(biasWeights[zoneIdx] * 6);
+        const bl = dist.map((v,i) => v*0.6 + (i===bt?0.4:0));
+        const total = bl.reduce((a,b)=>a+b,0);
+        dist = bl.map(v=>v/total);
+      }
+      let r = Math.random(), c = 0;
+      for (let i=0; i<dist.length; i++) { c+=dist[i]; if(r<c) return i; }
+      return 1;
+    }
+
+    function weightedSample(items, weights) {
+      const total = weights.reduce((a,b)=>a+b,0);
+      let r = Math.random()*total, c = 0;
+      for (let i=0; i<items.length; i++) { c+=weights[i]; if(c>=r) return items[i]; }
+      return items[items.length-1];
+    }
+
+    function predictOne() {
+      // 이월 선택 (1217회 통계: 60.2% 확률로 최소 1개)
+      const sortedByCarry = [...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]);
+      const carryPicks = [];
+      const cw = sortedByCarry.map(n=>Math.max(carryPct[n],0.01));
+      if (Math.random() < 0.602) {
+        carryPicks.push(weightedSample(sortedByCarry, cw));
+        if (Math.random() < 0.282) {
+          const rem2 = sortedByCarry.filter(n=>!carryPicks.includes(n));
+          const w2 = rem2.map(n=>Math.max(carryPct[n],0.01));
+          if (rem2.length) carryPicks.push(weightedSample(rem2, w2));
         }
       }
-      const rem = Object.entries(scores).filter(([n])=>!picks.has(parseInt(n))).sort((a,b)=>b[1]-a[1]);
-      for (const [n] of rem) { if (picks.size >= 6) break; picks.add(parseInt(n)); }
-      games.push([...picks].sort((a,b)=>a-b));
+      const picks = new Set(carryPicks);
+
+      // bias_map 결정
+      let biasWeights = null;
+      if (carryPicks.length===1) biasWeights = carryBiasMap[String(getZoneIdx(carryPicks[0]))] || null;
+      else if (carryPicks.length===2) {
+        const [z1,z2] = [getZoneIdx(carryPicks[0]),getZoneIdx(carryPicks[1])].sort((a,b)=>a-b);
+        biasWeights = carryBiasMap[`${z1}+${z2}`] || null;
+      }
+
+      // 구간별 선택
+      for (let zi=0; zi<baseZoneSpecs.length; zi++) {
+        if (picks.size>=6) break;
+        const {range:[lo,hi], dist} = baseZoneSpecs[zi];
+        const already = [...picks].filter(n=>n>=lo&&n<=hi).length;
+        const need = Math.max(0, sampleCount(dist, zi, biasWeights) - already);
+        const candidates = Array.from({length:hi-lo+1},(_,i)=>lo+i)
+          .filter(n=>!picks.has(n)).sort((a,b)=>scores[b]-scores[a]);
+        for (let k=0; k<need&&k<candidates.length&&picks.size<6; k++) picks.add(candidates[k]);
+      }
+
+      // 상위 15위 랜덤으로 채우기
+      const rem = Array.from({length:45},(_,i)=>i+1).filter(n=>!picks.has(n)).sort((a,b)=>scores[b]-scores[a]);
+      const top15 = rem.slice(0,15);
+      while (picks.size<6 && top15.length) {
+        const idx = Math.floor(Math.random()*top15.length);
+        picks.add(top15.splice(idx,1)[0]);
+      }
+      return [...picks].sort((a,b)=>a-b);
     }
+
+    const games = [];
+    for (let g=0; g<10; g++) games.push(predictOne());
 
     // lotto_auto_send=1 인 유저만 발송
     const tgUsers = db.prepare('SELECT ut.* FROM user_telegram ut JOIN users u ON ut.user_id=u.id WHERE u.lotto_auto_send=1').all();
