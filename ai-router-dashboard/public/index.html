@@ -6245,6 +6245,7 @@
     }
   </script>
 
+  <script>
     // ============================================================
     // 종목 분석 JS
     // ============================================================
@@ -6255,11 +6256,9 @@
       const symbol = document.getElementById('analysisSymbolInput')?.value?.trim().toUpperCase();
       if (!symbol) { await spAlert('종목 심볼을 입력해주세요', '알림', '⚠️'); return; }
       _analysisSymbol = symbol;
-
       document.getElementById('analysisLoading').style.display = 'block';
       document.getElementById('analysisResult').style.display = 'none';
       document.getElementById('analysisError').style.display = 'none';
-
       try {
         const res = await fetch(`/proxy/quant/api/quant/stock-analysis?symbol=${symbol}`);
         const d = await res.json();
@@ -6279,7 +6278,6 @@
       const currency = isKr ? '₩' : '$';
       const fmt = (v) => v ? `${currency}${isKr ? Math.round(v).toLocaleString() : v.toLocaleString()}` : '-';
 
-      // 기본 정보
       document.getElementById('analysisName').textContent = `${d.fundamentals?.name || d.symbol} (${d.symbol})`;
       document.getElementById('analysisSector').textContent = d.fundamentals?.sector || '';
       document.getElementById('analysisPrice').textContent = fmt(d.current_price);
@@ -6295,7 +6293,6 @@
       const mc = d.fundamentals?.market_cap;
       document.getElementById('analysisMktCap').textContent = mc ? (mc >= 1e12 ? (mc/1e12).toFixed(1)+'T' : (mc/1e9).toFixed(1)+'B') : '-';
 
-      // 애널리스트 컨센서스
       const c = d.consensus || {};
       const recMap = { buy: { label: '매수', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }, hold: { label: '보유', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' }, sell: { label: '매도', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' }, 'strong buy': { label: '강력매수', color: '#10b981', bg: 'rgba(16,185,129,0.2)' }, 'strong sell': { label: '강력매도', color: '#ef4444', bg: 'rgba(239,68,68,0.2)' } };
       const rec = recMap[c.recommendation?.toLowerCase()] || { label: c.recommendation || '-', color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)' };
@@ -6315,7 +6312,6 @@
         upsideEl.style.color = c.upside_pct >= 0 ? '#10b981' : '#ef4444';
       }
 
-      // 재무지표
       const f = d.fundamentals || {};
       const fundItems = [
         { label: 'PER', value: f.per ? f.per + '배' : '-' },
@@ -6331,7 +6327,6 @@
           <div style="font-weight:700;color:${item.color || '#E5E7EB'};">${item.value}</div>
         </div>`).join('');
 
-      // 기술적 지표
       const t = d.technical || {};
       const sigMap = { buy: { label: '매수', color: '#10b981' }, weak_buy: { label: '약한매수', color: '#34d399' }, hold: { label: '중립', color: '#f59e0b' }, weak_sell: { label: '약한매도', color: '#f87171' }, sell: { label: '매도', color: '#ef4444' } };
       const sig = sigMap[t.signal] || { label: t.signal || '-', color: '#9CA3AF' };
@@ -6385,6 +6380,7 @@
         });
       } catch(e) { console.error('차트 로드 실패:', e); }
     }
+  </script>
 
 </body>
 
