@@ -203,6 +203,7 @@ function updateTradeLogStatus(user_id, symbol, trade_type) {
 
 try { db.exec("ALTER TABLE user_broker_keys ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
 // account_type: 0=미설정, 1=수동전용, 2=자동전용
+try { db.exec("ALTER TABLE portfolio_performance ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
 try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_strategy TEXT DEFAULT 'value_quality'"); } catch (e) { }
 try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_market TEXT DEFAULT 'nasdaq'"); } catch (e) { }
 
@@ -280,6 +281,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     snapshot_date TEXT NOT NULL,           -- YYYY-MM-DD
+    account_type INTEGER DEFAULT 0,        -- 0=전체, 1=수동전용, 2=자동전용
     total_equity REAL,                     -- 총 평가금액
     cash REAL,                             -- 현금
     portfolio_value REAL,                  -- 주식 평가액
@@ -292,7 +294,7 @@ db.exec(`
     max_drawdown REAL DEFAULT 0,           -- 최대 낙폭 (MDD)
     peak_equity REAL,                      -- 최고 자산
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, snapshot_date),
+    UNIQUE(user_id, snapshot_date, account_type),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 

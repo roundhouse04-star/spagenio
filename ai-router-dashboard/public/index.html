@@ -3426,6 +3426,23 @@
     <div id="tab-performance" class="tab-content" style="display:none;">
       <div class="sp-page">
 
+        <!-- 계좌 선택 탭 -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+          <button onclick="setPerfAccountType(0)" id="perfAccBtn0"
+            style="padding:6px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+            📊 전체
+          </button>
+          <button onclick="setPerfAccountType(1)" id="perfAccBtn1"
+            style="padding:6px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+            ✋ 수동
+          </button>
+          <button onclick="setPerfAccountType(2)" id="perfAccBtn2"
+            style="padding:6px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+            🤖 자동
+          </button>
+          <span id="perfAccLabel" style="font-size:0.78rem;color:#636366;margin-left:4px;">전체 계좌 기준</span>
+        </div>
+
         <!-- 상단 요약 카드 4개 -->
         <div class="sp-grid-4" style="margin-bottom:16px;">
           <div class="sp-card" style="text-align:center;padding:16px;">
@@ -5051,9 +5068,34 @@
       } catch (e) { legendEl.innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">Alpaca 연결 필요</div>'; }
     }
 
+    // 성과 대시보드 계좌 타입 선택
+    let _perfAccountType = 0;
+    function setPerfAccountType(type) {
+      _perfAccountType = type;
+      const labels = { 0: '전체 계좌 기준', 1: '수동 계좌 기준', 2: '자동매매 계좌 기준' };
+      const labelEl = document.getElementById('perfAccLabel');
+      if (labelEl) labelEl.textContent = labels[type] || '';
+      // 버튼 스타일
+      [0, 1, 2].forEach(t => {
+        const btn = document.getElementById(`perfAccBtn${t}`);
+        if (!btn) return;
+        if (t === type) {
+          btn.style.background = '#6366f1';
+          btn.style.color = '#fff';
+          btn.style.borderColor = '#6366f1';
+        } else {
+          btn.style.background = 'transparent';
+          btn.style.color = '#9CA3AF';
+          btn.style.borderColor = '#2A2A2A';
+        }
+      });
+      loadPerformanceSummary();
+      loadPerformanceHistory();
+    }
+
     async function loadPerformanceSummary() {
       try {
-        const res = await fetch('/api/performance/summary');
+        const res = await fetch(`/api/performance/summary?account_type=${_perfAccountType || 0}`);
         const d = await res.json();
         if (!d.ok || !d.latest) {
           document.getElementById('perf-equity').textContent = '-';
@@ -5089,7 +5131,7 @@
 
     async function loadPerformanceHistory() {
       try {
-        const res = await fetch('/api/performance/history?days=30');
+        const res = await fetch(`/api/performance/history?days=30&account_type=${_perfAccountType || 0}`);
         const d = await res.json();
         const chartEl = document.getElementById('perfEquityChart');
         const emptyEl = document.getElementById('perfChartEmpty');

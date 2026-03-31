@@ -1332,61 +1332,64 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/performance/snapshot', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      const keys = getUserAlpacaKeys(req.user.id);
-      if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
-      const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
-      const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
-
-      const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
-      const equity = parseFloat(account.equity) || 0;
-      const cash = parseFloat(account.cash) || 0;
-      const portfolioValue = parseFloat(account.portfolio_value) || 0;
-
-      // 전날 스냅샷으로 일일 손익 계산
       const today = new Date().toISOString().split('T')[0];
-      const yesterday = db.prepare(`SELECT total_equity, total_pnl, peak_equity, win_count, loss_count FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id);
+      const results = {};
 
-      const prevEquity = yesterday?.total_equity || equity;
-      const dailyPnl = equity - prevEquity;
-      const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
+      // 계좌별로 스냅샷 저장하는 헬퍼
+      async function saveSnapshot(accountType, keysOverride = null) {
+        const keys = keysOverride || getUserAlpacaKeys(req.user.id, null, accountType || null);
+        if (!keys) return null;
+        const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+        const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
 
-      // 매매 이력에서 승/패 집계 (trade_log 전체 기반 — 수동/단순/완전/일반 모두 포함)
-      const trades = db.prepare(`SELECT action, profit_pct FROM trade_log WHERE user_id=? AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS','SELL','SELL_MANUAL','SELL_STOP_ALL','SELL_FACTOR')`).all(req.user.id);
-      const winCount = trades.filter(t => t.action.includes('PROFIT') || (t.action === 'SELL' || t.action === 'SELL_MANUAL' ? (t.profit_pct || 0) > 0 : false)).length;
-      const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS') || (t.action === 'SELL' || t.action === 'SELL_MANUAL' ? (t.profit_pct || 0) <= 0 : false)).length;
+        const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+        const equity = parseFloat(account.equity) || 0;
+        const cash = parseFloat(account.cash) || 0;
+        const portfolioValue = parseFloat(account.portfolio_value) || 0;
 
-      // 초기 자본 (첫 스냅샷 기준)
-      const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date ASC LIMIT 1`).get(req.user.id);
-      const initialEquity = first?.total_equity || equity;
-      const totalPnl = equity - initialEquity;
-      const totalPnlPct = initialEquity > 0 ? (totalPnl / initialEquity * 100) : 0;
+        const yesterday = db.prepare(`SELECT total_equity, total_pnl, peak_equity, win_count, loss_count FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountType);
+        const prevEquity = yesterday?.total_equity || equity;
+        const dailyPnl = equity - prevEquity;
+        const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
 
-      // MDD 계산
-      const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
-      const allPeaks = db.prepare(`SELECT MAX(peak_equity) as peak FROM portfolio_performance WHERE user_id=?`).get(req.user.id);
-      const maxPeak = Math.max(allPeaks?.peak || equity, equity);
-      const maxDrawdown = maxPeak > 0 ? ((maxPeak - equity) / maxPeak * 100) : 0;
+        // 계좌 타입별 trade_log 승/패 집계
+        const tradeTypes = accountType === 1 ? [1] : accountType === 2 ? [2, 3, 4] : [1, 2, 3, 4];
+        const placeholders = tradeTypes.map(() => '?').join(',');
+        const trades = db.prepare(`SELECT action, profit_pct FROM trade_log WHERE user_id=? AND trade_type IN (${placeholders}) AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS','SELL','SELL_MANUAL','SELL_STOP_ALL','SELL_FACTOR')`).all(req.user.id, ...tradeTypes);
+        const winCount = trades.filter(t => t.action.includes('PROFIT') || ((t.action === 'SELL' || t.action === 'SELL_MANUAL') && (t.profit_pct || 0) > 0)).length;
+        const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS') || ((t.action === 'SELL' || t.action === 'SELL_MANUAL') && (t.profit_pct || 0) <= 0)).length;
 
-      db.prepare(`INSERT OR REPLACE INTO portfolio_performance
-        (user_id, snapshot_date, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(
-          req.user.id,
-          today,
-          equity || 0,
-          cash || 0,
-          portfolioValue || 0,
-          dailyPnl || 0,
-          dailyPnlPct || 0,
-          totalPnl || 0,
-          totalPnlPct || 0,
-          winCount || 0,
-          lossCount || 0,
-          maxDrawdown || 0,
-          peakEquity || equity || 0
-        );
+        const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date ASC LIMIT 1`).get(req.user.id, accountType);
+        const initialEquity = first?.total_equity || equity;
+        const totalPnl = equity - initialEquity;
+        const totalPnlPct = initialEquity > 0 ? (totalPnl / initialEquity * 100) : 0;
 
-      res.json({ ok: true, equity, cash, portfolioValue, dailyPnl, dailyPnlPct, totalPnl, totalPnlPct, winCount, lossCount, maxDrawdown });
+        const allPeaks = db.prepare(`SELECT MAX(peak_equity) as peak FROM portfolio_performance WHERE user_id=? AND account_type=?`).get(req.user.id, accountType);
+        const maxPeak = Math.max(allPeaks?.peak || equity, equity);
+        const maxDrawdown = maxPeak > 0 ? ((maxPeak - equity) / maxPeak * 100) : 0;
+        const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
+
+        db.prepare(`INSERT OR REPLACE INTO portfolio_performance
+          (user_id, snapshot_date, account_type, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .run(req.user.id, today, accountType, equity||0, cash||0, portfolioValue||0, dailyPnl||0, dailyPnlPct||0, totalPnl||0, totalPnlPct||0, winCount||0, lossCount||0, maxDrawdown||0, peakEquity||equity||0);
+
+        return { equity, cash, portfolioValue, dailyPnl, dailyPnlPct, totalPnl, totalPnlPct, winCount, lossCount, maxDrawdown };
+      }
+
+      // 수동 계좌 (account_type=1)
+      const manualKeys = getUserAlpacaKeys(req.user.id, null, 1);
+      if (manualKeys) results.manual = await saveSnapshot(1, manualKeys);
+
+      // 자동 계좌 (account_type=2)
+      const autoKeys = getUserAlpacaKeys(req.user.id, null, 2);
+      if (autoKeys) results.auto = await saveSnapshot(2, autoKeys);
+
+      // 전체 (account_type=0) — is_active 계좌 기준
+      const allKeys = getUserAlpacaKeys(req.user.id, null);
+      if (allKeys) results.all = await saveSnapshot(0, allKeys);
+
+      res.json({ ok: true, ...results });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -1394,17 +1397,19 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/performance/history', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const days = parseInt(req.query.days || 30);
-    const rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, days);
+    const accountType = parseInt(req.query.account_type ?? 0);
+    const rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, accountType, days);
     res.json({ ok: true, history: rows.reverse() });
   });
 
   // 성과 요약 (홈 화면용)
   router.get('/api/performance/summary', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const latest = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id);
-    const weekAgo = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id);
-    const monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id);
-    const maxMdd = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=?`).get(req.user.id);
+    const accountType = parseInt(req.query.account_type ?? 0);
+    const latest = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountType);
+    const weekAgo = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id, accountType);
+    const monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND account_type=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id, accountType);
+    const maxMdd = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=? AND account_type=?`).get(req.user.id, accountType);
     const winRate = latest ? (latest.win_count + latest.loss_count > 0 ? (latest.win_count / (latest.win_count + latest.loss_count) * 100) : 0) : 0;
     res.json({ ok: true, latest, weekHistory: weekAgo.reverse(), monthPnl: monthPnl?.pnl || 0, maxMdd: maxMdd?.mdd || 0, winRate });
   });
