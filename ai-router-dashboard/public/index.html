@@ -5120,8 +5120,25 @@
           if (subMenu) subMenu.classList.add('open');
           if (parentBtnEl) parentBtnEl.classList.add('open');
         }
-        // switchQuantTab 호출
-        if (typeof switchQuantTab === 'function') switchQuantTab(subKey);
+        // switchQuantTab 호출 (자동매매 탭)
+        if (tabKey === 'quant' && typeof switchQuantTab === 'function') switchQuantTab(subKey);
+        // datacollect 탭 서브메뉴 처리
+        if (tabKey === 'datacollect') {
+          const tabEl = document.getElementById('tab-datacollect');
+          if (tabEl) tabEl.style.display = 'block';
+          if (subKey === 'korea') {
+            setTimeout(() => {
+              const el = document.getElementById('koreaResult')?.closest('.sp-card');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+          } else if (subKey === 'stock') {
+            setTimeout(() => {
+              const el = document.getElementById('quantResultCard') || document.getElementById('dc-history-result')?.closest('.sp-card');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+          }
+          return;
+        }
       }
 
       // ── performance 탭은 switchTab 이전에 먼저 처리 ──
