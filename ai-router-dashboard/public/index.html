@@ -4224,9 +4224,10 @@
       if (!el) return;
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 분석 중...</div>';
       try {
+        const market = window._dayMarket || 'us';
         const [volumeRes, newsRes] = await Promise.all([
-          fetch('/api/auto-trade/volume-surge').then(r => r.json()),
-          fetch('/api/auto-trade/news-catalyst').then(r => r.json())
+          fetch(`/api/auto-trade/volume-surge?market=${market}`).then(r => r.json()),
+          fetch(`/api/auto-trade/news-catalyst?market=${market}`).then(r => r.json())
         ]);
         const surges = volumeRes.surges || [];
         const catalysts = newsRes.catalysts || [];
@@ -4242,6 +4243,7 @@
           return;
         }
 
+        const currency = market === 'kr' ? '₩' : '$';
         let html = '';
         if (combined.length) {
           html += '<div style="font-size:0.75rem;font-weight:700;color:#6366f1;margin-bottom:8px;">🔥 거래량 + 뉴스 동시 감지</div>';
@@ -4266,7 +4268,7 @@
             <div style="padding:10px;border:1px solid #fde68a;border-radius:10px;margin-bottom:6px;background:#fffbeb;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-weight:800;color:#92400e;">${s.symbol}</span>
-                <span style="font-size:0.75rem;color:#92400e;">${s.volume_ratio}x · $${s.price?.toFixed(2)}</span>
+                <span style="font-size:0.75rem;color:#92400e;">${s.volume_ratio}x · ${currency}${s.price?.toFixed(2)}</span>
               </div>
             </div>`).join('');
         }
@@ -4311,6 +4313,13 @@
       // 나스닥/다우 버튼 미국일 때만 표시
       const usMarketEl = document.getElementById('topPicksUsMarket');
       if (usMarketEl) usMarketEl.style.display = market === 'us' ? 'flex' : 'none';
+      // TOP5 market 연동 (한국이면 kr, 미국이면 nasdaq 기본)
+      if (market === 'kr') { window._topPicksMarket = 'kr'; }
+      else { window._topPicksMarket = window._topPicksMarket === 'kr' ? 'nasdaq' : (window._topPicksMarket || 'nasdaq'); }
+      // TOP5 캐시 초기화 (시장 변경 시 재분석 필요)
+      if (typeof _topPicksCache !== 'undefined') { _topPicksCache = null; }
+      const topPicksEl = document.getElementById('topPicksList');
+      if (topPicksEl) topPicksEl.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)</div>';
       // 자동 재조회
       loadVolumeSurge();
       loadNewsCatalyst();
