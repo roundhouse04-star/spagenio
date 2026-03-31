@@ -3069,7 +3069,7 @@
               <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
               <div style="display:flex;gap:6px;align-items:center;">
                 <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
-                  style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+                  style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #16a34a;background:#16a34a;color:#fff;">
                   🇺🇸 미국
                 </button>
                 <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
@@ -4306,8 +4306,8 @@
       window._dayMarket = market;
       const usBtn = document.getElementById('dayMarketBtnUs');
       const krBtn = document.getElementById('dayMarketBtnKr');
-      if (usBtn) { usBtn.style.background = market === 'us' ? '#6366f1' : 'transparent'; usBtn.style.color = market === 'us' ? '#fff' : '#9CA3AF'; usBtn.style.borderColor = market === 'us' ? '#6366f1' : '#2A2A2A'; }
-      if (krBtn) { krBtn.style.background = market === 'kr' ? '#6366f1' : 'transparent'; krBtn.style.color = market === 'kr' ? '#fff' : '#9CA3AF'; krBtn.style.borderColor = market === 'kr' ? '#6366f1' : '#2A2A2A'; }
+      if (usBtn) { usBtn.style.background = market === 'us' ? '#16a34a' : 'transparent'; usBtn.style.color = market === 'us' ? '#fff' : '#9CA3AF'; usBtn.style.borderColor = market === 'us' ? '#16a34a' : '#2A2A2A'; }
+      if (krBtn) { krBtn.style.background = market === 'kr' ? '#16a34a' : 'transparent'; krBtn.style.color = market === 'kr' ? '#fff' : '#9CA3AF'; krBtn.style.borderColor = market === 'kr' ? '#16a34a' : '#2A2A2A'; }
       // 자동 재조회
       loadVolumeSurge();
       loadNewsCatalyst();
