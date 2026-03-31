@@ -5731,17 +5731,62 @@
     const _origLoadTopPicks = typeof window.loadTopPicks === 'function'
       ? window.loadTopPicks : null;
     window.loadTopPicks = async function (...args) {
+      const el = document.getElementById('topPicksList');
+      if (!el) return;
       const now = Date.now();
       const market = window._topPicksMarket || 'nasdaq';
-      // 캐시가 유효하고 같은 시장이면 캐시 사용
+
+      // 캐시 유효하면 사용
       if (_topPicksCache && (now - _topPicksCacheTime) < 5 * 60 * 1000 && _topPicksCacheMarket === market) {
-        const el = document.getElementById('topPicksList');
-        if (el) { el.innerHTML = _topPicksCache; return; }
+        el.innerHTML = _topPicksCache;
+        return;
       }
+
+      // ── 한국 TOP5 ──
+      if (market === 'kr') {
+        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">⏳ 한국 종목 분석 중... (약 10~20초 소요)</div>';
+        try {
+          const res = await fetch('/api/auto-trade/kr-top-picks');
+          const d = await res.json();
+          if (!d.ok || !d.picks?.length) {
+            el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">현재 조건에 맞는 추천 종목이 없습니다</div>';
+            return;
+          }
+          const rankLabels = ['🥇','🥈','🥉','4위','5위'];
+          const rows = d.picks.slice(0,5).map((p,i) => `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #2A2A2A;border-radius:10px;margin-bottom:8px;background:#111;">
+              <div style="font-size:1.4rem;width:32px;text-align:center;">${rankLabels[i]}</div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${p.symbol}</span>
+                  <span style="font-size:0.75rem;color:#9CA3AF;">${p.name||''}</span>
+                  ${p.score ? `<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:#16a34a22;color:#16a34a;font-weight:700;">점수 ${p.score}</span>` : ''}
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  ${p.volume_ratio ? `<span style="font-size:0.72rem;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:700;">📊 ${p.volume_ratio}x</span>` : ''}
+                  ${p.has_news ? '<span style="font-size:0.72rem;padding:2px 6px;border-radius:4px;background:#f0fdf4;color:#15803d;font-weight:700;">📰 뉴스</span>' : ''}
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">₩${(p.price||0).toLocaleString()}</div>
+                ${p.change_pct != null ? `<div style="font-size:0.78rem;font-weight:700;color:${p.change_pct>=0?'#ef4444':'#3b82f6'};">${p.change_pct>=0?'▲':'▼'} ${Math.abs(p.change_pct)}%</div>` : ''}
+              </div>
+            </div>`).join('');
+          el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">🇰🇷 한국 종목 TOP5 · ${new Date().toLocaleTimeString('ko-KR')}</div>${rows}`;
+          _topPicksCache = el.innerHTML;
+          _topPicksCacheTime = Date.now();
+          _topPicksCacheMarket = 'kr';
+        } catch(e) {
+          el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
+        }
+        return;
+      }
+
+      // ── 미국 TOP5 (기존 로직) ──
       if (typeof _origLoadTopPicks === 'function') {
-        await _origLoadTopPicks.apply(this, [market, ...args]);
-        const el = document.getElementById('topPicksList');
-        if (el && el.innerHTML && !el.innerHTML.includes('분석 버튼')) {
+        window._currentTopPicksMarket = market;
+        await _origLoadTopPicks.apply(this, args);
+        if (el && el.innerHTML && !el.innerHTML.includes('분석 버튼') && !el.innerHTML.includes('조건에 맞는')) {
           _topPicksCache = el.innerHTML;
           _topPicksCacheTime = Date.now();
           _topPicksCacheMarket = market;
