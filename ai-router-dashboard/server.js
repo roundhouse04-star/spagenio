@@ -909,6 +909,8 @@ process.on('unhandledRejection', (reason) => {
 });
 
 process.on('uncaughtException', (err) => {
+  // EPIPE는 클라이언트 연결 끊김 — 무시
+  if (err.code === 'EPIPE' || err.message === 'write EPIPE') return;
   logger.error('UNCAUGHT_EXCEPTION', { error: err.message });
   saveErrorLog({ event_type: 'UNCAUGHT_EXCEPTION', error_message: err.message, stack_trace: err.stack });
 });
