@@ -754,14 +754,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ✅ 단순 자동매매 API
-  router.get('/api/simple-auto-trade/state', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const userId = req.user.user_id || req.user.id;
-    const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
-
   // ── 수동 거래 trade_log 저장 API ──
   router.post('/api/manual-trade/log', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const { symbol, action, qty, price, order_id, reason } = req.body;
       if (!symbol || !action || !qty || !price) return res.status(400).json({ error: '필수값 누락' });
@@ -780,12 +775,18 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   // ── 수동 보유종목 조회 (trade_type=1 active) ──
   router.get('/api/manual-trade/positions', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const rows = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC").all(req.user.id);
       res.json({ positions: rows });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
+  // ✅ 단순 자동매매 API
+  router.get('/api/simple-auto-trade/state', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const userId = req.user.user_id || req.user.id;
+    const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
     const logs = db.prepare('SELECT * FROM simple_auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 20').all(userId);
     res.json({ ok: true, state: state || null, logs });
   });
