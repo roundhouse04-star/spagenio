@@ -2130,59 +2130,59 @@
           </div>
         </div>
 
-        <!-- 매수/매도 + 보유Symbol -->
-        <div class="sp-grid-2">
+        <!-- 매수/매도 + 현재가 + 호가창 (3열) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
           <div class="sp-card">
             <div class="sp-card-header">
               <div class="sp-card-title">🔄 매수 / 매도</div>
             </div>
-            <!-- 종목 검색 -->
-            <div style="margin-bottom:12px;">
-              <label class="sp-label">🔍 종목</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <div onclick="openStockSearch('tradeSymbol', false)"
-                  id="tradeSymbolDisplay"
-                  style="flex:1;height:42px;border-radius:8px;border:1px solid #2A2A2A;padding:0 14px;background:#1E242C;display:flex;align-items:center;cursor:pointer;color:#636366;font-size:0.9rem;user-select:none;">
-                  종목을 선택하세요
-                </div>
-                <button onclick="openStockSearch('tradeSymbol', false)" class="sp-btn sp-btn-indigo sp-btn-sm">🔍</button>
-              </div>
-              <input type="hidden" id="tradeSymbol" value="" />
-            </div>
-            <!-- 실시간 가격 -->
-            <div id="tradePriceDisplay" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(99,102,241,0.08);border-radius:8px;border:1px solid rgba(99,102,241,0.3);">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:0.82rem;color:#9CA3AF;">현재가</span>
-                <div>
-                  <span id="tradePriceValue" style="font-size:1.1rem;font-weight:800;color:#E5E7EB;">-</span>
-                  <span id="tradePriceChange" style="font-size:0.78rem;margin-left:6px;font-weight:700;">-</span>
+            <div class="sp-grid-2" style="margin-bottom:14px;">
+              <div>
+                <label class="sp-label">종목</label>
+                <div style="display:flex;gap:6px;">
+                  <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" style="flex:1;"
+                    oninput="clearTimeout(window._obTimer);window._obTimer=setTimeout(()=>loadOrderBook(),700)" />
+                  <button onclick="openStockSearch('tradeSymbol', false)"
+                    class="sp-btn sp-btn-indigo" title="종목 검색" style="flex-shrink:0;padding:0 12px;">🔍</button>
                 </div>
               </div>
-            </div>
-            <!-- 수량 -->
-            <div style="margin-bottom:14px;">
-              <label class="sp-label">📦 수량</label>
-              <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
+              <div>
+                <label class="sp-label">수량</label>
+                <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
+              </div>
             </div>
             <div style="display:flex;gap:10px;margin-bottom:16px;">
               <button onclick="buyStock()" class="sp-btn btn-buy"
-                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">
-                📈 매수</button>
+                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📈 매수</button>
               <button onclick="sellStock()" class="sp-btn btn-sell"
-                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">
-                📉 매도</button>
+                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📉 매도</button>
             </div>
             <label class="sp-label">거래 결과</label>
             <pre id="tradeResult" class="sp-result" style="min-height:80px;">거래 대기 중...</pre>
           </div>
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면
-                  실시간 가격)</small></div>
-              <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
+              <div class="sp-card-title">📊 현재가</div>
+              <button onclick="loadOrderBook()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
             </div>
-            <div id="positionsTable"></div>
+            <div id="obPriceCard"><div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div></div>
           </div>
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div class="sp-card-title">📋 호가창</div>
+              <span id="obStatus" style="font-size:0.72rem;color:#4B5563;"></span>
+            </div>
+            <div id="obTable"><div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div></div>
+          </div>
+        </div>
+
+        <!-- 보유 종목 -->
+        <div class="sp-card" style="margin-bottom:16px;">
+          <div class="sp-card-header">
+            <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면 실시간 가격)</small></div>
+            <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
+          </div>
+          <div id="positionsTable"></div>
         </div>
 
         <!-- 주문 내역 -->
@@ -6002,14 +6002,14 @@
       const inp = document.getElementById(_stockSearchTarget);
       if (inp) inp.value = symbol;
 
-      // tradeSymbol 선택 시 → 표시 업데이트 + 실시간 가격 조회
+      // tradeSymbol 선택 시 → input에 값 설정 + 호가창 로드
       if (_stockSearchTarget === 'tradeSymbol') {
-        const display = document.getElementById('tradeSymbolDisplay');
-        if (display) {
-          display.innerHTML = `<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:8px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`;
-          display.style.color = '#E5E7EB';
+        const inp = document.getElementById('tradeSymbol');
+        if (inp) {
+          inp.value = symbol;
+          clearTimeout(window._obTimer);
+          setTimeout(() => { if (typeof loadOrderBook === 'function') loadOrderBook(); }, 100);
         }
-        loadTradePrice(symbol);
       }
 
       // dc-symbol-badge 업데이트
