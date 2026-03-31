@@ -913,6 +913,35 @@ process.on('uncaughtException', (err) => {
   if (err.code === 'EPIPE' || err.message === 'write EPIPE') return;
   logger.error('UNCAUGHT_EXCEPTION', { error: err.message });
   saveErrorLog({ event_type: 'UNCAUGHT_EXCEPTION', error_message: err.message, stack_trace: err.stack });
+
+// ✅ 에러 로그 자동 정리 (매일 자정 — 30일 이상 된 .jsonl 삭제)
+function cleanOldErrorLogs() {
+  try {
+    if (!fs.existsSync(errorLogDir)) return;
+    const files = fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl'));
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    files.forEach(f => {
+      const dateStr = f.replace('.jsonl', '');
+      const fileDate = new Date(dateStr);
+      if (!isNaN(fileDate) && fileDate < cutoff) {
+        fs.unlinkSync(path.join(errorLogDir, f));
+        logger.info('ERROR_LOG_CLEANED', { file: f });
+      }
+    });
+  } catch (e) {
+    logger.error('ERROR_LOG_CLEAN_FAIL', { error: e.message });
+  }
+}
+
+// 서버 시작 시 1회 + 매일 자정 실행
+cleanOldErrorLogs();
+const now = new Date();
+const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+setTimeout(() => {
+  cleanOldErrorLogs();
+  setInterval(cleanOldErrorLogs, 24 * 60 * 60 * 1000);
+}, msUntilMidnight);
 });
 
 // ============================================================
