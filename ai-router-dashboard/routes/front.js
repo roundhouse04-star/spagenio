@@ -1040,13 +1040,21 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
+      const market = req.query.market || 'us'; // us 또는 kr
       const keys = getUserAlpacaKeys(userId, null);
-      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
-      const symbols = settings?.candidate_symbols
-        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
-        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY'];
+      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      let symbols;
+      if (market === 'kr') {
+        symbols = settings?.kr_candidate_symbols
+          ? settings.kr_candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['005930.KS','000660.KS','035420.KS','035720.KS','051910.KS'];
+      } else {
+        symbols = settings?.candidate_symbols
+          ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY'];
+      }
       const result = await detectVolumeSurge(symbols, keys);
-      res.json({ ok: true, surges: result });
+      res.json({ ok: true, surges: result, market });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -1055,12 +1063,20 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
-      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
-      const symbols = settings?.candidate_symbols
-        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
-        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD'];
+      const market = req.query.market || 'us';
+      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      let symbols;
+      if (market === 'kr') {
+        symbols = settings?.kr_candidate_symbols
+          ? settings.kr_candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['005930.KS','000660.KS','035420.KS','035720.KS','051910.KS'];
+      } else {
+        symbols = settings?.candidate_symbols
+          ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD'];
+      }
       const result = await detectNewsCatalyst(db, symbols);
-      res.json({ ok: true, catalysts: result });
+      res.json({ ok: true, catalysts: result, market });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 

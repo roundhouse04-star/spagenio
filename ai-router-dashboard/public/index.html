@@ -3129,6 +3129,17 @@
           </div>
 
           <!-- 3열 그리드: 거래량 급등 / 뉴스 촉매 / 리스크 계산 -->
+          <!-- 시장 선택 버튼 -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
+              style="padding:5px 16px;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+              🇺🇸 미국
+            </button>
+            <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
+              style="padding:5px 16px;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+              🇰🇷 한국
+            </button>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
             <!-- 거래량 급등 감지 -->
@@ -4286,6 +4297,74 @@
       const db = document.getElementById('topPicksBtnDow');
       if (nb) { nb.style.background = market === 'nasdaq' ? '#6366f1' : 'transparent'; nb.style.color = market === 'nasdaq' ? '#fff' : '#9CA3AF'; nb.style.borderColor = market === 'nasdaq' ? '#6366f1' : '#2A2A2A'; }
       if (db) { db.style.background = market === 'dow' ? '#6366f1' : 'transparent'; db.style.color = market === 'dow' ? '#fff' : '#9CA3AF'; db.style.borderColor = market === 'dow' ? '#6366f1' : '#2A2A2A'; }
+    };
+
+    // ===== 거래량/뉴스 시장 선택 (일반 자동매매) =====
+    let _dayMarket = 'us';
+    window._dayMarket = 'us';
+    window.setDayMarket = function(market) {
+      _dayMarket = market;
+      window._dayMarket = market;
+      const usBtn = document.getElementById('dayMarketBtnUs');
+      const krBtn = document.getElementById('dayMarketBtnKr');
+      if (usBtn) { usBtn.style.background = market === 'us' ? '#6366f1' : 'transparent'; usBtn.style.color = market === 'us' ? '#fff' : '#9CA3AF'; usBtn.style.borderColor = market === 'us' ? '#6366f1' : '#2A2A2A'; }
+      if (krBtn) { krBtn.style.background = market === 'kr' ? '#6366f1' : 'transparent'; krBtn.style.color = market === 'kr' ? '#fff' : '#9CA3AF'; krBtn.style.borderColor = market === 'kr' ? '#6366f1' : '#2A2A2A'; }
+      // 자동 재조회
+      loadVolumeSurge();
+      loadNewsCatalyst();
+    };
+
+    // loadVolumeSurge / loadNewsCatalyst — market 파라미터 주입
+    const _origLoadVolumeSurge = typeof window.loadVolumeSurge === 'function' ? window.loadVolumeSurge : null;
+    window.loadVolumeSurge = async function() {
+      const el = document.getElementById('volumeSurgeList');
+      if (!el) return;
+      el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
+      try {
+        const market = window._dayMarket || 'us';
+        const res = await fetch(`/api/auto-trade/volume-surge?market=${market}`);
+        const d = await res.json();
+        if (!d.ok || !d.surges?.length) {
+          el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">급등 종목 없음</div>';
+          return;
+        }
+        el.innerHTML = d.surges.map(s => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1E242C;">
+            <span style="font-weight:800;color:#E5E7EB;">${s.symbol}</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="font-size:0.75rem;color:#f59e0b;font-weight:700;">📊 ${s.volume_ratio}x</span>
+              <span style="font-size:0.75rem;color:#9CA3AF;">$${s.price?.toFixed(2) || '-'}</span>
+            </div>
+          </div>`).join('');
+      } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`;
+      }
+    };
+
+    const _origLoadNewsCatalyst = typeof window.loadNewsCatalyst === 'function' ? window.loadNewsCatalyst : null;
+    window.loadNewsCatalyst = async function() {
+      const el = document.getElementById('newsCatalystList');
+      if (!el) return;
+      el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
+      try {
+        const market = window._dayMarket || 'us';
+        const res = await fetch(`/api/auto-trade/news-catalyst?market=${market}`);
+        const d = await res.json();
+        if (!d.ok || !d.catalysts?.length) {
+          el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">뉴스 촉매 없음</div>';
+          return;
+        }
+        el.innerHTML = d.catalysts.map(c => `
+          <div style="padding:8px 0;border-bottom:1px solid #1E242C;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-weight:800;color:#E5E7EB;">${c.symbol}</span>
+              <span style="font-size:0.72rem;padding:2px 8px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:700;">📰 뉴스</span>
+            </div>
+            <div style="font-size:0.75rem;color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title || ''}</div>
+          </div>`).join('');
+      } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`;
+      }
     };
 
     // ===== 완전자동매매 설정 로드/저장 =====
