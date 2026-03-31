@@ -50,13 +50,7 @@ async function runQuantAnalysis() {
       html += `</div>`;
     }
     html += `
-      <div style="margin-top:10px;text-align:right;">
-        <button id="quant-mail-btn"
-          onclick='sendQuantResultMail(${JSON.stringify({symbol:data.symbol,signal:data.signal,price:data.price,value:data.value,reason:data.reason,strategy,indicators:data.indicators})})'
-          style="padding:6px 14px;background:#6366f1;color:#fff;border:none;border-radius:7px;font-size:0.82rem;font-weight:700;cursor:pointer;">
-          📧 메일로 받기
-        </button>
-      </div>`;
+      `;  // 메일 버튼 제거됨
     html += `</div>`;
     // 결과 카드 표시
     const card = document.getElementById('quantResultCard');
@@ -73,28 +67,6 @@ async function runQuantAnalysis() {
   }
 }
 
-async function sendQuantResultMail(data) {
-  const btn = document.getElementById('quant-mail-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ 발송 중...'; }
-  try {
-    const res = await fetch('/api/mail/quant-result', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    const result = await res.json();
-    if (result.ok) {
-      if (btn) btn.textContent = '✅ 발송 완료!';
-      setTimeout(() => { if (btn) { btn.textContent = '📧 메일로 받기'; btn.disabled = false; } }, 3000);
-    } else {
-      if (btn) btn.textContent = '❌ ' + (result.error || '실패');
-      setTimeout(() => { if (btn) { btn.textContent = '📧 메일로 받기'; btn.disabled = false; } }, 3000);
-    }
-  } catch(e) {
-    if (btn) btn.textContent = '❌ 오류';
-    setTimeout(() => { if (btn) { btn.textContent = '📧 메일로 받기'; btn.disabled = false; } }, 3000);
-  }
-}
 
 async function runBatchAnalysis() {
   const symbolsStr = document.getElementById('quantBatchSymbols').value.trim();
