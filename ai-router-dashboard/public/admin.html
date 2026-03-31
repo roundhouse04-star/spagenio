@@ -2470,8 +2470,33 @@
           for(let i=0;i<rem2.length;i++){c2+=w2[i];if(c2>=r2){carryPicks.push(rem2[i]);break;}}
         }
         const picks=new Set(carryPicks);
-        const zones=[[1,9],[10,19],[20,29],[30,39],[40,45]];
-        for(const[lo,hi]of zones){if(picks.size>=6)break;const z=Object.entries(scores).filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);}).sort((a,b)=>b[1]-a[1]);if(z.length)picks.add(parseInt(z[0][0]));}
+
+        // 구간 패턴 통계 반영:
+        // - 3개 구간 27%, 4개 구간 38%, 5개 구간 30%
+        // - 40~45 구간은 70% 확률로 건너뜀
+        // - 빈 구간 수: 3개구간=2개빔, 4개구간=1개빔, 5개구간=0개빔
+        const zoneRand = Math.random();
+        const targetZoneCount = zoneRand < 0.27 ? 3 : zoneRand < 0.65 ? 4 : 5;
+        const skip4045 = Math.random() < 0.70; // 40~45 구간 70% 건너뜀
+        const allZones = [[1,9],[10,19],[20,29],[30,39],[40,45]];
+        // 활성 구간 결정
+        let activeZones = skip4045 ? allZones.slice(0,4) : allZones;
+        // targetZoneCount보다 많으면 랜덤으로 구간 제거 (40~45 제외 우선)
+        const shuffled = [...activeZones].sort(()=>Math.random()-0.5);
+        activeZones = shuffled.slice(0, targetZoneCount);
+
+        // 이미 이월 picks가 있는 구간은 활성으로 유지
+        for(const n of carryPicks){
+          const z=allZones.find(([lo,hi])=>n>=lo&&n<=hi);
+          if(z&&!activeZones.includes(z)) activeZones.push(z);
+        }
+
+        // 활성 구간에서만 번호 선택
+        for(const[lo,hi]of activeZones){
+          if(picks.size>=6)break;
+          const z=Object.entries(scores).filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);}).sort((a,b)=>b[1]-a[1]);
+          if(z.length)picks.add(parseInt(z[0][0]));
+        }
         const rem=Object.entries(scores).filter(([n])=>!picks.has(parseInt(n))).sort((a,b)=>b[1]-a[1]);
         for(const[n]of rem){if(picks.size>=6)break;picks.add(parseInt(n));}
         const finalPicks=[...picks].sort((a,b)=>a-b);
