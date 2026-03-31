@@ -173,9 +173,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   router.get('/api/user/broker-keys', (req, res) => {
-    const rows = db.prepare('SELECT id, account_name, alpaca_paper, is_active, updated_at FROM user_broker_keys WHERE user_id = ? ORDER BY created_at ASC').all(req.user.id);
+    const rows = db.prepare('SELECT id, account_name, alpaca_paper, is_active, account_type, updated_at FROM user_broker_keys WHERE user_id = ? ORDER BY created_at ASC').all(req.user.id);
     if (!rows.length) return res.json({ registered: false, accounts: [] });
-    return res.json({ registered: true, accounts: rows.map(r => ({ id: r.id, account_name: r.account_name, alpaca_paper: r.alpaca_paper === 1, is_active: r.is_active === 1, updated_at: r.updated_at })) });
+    return res.json({ registered: true, accounts: rows.map(r => ({ id: r.id, account_name: r.account_name, alpaca_paper: r.alpaca_paper === 1, is_active: r.is_active === 1, account_type: r.account_type || 0, updated_at: r.updated_at })) });
   });
 
   router.post('/api/user/broker-keys', (req, res) => {
@@ -188,7 +188,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const name = account_name || (paper ? '페이퍼 트레이딩' : '실거래 계좌');
       const count = db.prepare('SELECT COUNT(*) as cnt FROM user_broker_keys WHERE user_id = ?').get(req.user.id).cnt;
       const isActive = count === 0 ? 1 : 0;
-      db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active) VALUES (?,?,?,?,?,?)').run(req.user.id, name, encKey, encSecret, paper, isActive);
+      const { account_type = 0 } = req.body;
+      // account_type 중복 체크 (1=수동, 2=자동은 각 1개만 허용)
+      if (account_type === 1 || account_type === 2) {
+        const existing = db.prepare('SELECT id FROM user_broker_keys WHERE user_id=? AND account_type=?').get(req.user.id, account_type);
+        if (existing) return res.status(400).json({ error: account_type === 1 ? '수동 전용 계좌는 1개만 등록 가능합니다.' : '자동매매 전용 계좌는 1개만 등록 가능합니다.' });
+      }
+      db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active, account_type) VALUES (?,?,?,?,?,?,?)').run(req.user.id, name, encKey, encSecret, paper, isActive, account_type);
       return res.json({ status: 'ok', message: `'${name}' 계좌가 등록됐습니다.` });
     } catch (e) {
       saveErrorLog({ event_type: 'BROKER_KEY_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId: req.user?.id } });
@@ -197,7 +203,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   router.delete('/api/user/broker-keys/:id', (req, res) => {
-    const row = db.prepare('SELECT id, is_active FROM user_broker_keys WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    const row = db.prepare('SELECT id, is_active, account_type FROM user_broker_keys WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
     if (!row) return res.status(404).json({ error: '계좌를 찾을 수 없습니다.' });
     db.prepare('DELETE FROM user_broker_keys WHERE id = ?').run(req.params.id);
     if (row.is_active) {
@@ -205,6 +211,42 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       if (next) db.prepare('UPDATE user_broker_keys SET is_active = 1 WHERE id = ?').run(next.id);
     }
     return res.json({ status: 'ok', message: '계좌가 삭제됐습니다.' });
+  });
+
+  // 계좌 타입 변경 API (포지션 없을 때만 가능)
+  router.post('/api/user/broker-keys/:id/type', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { account_type } = req.body;
+    if (![0, 1, 2].includes(account_type)) return res.status(400).json({ error: '잘못된 계좌 타입' });
+    const row = db.prepare('SELECT * FROM user_broker_keys WHERE id=? AND user_id=?').get(req.params.id, req.user.id);
+    if (!row) return res.status(404).json({ error: '계좌를 찾을 수 없음' });
+
+    // 타입 변경 시 기존 타입과 다를 경우에만 포지션 체크
+    if (row.account_type !== account_type && (row.account_type === 1 || row.account_type === 2)) {
+      try {
+        const keys = getUserAlpacaKeys(req.user.id, row.id);
+        if (keys) {
+          const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+          const posRes = await fetch(`${baseUrl}/v2/positions`, {
+            headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key }
+          });
+          const positions = await posRes.json();
+          const posList = Array.isArray(positions) ? positions : [];
+          if (posList.length > 0) {
+            return res.status(400).json({ error: `보유 종목 ${posList.length}개가 있어 계좌 타입을 변경할 수 없습니다. 모든 포지션을 정리 후 변경해주세요.` });
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 동일 타입 중복 체크 (1=수동, 2=자동은 각 1개만)
+    if (account_type === 1 || account_type === 2) {
+      const existing = db.prepare('SELECT id FROM user_broker_keys WHERE user_id=? AND account_type=? AND id!=?').get(req.user.id, account_type, row.id);
+      if (existing) return res.status(400).json({ error: account_type === 1 ? '수동 전용 계좌가 이미 있습니다.' : '자동매매 전용 계좌가 이미 있습니다.' });
+    }
+
+    db.prepare('UPDATE user_broker_keys SET account_type=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(account_type, row.id);
+    res.json({ ok: true });
   });
 
   router.post('/api/user/broker-keys/:id/activate', (req, res) => {

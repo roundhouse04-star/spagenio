@@ -60,7 +60,7 @@ db.exec(`
   -- created_type: 1=관리자생성(일반로그인 불가), 2=일반가입
   CREATE TABLE IF NOT EXISTS admin_roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role_name TEXT UNIQUE NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, role_id INTEGER, is_active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, FOREIGN KEY (role_id) REFERENCES admin_roles(id));
-  CREATE TABLE IF NOT EXISTS user_broker_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, account_name TEXT NOT NULL DEFAULT '기본 계좌', alpaca_api_key TEXT, alpaca_secret_key TEXT, alpaca_paper INTEGER DEFAULT 1, is_active INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS user_broker_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, account_name TEXT NOT NULL DEFAULT '기본 계좌', alpaca_api_key TEXT, alpaca_secret_key TEXT, alpaca_paper INTEGER DEFAULT 1, is_active INTEGER DEFAULT 0, account_type INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS terms_agreements (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, agree_terms INTEGER DEFAULT 0, agree_privacy INTEGER DEFAULT 0, agree_investment INTEGER DEFAULT 0, agree_marketing INTEGER DEFAULT 0, ip TEXT, agreed_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code TEXT NOT NULL, verified INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL);
   CREATE TABLE IF NOT EXISTS invite_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, created_by INTEGER, used_by INTEGER, used_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME);
@@ -201,6 +201,8 @@ function updateTradeLogStatus(user_id, symbol, trade_type) {
 }
 
 
+try { db.exec("ALTER TABLE user_broker_keys ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
+// account_type: 0=미설정, 1=수동전용, 2=자동전용
 try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_strategy TEXT DEFAULT 'value_quality'"); } catch (e) { }
 try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_market TEXT DEFAULT 'nasdaq'"); } catch (e) { }
 
@@ -764,10 +766,18 @@ async function callClaude(userRequest, taskType, taskComplexity) {
   return { durationMs: Date.now() - started, body: { answer: response.content[0]?.text || '', model: response.model, usage: response.usage } };
 }
 
-function getUserAlpacaKeys(userId, accountId) {
+function getUserAlpacaKeys(userId, accountId, accountType = null) {
   let row;
-  if (accountId) { row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE id=? AND user_id=?').get(accountId, userId); }
-  else {
+  if (accountId) {
+    row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE id=? AND user_id=?').get(accountId, userId);
+  } else if (accountType) {
+    // accountType: 1=수동전용, 2=자동전용
+    row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND account_type=?').get(userId, accountType);
+    if (!row) {
+      // 전용 계좌 없으면 is_active 계좌 폴백
+      row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND is_active=1').get(userId);
+    }
+  } else {
     row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND is_active=1').get(userId);
     if (!row) row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? LIMIT 1').get(userId);
   }
@@ -1374,8 +1384,8 @@ function calcRSI(closes, period = 14) { if (closes.length < period + 1) return n
 async function runAutoTradeForUser(userId) {
   const settings = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=? AND enabled=1').get(userId);
   if (!settings) return { ok: false, message: '자동매매 비활성화 상태' };
-  const keys = getUserAlpacaKeys(userId, null);
-  if (!keys) return { ok: false, message: 'Alpaca 키 없음' };
+  const keys = getUserAlpacaKeys(userId, null, 2);
+  if (!keys) return { ok: false, message: 'Alpaca 키 없음 (자동매매 전용 계좌를 등록해주세요)' };
   const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
   const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
   const results = [];
@@ -1819,7 +1829,7 @@ app.post('/api/mail/lotto', async (req, res) => {
 async function runAutoStrategy(userId) {
   const s = db.prepare('SELECT * FROM auto_strategy_settings WHERE user_id=? AND enabled=1').get(userId);
   if (!s) return;
-  const keys = getUserAlpacaKeys(userId, null);
+  const keys = getUserAlpacaKeys(userId, null, 2);
   if (!keys) return;
   const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
   const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };

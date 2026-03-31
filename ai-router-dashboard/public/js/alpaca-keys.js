@@ -36,15 +36,21 @@ async function loadAlpacaKeyStatus() {
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-weight:700;font-size:0.92rem;color:${isSelected ? 'var(--accent)' : 'var(--text)'};">${acc.account_name}</span>
               <span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:${acc.alpaca_paper ? '#fef3c7' : '#d1fae5'};color:${acc.alpaca_paper ? '#92400e' : '#065f46'};font-weight:700;">${mode}</span>
+              ${acc.account_type === 1 ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#ede9fe;color:#7c3aed;font-weight:700;">✋ 수동전용</span>' : ''}
+              ${acc.account_type === 2 ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;">🤖 자동전용</span>' : ''}
               ${isSelected ? '<span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#eef2ff;color:var(--accent);font-weight:700;">Active</span>' : ''}
             </div>
             <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">Last updated: ${acc.updated_at?.slice(0, 16) || '-'}</div>
           </div>
-          <div style="display:flex;gap:6px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
             ${!acc.is_active ? `<button onclick="event.stopPropagation();activateAccount(${acc.id})"
               style="padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
               Select
             </button>` : ''}
+            <button onclick="event.stopPropagation();changeAccountType(${acc.id}, ${acc.account_type || 0})"
+              style="padding:5px 10px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
+              타입 설정
+            </button>
             <button onclick="event.stopPropagation();deleteAccount(${acc.id})"
               style="padding:5px 10px;background:#fff0f0;color:#ef4444;border:1px solid #fecaca;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
               Delete
@@ -92,6 +98,69 @@ async function deleteAccount(id) {
       await spAlert(data.error, '오류', '❌');
     }
   } catch (e) { }
+}
+
+async function changeAccountType(id, currentType) {
+  const typeLabels = { 0: '미설정', 1: '✋ 수동전용', 2: '🤖 자동전용' };
+  const options = [
+    { value: 0, label: '미설정 (일반 계좌)' },
+    { value: 1, label: '✋ 수동전용 (주식 탭 거래)' },
+    { value: 2, label: '🤖 자동전용 (자동매매 전용)' },
+  ];
+
+  // 선택 팝업
+  const html = `
+    <div style="padding:20px;">
+      <div style="font-size:1rem;font-weight:700;margin-bottom:12px;">계좌 타입 설정</div>
+      <div style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">현재: ${typeLabels[currentType] || '미설정'}</div>
+      ${options.map(o => `
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid ${o.value === currentType ? '#7c3aed' : '#e5e7eb'};background:${o.value === currentType ? '#f5f3ff' : '#fff'};margin-bottom:8px;cursor:pointer;">
+          <input type="radio" name="accType" value="${o.value}" ${o.value === currentType ? 'checked' : ''}>
+          <span style="font-weight:600;">${o.label}</span>
+        </label>
+      `).join('')}
+      <div style="font-size:0.78rem;color:#ef4444;margin-top:8px;">⚠️ 수동/자동 전용 계좌는 각 1개만 등록 가능하며, 보유 포지션이 있으면 변경할 수 없습니다.</div>
+    </div>`;
+
+  // spConfirm 대신 직접 팝업
+  const confirmed = await new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:24px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+        ${html}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+          <button id="cancelTypeBtn" style="padding:8px 16px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-weight:600;">취소</button>
+          <button id="confirmTypeBtn" style="padding:8px 16px;border-radius:8px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:700;">변경</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#cancelTypeBtn').onclick = () => { document.body.removeChild(overlay); resolve(null); };
+    overlay.querySelector('#confirmTypeBtn').onclick = () => {
+      const selected = overlay.querySelector('input[name="accType"]:checked');
+      document.body.removeChild(overlay);
+      resolve(selected ? parseInt(selected.value) : null);
+    };
+  });
+
+  if (confirmed === null) return;
+
+  try {
+    const res = await fetch(`/api/user/broker-keys/${id}/type`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_type: confirmed })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      await spAlert('계좌 타입이 변경됐습니다.', '완료', '✅');
+      await loadAlpacaKeyStatus();
+    } else {
+      await spAlert(data.error || '변경 실패', '오류', '❌');
+    }
+  } catch(e) {
+    await spAlert('서버 오류: ' + e.message, '오류', '❌');
+  }
 }
 
 function toggleAlpacaKeyForm() {
@@ -142,7 +211,8 @@ async function saveAlpacaKeys() {
     const res = await fetch('/api/user/broker-keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account_name, alpaca_api_key: api_key, alpaca_secret_key: secret_key, alpaca_paper: paper })
+      const accountType = parseInt(document.getElementById('inputAccountType')?.value || '0');
+      body: JSON.stringify({ account_name, alpaca_api_key: api_key, alpaca_secret_key: secret_key, alpaca_paper: paper, account_type: accountType })
     });
     const data = await res.json();
 

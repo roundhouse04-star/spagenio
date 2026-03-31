@@ -2051,6 +2051,15 @@
                 </label>
               </div>
             </div>
+            <div style="margin-bottom:14px;">
+              <label class="sp-label">계좌 타입</label>
+              <select id="inputAccountType" class="sp-input" style="font-size:0.87rem;">
+                <option value="0">미설정 (일반 계좌)</option>
+                <option value="1">✋ 수동전용 — 주식 탭 직접 거래</option>
+                <option value="2">🤖 자동전용 — 자동매매 스케줄러 전용</option>
+              </select>
+              <div style="font-size:0.75rem;color:#6B7280;margin-top:4px;">⚠️ 수동/자동 전용 계좌는 각 1개만 등록 가능하며, 포지션이 있으면 타입 변경 불가</div>
+            </div>
             <div class="sp-grid-2" style="margin-bottom:14px;">
               <div>
                 <label class="sp-label">Alpaca API Key</label>
@@ -3918,7 +3927,7 @@
 
   <script src="/js/common.js?v=20260331"></script>
   <script src="/js/ai-router.js?v=20260331"></script>
-  <script src="/js/stock.js?v=20260331b"></script>
+  <script src="/js/stock.js?v=20260331"></script>
   <script src="/js/alpaca-keys.js?v=20260331"></script>
   <script src="/js/news.js?v=20260331"></script>
   <script src="/js/datacollect.js?v=20260331"></script>
@@ -5142,47 +5151,26 @@
         const res = await fetch('/api/auto-trade/log');
         const d = await res.json();
         if (!d.logs?.length) { el.innerHTML = '<div class="sp-empty">매매 이력 없음</div>'; return; }
-
-        // 액션 라벨
-        const actionMap = { BUY: '매수', SELL: '매도', SELL_PROFIT: '익절', SELL_PROFIT1: '1차익절', SELL_PROFIT2: '2차익절', SELL_LOSS: '손절', SELL_STOP: '손절', SELL_FACTOR: '팩터매도', SELL_MANUAL: '수동매도', SELL_STOP_ALL: '전체종료' };
-
-        // 거래 타입 배지 설정 (trade_type 기반)
-        const typeConfig = {
-          1: { label: '수동', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
-          2: { label: '단순자동', color: '#fb923c', bg: 'rgba(251,146,60,0.12)' },
-          3: { label: '완전자동', color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
-          4: { label: '일반자동', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-        };
-
+        const actionMap = { BUY: '매수', SELL_PROFIT: '익절', SELL_PROFIT1: '1차익절', SELL_PROFIT2: '2차익절', SELL_LOSS: '손절', SELL_STOP: '손절', SELL_FACTOR: '팩터매도' };
         el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
           <thead><tr>
             <th style="padding:7px 10px;text-align:left;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">일시</th>
             <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">종목</th>
-            <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">타입</th>
             <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">구분</th>
             <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">가격</th>
             <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">손익</th>
           </tr></thead><tbody>
-          ${d.logs.slice(0, 50).map(l => {
-            const isBuy = l.action === 'BUY';
-            const isProfit = l.action.includes('PROFIT');
-            const isLoss = l.action.includes('LOSS') || l.action.includes('STOP');
-            // 액션 색상
-            const actionColor = isBuy ? '#60a5fa' : isProfit ? '#34d399' : isLoss ? '#f87171' : '#9CA3AF';
-            // 손익 색상 (수익률 기반)
-            const pnlVal = parseFloat(l.profit_pct || 0);
-            const pnlColor = pnlVal > 0 ? '#34d399' : pnlVal < 0 ? '#f87171' : '#9CA3AF';
-            const pnl = l.profit_pct != null && l.profit_pct !== 0
-              ? `${pnlVal > 0 ? '+' : ''}${pnlVal.toFixed(2)}%` : '-';
-            // 타입 배지
-            const tc = typeConfig[l.trade_type] || { label: l.type_name || '기타', color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
-            return `<tr style="transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
-              <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-size:0.76rem;color:#636366;white-space:nowrap;">${new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-weight:800;color:#E5E7EB;letter-spacing:0.03em;">${l.symbol}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.7rem;font-weight:700;background:${tc.bg};color:${tc.color};">${tc.label}</span></td>
-              <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${actionColor}22;color:${actionColor};">${actionMap[l.action] || l.action}</span></td>
-              <td style="padding:7px 10px;border-bottom:1px solid #1E242C;color:#E5E7EB;font-size:0.82rem;">$${parseFloat(l.price || 0).toFixed(2)}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-weight:700;color:${pnlColor};font-size:0.82rem;">${pnl}</td>
+          ${d.logs.slice(0, 20).map(l => {
+          const isBuy = l.action === 'BUY';
+          const isProfit = l.action.includes('PROFIT');
+          const color = isBuy ? '#4f8fff' : isProfit ? '#FF3B30' : '#007AFF';
+          const pnl = l.profit_pct ? `${l.profit_pct > 0 ? '+' : ''}${parseFloat(l.profit_pct).toFixed(2)}%` : '-';
+          return `<tr>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-size:0.78rem;color:#9CA3AF;">${new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:#E5E7EB;">${l.symbol}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;"><span style="padding:2px 7px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${color}22;color:${color};">${actionMap[l.action] || l.action}</span></td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;color:#E5E7EB;">$${parseFloat(l.price || 0).toFixed(2)}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:${isProfit ? '#FF3B30' : l.action.includes('LOSS') || l.action.includes('STOP') ? '#007AFF' : '#9CA3AF'};">${pnl}</td>
             </tr>`;
         }).join('')}
           </tbody></table></div>`;
