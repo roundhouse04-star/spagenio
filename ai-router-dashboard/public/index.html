@@ -6067,6 +6067,8 @@
         if (badge) badge.innerHTML = `<span style="padding:3px 10px;background:rgba(99,102,241,0.15);border-radius:999px;color:#a5b4fc;font-size:0.85rem;font-weight:700;">${symbol}</span>`;
         const symEl = document.getElementById('quantSymbol');
         if (symEl) symEl.value = symbol;
+        const dcSymEl = document.getElementById('dc-symbols');
+        if (dcSymEl) dcSymEl.value = symbol;
       }
 
       // bt-symbol 백테스팅 심볼
