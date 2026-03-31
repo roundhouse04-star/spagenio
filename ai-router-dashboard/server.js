@@ -660,8 +660,7 @@ const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.json()),
   transports: [
-    new winston.transports.File({ filename: path.join(logDir, 'access.log'), maxsize: 5242880, maxFiles: 10 }),
-    new winston.transports.File({ filename: path.join(logDir, 'error.log'), level: 'error', maxsize: 5242880, maxFiles: 10 }),
+    new winston.transports.File({ filename: path.join(logDir, 'error.log'), level: 'error', maxsize: 2097152, maxFiles: 3 }),
     new winston.transports.Console({
       format: winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.printf(({ level, message, timestamp, ...meta }) => {
         const lc = { error: `${C.bright}${C.red}`, warn: `${C.bright}${C.yellow}`, info: C.cyan, debug: C.gray }[level] || C.white;
@@ -821,7 +820,7 @@ app.use((req, res, next) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
-    logger.info('ACCESS', { ip, method: req.method, path: req.path, statusCode: res.statusCode, userId: req.user?.id, username: req.user?.username, userAgent: req.headers['user-agent'], referer: req.headers['referer'], responseTime });
+    // ACCESS 파일 로그 제거 — DB(access_logs)에만 저장
     if (!req.path.match(/\.(js|css|ico|png|jpg|svg|woff)$/)) saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userId: req.user?.id, username: req.user?.username, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime });
     const suspiciousPatterns = ['/etc/passwd', '../', 'eval(', '<script', 'UNION SELECT', 'DROP TABLE', '/admin.php', '/wp-admin'];
     if (suspiciousPatterns.some(p => req.path.toLowerCase().includes(p.toLowerCase()))) { logger.warn('SUSPICIOUS_REQUEST', { ip, method: req.method, path: req.path }); saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime, eventType: 'suspicious' }); }
