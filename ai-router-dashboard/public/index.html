@@ -3845,6 +3845,138 @@
       </div>
     </div>
 
+    <!-- ===== 종목 분석 탭 ===== -->
+    <div id="tab-analysis" class="tab-content" style="display:none;">
+      <div class="sp-page" style="background:#0D1117;min-height:calc(100vh - 52px);">
+
+        <!-- 검색 영역 -->
+        <div class="sp-card" style="margin-bottom:20px;">
+          <div class="sp-card-header">
+            <div class="sp-card-title">🔍 종목 분석</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input type="text" id="analysisSymbolInput" placeholder="종목 심볼 입력 (예: AAPL, 005930.KS)"
+              class="sp-input" style="flex:1;font-size:1rem;height:44px;"
+              onkeydown="if(event.key==='Enter') runStockAnalysis()" />
+            <button onclick="runStockAnalysis()" class="sp-btn sp-btn-indigo" style="height:44px;padding:0 24px;font-size:0.95rem;">
+              📊 분석
+            </button>
+          </div>
+        </div>
+
+        <!-- 로딩 -->
+        <div id="analysisLoading" style="display:none;text-align:center;padding:40px;color:#9CA3AF;">
+          🔍 분석 중...
+        </div>
+
+        <!-- 결과 영역 -->
+        <div id="analysisResult" style="display:none;">
+
+          <!-- 1행: 기본정보 + 애널리스트 컨센서스 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+            <!-- 기본 정보 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title" id="analysisName">-</div>
+                <span id="analysisSector" style="font-size:0.75rem;color:#9CA3AF;"></span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+                <span id="analysisPrice" style="font-size:2rem;font-weight:800;color:#E5E7EB;">-</span>
+                <span id="analysisChange" style="font-size:1rem;font-weight:700;">-</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem;">
+                <div style="padding:8px;background:#1E242C;border-radius:8px;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;">52주 최고</div>
+                  <div id="analysis52High" style="font-weight:700;color:#FF3B30;">-</div>
+                </div>
+                <div style="padding:8px;background:#1E242C;border-radius:8px;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;">52주 최저</div>
+                  <div id="analysis52Low" style="font-weight:700;color:#1E7BFF;">-</div>
+                </div>
+                <div style="padding:8px;background:#1E242C;border-radius:8px;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;">거래량</div>
+                  <div id="analysisVolume" style="font-weight:700;color:#E5E7EB;">-</div>
+                </div>
+                <div style="padding:8px;background:#1E242C;border-radius:8px;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;">시가총액</div>
+                  <div id="analysisMktCap" style="font-weight:700;color:#E5E7EB;">-</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 애널리스트 컨센서스 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">🎯 애널리스트 컨센서스</div>
+                <span id="analysisAnalystCount" style="font-size:0.78rem;color:#9CA3AF;"></span>
+              </div>
+              <div style="text-align:center;margin-bottom:16px;">
+                <div id="analysisRecommendation" style="font-size:1.5rem;font-weight:800;padding:8px 20px;border-radius:999px;display:inline-block;">-</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:0.82rem;">
+                <div style="padding:8px;background:#1E242C;border-radius:8px;text-align:center;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;font-size:0.72rem;">목표가 평균</div>
+                  <div id="analysisTargetMean" style="font-weight:800;color:#FFD60A;">-</div>
+                </div>
+                <div style="padding:8px;background:#1E242C;border-radius:8px;text-align:center;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;font-size:0.72rem;">목표가 최고</div>
+                  <div id="analysisTargetHigh" style="font-weight:800;color:#FF3B30;">-</div>
+                </div>
+                <div style="padding:8px;background:#1E242C;border-radius:8px;text-align:center;">
+                  <div style="color:#9CA3AF;margin-bottom:2px;font-size:0.72rem;">목표가 최저</div>
+                  <div id="analysisTargetLow" style="font-weight:800;color:#1E7BFF;">-</div>
+                </div>
+              </div>
+              <div id="analysisUpside" style="margin-top:12px;text-align:center;font-size:0.85rem;font-weight:700;"></div>
+            </div>
+          </div>
+
+          <!-- 2행: 재무지표 + 기술적 지표 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+            <!-- 재무지표 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📊 재무지표</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;" id="analysisFundamentals">
+              </div>
+            </div>
+
+            <!-- 기술적 지표 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📈 기술적 지표</div>
+                <span id="analysisTechSignal" style="font-size:0.78rem;padding:3px 10px;border-radius:999px;font-weight:700;"></span>
+              </div>
+              <div id="analysisTechnical" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem;">
+              </div>
+            </div>
+          </div>
+
+          <!-- 3행: 차트 -->
+          <div class="sp-card" style="margin-bottom:16px;">
+            <div class="sp-card-header">
+              <div class="sp-card-title">📉 주가 차트</div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="loadAnalysisChart('1mo')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">1M</button>
+                <button onclick="loadAnalysisChart('3mo')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm active">3M</button>
+                <button onclick="loadAnalysisChart('6mo')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">6M</button>
+                <button onclick="loadAnalysisChart('1y')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">1Y</button>
+              </div>
+            </div>
+            <canvas id="analysisChartCanvas" height="80"></canvas>
+          </div>
+
+        </div><!-- /analysisResult -->
+
+        <!-- 에러 -->
+        <div id="analysisError" style="display:none;padding:16px;color:#ef4444;background:rgba(239,68,68,0.1);border-radius:8px;"></div>
+
+      </div>
+    </div>
+
     <style>
       .lotto-day-btn {
         padding: 5px 12px;
@@ -5239,6 +5371,11 @@
       if (tabKey === 'quant' && !subKey) {
         setTimeout(() => { if (typeof checkInvestorProfile === 'function') checkInvestorProfile(); }, 50);
       }
+      if (tabKey === 'analysis') {
+        const analysisTab = document.getElementById('tab-analysis');
+        if (analysisTab) analysisTab.style.display = 'block';
+        setTimeout(() => { document.getElementById('analysisSymbolInput')?.focus(); }, 100);
+      }
     }
 
     function renderDefaultSidebar() {
@@ -6107,6 +6244,148 @@
       }
     }
   </script>
+
+    // ============================================================
+    // 종목 분석 JS
+    // ============================================================
+    let _analysisSymbol = '';
+    let _analysisChartInstance = null;
+
+    async function runStockAnalysis() {
+      const symbol = document.getElementById('analysisSymbolInput')?.value?.trim().toUpperCase();
+      if (!symbol) { await spAlert('종목 심볼을 입력해주세요', '알림', '⚠️'); return; }
+      _analysisSymbol = symbol;
+
+      document.getElementById('analysisLoading').style.display = 'block';
+      document.getElementById('analysisResult').style.display = 'none';
+      document.getElementById('analysisError').style.display = 'none';
+
+      try {
+        const res = await fetch(`/proxy/quant/api/quant/stock-analysis?symbol=${symbol}`);
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || '분석 실패');
+        renderAnalysisResult(d);
+        loadAnalysisChart('3mo');
+      } catch (e) {
+        document.getElementById('analysisError').style.display = 'block';
+        document.getElementById('analysisError').textContent = '❌ ' + e.message;
+      } finally {
+        document.getElementById('analysisLoading').style.display = 'none';
+      }
+    }
+
+    function renderAnalysisResult(d) {
+      const isKr = _analysisSymbol.endsWith('.KS') || _analysisSymbol.endsWith('.KQ');
+      const currency = isKr ? '₩' : '$';
+      const fmt = (v) => v ? `${currency}${isKr ? Math.round(v).toLocaleString() : v.toLocaleString()}` : '-';
+
+      // 기본 정보
+      document.getElementById('analysisName').textContent = `${d.fundamentals?.name || d.symbol} (${d.symbol})`;
+      document.getElementById('analysisSector').textContent = d.fundamentals?.sector || '';
+      document.getElementById('analysisPrice').textContent = fmt(d.current_price);
+
+      const chg = d.change_pct;
+      const chgEl = document.getElementById('analysisChange');
+      chgEl.textContent = chg != null ? `${chg >= 0 ? '+' : ''}${chg}%` : '-';
+      chgEl.style.color = chg >= 0 ? '#FF3B30' : '#1E7BFF';
+
+      document.getElementById('analysis52High').textContent = fmt(d.fundamentals?.fifty_two_week_high);
+      document.getElementById('analysis52Low').textContent = fmt(d.fundamentals?.fifty_two_week_low);
+      document.getElementById('analysisVolume').textContent = d.fundamentals?.volume ? (d.fundamentals.volume / 1e6).toFixed(1) + 'M' : '-';
+      const mc = d.fundamentals?.market_cap;
+      document.getElementById('analysisMktCap').textContent = mc ? (mc >= 1e12 ? (mc/1e12).toFixed(1)+'T' : (mc/1e9).toFixed(1)+'B') : '-';
+
+      // 애널리스트 컨센서스
+      const c = d.consensus || {};
+      const recMap = { buy: { label: '매수', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }, hold: { label: '보유', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' }, sell: { label: '매도', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' }, 'strong buy': { label: '강력매수', color: '#10b981', bg: 'rgba(16,185,129,0.2)' }, 'strong sell': { label: '강력매도', color: '#ef4444', bg: 'rgba(239,68,68,0.2)' } };
+      const rec = recMap[c.recommendation?.toLowerCase()] || { label: c.recommendation || '-', color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)' };
+      const recEl = document.getElementById('analysisRecommendation');
+      recEl.textContent = rec.label;
+      recEl.style.color = rec.color;
+      recEl.style.background = rec.bg;
+
+      document.getElementById('analysisAnalystCount').textContent = c.analyst_count ? `애널리스트 ${c.analyst_count}명` : '';
+      document.getElementById('analysisTargetMean').textContent = c.target_mean ? fmt(c.target_mean) : '-';
+      document.getElementById('analysisTargetHigh').textContent = c.target_high ? fmt(c.target_high) : '-';
+      document.getElementById('analysisTargetLow').textContent = c.target_low ? fmt(c.target_low) : '-';
+
+      const upsideEl = document.getElementById('analysisUpside');
+      if (c.upside_pct != null) {
+        upsideEl.textContent = `현재가 대비 목표가 ${c.upside_pct >= 0 ? '+' : ''}${c.upside_pct}% ${c.upside_pct >= 0 ? '↑ 상승여력' : '↓ 하락여지'}`;
+        upsideEl.style.color = c.upside_pct >= 0 ? '#10b981' : '#ef4444';
+      }
+
+      // 재무지표
+      const f = d.fundamentals || {};
+      const fundItems = [
+        { label: 'PER', value: f.per ? f.per + '배' : '-' },
+        { label: 'PBR', value: f.pbr ? f.pbr + '배' : '-' },
+        { label: 'ROE', value: f.roe ? f.roe + '%' : '-', color: f.roe > 15 ? '#10b981' : f.roe > 0 ? '#E5E7EB' : '#ef4444' },
+        { label: '부채비율', value: f.debt_to_equity ? f.debt_to_equity + '%' : '-', color: f.debt_to_equity < 100 ? '#10b981' : f.debt_to_equity < 200 ? '#f59e0b' : '#ef4444' },
+        { label: '매출성장', value: f.revenue_growth ? f.revenue_growth + '%' : '-', color: f.revenue_growth > 10 ? '#10b981' : f.revenue_growth > 0 ? '#E5E7EB' : '#ef4444' },
+        { label: '업종', value: f.industry || '-' },
+      ];
+      document.getElementById('analysisFundamentals').innerHTML = fundItems.map(item => `
+        <div style="padding:10px;background:#1E242C;border-radius:8px;">
+          <div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">${item.label}</div>
+          <div style="font-weight:700;color:${item.color || '#E5E7EB'};">${item.value}</div>
+        </div>`).join('');
+
+      // 기술적 지표
+      const t = d.technical || {};
+      const sigMap = { buy: { label: '매수', color: '#10b981' }, weak_buy: { label: '약한매수', color: '#34d399' }, hold: { label: '중립', color: '#f59e0b' }, weak_sell: { label: '약한매도', color: '#f87171' }, sell: { label: '매도', color: '#ef4444' } };
+      const sig = sigMap[t.signal] || { label: t.signal || '-', color: '#9CA3AF' };
+      const sigEl = document.getElementById('analysisTechSignal');
+      sigEl.textContent = sig.label;
+      sigEl.style.background = sig.color + '22';
+      sigEl.style.color = sig.color;
+
+      const details = t.details || {};
+      const techItems = Object.entries(details).map(([key, val]) => `
+        <div style="padding:10px;background:#1E242C;border-radius:8px;">
+          <div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">${key}</div>
+          <div style="font-weight:700;color:${val.signal === 'buy' ? '#10b981' : val.signal === 'sell' ? '#ef4444' : '#f59e0b'};font-size:0.8rem;">${val.reason || val.signal || '-'}</div>
+        </div>`).join('');
+      document.getElementById('analysisTechnical').innerHTML = techItems || '<div style="color:#9CA3AF;padding:8px;">기술적 데이터 없음</div>';
+
+      document.getElementById('analysisResult').style.display = 'block';
+    }
+
+    async function loadAnalysisChart(period) {
+      if (!_analysisSymbol) return;
+      document.querySelectorAll('.analysis-period-btn').forEach(b => b.classList.remove('active'));
+      event?.target?.classList?.add('active');
+      try {
+        const res = await fetch(`/proxy/quant/api/quant/chart?symbol=${_analysisSymbol}&period=${period}`);
+        const data = await res.json();
+        if (data.error || !data.dates) return;
+        if (_analysisChartInstance) { _analysisChartInstance.destroy(); _analysisChartInstance = null; }
+        const ctx = document.getElementById('analysisChartCanvas')?.getContext('2d');
+        if (!ctx) return;
+        const up = data.ohlc.close[data.ohlc.close.length-1] >= data.ohlc.close[0];
+        _analysisChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.dates,
+            datasets: [
+              { label: '종가', data: data.ohlc.close, borderColor: up ? '#FF3B30' : '#1E7BFF', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true, backgroundColor: up ? 'rgba(255,59,48,0.05)' : 'rgba(30,123,255,0.05)' },
+              { label: 'SMA20', data: data.sma?.sma20, borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [4,2] },
+              { label: 'BB상단', data: data.bb?.upper, borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3,3] },
+              { label: 'BB하단', data: data.bb?.lower, borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3,3] },
+            ]
+          },
+          options: {
+            responsive: true, animation: false,
+            plugins: { legend: { labels: { color: '#9CA3AF', font: { size: 11 } } } },
+            scales: {
+              x: { ticks: { color: '#9CA3AF', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+              y: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+          }
+        });
+      } catch(e) { console.error('차트 로드 실패:', e); }
+    }
+
 </body>
 
 </html>

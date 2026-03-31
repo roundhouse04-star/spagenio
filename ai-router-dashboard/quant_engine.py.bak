@@ -1451,67 +1451,6 @@ def integrated_screen():
     return jsonify({'ok': True, 'strategy': strategy, 'strategy_label': strategy_labels.get(strategy, strategy), 'market': market, 'market_label': market_labels.get(market, market), 'screened': len(filtered), 'factor_top': top_n, 'results': final, 'updated_at': datetime.now().isoformat()})
 
 
-@app.route('/api/quant/stock-analysis', methods=['GET'])
-def stock_analysis():
-    symbol = request.args.get('symbol', '').strip().upper()
-    if not symbol:
-        return jsonify({'ok': False, 'error': '종목 심볼을 입력해주세요'})
-    try:
-        import yfinance as yf
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
-
-        # 기본 정보
-        current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
-        prev_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
-        change_pct = round(((current_price - prev_close) / prev_close * 100), 2) if current_price and prev_close else None
-
-        # 애널리스트 컨센서스
-        consensus = {
-            'target_mean': info.get('targetMeanPrice'),
-            'target_high': info.get('targetHighPrice'),
-            'target_low': info.get('targetLowPrice'),
-            'recommendation': info.get('recommendationKey'),
-            'analyst_count': info.get('numberOfAnalystOpinions'),
-            'upside_pct': round((info.get('targetMeanPrice', 0) - current_price) / current_price * 100, 2) if current_price and info.get('targetMeanPrice') else None
-        }
-
-        # 재무지표
-        fundamentals = {
-            'per': round(info.get('trailingPE', 0), 2) if info.get('trailingPE') else None,
-            'pbr': round(info.get('priceToBook', 0), 2) if info.get('priceToBook') else None,
-            'roe': round(info.get('returnOnEquity', 0) * 100, 2) if info.get('returnOnEquity') else None,
-            'debt_to_equity': round(info.get('debtToEquity', 0), 2) if info.get('debtToEquity') else None,
-            'revenue_growth': round(info.get('revenueGrowth', 0) * 100, 2) if info.get('revenueGrowth') else None,
-            'market_cap': info.get('marketCap'),
-            'volume': info.get('regularMarketVolume') or info.get('volume'),
-            'avg_volume': info.get('averageVolume'),
-            'fifty_two_week_high': info.get('fiftyTwoWeekHigh'),
-            'fifty_two_week_low': info.get('fiftyTwoWeekLow'),
-            'name': info.get('longName') or info.get('shortName', symbol),
-            'sector': info.get('sector'),
-            'industry': info.get('industry'),
-        }
-
-        # 기술적 분석
-        tech = analyze_combined(symbol)
-
-        return jsonify({
-            'ok': True,
-            'symbol': symbol,
-            'current_price': current_price,
-            'prev_close': prev_close,
-            'change_pct': change_pct,
-            'consensus': consensus,
-            'fundamentals': fundamentals,
-            'technical': tech,
-            'updated_at': datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)})
-
-
-
 if __name__ == '__main__':
     # 만료 캐시 자동 정리 (10분마다)
     def _cache_cleaner():
