@@ -6,28 +6,29 @@ const router = express.Router();
 // 거래량 급등 감지
 // ============================================================
 async function detectVolumeSurge(symbols, alpacaKeys = null) {
-  const headers = alpacaKeys
-    ? { 'APCA-API-KEY-ID': alpacaKeys.api_key, 'APCA-API-SECRET-KEY': alpacaKeys.secret_key }
-    : {};
+  // Alpaca Paper 계좌는 data.alpaca.markets 미지원 → yfinance proxy 사용
+  const STOCK_API = process.env.STOCK_API_URL || 'http://localhost:5001';
   const results = [];
-  const end = new Date().toISOString().split('T')[0];
-  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   await Promise.allSettled(symbols.map(async (symbol) => {
     try {
-      const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=30`, { headers });
+      const resp = await fetch(`${STOCK_API}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=1mo&interval=1d`);
       const json = await resp.json();
-      const bars = json.bars || [];
+      const bars = json.data || json.bars || [];
       if (bars.length < 10) return;
-      const volumes = bars.map(b => b.v);
+      const volumes = bars.map(b => b.volume || b.v || 0).filter(v => v > 0);
+      if (volumes.length < 5) return;
       const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
       const todayVolume = volumes[volumes.length - 1];
-      const ratio = todayVolume / avgVolume;
-      const closes = bars.map(b => b.c);
-      const change_pct = ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100;
+      const ratio = avgVolume > 0 ? todayVolume / avgVolume : 0;
+      const closes = bars.map(b => b.close || b.c || 0).filter(v => v > 0);
+      const price = closes[closes.length - 1] || 0;
+      const change_pct = closes.length >= 2
+        ? ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100
+        : 0;
       if (ratio >= 1.5) {
         results.push({
           symbol, today_volume: todayVolume, avg_volume: Math.round(avgVolume),
-          volume_ratio: parseFloat(ratio.toFixed(2)), price: closes[closes.length - 1],
+          volume_ratio: parseFloat(ratio.toFixed(2)), price,
           change_pct: parseFloat(change_pct.toFixed(2)),
           surge_level: ratio >= 3 ? 'extreme' : ratio >= 2 ? 'high' : 'moderate'
         });
@@ -1008,7 +1009,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           if (news) { score += 2; signals.push(`📰 뉴스 ${news.news_count}건`); }
 
           // 기술적 신호 점수
-          const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers: alpacaHeaders });
+          const STOCK_API2 = process.env.STOCK_API_URL || 'http://localhost:5001';
+      const resp = await fetch(`${STOCK_API2}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=3mo&interval=1d`);
           const json = await resp.json();
           const bars = json.bars || [];
           if (bars.length >= 35) {
@@ -1118,7 +1120,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
             const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
             const end = new Date().toISOString().split('T')[0];
             const start = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=5`, { headers })).json()).bars || [];
+            const _sapi = process.env.STOCK_API_URL || 'http://localhost:5001';
+            const _sresp = await fetch(`${_sapi}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=5d&interval=1d`);
+            const _sdata = await _sresp.json();
+            const bars = _sdata.data || _sdata.bars || [];
             if (bars.length) price = bars[bars.length - 1].c;
           }
         } catch(e) {}
