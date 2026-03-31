@@ -3067,7 +3067,17 @@
           <div class="sp-card" style="margin-bottom:20px;">
             <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
               <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
-              <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
+                  style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+                  🇺🇸 미국
+                </button>
+                <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
+                  style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                  🇰🇷 한국
+                </button>
+                <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+              </div>
             </div>
             <!-- 시장 선택 -->
             <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -3129,17 +3139,6 @@
           </div>
 
           <!-- 3열 그리드: 거래량 급등 / 뉴스 촉매 / 리스크 계산 -->
-          <!-- 시장 선택 버튼 -->
-          <div style="display:flex;gap:8px;margin-bottom:12px;">
-            <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
-              style="padding:5px 16px;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
-              🇺🇸 미국
-            </button>
-            <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
-              style="padding:5px 16px;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
-              🇰🇷 한국
-            </button>
-          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
 
             <!-- 거래량 급등 감지 -->
