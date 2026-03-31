@@ -289,11 +289,7 @@
     </div>
   `).join('');
 
-      // 메일 발송 버튼
-      const mailWrap = document.createElement('div');
-      mailWrap.style.cssText = 'margin-top:14px;display:flex;gap:10px;justify-content:flex-end;';
-      mailWrap.innerHTML = `<button id="lotto-mail-btn" onclick="sendLottoMail()" style="padding:9px 18px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:0.88rem;font-weight:700;cursor:pointer;">📧 메일로 받기</button>`;
-      container.appendChild(mailWrap);
+
 
       showToast('번호 추천 완료! 🍀');
     }
@@ -374,28 +370,3 @@
     if (savedToken) document.getElementById('lotto-tg-token').value = savedToken;
     if (savedChatid) document.getElementById('lotto-tg-chatid').value = savedChatid;
 
-    // ── 메일 발송 ─────────────────────────────────────────────
-    window.sendLottoMail = async function() {
-      if (!lastGames?.length) { showToast('먼저 번호를 생성해주세요! 🍀'); return; }
-      const btn = document.getElementById('lotto-mail-btn');
-      if (btn) { btn.disabled = true; btn.textContent = '⏳ 발송 중...'; }
-      try {
-        const res = await fetch('/api/mail/lotto', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ games: lastGames, date: new Date().toISOString().split('T')[0] })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast('📧 메일 발송 완료!');
-          if (btn) btn.textContent = '✅ 발송됨';
-          setTimeout(() => { if (btn) { btn.textContent = '📧 메일로 받기'; btn.disabled = false; } }, 3000);
-        } else {
-          showToast('❌ ' + (data.error || '발송 실패'));
-          if (btn) { btn.textContent = '📧 메일로 받기'; btn.disabled = false; }
-        }
-      } catch(e) {
-        showToast('❌ 오류: ' + e.message);
-        if (btn) { btn.textContent = '📧 메일로 받기'; btn.disabled = false; }
-      }
-    };
