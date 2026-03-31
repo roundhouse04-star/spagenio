@@ -46,9 +46,9 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
       db.prepare('DELETE FROM user_telegram WHERE user_id=?').run(uid);
       db.prepare('DELETE FROM user_broker_keys WHERE user_id=?').run(uid);
       db.prepare('DELETE FROM terms_agreements WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM auto_trade_settings WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM trade_setting_type4 WHERE user_id=?').run(uid);
       db.prepare('DELETE FROM auto_trade_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM auto_strategy_settings WHERE user_id=?').run(uid);
+      db.prepare('DELETE FROM trade_setting_type3 WHERE user_id=?').run(uid);
       db.prepare('DELETE FROM portfolio_performance WHERE user_id=?').run(uid);
       db.prepare('DELETE FROM backtest_results WHERE user_id=?').run(uid);
       db.prepare('DELETE FROM telegram_alert_log WHERE user_id=?').run(uid);

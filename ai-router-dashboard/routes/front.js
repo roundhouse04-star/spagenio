@@ -724,7 +724,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
       const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
-      db.prepare('UPDATE auto_trade_settings SET enabled=0 WHERE user_id=?').run(req.user.id);
+      db.prepare('UPDATE trade_setting_type4 SET enabled=0 WHERE user_id=?').run(req.user.id);
       const autoSymbols = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(req.user.id);
       const results = [];
       for (const { symbol } of autoSymbols) {
@@ -745,7 +745,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=?').get(req.user.id);
     res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined', factor_strategy: 'value_quality', factor_market: 'nasdaq' });
   });
 
@@ -754,12 +754,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market, kr_candidate_symbols } = req.body;
     const fs = factor_strategy || 'value_quality';
     const fm = factor_market || 'nasdaq';
-    const existing = db.prepare('SELECT id FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type4 WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,kr_candidate_symbols=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type4 SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,kr_candidate_symbols=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market,kr_candidate_symbols) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      db.prepare('INSERT INTO trade_setting_type4 (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market,kr_candidate_symbols) VALUES (?,?,?,?,?,?,?,?,?,?)')
         .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null);
     }
     res.json({ ok: true });
@@ -827,7 +827,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/simple-auto-trade/state', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
-    const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
+    const state = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=?').get(userId);
     const logs = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=2 ORDER BY created_at DESC LIMIT 20").all(userId);
     res.json({ ok: true, state: state || null, logs });
   });
@@ -836,12 +836,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const { enabled } = req.body;
-    const existing = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
+    const existing = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=?').get(userId);
     if (existing) {
-      db.prepare('UPDATE simple_auto_trade SET enabled=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type2 SET enabled=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(enabled ? 1 : 0, enabled ? 'idle' : 'idle', userId);
     } else {
-      db.prepare('INSERT INTO simple_auto_trade (user_id,enabled,status) VALUES (?,?,?)').run(userId, enabled ? 1 : 0, 'idle');
+      db.prepare('INSERT INTO trade_setting_type2 (user_id,enabled,status) VALUES (?,?,?)').run(userId, enabled ? 1 : 0, 'idle');
     }
     res.json({ ok: true, enabled });
   });
@@ -850,12 +850,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const { balance_ratio = 0.3, take_profit = 0.05, stop_loss = 0.05 } = req.body;
-    const existing = db.prepare('SELECT id FROM simple_auto_trade WHERE user_id=?').get(userId);
+    const existing = db.prepare('SELECT id FROM trade_setting_type2 WHERE user_id=?').get(userId);
     if (existing) {
-      db.prepare('UPDATE simple_auto_trade SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type2 SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(balance_ratio, take_profit, stop_loss, userId);
     } else {
-      db.prepare('INSERT INTO simple_auto_trade (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
+      db.prepare('INSERT INTO trade_setting_type2 (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
     }
     res.json({ ok: true });
   });
@@ -944,7 +944,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const userId = req.user.user_id || req.user.id;
       const keys = getUserAlpacaKeys(userId, null);
-      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const settings = db.prepare('SELECT candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
       const symbols = settings?.candidate_symbols
         ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
         : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY','NFLX','PYPL','INTC','AMD','CRM'];
@@ -1044,7 +1044,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const userId = req.user.user_id || req.user.id;
       const market = req.query.market || 'us'; // us 또는 kr
       const keys = getUserAlpacaKeys(userId, null);
-      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
       let symbols;
       if (market === 'kr') {
         symbols = settings?.kr_candidate_symbols
@@ -1066,7 +1066,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const userId = req.user.user_id || req.user.id;
       const market = req.query.market || 'us';
-      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
       let symbols;
       if (market === 'kr') {
         symbols = settings?.kr_candidate_symbols
@@ -1220,7 +1220,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // 설정 조회
   router.get('/api/auto-strategy/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
     res.json({ ok: true, settings: row || { enabled: 0, market: 'nasdaq', roe_min: 15, debt_max: 100, revenue_min: 10, momentum_top: 30, sma200_filter: 1, use_macd: 1, use_rsi: 1, rsi_threshold: 40, use_bb: 1, balance_ratio: 0.2, max_positions: 5, take_profit1: 0.1, take_profit2: 0.2, stop_loss: 0.05, factor_exit: 1, sma200_exit: 1 } });
   });
 
@@ -1228,12 +1228,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/auto-strategy/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter, use_macd, use_rsi, rsi_threshold, use_bb, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit, sma200_exit } = req.body;
-    const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_strategy_settings SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type3 SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_strategy_settings (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      db.prepare('INSERT INTO trade_setting_type3 (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
         .run(req.user.id, market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0);
     }
     res.json({ ok: true });
@@ -1243,11 +1243,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/auto-strategy/toggle', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled } = req.body;
-    const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_strategy_settings SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled?1:0, req.user.id);
+      db.prepare('UPDATE trade_setting_type3 SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled?1:0, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_strategy_settings (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled?1:0);
+      db.prepare('INSERT INTO trade_setting_type3 (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled?1:0);
     }
     res.json({ ok: true, enabled: !!enabled });
   });
@@ -1255,7 +1255,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // 종목 풀 조회
   router.get('/api/auto-strategy/pool', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const rows = db.prepare('SELECT * FROM auto_strategy_pool WHERE user_id=? ORDER BY factor_score DESC').all(req.user.id);
+    const rows = db.prepare('SELECT * FROM trade_pool_type3 WHERE user_id=? ORDER BY factor_score DESC').all(req.user.id);
     res.json({ ok: true, pool: rows });
   });
 

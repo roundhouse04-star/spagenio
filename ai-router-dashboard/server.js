@@ -80,10 +80,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS lotto_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
-  CREATE TABLE IF NOT EXISTS auto_trade_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS trade_setting_type4 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS trade_setting_type2 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
 `);
 
 // [레거시 제거] auto_trade_log ALTER 제거됨
@@ -118,14 +118,14 @@ try {
 // } catch(e) {}
 // try {
 //   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=2").get().c === 0) {
-//     const rows = (function(){ try { return db.prepare("SELECT * FROM simple_auto_trade_log").all(); } catch(e) { return []; } })();
+//     const rows = (function(){ try { return db.prepare("SELECT * FROM trade_setting_type2_log").all(); } catch(e) { return []; } })();
 //     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status,created_at) VALUES (?,2,?,?,?,?,?,?,?,?)");
 //     rows.forEach(r => ins.run(r.user_id, r.symbol, r.action, r.qty, r.price, r.profit_pct||0, r.reason, r.action==='BUY'?'active':'closed', r.created_at));
 //     console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
 //   }
   // ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
   // try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
-  // try { db.exec('DROP TABLE IF EXISTS simple_auto_trade_log'); console.log('[trade_log] simple_auto_trade_log 테이블 삭제 완료'); } catch(e) {}
+  // try { db.exec('DROP TABLE IF EXISTS trade_setting_type2_log'); console.log('[trade_log] trade_setting_type2_log 테이블 삭제 완료'); } catch(e) {}
 // } catch(e) {}
 
 // ── trade_log 백업 테이블 4개 (타입별 별도 관리) ──
@@ -204,8 +204,8 @@ function updateTradeLogStatus(user_id, symbol, trade_type) {
 try { db.exec("ALTER TABLE user_broker_keys ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
 // account_type: 0=미설정, 1=수동전용, 2=자동전용
 try { db.exec("ALTER TABLE portfolio_performance ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
-try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_strategy TEXT DEFAULT 'value_quality'"); } catch (e) { }
-try { db.exec("ALTER TABLE auto_trade_settings ADD COLUMN factor_market TEXT DEFAULT 'nasdaq'"); } catch (e) { }
+try { db.exec("ALTER TABLE trade_setting_type4 ADD COLUMN factor_strategy TEXT DEFAULT 'value_quality'"); } catch (e) { }
+try { db.exec("ALTER TABLE trade_setting_type4 ADD COLUMN factor_market TEXT DEFAULT 'nasdaq'"); } catch (e) { }
 
 // 투자 성향 테이블
 db.exec(`
@@ -239,7 +239,7 @@ db.exec(`
 
 // 완전자동매매 전략 테이블
 db.exec(`
-  CREATE TABLE IF NOT EXISTS auto_strategy_settings (
+  CREATE TABLE IF NOT EXISTS trade_setting_type3 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL UNIQUE,
     enabled INTEGER DEFAULT 0,
@@ -264,7 +264,7 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
-  CREATE TABLE IF NOT EXISTS auto_strategy_pool (
+  CREATE TABLE IF NOT EXISTS trade_pool_type3 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     symbol TEXT NOT NULL,
@@ -504,18 +504,18 @@ const comments = [
   ['lotto_algorithm_weights', 'user_id', 'users.id 참조 (UNIQUE)'],
   ['lotto_algorithm_weights', 'weights', '알고리즘별 가중치 JSON (freq/hot/cold/balance/zone/ac/prime/delta)'],
   ['lotto_algorithm_weights', 'updated_at', '최종 수정 시각'],
-  // auto_trade_settings
-  ['auto_trade_settings', 'id', '자동 증가 PK'],
-  ['auto_trade_settings', 'user_id', 'users.id 참조 (UNIQUE)'],
-  ['auto_trade_settings', 'enabled', '자동매매 활성 여부 (0/1)'],
-  ['auto_trade_settings', 'symbols', '매매 대상 종목 (쉼표 구분)'],
-  ['auto_trade_settings', 'candidate_symbols', '매수 후보 종목 풀 (쉼표 구분)'],
-  ['auto_trade_settings', 'max_positions', '최대 동시 보유 종목 수'],
-  ['auto_trade_settings', 'balance_ratio', '계좌 잔고 대비 매수 비율 (0.1=10%)'],
-  ['auto_trade_settings', 'take_profit', '익절 기준 수익률 (0.05=5%)'],
-  ['auto_trade_settings', 'stop_loss', '손절 기준 손실률 (0.05=5%)'],
-  ['auto_trade_settings', 'signal_mode', '매수 신호 방식 (macd/combined)'],
-  ['auto_trade_settings', 'updated_at', '최종 수정 시각'],
+  // trade_setting_type4
+  ['trade_setting_type4', 'id', '자동 증가 PK'],
+  ['trade_setting_type4', 'user_id', 'users.id 참조 (UNIQUE)'],
+  ['trade_setting_type4', 'enabled', '자동매매 활성 여부 (0/1)'],
+  ['trade_setting_type4', 'symbols', '매매 대상 종목 (쉼표 구분)'],
+  ['trade_setting_type4', 'candidate_symbols', '매수 후보 종목 풀 (쉼표 구분)'],
+  ['trade_setting_type4', 'max_positions', '최대 동시 보유 종목 수'],
+  ['trade_setting_type4', 'balance_ratio', '계좌 잔고 대비 매수 비율 (0.1=10%)'],
+  ['trade_setting_type4', 'take_profit', '익절 기준 수익률 (0.05=5%)'],
+  ['trade_setting_type4', 'stop_loss', '손절 기준 손실률 (0.05=5%)'],
+  ['trade_setting_type4', 'signal_mode', '매수 신호 방식 (macd/combined)'],
+  ['trade_setting_type4', 'updated_at', '최종 수정 시각'],
   // quant_analysis_log
   ['quant_analysis_log', 'id', '자동 증가 PK'],
   ['quant_analysis_log', 'user_id', 'users.id 참조'],
@@ -551,7 +551,7 @@ if (!superAdminRole) {
 // created_by 컬럼 없으면 추가 (기존 DB 마이그레이션)
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch (e) { }
 try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch (e) { }
-try { db.prepare("ALTER TABLE auto_trade_settings ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch (e) { }
+try { db.prepare("ALTER TABLE trade_setting_type4 ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch (e) { }
 try { db.exec("CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch (e) { }
 
 // 기본 스케줄러 데이터 삽입
@@ -599,8 +599,8 @@ try {
   }
 } catch (e) { console.error('데이터수집 서브메뉴 마이그레이션 오류:', e.message); }
 
-try { db.exec("CREATE TABLE IF NOT EXISTS simple_auto_trade (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch (e) { }
-// [레거시 제거] simple_auto_trade_log 생성 제거됨
+try { db.exec("CREATE TABLE IF NOT EXISTS trade_setting_type2 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))"); } catch (e) { }
+// [레거시 제거] trade_setting_type2_log 생성 제거됨
 
 const adminExists = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
 if (!adminExists) {
@@ -1179,7 +1179,7 @@ async function getNasdaqTop3(signalMode = 'combined', alpacaKeys = null, market 
 // 단순 자동매매 (1종목 / 30% / 당일청산)
 // ============================================================
 async function runSimpleAutoTrade(userId) {
-  const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=? AND enabled=1').get(userId);
+  const state = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=? AND enabled=1').get(userId);
   if (!state) return;
 
   const keys = getUserAlpacaKeys(userId, null);
@@ -1234,17 +1234,17 @@ async function runSimpleAutoTrade(userId) {
             body: JSON.stringify({ symbol: state.symbol, qty: String(qty), side: 'sell', type: 'market', time_in_force: 'day' })
           })).json();
 
-          // [레거시 제거] simple_auto_trade_log SELL → trade_log(type=2)만 사용
+          // [레거시 제거] trade_setting_type2_log SELL → trade_log(type=2)만 사용
           saveTradeLog({ user_id:userId, trade_type:2, symbol:state.symbol, action:'SELL', qty, price:currentPrice, profit_pct:plPct*100, reason, status:'closed' });
           updateTradeLogStatus(userId, state.symbol, 2);
 
           // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
           if (estTime >= forceCloseTime) {
-            db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,order_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+            db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,order_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
               .run('closed_today', userId);
           } else {
             // 매도 후 재분석 → 재매수 (장 마감 충분히 전일 때만)
-            db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+            db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
               .run('analyzing', userId);
             setTimeout(() => runSimpleAutoTrade(userId), 3000);
           }
@@ -1270,7 +1270,7 @@ async function runSimpleAutoTrade(userId) {
         }
       } else {
         // 포지션 없으면 idle로 리셋
-        db.prepare('UPDATE simple_auto_trade SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
           .run('idle', userId);
       }
     }
@@ -1279,7 +1279,7 @@ async function runSimpleAutoTrade(userId) {
     // closed_today는 매수 시도 안 함 (강제청산 당일 재매수 방지)
     if ((state.status === 'idle' || state.status === 'analyzing') && estTime < forceCloseTime) {
       // TOP1 종목 분석
-      const settingsRow = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const settingsRow = db.prepare('SELECT candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
       let symbols = settingsRow?.candidate_symbols
         ? settingsRow.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
         : ['AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'AMD', 'QQQ', 'SPY'];
@@ -1326,7 +1326,7 @@ async function runSimpleAutoTrade(userId) {
 
       scored.sort((a, b) => b.score - a.score);
       const top = scored[0];
-      if (!top) { db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId); return; }
+      if (!top) { db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId); return; }
 
       // 매수 금액 계산 (계좌 잔고 비율)
       const buyingPowerSimple = parseFloat(account.buying_power) || 0;
@@ -1336,7 +1336,7 @@ async function runSimpleAutoTrade(userId) {
       // ✅ 1주 미만 체크
       if (qty < 1) {
         console.log(`[단순매매] ${top.symbol} 매수 스킵: 1주 미만 (buyAmount=$${buyAmount.toFixed(0)}, price=$${top.price})`);
-        db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
+        db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
         return;
       }
       // ✅ 잔고 부족 체크
@@ -1344,7 +1344,7 @@ async function runSimpleAutoTrade(userId) {
         const maxQty = Math.floor(buyingPowerSimple / top.price);
         if (maxQty < 1) {
           console.log(`[단순매매] ${top.symbol} 매수 스킵: 잔고 부족 (buying_power=$${buyingPowerSimple.toFixed(0)})`);
-          db.prepare('UPDATE simple_auto_trade SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
+          db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
           return;
         }
         // 최대 매수 가능 수량으로 조정
@@ -1358,9 +1358,9 @@ async function runSimpleAutoTrade(userId) {
       })).json();
 
       if (order.id) {
-        // [레거시 제거] simple_auto_trade_log BUY → trade_log(type=2)만 사용
+        // [레거시 제거] trade_setting_type2_log BUY → trade_log(type=2)만 사용
         saveTradeLog({ user_id:userId, trade_type:2, symbol:top.symbol, action:'BUY', qty:finalQty, price:top.price, profit_pct:0, reason:`점수 ${top.score}점 TOP1 매수`, status:'active' });
-        db.prepare('UPDATE simple_auto_trade SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
           .run('holding', top.symbol, finalQty, top.price, order.id, userId);
 
         // 텔레그램 알림
@@ -1417,7 +1417,7 @@ function calcMACD(closes) { if (closes.length < 35) return null; const macdLine 
 function calcRSI(closes, period = 14) { if (closes.length < period + 1) return null; const changes = closes.slice(1).map((c, i) => c - closes[i]); const avgGain = changes.slice(-period).filter(c => c > 0).reduce((a, b) => a + b, 0) / period; const avgLoss = changes.slice(-period).filter(c => c < 0).reduce((a, b) => a - b, 0) / period; return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)); }
 
 async function runAutoTradeForUser(userId) {
-  const settings = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=? AND enabled=1').get(userId);
+  const settings = db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? AND enabled=1').get(userId);
   if (!settings) return { ok: false, message: '자동매매 비활성화 상태' };
   const keys = getUserAlpacaKeys(userId, null, 2);
   if (!keys) return { ok: false, message: 'Alpaca 키 없음 (자동매매 전용 계좌를 등록해주세요)' };
@@ -1588,7 +1588,7 @@ setInterval(async () => {
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     if (!isMarketHours) return;
     updateSchedulerRun('auto_trade');
-    const users = db.prepare('SELECT user_id FROM auto_trade_settings WHERE enabled=1').all();
+    const users = db.prepare('SELECT user_id FROM trade_setting_type4 WHERE enabled=1').all();
     for (const u of users) await runAutoTradeForUser(u.user_id);
   } catch (e) { saveErrorLog({ event_type: 'AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -1602,11 +1602,11 @@ setInterval(async () => {
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     // 장 종료 후 closed_today → idle 자동 리셋 (KST 다음날 오전 6시 = UTC 21:00)
     if (utcHour === 21 && utcMin === 0) {
-      db.prepare("UPDATE simple_auto_trade SET status='idle' WHERE status='closed_today'").run();
+      db.prepare("UPDATE trade_setting_type2 SET status='idle' WHERE status='closed_today'").run();
     }
     if (!isMarketHours) return;
     updateSchedulerRun('simple_trade');
-    const users = db.prepare('SELECT user_id FROM simple_auto_trade WHERE enabled=1').all();
+    const users = db.prepare('SELECT user_id FROM trade_setting_type2 WHERE enabled=1').all();
     for (const u of users) await runSimpleAutoTrade(u.user_id);
   } catch (e) { saveErrorLog({ event_type: 'SIMPLE_AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -1862,7 +1862,7 @@ app.post('/api/mail/lotto', async (req, res) => {
 // 완전자동매매 스케줄러 (1분마다 + 월 1회 리밸런싱)
 // ============================================================
 async function runAutoStrategy(userId) {
-  const s = db.prepare('SELECT * FROM auto_strategy_settings WHERE user_id=? AND enabled=1').get(userId);
+  const s = db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? AND enabled=1').get(userId);
   if (!s) return;
   const keys = getUserAlpacaKeys(userId, null, 2);
   if (!keys) return;
@@ -1892,9 +1892,9 @@ async function runAutoStrategy(userId) {
             return true;
           });
           // 풀 업데이트
-          db.prepare('DELETE FROM auto_strategy_pool WHERE user_id=?').run(userId);
+          db.prepare('DELETE FROM trade_pool_type3 WHERE user_id=?').run(userId);
           pool.forEach(item => {
-            db.prepare('INSERT OR REPLACE INTO auto_strategy_pool (user_id, symbol, factor_score) VALUES (?,?,?)').run(userId, item.symbol, item.factor_score);
+            db.prepare('INSERT OR REPLACE INTO trade_pool_type3 (user_id, symbol, factor_score) VALUES (?,?,?)').run(userId, item.symbol, item.factor_score);
           });
           // 팩터 이탈 종목 매도
           if (s.factor_exit) {
@@ -1909,7 +1909,7 @@ async function runAutoStrategy(userId) {
           }
           // 풀에 종목이 있을 때만 리밸런싱 완료 처리 (스크리닝 실패 시 재시도 보장)
           if (pool.length > 0) {
-            db.prepare('UPDATE auto_strategy_settings SET last_rebalanced_at=? WHERE user_id=?').run(now.toISOString(), userId);
+            db.prepare('UPDATE trade_setting_type3 SET last_rebalanced_at=? WHERE user_id=?').run(now.toISOString(), userId);
           } else {
             console.log(`[완전자동] userId=${userId} 팩터 스크리닝 결과 없음 — 다음 실행 시 재시도`);
           }
@@ -1970,7 +1970,7 @@ async function runAutoStrategy(userId) {
     // ✅ 수동 보유 종목(trade_type=1)은 자동매매 대상에서 제외
     const manualHeldAS = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
     manualHeldAS.forEach(s => heldSymbols.add(s));
-    const pool = db.prepare('SELECT symbol FROM auto_strategy_pool WHERE user_id=? ORDER BY factor_score DESC').all(userId);
+    const pool = db.prepare('SELECT symbol FROM trade_pool_type3 WHERE user_id=? ORDER BY factor_score DESC').all(userId);
     const maxPos = s.max_positions || 5;
     let remainingBuyingPower = buyingPower; // 매수마다 차감하여 잔고 초과 방지
 
@@ -2032,7 +2032,7 @@ setInterval(async () => {
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     if (!isMarketHours) return;
     updateSchedulerRun('auto_strategy');
-    const users = db.prepare('SELECT user_id FROM auto_strategy_settings WHERE enabled=1').all();
+    const users = db.prepare('SELECT user_id FROM trade_setting_type3 WHERE enabled=1').all();
     for (const u of users) await runAutoStrategy(u.user_id);
   } catch (e) { saveErrorLog({ event_type: 'AUTO_STRATEGY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -2094,7 +2094,7 @@ async function autoTradeFn() {
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
   const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
   if (!isMarketHours) return;
-  const users = db.prepare('SELECT user_id FROM auto_trade_settings WHERE enabled=1').all();
+  const users = db.prepare('SELECT user_id FROM trade_setting_type4 WHERE enabled=1').all();
   for (const u of users) await runAutoTradeForUser(u.user_id);
 }
 
@@ -2103,7 +2103,7 @@ async function simpleAutoTradeFn() {
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
   const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
   if (!isMarketHours) return;
-  const users = db.prepare('SELECT user_id FROM simple_auto_trade WHERE enabled=1').all();
+  const users = db.prepare('SELECT user_id FROM trade_setting_type2 WHERE enabled=1').all();
   for (const u of users) await runSimpleAutoTrade(u.user_id);
 }
 
@@ -2112,7 +2112,7 @@ async function autoStrategyFn() {
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
   const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
   if (!isMarketHours) return;
-  const users = db.prepare('SELECT user_id FROM auto_strategy_settings WHERE enabled=1').all();
+  const users = db.prepare('SELECT user_id FROM trade_setting_type3 WHERE enabled=1').all();
   for (const u of users) await runAutoStrategy(u.user_id);
 }
 

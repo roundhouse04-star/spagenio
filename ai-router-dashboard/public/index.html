@@ -2040,168 +2040,174 @@
 
         <!-- 계좌 관리 패널 -->
         <div id="stockPanel-account" style="display:none;">
-        <div class="sp-card" id="alpacaKeyCard">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🔑 Alpaca Account</div>
-            <button onclick="toggleAlpacaKeyForm()" id="alpacaKeyToggleBtn" class="sp-btn sp-btn-indigo sp-btn-sm">+ 계좌 추가</button>
+          <div class="sp-card" id="alpacaKeyCard">
+            <div class="sp-card-header">
+              <div class="sp-card-title">🔑 Alpaca Account</div>
+              <button onclick="toggleAlpacaKeyForm()" id="alpacaKeyToggleBtn" class="sp-btn sp-btn-indigo sp-btn-sm">+
+                계좌 추가</button>
+            </div>
+            <div id="alpacaAccountList"></div>
+            <div id="alpacaKeyForm" style="display:none;margin-top:16px;border-top:1px solid #2A2A2A;padding-top:18px;">
+              <div style="font-weight:700;font-size:0.9rem;color:#E5E7EB;margin-bottom:14px;">새 계좌 등록</div>
+              <div class="sp-grid-2" style="margin-bottom:12px;">
+                <div>
+                  <label class="sp-label">계좌 이름</label>
+                  <input type="text" id="inputAccountName" placeholder="예: 수동 거래 계좌, 자동매매 계좌" class="sp-input" />
+                </div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:2px;">
+                  <label
+                    style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.87rem;font-weight:600;color:#9CA3AF;">
+                    <input type="checkbox" id="inputAlpacaPaper" checked
+                      style="width:16px;height:16px;accent-color:#6366f1;" />
+                    페이퍼 트레이딩 (테스트 모드)
+                  </label>
+                </div>
+              </div>
+              <div style="margin-bottom:14px;">
+                <label class="sp-label">계좌 타입</label>
+                <select id="inputAccountType" class="sp-input" style="font-size:0.87rem;">
+                  <option value="0">미설정 (일반 계좌)</option>
+                  <option value="1">✋ 수동전용 — 주식 탭 직접 거래</option>
+                  <option value="2">🤖 자동전용 — 자동매매 스케줄러 전용</option>
+                </select>
+                <div style="font-size:0.75rem;color:#6B7280;margin-top:4px;">⚠️ 수동/자동 전용 계좌는 각 1개만 등록 가능하며, 포지션이 있으면 타입
+                  변경 불가</div>
+              </div>
+              <div class="sp-grid-2" style="margin-bottom:14px;">
+                <div>
+                  <label class="sp-label">Alpaca API Key</label>
+                  <input type="text" id="inputAlpacaKey" placeholder="PK..." class="sp-input"
+                    style="font-size:0.78rem;letter-spacing:0.5px;" />
+                </div>
+                <div>
+                  <label class="sp-label">Alpaca Secret Key</label>
+                  <input type="password" id="inputAlpacaSecret" placeholder="Secret Key..." class="sp-input"
+                    style="font-size:0.78rem;letter-spacing:0.5px;" />
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button onclick="saveAlpacaKeys()" class="sp-btn sp-btn-indigo" style="flex:1;">저장</button>
+                <button onclick="toggleAlpacaKeyForm()" class="sp-btn sp-btn-outline">취소</button>
+              </div>
+              <div id="alpacaKeyMsg"
+                style="font-size:0.85rem;display:none;margin-top:10px;padding:10px 14px;border-radius:8px;"></div>
+            </div>
           </div>
-          <div id="alpacaAccountList"></div>
-          <div id="alpacaKeyForm" style="display:none;margin-top:16px;border-top:1px solid #2A2A2A;padding-top:18px;">
-            <div style="font-weight:700;font-size:0.9rem;color:#E5E7EB;margin-bottom:14px;">새 계좌 등록</div>
-            <div class="sp-grid-2" style="margin-bottom:12px;">
-              <div>
-                <label class="sp-label">계좌 이름</label>
-                <input type="text" id="inputAccountName" placeholder="예: 수동 거래 계좌, 자동매매 계좌"
-                  class="sp-input" />
-              </div>
-              <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:2px;">
-                <label
-                  style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.87rem;font-weight:600;color:#9CA3AF;">
-                  <input type="checkbox" id="inputAlpacaPaper" checked
-                    style="width:16px;height:16px;accent-color:#6366f1;" />
-                  페이퍼 트레이딩 (테스트 모드)
-                </label>
-              </div>
-            </div>
-            <div style="margin-bottom:14px;">
-              <label class="sp-label">계좌 타입</label>
-              <select id="inputAccountType" class="sp-input" style="font-size:0.87rem;">
-                <option value="0">미설정 (일반 계좌)</option>
-                <option value="1">✋ 수동전용 — 주식 탭 직접 거래</option>
-                <option value="2">🤖 자동전용 — 자동매매 스케줄러 전용</option>
-              </select>
-              <div style="font-size:0.75rem;color:#6B7280;margin-top:4px;">⚠️ 수동/자동 전용 계좌는 각 1개만 등록 가능하며, 포지션이 있으면 타입 변경 불가</div>
-            </div>
-            <div class="sp-grid-2" style="margin-bottom:14px;">
-              <div>
-                <label class="sp-label">Alpaca API Key</label>
-                <input type="text" id="inputAlpacaKey" placeholder="PK..." class="sp-input"
-                  style="font-size:0.78rem;letter-spacing:0.5px;" />
-              </div>
-              <div>
-                <label class="sp-label">Alpaca Secret Key</label>
-                <input type="password" id="inputAlpacaSecret" placeholder="Secret Key..." class="sp-input"
-                  style="font-size:0.78rem;letter-spacing:0.5px;" />
-              </div>
-            </div>
-            <div style="display:flex;gap:10px;">
-              <button onclick="saveAlpacaKeys()" class="sp-btn sp-btn-indigo" style="flex:1;">저장</button>
-              <button onclick="toggleAlpacaKeyForm()" class="sp-btn sp-btn-outline">취소</button>
-            </div>
-            <div id="alpacaKeyMsg"
-              style="font-size:0.85rem;display:none;margin-top:10px;padding:10px 14px;border-radius:8px;"></div>
-          </div>
-        </div>
         </div><!-- /stockPanel-account -->
 
         <!-- 매수/매도 패널 -->
         <div id="stockPanel-trade">
-        <!-- 계좌 정보 + 가격 Search -->
-        <div class="sp-grid-2">
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">💰 계좌 정보</div>
-              <button onclick="loadAccount()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-            </div>
-            <div id="accountCards" class="sp-grid-4"></div>
-          </div>
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">📊 주식 시세</div>
-              <div class="sp-header-controls" style="display:flex;gap:8px;align-items:center;">
-                <div id="stock-symbol-badge"
-                  style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;flex:1;min-height:38px;border:1px solid #2A2A2A;border-radius:6px;padding:4px 10px;background:#0D1117;cursor:pointer;"
-                  onclick="openStockSearch('stockSymbols', true)">
-                  <span id="stock-symbol-placeholder" style="color:#4B5563;font-size:0.85rem;">종목 검색 (예: AAPL, NVDA) ·
-                    최대 5종목</span>
-                </div>
-                <input type="hidden" id="stockSymbols" value="" />
-                <button onclick="openStockSearch('stockSymbols', true)" class="sp-btn sp-btn-outline"
-                  title="종목 검색">🔍</button>
-                <button onclick="loadPrices()" class="sp-btn sp-btn-indigo">🔍 종목 검색</button>
+          <!-- 계좌 정보 + 가격 Search -->
+          <div class="sp-grid-2">
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">💰 계좌 정보</div>
+                <button onclick="loadAccount()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
               </div>
+              <div id="accountCards" class="sp-grid-4"></div>
             </div>
-            <div id="priceCards" class="sp-grid-3">
-              <div style="color:#636366;font-size:0.88rem;padding:12px 0;">🔍 위에서 종목을 검색하세요 (최대 5종목)</div>
-            </div>
-            <div id="priceChartWrap" style="display:none;margin-top:16px;">
-              <canvas id="priceChart" height="120"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- 매수/매도 + 현재가 + 호가창 (3열) -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">🔄 매수 / 매도</div>
-            </div>
-            <div class="sp-grid-2" style="margin-bottom:14px;">
-              <div>
-                <label class="sp-label">종목</label>
-                <div style="display:flex;gap:6px;">
-                  <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" style="flex:1;"
-                    oninput="clearTimeout(window._obTimer);window._obTimer=setTimeout(()=>loadOrderBook(),700)" />
-                  <button onclick="openStockSearch('tradeSymbol', false)"
-                    class="sp-btn sp-btn-indigo" title="종목 검색" style="flex-shrink:0;padding:0 12px;">🔍</button>
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📊 주식 시세</div>
+                <div class="sp-header-controls" style="display:flex;gap:8px;align-items:center;">
+                  <div id="stock-symbol-badge"
+                    style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;flex:1;min-height:38px;border:1px solid #2A2A2A;border-radius:6px;padding:4px 10px;background:#0D1117;cursor:pointer;"
+                    onclick="openStockSearch('stockSymbols', true)">
+                    <span id="stock-symbol-placeholder" style="color:#4B5563;font-size:0.85rem;">종목 검색 (예: AAPL, NVDA) ·
+                      최대 5종목</span>
+                  </div>
+                  <input type="hidden" id="stockSymbols" value="" />
+                  <button onclick="openStockSearch('stockSymbols', true)" class="sp-btn sp-btn-outline"
+                    title="종목 검색">🔍</button>
+                  <button onclick="loadPrices()" class="sp-btn sp-btn-indigo">🔍 종목 검색</button>
                 </div>
               </div>
-              <div>
-                <label class="sp-label">수량</label>
-                <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
+              <div id="priceCards" class="sp-grid-3">
+                <div style="color:#636366;font-size:0.88rem;padding:12px 0;">🔍 위에서 종목을 검색하세요 (최대 5종목)</div>
+              </div>
+              <div id="priceChartWrap" style="display:none;margin-top:16px;">
+                <canvas id="priceChart" height="120"></canvas>
               </div>
             </div>
-            <div style="display:flex;gap:10px;margin-bottom:16px;">
-              <button onclick="buyStock()" class="sp-btn btn-buy"
-                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📈 매수</button>
-              <button onclick="sellStock()" class="sp-btn btn-sell"
-                style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📉 매도</button>
-            </div>
-            <label class="sp-label">거래 결과</label>
-            <pre id="tradeResult" class="sp-result" style="min-height:80px;">거래 대기 중...</pre>
           </div>
+
+          <!-- 매수/매도 + 현재가 + 호가창 (3열) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">🔄 매수 / 매도</div>
+              </div>
+              <div class="sp-grid-2" style="margin-bottom:14px;">
+                <div>
+                  <label class="sp-label">종목</label>
+                  <div style="display:flex;gap:6px;">
+                    <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" style="flex:1;"
+                      oninput="clearTimeout(window._obTimer);window._obTimer=setTimeout(()=>loadOrderBook(),700)" />
+                    <button onclick="openStockSearch('tradeSymbol', false)" class="sp-btn sp-btn-indigo" title="종목 검색"
+                      style="flex-shrink:0;padding:0 12px;">🔍</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="sp-label">수량</label>
+                  <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <button onclick="buyStock()" class="sp-btn btn-buy"
+                  style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📈 매수</button>
+                <button onclick="sellStock()" class="sp-btn btn-sell"
+                  style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">📉 매도</button>
+              </div>
+              <label class="sp-label">거래 결과</label>
+              <pre id="tradeResult" class="sp-result" style="min-height:80px;">거래 대기 중...</pre>
+            </div>
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📊 현재가</div>
+                <button onclick="loadOrderBook()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
+              </div>
+              <div id="obPriceCard">
+                <div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div>
+              </div>
+            </div>
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📋 호가창</div>
+                <span id="obStatus" style="font-size:0.72rem;color:#4B5563;"></span>
+              </div>
+              <div id="obTable">
+                <div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 보유 종목 -->
+          <div class="sp-card" style="margin-bottom:16px;">
+            <div class="sp-card-header">
+              <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면
+                  실시간 가격)</small></div>
+              <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
+            </div>
+            <div id="positionsTable"></div>
+          </div>
+
+          <!-- 주문 내역 -->
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">📊 현재가</div>
-              <button onclick="loadOrderBook()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
+              <div class="sp-card-title">📝 매수/매도 이력</div>
+              <button onclick="loadOrders()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
             </div>
-            <div id="obPriceCard"><div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div></div>
+            <div id="ordersTable"></div>
           </div>
+
+          <!-- 거래 로그 -->
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">📋 호가창</div>
-              <span id="obStatus" style="font-size:0.72rem;color:#4B5563;"></span>
+              <div class="sp-card-title">📋 거래 로그</div>
+              <button onclick="loadTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
             </div>
-            <div id="obTable"><div style="text-align:center;color:#4B5563;font-size:0.85rem;padding:32px 0;">종목을 입력하세요</div></div>
+            <div id="quantTradeLog"></div>
           </div>
-        </div>
-
-        <!-- 보유 종목 -->
-        <div class="sp-card" style="margin-bottom:16px;">
-          <div class="sp-card-header">
-            <div class="sp-card-title">📋 보유 종목 <small style="font-size:0.75rem;font-weight:400;color:#4B5563;">(클릭하면 실시간 가격)</small></div>
-            <button onclick="loadPositions()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-          </div>
-          <div id="positionsTable"></div>
-        </div>
-
-        <!-- 주문 내역 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">📝 매수/매도 이력</div>
-            <button onclick="loadOrders()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-          </div>
-          <div id="ordersTable"></div>
-        </div>
-
-        <!-- 거래 로그 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">📋 거래 로그</div>
-            <button onclick="loadTradeLog()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-          </div>
-          <div id="quantTradeLog"></div>
-        </div>
 
         </div><!-- /stockPanel-trade -->
 
@@ -2313,7 +2319,8 @@
                 <button onclick="initHistoryData()" class="sp-btn sp-btn-primary">🔄 초기 수집</button>
               </div>
             </div>
-            <div style="font-size:0.78rem;color:#636366;margin-bottom:10px;">📅 매일 00:00 자동 업데이트 · yfinance 기반 2년치 데이터 · 위
+            <div style="font-size:0.78rem;color:#636366;margin-bottom:10px;">📅 매일 00:00 자동 업데이트 · yfinance 기반 2년치 데이터 ·
+              위
               검색에서 종목 선택 후 분석 시 자동 조회</div>
             <div id="dc-history-result"></div>
           </div>
@@ -2576,10 +2583,13 @@
                 <span style="font-size:1.6rem;">🤖</span>
                 <div>
                   <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">미국 자동매매 시스템</div>
-                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">검증된 알고리즘(MACD+RSI) · 1분마다 미국 장 시간(EST 9:30~16:00) 체크</div>
+                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">검증된 알고리즘(MACD+RSI) · 1분마다 미국 장 시간(EST
+                    9:30~16:00) 체크</div>
                 </div>
               </div>
-              <span id="autoTradeStatusBadge" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:700;">⏹ 비활성</span>
+              <span id="autoTradeStatusBadge"
+                style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:700;">⏹
+                비활성</span>
             </div>
           </div>
 
@@ -2670,7 +2680,8 @@
             </div>
             <div class="sp-card">
               <div class="sp-card-header">
-                <div class="sp-card-title">📊 현재 포지션 <span id="autoPositionCount" style="font-size:0.75rem;color:#9CA3AF;"></span></div>
+                <div class="sp-card-title">📊 현재 포지션 <span id="autoPositionCount"
+                    style="font-size:0.75rem;color:#9CA3AF;"></span></div>
                 <div style="display:flex;gap:6px;">
                   <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
                   <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 종료</button>
@@ -2696,10 +2707,13 @@
                 <span style="font-size:1.6rem;">🇰🇷</span>
                 <div>
                   <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">한국 종목 팩터 분석</div>
-                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">yfinance 기반 코스피200/코스닥150 · PER/PBR/ROE 분석</div>
+                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">yfinance 기반 코스피200/코스닥150 · PER/PBR/ROE
+                    분석</div>
                 </div>
               </div>
-              <span style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:rgba(255,214,10,0.15);color:#92400e;font-weight:700;">⚠️ 분석 전용 (자동매매 준비중)</span>
+              <span
+                style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:rgba(255,214,10,0.15);color:#92400e;font-weight:700;">⚠️
+                분석 전용 (자동매매 준비중)</span>
             </div>
           </div>
 
@@ -2762,7 +2776,8 @@
                     style="border-color:#ef4444;" />
                 </div>
               </div>
-              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
+              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo"
+                style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
               <div style="font-size:0.7rem;color:#636366;text-align:center;">코스피200/코스닥150 · 1~2분</div>
             </div>
           </div>
@@ -2771,7 +2786,9 @@
           <div class="sp-card" style="margin-bottom:20px;">
             <div class="sp-card-header">
               <div class="sp-card-title">📊 스크리닝 결과</div>
-              <span style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석 전용</span>
+              <span
+                style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석
+                전용</span>
             </div>
             <div id="krTradeResult" style="min-height:80px;">
               <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
@@ -2792,7 +2809,9 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">📊 현재 보유 현황</div>
-                <span style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">키움증권 연동 후</span>
+                <span
+                  style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">키움증권
+                  연동 후</span>
               </div>
               <div style="text-align:center;padding:24px;color:#636366;">
                 <div style="font-size:1.8rem;margin-bottom:8px;">🏗️</div>
@@ -2815,11 +2834,14 @@
                 <span style="font-size:1.6rem;">🤖</span>
                 <div>
                   <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">완전자동매매 시스템</div>
-                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">3단계 퀀트 전략 — 팩터 스크리닝 → 타이밍 필터 → 리스크 관리</div>
+                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">3단계 퀀트 전략 — 팩터 스크리닝 → 타이밍 필터 → 리스크 관리
+                  </div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:12px;">
-                <span id="autoStrategyStatus" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:700;">⏹ 비활성</span>
+                <span id="autoStrategyStatus"
+                  style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:700;">⏹
+                  비활성</span>
                 <div id="asToggleBtn" onclick="toggleAutoStrategy()"
                   style="width:52px;height:28px;border-radius:999px;background:#d1d5db;position:relative;cursor:pointer;transition:background 0.2s;"
                   data-active="0">
@@ -2830,11 +2852,13 @@
               </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
-              <div style="padding:8px 10px;background:rgba(30,123,255,0.08);border-radius:8px;border:1px solid #bae6fd;font-size:0.75rem;">
+              <div
+                style="padding:8px 10px;background:rgba(30,123,255,0.08);border-radius:8px;border:1px solid #bae6fd;font-size:0.75rem;">
                 <div style="font-weight:700;color:#0369a1;margin-bottom:2px;">📅 리밸런싱</div>
                 <div style="color:#0284c7;">매월 1일 자동 실행</div>
               </div>
-              <div style="padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;font-size:0.75rem;">
+              <div
+                style="padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;font-size:0.75rem;">
                 <div style="font-weight:700;color:#166534;margin-bottom:2px;">⏰ 매매 체크</div>
                 <div style="color:#15803d;">1분마다 (미국 장중)</div>
               </div>
@@ -2881,9 +2905,12 @@
                   <input type="number" id="asMomentumTop" value="30" min="10" max="50" class="sp-input" />
                 </div>
               </div>
-              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;">
-                <input type="checkbox" id="asSma200Filter" checked style="width:16px;height:16px;accent-color:#6366f1;" />
-                <label for="asSma200Filter" style="font-size:0.82rem;color:#166534;font-weight:600;cursor:pointer;">▲ 200일선 위 종목만 (하락장 필터)</label>
+              <div
+                style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;">
+                <input type="checkbox" id="asSma200Filter" checked
+                  style="width:16px;height:16px;accent-color:#6366f1;" />
+                <label for="asSma200Filter" style="font-size:0.82rem;color:#166534;font-weight:600;cursor:pointer;">▲
+                  200일선 위 종목만 (하락장 필터)</label>
               </div>
             </div>
 
@@ -2894,28 +2921,35 @@
                 <span style="font-size:0.7rem;color:#636366;">3가지 중 2개 충족 시 매수</span>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟢 MACD 골든크로스</div>
                     <div style="font-size:0.72rem;color:#9CA3AF;">단기 이평선이 장기 이평선 상향 돌파</div>
                   </div>
                   <input type="checkbox" id="asUseMacd" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟡 RSI 과매도 반등</div>
-                    <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold" value="35" min="20" max="50" style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;"> 구간 진입</div>
+                    <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold"
+                        value="35" min="20" max="50"
+                        style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;">
+                      구간 진입</div>
                   </div>
                   <input type="checkbox" id="asUseRsi" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🔵 볼린저밴드 반등</div>
                     <div style="font-size:0.72rem;color:#9CA3AF;">하단밴드 터치 후 반등 시</div>
                   </div>
                   <input type="checkbox" id="asUseBb" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div style="padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid #fde68a;font-size:0.75rem;color:#92400e;">
+                <div
+                  style="padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid #fde68a;font-size:0.75rem;color:#92400e;">
                   ⚡ 위 조건 중 <strong>2개 이상</strong> 동시 충족 시 매수 신호 발생
                 </div>
               </div>
@@ -2942,37 +2976,45 @@
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
                 <div>
                   <label class="sp-label" style="color:#065f46;">✅ 1차 익절 (%)</label>
-                  <input type="number" id="asTakeProfit1" value="10" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+                  <input type="number" id="asTakeProfit1" value="10" min="1" max="50" class="sp-input"
+                    style="border-color:#10b981;" />
                   <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 보유량의 50% 매도</div>
                 </div>
                 <div>
                   <label class="sp-label" style="color:#065f46;">✅ 2차 익절 (%)</label>
-                  <input type="number" id="asTakeProfit2" value="20" min="1" max="100" class="sp-input" style="border-color:#10b981;" />
+                  <input type="number" id="asTakeProfit2" value="20" min="1" max="100" class="sp-input"
+                    style="border-color:#10b981;" />
                   <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 나머지 전량 매도</div>
                 </div>
               </div>
               <div style="font-size:0.78rem;font-weight:700;color:#E5E7EB;margin-bottom:8px;">매도 규칙</div>
               <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #fecaca;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #fecaca;">
                   <div style="font-size:0.8rem;color:#991b1b;font-weight:600;">❌ 손절</div>
                   <div style="display:flex;align-items:center;gap:6px;">
-                    <input type="number" id="asStopLoss" value="5" min="1" max="20" style="width:50px;border:1px solid #fca5a5;border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;" />
+                    <input type="number" id="asStopLoss" value="5" min="1" max="20"
+                      style="width:50px;border:1px solid #fca5a5;border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;" />
                     <span style="font-size:0.78rem;color:#991b1b;">% 하락 시 전량 매도</span>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.8rem;color:#E5E7EB;font-weight:600;">📉 팩터 이탈 매도</div>
                     <div style="font-size:0.7rem;color:#9CA3AF;">월 리밸런싱 시 조건 탈락 종목 매도</div>
                   </div>
-                  <input type="checkbox" id="asFactorExit" checked style="width:16px;height:16px;accent-color:#6366f1;" />
+                  <input type="checkbox" id="asFactorExit" checked
+                    style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.8rem;color:#E5E7EB;font-weight:600;">📉 200일선 이탈 매도</div>
                     <div style="font-size:0.7rem;color:#9CA3AF;">보유 중 200일선 아래로 내려오면 매도</div>
                   </div>
-                  <input type="checkbox" id="asSma200Exit" checked style="width:16px;height:16px;accent-color:#6366f1;" />
+                  <input type="checkbox" id="asSma200Exit" checked
+                    style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
               </div>
               <div style="display:flex;gap:8px;">
@@ -3037,7 +3079,8 @@
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:8px;">
-                <span id="simpleTradeStatusBadge2" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
+                <span id="simpleTradeStatusBadge2"
+                  style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
               </div>
             </div>
           </div>
@@ -3050,11 +3093,14 @@
               <div class="sp-card-header">
                 <div>
                   <div class="sp-card-title">⚡ 단순 자동매매</div>
-                  <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">TOP1 종목 · 계좌 30% · +5%익절/-5%손절 · 당일 15:55 강제청산</div>
+                  <div style="font-size:0.75rem;color:#9CA3AF;margin-top:2px;">TOP1 종목 · 계좌 30% · +5%익절/-5%손절 · 당일 15:55
+                    강제청산</div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
-                  <span id="simpleTradeStatusBadge" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
-                  <button onclick="toggleSimpleAutoTrade()" id="simpleTradeToggleBtn" class="sp-btn sp-btn-indigo">▶ 시작</button>
+                  <span id="simpleTradeStatusBadge"
+                    style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
+                  <button onclick="toggleSimpleAutoTrade()" id="simpleTradeToggleBtn" class="sp-btn sp-btn-indigo">▶
+                    시작</button>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
@@ -3077,39 +3123,39 @@
             </div>
 
             <!-- 오늘의 추천 종목 TOP5 -->
-          <div class="sp-card" style="margin-bottom:20px;">
-            <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
-              <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
-                  style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #16a34a;background:#16a34a;color:#fff;">
-                  🇺🇸 미국
+            <div class="sp-card" style="margin-bottom:20px;">
+              <div class="sp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
+                    style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #16a34a;background:#16a34a;color:#fff;">
+                    🇺🇸 미국
+                  </button>
+                  <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
+                    style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                    🇰🇷 한국
+                  </button>
+                  <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+                </div>
+              </div>
+              <!-- 시장 선택 -->
+              <div id="topPicksUsMarket" style="display:flex;gap:8px;margin-bottom:12px;">
+                <button id="topPicksBtnNasdaq" onclick="setTopPicksMarket('nasdaq')"
+                  style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+                  📊 나스닥100
                 </button>
-                <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
-                  style="padding:5px 12px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
-                  🇰🇷 한국
+                <button id="topPicksBtnDow" onclick="setTopPicksMarket('dow')"
+                  style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                  🏦 다우존스30
                 </button>
-                <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
+              </div>
+              <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천
+                종목이에요</div>
+              <div id="topPicksList">
+                <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)
+                </div>
               </div>
             </div>
-            <!-- 시장 선택 -->
-            <div id="topPicksUsMarket" style="display:flex;gap:8px;margin-bottom:12px;">
-              <button id="topPicksBtnNasdaq" onclick="setTopPicksMarket('nasdaq')"
-                style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
-                📊 나스닥100
-              </button>
-              <button id="topPicksBtnDow" onclick="setTopPicksMarket('dow')"
-                style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
-                🏦 다우존스30
-              </button>
-            </div>
-            <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천
-              종목이에요</div>
-            <div id="topPicksList">
-              <div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">분석 버튼을 눌러주세요 (약 10~20초 소요)
-              </div>
-            </div>
-          </div>
 
           </div><!-- /2행 그리드 -->
 
@@ -4267,7 +4313,7 @@
     // ===== TOP5 시장 선택 (일반 자동매매) =====
     let _topPicksMarket = 'nasdaq';
     window._topPicksMarket = _topPicksMarket;
-    window.setTopPicksMarket = function(market) {
+    window.setTopPicksMarket = function (market) {
       _topPicksMarket = market;
       window._topPicksMarket = market;
       const nb = document.getElementById('topPicksBtnNasdaq');
@@ -4279,7 +4325,7 @@
     // ===== 거래량/뉴스 시장 선택 (일반 자동매매) =====
     let _dayMarket = 'us';
     window._dayMarket = 'us';
-    window.setDayMarket = function(market) {
+    window.setDayMarket = function (market) {
       _dayMarket = market;
       window._dayMarket = market;
       const usBtn = document.getElementById('dayMarketBtnUs');
@@ -4303,7 +4349,7 @@
 
     // loadVolumeSurge / loadNewsCatalyst — market 파라미터 주입
     const _origLoadVolumeSurge = typeof window.loadVolumeSurge === 'function' ? window.loadVolumeSurge : null;
-    window.loadVolumeSurge = async function() {
+    window.loadVolumeSurge = async function () {
       const el = document.getElementById('volumeSurgeList');
       if (!el) return;
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
@@ -4323,13 +4369,13 @@
               <span style="font-size:0.75rem;color:#9CA3AF;">$${s.price?.toFixed(2) || '-'}</span>
             </div>
           </div>`).join('');
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`;
       }
     };
 
     const _origLoadNewsCatalyst = typeof window.loadNewsCatalyst === 'function' ? window.loadNewsCatalyst : null;
-    window.loadNewsCatalyst = async function() {
+    window.loadNewsCatalyst = async function () {
       const el = document.getElementById('newsCatalystList');
       if (!el) return;
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
@@ -4349,7 +4395,7 @@
             </div>
             <div style="font-size:0.75rem;color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title || ''}</div>
           </div>`).join('');
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`;
       }
     };
@@ -4528,12 +4574,12 @@
                 🗑️ 삭제
               </button>
             </div>`).join('')}`;
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`;
       }
     }
 
-    window.saveAutoSymbol = async function(symbol) {
+    window.saveAutoSymbol = async function (symbol) {
       try {
         const res = await fetch('/api/auto-strategy/settings');
         const d = await res.json();
@@ -4553,10 +4599,10 @@
         const btns = document.querySelectorAll(`button[onclick="saveAutoSymbol('${symbol}')"]`);
         btns.forEach(btn => { btn.textContent = `✅ ${symbol} 저장됨`; btn.style.background = '#dcfce7'; btn.style.color = '#166534'; btn.disabled = true; });
         await renderAutoSavedSymbols();
-      } catch(e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
+      } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
     };
 
-    window.deleteAutoSymbol = async function(symbol) {
+    window.deleteAutoSymbol = async function (symbol) {
       const ok = await spConfirm(`${symbol}을 저장 목록에서 삭제하시겠습니까?`, '종목 삭제', '🗑️', '삭제', '#ef4444');
       if (!ok) return;
       try {
@@ -4568,7 +4614,7 @@
           body: JSON.stringify({ ...d, candidate_symbols: newSymbols })
         });
         await renderAutoSavedSymbols();
-      } catch(e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
+      } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
     };
 
     // ===== 포지션 + 이력 로드 =====
@@ -4823,7 +4869,7 @@
     };
 
     // ===== 한국 저장된 종목 렌더링 + 삭제 =====
-    window.saveKrSymbol = async function(symbol) {
+    window.saveKrSymbol = async function (symbol) {
       try {
         const res = await fetch('/api/auto-trade/settings');
         const d = await res.json();
@@ -4842,7 +4888,7 @@
         const btns = document.querySelectorAll(`button[onclick="saveKrSymbol('${symbol}')"]`);
         btns.forEach(btn => { btn.textContent = `✅ ${symbol} 저장됨`; btn.style.background = '#dcfce7'; btn.style.color = '#166534'; btn.disabled = true; });
         await renderKrSavedSettings();
-      } catch(e) {
+      } catch (e) {
         await spAlert('오류: ' + e.message, '오류', '❌');
       }
     };
@@ -4868,12 +4914,12 @@
                 🗑️ 삭제
               </button>
             </div>`).join('')}`;
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`;
       }
     }
 
-    window.deleteKrSymbol = async function(symbol) {
+    window.deleteKrSymbol = async function (symbol) {
       const ok = await spConfirm(`${symbol}을 저장 목록에서 삭제하시겠습니까?`, '종목 삭제', '🗑️', '삭제', '#ef4444');
       if (!ok) return;
       try {
@@ -4887,7 +4933,7 @@
           body: JSON.stringify({ ...d, kr_candidate_symbols: newSymbols })
         });
         await renderKrSavedSettings();
-      } catch(e) {
+      } catch (e) {
         await spAlert('오류: ' + e.message, '오류', '❌');
       }
     };
@@ -5421,17 +5467,17 @@
             </thead>
             <tbody>
               ${logs.slice(0, 100).map(l => {
-                const isBuy = l.action === 'BUY';
-                const isProfit = l.action.includes('PROFIT');
-                const isLoss = l.action.includes('LOSS') || l.action.includes('STOP');
-                const actionColor = isBuy ? '#60a5fa' : isProfit ? '#34d399' : isLoss ? '#f87171' : '#9CA3AF';
-                const pnlVal = parseFloat(l.profit_pct || 0);
-                const pnlColor = pnlVal > 0 ? '#34d399' : pnlVal < 0 ? '#f87171' : '#9CA3AF';
-                const pnl = (l.profit_pct != null && l.profit_pct !== 0) ? `${pnlVal > 0 ? '+' : ''}${pnlVal.toFixed(2)}%` : '-';
-                const tc = typeConfig[l.trade_type] || { label: '기타', color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
-                const sc = statusConfig[l.status] || { label: l.status, color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
-                const dt = new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-                return `<tr onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+          const isBuy = l.action === 'BUY';
+          const isProfit = l.action.includes('PROFIT');
+          const isLoss = l.action.includes('LOSS') || l.action.includes('STOP');
+          const actionColor = isBuy ? '#60a5fa' : isProfit ? '#34d399' : isLoss ? '#f87171' : '#9CA3AF';
+          const pnlVal = parseFloat(l.profit_pct || 0);
+          const pnlColor = pnlVal > 0 ? '#34d399' : pnlVal < 0 ? '#f87171' : '#9CA3AF';
+          const pnl = (l.profit_pct != null && l.profit_pct !== 0) ? `${pnlVal > 0 ? '+' : ''}${pnlVal.toFixed(2)}%` : '-';
+          const tc = typeConfig[l.trade_type] || { label: '기타', color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
+          const sc = statusConfig[l.status] || { label: l.status, color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)' };
+          const dt = new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+          return `<tr onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
                   <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-size:0.75rem;color:#636366;white-space:nowrap;">${dt}</td>
                   <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-weight:800;color:#E5E7EB;">${l.symbol}</td>
                   <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.7rem;font-weight:700;background:${tc.bg};color:${tc.color};">${tc.label}</span></td>
@@ -5441,11 +5487,11 @@
                   <td style="padding:7px 10px;border-bottom:1px solid #1E242C;font-weight:700;color:${pnlColor};">${pnl}</td>
                   <td style="padding:7px 10px;border-bottom:1px solid #1E242C;"><span style="padding:2px 7px;border-radius:4px;font-size:0.7rem;font-weight:600;background:${sc.bg};color:${sc.color};">${sc.label}</span></td>
                 </tr>`;
-              }).join('')}
+        }).join('')}
             </tbody>
           </table>
         </div>`;
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</div>`;
       }
     }
@@ -5836,7 +5882,7 @@
           } else {
             if (_simpleTradePoller) { clearInterval(_simpleTradePoller); _simpleTradePoller = null; }
           }
-        } catch (e) {}
+        } catch (e) { }
       }, 500);
     };
 
@@ -5855,7 +5901,7 @@
             const res = await fetch('/api/performance/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
             const d = await res.json();
             if (d.ok) console.log('[spagenio] 성과 스냅샷 자동 저장 완료');
-          } catch (e) {}
+          } catch (e) { }
           scheduleSnapshot();
         }, msUntilSnapshot());
       }
@@ -5890,14 +5936,14 @@
             el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">현재 조건에 맞는 추천 종목이 없습니다</div>';
             return;
           }
-          const rankLabels = ['🥇','🥈','🥉','4위','5위'];
-          const rows = d.picks.slice(0,5).map((p,i) => `
+          const rankLabels = ['🥇', '🥈', '🥉', '4위', '5위'];
+          const rows = d.picks.slice(0, 5).map((p, i) => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #2A2A2A;border-radius:10px;margin-bottom:8px;background:#111;">
               <div style="font-size:1.4rem;width:32px;text-align:center;">${rankLabels[i]}</div>
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
                   <span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${p.symbol}</span>
-                  <span style="font-size:0.75rem;color:#9CA3AF;">${p.name||''}</span>
+                  <span style="font-size:0.75rem;color:#9CA3AF;">${p.name || ''}</span>
                   ${p.score ? `<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:#16a34a22;color:#16a34a;font-weight:700;">점수 ${p.score}</span>` : ''}
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -5906,15 +5952,15 @@
                 </div>
               </div>
               <div style="text-align:right;">
-                <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">₩${(p.price||0).toLocaleString()}</div>
-                ${p.change_pct != null ? `<div style="font-size:0.78rem;font-weight:700;color:${p.change_pct>=0?'#ef4444':'#3b82f6'};">${p.change_pct>=0?'▲':'▼'} ${Math.abs(p.change_pct)}%</div>` : ''}
+                <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">₩${(p.price || 0).toLocaleString()}</div>
+                ${p.change_pct != null ? `<div style="font-size:0.78rem;font-weight:700;color:${p.change_pct >= 0 ? '#ef4444' : '#3b82f6'};">${p.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(p.change_pct)}%</div>` : ''}
               </div>
             </div>`).join('');
           el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">🇰🇷 한국 종목 TOP5 · ${new Date().toLocaleTimeString('ko-KR')}</div>${rows}`;
           _topPicksCache = el.innerHTML;
           _topPicksCacheTime = Date.now();
           _topPicksCacheMarket = 'kr';
-        } catch(e) {
+        } catch (e) {
           el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
         }
         return;
@@ -5937,7 +5983,7 @@
     let _stockSearchMulti = false;
     let _stockSearchDebounceTimer = null;
 
-    window.openStockSearch = function(targetId, multi) {
+    window.openStockSearch = function (targetId, multi) {
       _stockSearchTarget = targetId;
       _stockSearchMulti = multi || false;
       const layer = document.getElementById('sp-stock-search-layer');
@@ -5949,17 +5995,17 @@
       }
     };
 
-    window.closeStockSearch = function() {
+    window.closeStockSearch = function () {
       const layer = document.getElementById('sp-stock-search-layer');
       if (layer) layer.style.display = 'none';
     };
 
-    window.searchStockDebounce = function(q) {
+    window.searchStockDebounce = function (q) {
       clearTimeout(_stockSearchDebounceTimer);
       _stockSearchDebounceTimer = setTimeout(() => searchStock(q), 350);
     };
 
-    window.searchStock = async function(q) {
+    window.searchStock = async function (q) {
       if (!q || q.trim().length < 1) return;
       const el = document.getElementById('sp-stock-search-result');
       el.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:24px;font-size:0.88rem;">🔍 검색 중...</div>';
@@ -5975,28 +6021,28 @@
             ? `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#fff7ed;color:#c2410c;font-weight:700;">${r.symbol.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI'}</span>`
             : `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-weight:700;">${r.exchange}</span>`;
           return `
-            <div data-symbol="${r.symbol}" data-name="${(r.name||r.symbol).replace(/"/g,'')}" onclick="selectStock(this.dataset.symbol, this.dataset.name)"
+            <div data-symbol="${r.symbol}" data-name="${(r.name || r.symbol).replace(/"/g, '')}" onclick="selectStock(this.dataset.symbol, this.dataset.name)"
               style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background 0.1s;"
               onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
               <div>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <span style="font-size:0.95rem;">${flag}</span>
-                  <span style="font-weight:700;font-size:0.92rem;color:#0f172a;">${r.name||r.symbol}</span>
+                  <span style="font-weight:700;font-size:0.92rem;color:#0f172a;">${r.name || r.symbol}</span>
                 </div>
                 <div style="font-size:0.78rem;color:#9ca3af;margin-top:2px;">${r.symbol}</div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;">
                 ${exBadge}
-                <span style="font-size:0.75rem;padding:1px 6px;border-radius:999px;background:#f1f5f9;color:#64748b;">${r.type||''}</span>
+                <span style="font-size:0.75rem;padding:1px 6px;border-radius:999px;background:#f1f5f9;color:#64748b;">${r.type || ''}</span>
               </div>
             </div>`;
         }).join('');
-      } catch(e) {
+      } catch (e) {
         el.innerHTML = '<div style="color:#ef4444;padding:16px;font-size:0.88rem;">오류: ' + e.message + '</div>';
       }
     };
 
-    window._baseSelectStock = function(symbol, name) {
+    window._baseSelectStock = function (symbol, name) {
       if (!_stockSearchTarget) return;
       // hidden input에 값 설정
       const inp = document.getElementById(_stockSearchTarget);
@@ -6051,7 +6097,7 @@
           priceChg.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
           priceChg.style.color = change >= 0 ? '#FF3B30' : '#1E7BFF';
         }
-      } catch(e) {
+      } catch (e) {
         if (priceVal) priceVal.textContent = '가격 조회 실패';
       }
     }
