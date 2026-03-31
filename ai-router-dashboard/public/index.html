@@ -2134,28 +2134,46 @@
         <div class="sp-grid-2">
           <div class="sp-card">
             <div class="sp-card-header">
-              <div class="sp-card-title">🔄 Buy / Sell</div>
+              <div class="sp-card-title">🔄 매수 / 매도</div>
             </div>
-            <div class="sp-grid-2" style="margin-bottom:14px;">
-              <div>
-                <label class="sp-label">Symbol</label>
-                <input type="text" id="tradeSymbol" placeholder="예: AAPL" class="sp-input" />
+            <!-- 종목 검색 -->
+            <div style="margin-bottom:12px;">
+              <label class="sp-label">🔍 종목</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <div onclick="openStockSearch('tradeSymbol', false)"
+                  id="tradeSymbolDisplay"
+                  style="flex:1;height:42px;border-radius:8px;border:1px solid #2A2A2A;padding:0 14px;background:#1E242C;display:flex;align-items:center;cursor:pointer;color:#636366;font-size:0.9rem;user-select:none;">
+                  종목을 선택하세요
+                </div>
+                <button onclick="openStockSearch('tradeSymbol', false)" class="sp-btn sp-btn-indigo sp-btn-sm">🔍</button>
               </div>
-              <div>
-                <label class="sp-label">Qty</label>
-                <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
+              <input type="hidden" id="tradeSymbol" value="" />
+            </div>
+            <!-- 실시간 가격 -->
+            <div id="tradePriceDisplay" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(99,102,241,0.08);border-radius:8px;border:1px solid rgba(99,102,241,0.3);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.82rem;color:#9CA3AF;">현재가</span>
+                <div>
+                  <span id="tradePriceValue" style="font-size:1.1rem;font-weight:800;color:#E5E7EB;">-</span>
+                  <span id="tradePriceChange" style="font-size:0.78rem;margin-left:6px;font-weight:700;">-</span>
+                </div>
               </div>
+            </div>
+            <!-- 수량 -->
+            <div style="margin-bottom:14px;">
+              <label class="sp-label">📦 수량</label>
+              <input type="number" id="tradeQty" value="1" min="1" class="sp-input" />
             </div>
             <div style="display:flex;gap:10px;margin-bottom:16px;">
               <button onclick="buyStock()" class="sp-btn btn-buy"
                 style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">
-                📈 BUY</button>
+                📈 매수</button>
               <button onclick="sellStock()" class="sp-btn btn-sell"
                 style="flex:1;font-weight:800;font-size:1rem;height:48px;letter-spacing:0.5px;">
-                📉 SELL</button>
+                📉 매도</button>
             </div>
-            <label class="sp-label">Trade Result</label>
-            <pre id="tradeResult" class="sp-result" style="min-height:80px;">Waiting for trade...</pre>
+            <label class="sp-label">거래 결과</label>
+            <pre id="tradeResult" class="sp-result" style="min-height:80px;">거래 대기 중...</pre>
           </div>
           <div class="sp-card">
             <div class="sp-card-header">
@@ -5913,6 +5931,115 @@
         }
       }
     };
+
+    // ===== 종목 검색 팝업 =====
+    let _stockSearchTarget = null;
+    let _stockSearchMulti = false;
+    let _stockSearchDebounceTimer = null;
+
+    window.openStockSearch = function(targetId, multi) {
+      _stockSearchTarget = targetId;
+      _stockSearchMulti = multi || false;
+      const layer = document.getElementById('sp-stock-search-layer');
+      if (layer) {
+        layer.style.display = 'flex';
+        const inp = document.getElementById('sp-stock-search-input');
+        if (inp) { inp.value = ''; inp.focus(); }
+        document.getElementById('sp-stock-search-result').innerHTML = '<div style="text-align:center;color:#636366;padding:24px;font-size:0.88rem;">종목명을 입력하세요</div>';
+      }
+    };
+
+    window.closeStockSearch = function() {
+      const layer = document.getElementById('sp-stock-search-layer');
+      if (layer) layer.style.display = 'none';
+    };
+
+    window.searchStockDebounce = function(q) {
+      clearTimeout(_stockSearchDebounceTimer);
+      _stockSearchDebounceTimer = setTimeout(() => searchStock(q), 350);
+    };
+
+    window.searchStock = async function(q) {
+      if (!q || q.trim().length < 1) return;
+      const el = document.getElementById('sp-stock-search-result');
+      el.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:16px;font-size:0.85rem;">🔍 검색 중...</div>';
+      try {
+        const res = await fetch('/api/stock/search?q=' + encodeURIComponent(q.trim()));
+        const d = await res.json();
+        if (!d.results?.length) { el.innerHTML = '<div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">검색 결과 없음</div>'; return; }
+        el.innerHTML = d.results.map(r => `
+          <div onclick="selectStock('${r.symbol}','${(r.name||'').replace(/'/g,'')}')"
+            style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #2A2A2A;display:flex;justify-content:space-between;align-items:center;transition:background 0.15s;"
+            onmouseover="this.style.background='#1E242C'" onmouseout="this.style.background=''">
+            <div>
+              <div style="font-weight:700;color:#E5E7EB;font-size:0.9rem;">${r.symbol}</div>
+              <div style="font-size:0.78rem;color:#9CA3AF;">${r.name||''}</div>
+            </div>
+            <div style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.15);color:#a5b4fc;">${r.exchange||''}</div>
+          </div>`).join('');
+      } catch(e) {
+        el.innerHTML = '<div style="text-align:center;color:#ef4444;padding:16px;font-size:0.85rem;">검색 오류: ' + e.message + '</div>';
+      }
+    };
+
+    window.selectStock = function(symbol, name) {
+      if (!_stockSearchTarget) return;
+      // hidden input에 값 설정
+      const inp = document.getElementById(_stockSearchTarget);
+      if (inp) inp.value = symbol;
+
+      // tradeSymbol 선택 시 → 표시 업데이트 + 실시간 가격 조회
+      if (_stockSearchTarget === 'tradeSymbol') {
+        const display = document.getElementById('tradeSymbolDisplay');
+        if (display) {
+          display.innerHTML = `<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:8px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`;
+          display.style.color = '#E5E7EB';
+        }
+        loadTradePrice(symbol);
+      }
+
+      // dc-symbol-badge 업데이트
+      if (_stockSearchTarget === 'dc-search-input-target') {
+        const badge = document.getElementById('dc-symbol-badge');
+        if (badge) badge.innerHTML = `<span style="padding:3px 10px;background:rgba(99,102,241,0.15);border-radius:999px;color:#a5b4fc;font-size:0.85rem;font-weight:700;">${symbol}</span>`;
+        const symEl = document.getElementById('quantSymbol');
+        if (symEl) symEl.value = symbol;
+      }
+
+      // bt-symbol 백테스팅 심볼
+      if (_stockSearchTarget === 'bt-symbol') {
+        const display = document.getElementById('bt-symbol-display');
+        if (display) display.innerHTML = `<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:6px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`;
+      }
+
+      closeStockSearch();
+    };
+
+    // 실시간 가격 조회 (tradeSymbol 선택 시)
+    async function loadTradePrice(symbol) {
+      const priceBox = document.getElementById('tradePriceDisplay');
+      const priceVal = document.getElementById('tradePriceValue');
+      const priceChg = document.getElementById('tradePriceChange');
+      if (!priceBox) return;
+      priceBox.style.display = 'block';
+      if (priceVal) priceVal.textContent = '조회 중...';
+      if (priceChg) priceChg.textContent = '';
+      try {
+        const res = await fetch('/proxy/stock/price?symbol=' + encodeURIComponent(symbol));
+        const d = await res.json();
+        const price = d.price || d.c || d.last || 0;
+        const change = d.change_pct || d.dp || 0;
+        if (priceVal) priceVal.textContent = symbol.endsWith('.KS') || symbol.endsWith('.KQ')
+          ? '₩' + price.toLocaleString()
+          : '$' + price.toFixed(2);
+        if (priceChg) {
+          priceChg.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+          priceChg.style.color = change >= 0 ? '#FF3B30' : '#1E7BFF';
+        }
+      } catch(e) {
+        if (priceVal) priceVal.textContent = '가격 조회 실패';
+      }
+    }
   </script>
 </body>
 
