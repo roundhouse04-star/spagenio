@@ -1566,5 +1566,126 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true, saved, skipped, errors, total: to - from + 1 });
   });
 
+  // ── 로또 bias_map 조회 ──
+  router.get('/api/lotto/bias-map', async (req, res) => {
+    try {
+      const row = db.prepare('SELECT data FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if (row) return res.json({ ok: true, bias_map: JSON.parse(row.data) });
+      // 없으면 즉시 계산
+      const biasMap = computeLottoBiasMap(db);
+      res.json({ ok: true, bias_map: biasMap });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── bias_map 수동 재계산 트리거 ──
+  router.post('/api/lotto/bias-map/recalc', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const biasMap = computeLottoBiasMap(db);
+      res.json({ ok: true, bias_map: biasMap });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── bias_map 계산 함수 ──
+  function computeLottoBiasMap(db) {
+    const rows = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all();
+    const data = rows.map(r => JSON.parse(r.numbers));
+    if (data.length < 50) return null;
+
+    function getZoneIdx(n) {
+      if(n<=9) return 0; if(n<=19) return 1; if(n<=29) return 2; if(n<=39) return 3; return 4;
+    }
+
+    const stats1 = {}; // {zoneIdx: {zoneIdx: [counts]}}
+    const stats2 = {}; // {'z1+z2': {zoneIdx: [counts]}}
+
+    for(let i=1; i<data.length; i++) {
+      const prev = new Set(data[i-1]);
+      const curr = data[i];
+      const carry = data[i-1].filter(n => prev.has(n) && curr.includes(n));
+
+      if(carry.length === 1) {
+        const zi = getZoneIdx(carry[0]);
+        if(!stats1[zi]) stats1[zi] = Array.from({length:5}, ()=>[]);
+        const cnt = [0,0,0,0,0];
+        curr.filter(n=>!carry.includes(n)).forEach(n=>cnt[getZoneIdx(n)]++);
+        cnt.forEach((c,z) => stats1[zi][z].push(c));
+
+      } else if(carry.length === 2) {
+        const [z1,z2] = [getZoneIdx(carry[0]),getZoneIdx(carry[1])].sort((a,b)=>a-b);
+        const key = `${z1}+${z2}`;
+        if(!stats2[key]) stats2[key] = Array.from({length:5}, ()=>[]);
+        const cnt = [0,0,0,0,0];
+        curr.filter(n=>!carry.includes(n)).forEach(n=>cnt[getZoneIdx(n)]++);
+        cnt.forEach((c,z) => stats2[key][z].push(c));
+      }
+    }
+
+    function toWeights(zoneCounts) {
+      const avgs = zoneCounts.map(arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0);
+      const total = avgs.reduce((a,b)=>a+b,0);
+      return avgs.map(v => total>0 ? Math.round(v/total*100)/100 : 0.2);
+    }
+
+    const biasMap = {};
+    for(const zi in stats1) {
+      if(stats1[zi][0].length >= 10)
+        biasMap[String(zi)] = toWeights(stats1[zi]);
+    }
+    for(const key in stats2) {
+      if(stats2[key][0].length >= 5)
+        biasMap[key] = toWeights(stats2[key]);
+    }
+
+    // DB 저장
+    try {
+      const existing = db.prepare('SELECT key FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if(existing) db.prepare('UPDATE lotto_algorithm_config SET data=?,updated_at=CURRENT_TIMESTAMP WHERE key=?').run(JSON.stringify(biasMap), 'bias_map');
+      else db.prepare('INSERT INTO lotto_algorithm_config (key,data) VALUES (?,?)').run('bias_map', JSON.stringify(biasMap));
+    } catch(e) {
+      // 테이블 없으면 생성 후 재시도
+      db.prepare('CREATE TABLE IF NOT EXISTS lotto_algorithm_config (key TEXT PRIMARY KEY, data TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)').run();
+      const existing = db.prepare('SELECT key FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if(existing) db.prepare('UPDATE lotto_algorithm_config SET data=?,updated_at=CURRENT_TIMESTAMP WHERE key=?').run(JSON.stringify(biasMap), 'bias_map');
+      else db.prepare('INSERT INTO lotto_algorithm_config (key,data) VALUES (?,?)').run('bias_map', JSON.stringify(biasMap));
+    }
+    return biasMap;
+  }
+
+  // ── 매주 토요일 21시 이후 bias_map 자동 재계산 스케줄러 ──
+  function scheduleLottoBiasRecalc() {
+    const now = new Date();
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const kst = new Date(now.getTime() + KST_OFFSET);
+    const day = kst.getUTCDay(); // 6 = 토요일
+    const hour = kst.getUTCHours();
+
+    // 토요일 22시에 재계산 (추첨 21시 이후)
+    const next = new Date(kst);
+    next.setUTCHours(22, 0, 0, 0);
+    if(day > 6 || (day === 6 && hour >= 22)) next.setUTCDate(next.getUTCDate() + (13 - day));
+    else next.setUTCDate(next.getUTCDate() + (6 - day));
+
+    const delay = next.getTime() - kst.getTime();
+    setTimeout(() => {
+      try {
+        console.log('[로또] bias_map 자동 재계산 시작...');
+        computeLottoBiasMap(db);
+        console.log('[로또] bias_map 재계산 완료');
+      } catch(e) { console.error('[로또] bias_map 재계산 오류:', e.message); }
+      scheduleLottoBiasRecalc(); // 다음 주 예약
+    }, delay);
+
+    console.log(`[로또] bias_map 재계산 예약: ${new Date(now.getTime() + delay).toISOString()}`);
+  }
+
+  // 서버 시작 시 bias_map 초기화 + 스케줄러 등록
+  try {
+    db.prepare('CREATE TABLE IF NOT EXISTS lotto_algorithm_config (key TEXT PRIMARY KEY, data TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)').run();
+    const existing = db.prepare('SELECT key FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+    if(!existing) computeLottoBiasMap(db);
+  } catch(e) { console.error('[로또] bias_map 초기화 오류:', e.message); }
+  scheduleLottoBiasRecalc();
+
   return router;
 }
