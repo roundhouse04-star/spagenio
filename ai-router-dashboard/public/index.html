@@ -4466,11 +4466,6 @@
         });
         const d = await res.json();
         if (!d.ok || !d.top?.length) { el.innerHTML = '<div style="padding:12px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음</div>'; return; }
-          if (item.roe && item.roe < roeMin) return false;
-          if (item.debt_to_equity && item.debt_to_equity > debtMax) return false;
-          if (item.revenue_growth && item.revenue_growth < revMin) return false;
-          if (sma200 && item.above_sma200 === 0) return false;
-          return true;
         });
 
         cnt.textContent = `${d.screened}개 → ${filtered.length}개`;
