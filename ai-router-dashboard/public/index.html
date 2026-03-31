@@ -4147,10 +4147,10 @@
       if (dayPanel) dayPanel.style.display = tab === 'day' ? '' : 'none';
       if (logPanel) logPanel.style.display = tab === 'log' ? '' : 'none';
       usBtn.style.cssText = tab === 'us' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
-      krBtn.style.cssText = tab === 'kr' ? 'flex:1;padding:12px;border:none;background:#dc2626;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
-      autoBtn.style.cssText = tab === 'auto' ? 'flex:1;padding:12px;border:none;background:#0f172a;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
-      if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#4f46e5;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
-      if (logBtn) logBtn.style.cssText = tab === 'log' ? 'flex:1;padding:12px;border:none;background:#0f766e;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
+      krBtn.style.cssText = tab === 'kr' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
+      autoBtn.style.cssText = tab === 'auto' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
+      if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
+      if (logBtn) logBtn.style.cssText = tab === 'log' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); setTimeout(() => { if (typeof renderAutoSavedSymbols === 'function') renderAutoSavedSymbols(); }, 300); }
       if (tab === 'kr') { setTimeout(() => { if (typeof renderKrSavedSettings === 'function') renderKrSavedSettings(); }, 300); }
       if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); loadCombinedSignal(); }
@@ -4464,7 +4464,7 @@
             ${item.news_label && item.news_label !== '뉴스없음' ? `<span style="padding:1px 6px;border-radius:999px;background:${item.news_score > 0.3 ? '#dcfce7' : item.news_score < -0.3 ? '#fee2e2' : '#f1f5f9'};color:${item.news_score > 0.3 ? '#166534' : item.news_score < -0.3 ? '#991b1b' : '#6b7280'};">${item.news_label} ${item.news_count}건</span>` : ''}
             ${item.macro_risk < -1 ? `<span style="padding:1px 6px;border-radius:999px;background:rgba(30,123,255,0.15);color:#991b1b;font-weight:700;">⚠️ 거시악재</span>` : ''}
           </div>
-          <button onclick="saveAutoSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#6366f1;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
+          <button onclick="saveAutoSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
         </div>`).join('');
 
         el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">${_autoMarket === 'nasdaq' ? '나스닥100' : '다우존스30'} · 3단계 필터 통과 종목</div>${rows}`;
@@ -4642,7 +4642,7 @@
           const techRow = !isKr ? `<div style="margin-bottom:4px;"><span style="font-size:0.7rem;color:#9CA3AF;font-weight:600;">타이밍: </span>${(item.tech_reasons || []).filter(Boolean).map(r => `<span style="font-size:0.7rem;padding:1px 6px;background:rgba(255,59,48,0.12);color:#FF3B30;border-radius:4px;margin-right:2px;">${r}</span>`).join('')}</div>` : '';
           const saveBtn = isKr
             ? `<button onclick="event.stopPropagation();saveKrSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`
-            : (timing !== 'AVOID' ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>` : '');
+            : (timing !== 'AVOID' ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>` : '');
           return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart('${item.symbol}')">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <div><span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${medals[i] || ''} ${item.symbol}</span>${badge}</div>
