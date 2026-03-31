@@ -2223,79 +2223,96 @@
           </div>
         </div>
 
-        <!-- 통합 종목 검색 + 분석 -->
-        <div class="sp-card" style="margin-bottom:20px;">
-          <!-- 검색창 -->
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
-            <div onclick="openStockSearch('dc-search-input-target', false)"
-              style="flex:1;height:42px;border-radius:8px;border:1px solid #2A2A2A;padding:0 14px;background:#1E242C;display:flex;align-items:center;cursor:pointer;color:#636366;font-size:0.9rem;user-select:none;">
-              🔍 &nbsp;영문으로 검색하세요 (예: samsung, apple, hynix) · 최대 5종목 · 클릭하여 검색
-            </div>
-            <button onclick="openStockSearch('dc-search-input-target', false)" class="sp-btn sp-btn-indigo">
-              🔍 종목 검색
-            </button>
-          </div>
-          <!-- 검색 결과 드롭다운 -->
-          <div id="dc-search-result"
-            style="display:none;margin-bottom:8px;border:1px solid #2A2A2A;border-radius:12px;overflow:hidden;background:#161B22;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-          </div>
-          <!-- 선택된 종목 + 분석 컨트롤 -->
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <input type="hidden" id="quantSymbol" value="" />
-            <input type="hidden" id="quantBatchSymbols" value="" />
-            <div id="dc-symbol-badge" style="display:flex;flex-wrap:wrap;gap:4px;flex:1;">
-              <span style="color:#636366;font-weight:400;font-size:0.85rem;">종목을 검색해서 선택하세요</span>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-              <select id="quantStrategy" class="sp-select" style="width:140px;">
-                <option value="combined">Combined</option>
-                <option value="rsi">RSI</option>
-                <option value="bb">Bollinger Bands</option>
-                <option value="sma">SMA</option>
-                <option value="macd">MACD</option>
-              </select>
-              <button onclick="runQuantAnalysis()" class="sp-btn sp-btn-green">분석</button>
-            </div>
-          </div>
+        <!-- 서브탭 버튼 -->
+        <div id="dcTabBar"
+          style="display:flex;gap:0;margin-bottom:20px;border-radius:12px;overflow:hidden;border:1px solid #2A2A2A;background:#1E242C;">
+          <button id="dcTabStock" onclick="switchDcTab('stock')"
+            style="flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
+            📊 종목 분석
+          </button>
+          <button id="dcTabKorea" onclick="switchDcTab('korea')"
+            style="flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
+            🇰🇷 한국 시장 TOP 10
+          </button>
         </div>
 
-        <!-- 분석 결과 -->
-        <div class="sp-card" id="quantResultCard" style="display:none;">
-          <div style="text-align:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f3f4f6;">
-            <div style="font-size:0.78rem;color:#636366;margin-bottom:6px;">선택된 종목</div>
-            <div id="dc-symbol-badge" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">
-              <span style="color:#636366;font-weight:400;font-size:0.85rem;">종목을 검색해서 선택하세요</span>
+        <!-- 종목 분석 패널 -->
+        <div id="dcPanelStock">
+
+          <!-- 통합 종목 검색 + 분석 -->
+          <div class="sp-card" style="margin-bottom:20px;">
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+              <div onclick="openStockSearch('dc-search-input-target', false)"
+                style="flex:1;height:42px;border-radius:8px;border:1px solid #2A2A2A;padding:0 14px;background:#1E242C;display:flex;align-items:center;cursor:pointer;color:#636366;font-size:0.9rem;user-select:none;">
+                🔍 &nbsp;영문으로 검색하세요 (예: samsung, apple, hynix) · 최대 5종목 · 클릭하여 검색
+              </div>
+              <button onclick="openStockSearch('dc-search-input-target', false)" class="sp-btn sp-btn-indigo">
+                🔍 종목 검색
+              </button>
+            </div>
+            <div id="dc-search-result"
+              style="display:none;margin-bottom:8px;border:1px solid #2A2A2A;border-radius:12px;overflow:hidden;background:#161B22;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <input type="hidden" id="quantSymbol" value="" />
+              <input type="hidden" id="quantBatchSymbols" value="" />
+              <div id="dc-symbol-badge" style="display:flex;flex-wrap:wrap;gap:4px;flex:1;">
+                <span style="color:#636366;font-weight:400;font-size:0.85rem;">종목을 검색해서 선택하세요</span>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+                <select id="quantStrategy" class="sp-select" style="width:140px;">
+                  <option value="combined">Combined</option>
+                  <option value="rsi">RSI</option>
+                  <option value="bb">Bollinger Bands</option>
+                  <option value="sma">SMA</option>
+                  <option value="macd">MACD</option>
+                </select>
+                <button onclick="runQuantAnalysis()" class="sp-btn sp-btn-green">분석</button>
+              </div>
             </div>
           </div>
-          <div id="quantResult"></div>
-          <div id="quantChartWrap" style="display:none;margin-top:16px;">
-            <canvas id="quantChart" height="180"></canvas>
-          </div>
-        </div>
 
-        <!-- 주가 히스토리 조회 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">💾 주가 히스토리 조회 (백테스팅용 DB)</div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="hidden" id="dc-symbols" value="" />
-              <button onclick="initHistoryData()" class="sp-btn sp-btn-primary">🔄 초기 수집</button>
+          <!-- 분석 결과 -->
+          <div class="sp-card" id="quantResultCard" style="display:none;">
+            <div style="text-align:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f3f4f6;">
+              <div style="font-size:0.78rem;color:#636366;margin-bottom:6px;">선택된 종목</div>
+              <div id="dc-symbol-badge2" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">
+                <span style="color:#636366;font-weight:400;font-size:0.85rem;">종목을 검색해서 선택하세요</span>
+              </div>
+            </div>
+            <div id="quantResult"></div>
+            <div id="quantChartWrap" style="display:none;margin-top:16px;">
+              <canvas id="quantChart" height="180"></canvas>
             </div>
           </div>
-          <div style="font-size:0.78rem;color:#636366;margin-bottom:10px;">📅 매일 00:00 자동 업데이트 · yfinance 기반 2년치 데이터 · 위
-            검색에서 종목 선택 후 분석 시 자동 조회</div>
-          <div id="dc-history-result"></div>
-        </div>
 
-        <!-- 한국 시장 TOP 10 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🇰🇷 한국 시장 TOP 10</div>
-            <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-green sp-btn-sm">수급 분석</button>
+          <!-- 주가 히스토리 조회 -->
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div class="sp-card-title">💾 주가 히스토리 조회 (백테스팅용 DB)</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="hidden" id="dc-symbols" value="" />
+                <button onclick="initHistoryData()" class="sp-btn sp-btn-primary">🔄 초기 수집</button>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:#636366;margin-bottom:10px;">📅 매일 00:00 자동 업데이트 · yfinance 기반 2년치 데이터 · 위
+              검색에서 종목 선택 후 분석 시 자동 조회</div>
+            <div id="dc-history-result"></div>
           </div>
-          <p style="font-size:0.82rem;color:#636366;margin-bottom:14px;">거래량 + RSI 복합 점수 기반 상위 종목</p>
-          <div id="koreaResult"></div>
-        </div>
+
+        </div><!-- /dcPanelStock -->
+
+        <!-- 한국 시장 TOP 10 패널 -->
+        <div id="dcPanelKorea" style="display:none;">
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <div class="sp-card-title">🇰🇷 한국 시장 TOP 10</div>
+              <button onclick="loadKoreaAnalysis()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 수급 분석</button>
+            </div>
+            <p style="font-size:0.82rem;color:#636366;margin-bottom:14px;">거래량 + RSI 복합 점수 기반 상위 종목</p>
+            <div id="koreaResult"></div>
+          </div>
+        </div><!-- /dcPanelKorea -->
 
       </div>
     </div>
@@ -5126,17 +5143,7 @@
         if (tabKey === 'datacollect') {
           const tabEl = document.getElementById('tab-datacollect');
           if (tabEl) tabEl.style.display = 'block';
-          if (subKey === 'korea') {
-            setTimeout(() => {
-              const el = document.getElementById('koreaResult')?.closest('.sp-card');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-          } else if (subKey === 'stock') {
-            setTimeout(() => {
-              const el = document.getElementById('quantResultCard') || document.getElementById('dc-history-result')?.closest('.sp-card');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-          }
+          if (typeof switchDcTab === 'function') switchDcTab(subKey || 'stock');
           return;
         }
       }
@@ -5424,6 +5431,22 @@
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</div>`;
       }
     }
+
+    // ===== 데이터 수집 탭 서브탭 전환 =====
+    function switchDcTab(tab) {
+      const stockPanel = document.getElementById('dcPanelStock');
+      const koreaPanel = document.getElementById('dcPanelKorea');
+      const stockBtn = document.getElementById('dcTabStock');
+      const koreaBtn = document.getElementById('dcTabKorea');
+      const inactiveStyle = 'flex:1;padding:12px;border:none;background:#1E242C;color:#9CA3AF;font-weight:800;font-size:0.95rem;cursor:pointer;';
+      const activeStyle = 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;';
+      if (stockPanel) stockPanel.style.display = tab === 'stock' ? '' : 'none';
+      if (koreaPanel) koreaPanel.style.display = tab === 'korea' ? '' : 'none';
+      if (stockBtn) stockBtn.style.cssText = tab === 'stock' ? activeStyle : inactiveStyle;
+      if (koreaBtn) koreaBtn.style.cssText = tab === 'korea' ? activeStyle : inactiveStyle;
+      if (tab === 'korea') { setTimeout(() => { if (typeof loadKoreaAnalysis === 'function') loadKoreaAnalysis(); }, 100); }
+    }
+    window.switchDcTab = switchDcTab;
 
     // 성과 대시보드 계좌 타입 선택
     window._perfAccountType = window._perfAccountType || 0;
