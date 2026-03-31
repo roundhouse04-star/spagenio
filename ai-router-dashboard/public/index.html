@@ -3069,6 +3069,17 @@
               <div class="sp-card-title">🏆 오늘의 추천 종목 TOP 5</div>
               <button onclick="loadTopPicks()" class="sp-btn sp-btn-indigo sp-btn-sm">🔍 분석</button>
             </div>
+            <!-- 시장 선택 -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <button id="topPicksBtnNasdaq" onclick="setTopPicksMarket('nasdaq')"
+                style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
+                📊 나스닥100
+              </button>
+              <button id="topPicksBtnDow" onclick="setTopPicksMarket('dow')"
+                style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
+                🏦 다우존스30
+              </button>
+            </div>
             <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:12px;">거래량 급등 · 뉴스 촉매 · MACD/RSI 기술적 신호를 종합한 추천
               종목이에요</div>
             <div id="topPicksList">
@@ -4263,6 +4274,18 @@
       const db = document.getElementById('asBtnDow');
       nb.style.cssText = `flex:1;padding:6px;border-radius:8px;border:2px solid ${market === 'nasdaq' ? '#6366f1' : '#e5e7eb'};background:${market === 'nasdaq' ? '#eef2ff' : '#f9fafb'};color:${market === 'nasdaq' ? '#6366f1' : '#6b7280'};font-weight:700;cursor:pointer;font-size:0.78rem;`;
       db.style.cssText = `flex:1;padding:6px;border-radius:8px;border:2px solid ${market === 'dow' ? '#6366f1' : '#e5e7eb'};background:${market === 'dow' ? '#eef2ff' : '#f9fafb'};color:${market === 'dow' ? '#6366f1' : '#6b7280'};font-weight:700;cursor:pointer;font-size:0.78rem;`;
+    };
+
+    // ===== TOP5 시장 선택 (일반 자동매매) =====
+    let _topPicksMarket = 'nasdaq';
+    window._topPicksMarket = _topPicksMarket;
+    window.setTopPicksMarket = function(market) {
+      _topPicksMarket = market;
+      window._topPicksMarket = market;
+      const nb = document.getElementById('topPicksBtnNasdaq');
+      const db = document.getElementById('topPicksBtnDow');
+      if (nb) { nb.style.background = market === 'nasdaq' ? '#6366f1' : 'transparent'; nb.style.color = market === 'nasdaq' ? '#fff' : '#9CA3AF'; nb.style.borderColor = market === 'nasdaq' ? '#6366f1' : '#2A2A2A'; }
+      if (db) { db.style.background = market === 'dow' ? '#6366f1' : 'transparent'; db.style.color = market === 'dow' ? '#fff' : '#9CA3AF'; db.style.borderColor = market === 'dow' ? '#6366f1' : '#2A2A2A'; }
     };
 
     // ===== 완전자동매매 설정 로드/저장 =====
@@ -5614,20 +5637,24 @@
     // TOP5 분석 결과 캐싱 (탭 재진입 시 즉시 표시, 5분 유효)
     let _topPicksCache = null;
     let _topPicksCacheTime = 0;
+    let _topPicksCacheMarket = 'nasdaq';
     const _origLoadTopPicks = typeof window.loadTopPicks === 'function'
       ? window.loadTopPicks : null;
     window.loadTopPicks = async function (...args) {
       const now = Date.now();
-      if (_topPicksCache && (now - _topPicksCacheTime) < 5 * 60 * 1000) {
+      const market = window._topPicksMarket || 'nasdaq';
+      // 캐시가 유효하고 같은 시장이면 캐시 사용
+      if (_topPicksCache && (now - _topPicksCacheTime) < 5 * 60 * 1000 && _topPicksCacheMarket === market) {
         const el = document.getElementById('topPicksList');
         if (el) { el.innerHTML = _topPicksCache; return; }
       }
       if (typeof _origLoadTopPicks === 'function') {
-        await _origLoadTopPicks.apply(this, args);
+        await _origLoadTopPicks.apply(this, [market, ...args]);
         const el = document.getElementById('topPicksList');
         if (el && el.innerHTML && !el.innerHTML.includes('분석 버튼')) {
           _topPicksCache = el.innerHTML;
           _topPicksCacheTime = Date.now();
+          _topPicksCacheMarket = market;
         }
       }
     };
