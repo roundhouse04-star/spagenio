@@ -4511,9 +4511,9 @@
       const el = document.getElementById('autoSavedSymbols');
       if (!el) return;
       try {
-        const res = await fetch('/api/auto-trade/settings');
+        const res = await fetch('/api/auto-strategy/settings');
         const d = await res.json();
-        const symbols = (d.symbols || '').split(',').map(s => s.trim()).filter(Boolean);
+        const symbols = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
         if (!symbols.length) {
           el.innerHTML = '<div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">저장된 종목 없음</div>';
           return;
@@ -4535,9 +4535,9 @@
 
     window.saveAutoSymbol = async function(symbol) {
       try {
-        const res = await fetch('/api/auto-trade/settings');
+        const res = await fetch('/api/auto-strategy/settings');
         const d = await res.json();
-        const existing = (d.symbols || '').split(',').map(s => s.trim()).filter(Boolean);
+        const existing = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
         if (existing.includes(symbol)) {
           await spAlert(`${symbol}은 이미 저장된 종목이에요!`, '알림', 'ℹ️'); return;
         }
@@ -4545,9 +4545,9 @@
           await spAlert(`종목은 최대 5개까지 저장 가능해요.\n현재 ${existing.length}개 저장됨`, '저장 한도 초과', '⚠️'); return;
         }
         existing.push(symbol);
-        await fetch('/api/auto-trade/settings', {
+        await fetch('/api/auto-strategy/settings', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...d, symbols: existing.join(',') })
+          body: JSON.stringify({ ...d, candidate_symbols: existing.join(',') })
         });
         // 버튼 피드백
         const btns = document.querySelectorAll(`button[onclick="saveAutoSymbol('${symbol}')"]`);
@@ -4560,12 +4560,12 @@
       const ok = await spConfirm(`${symbol}을 저장 목록에서 삭제하시겠습니까?`, '종목 삭제', '🗑️', '삭제', '#ef4444');
       if (!ok) return;
       try {
-        const res = await fetch('/api/auto-trade/settings');
+        const res = await fetch('/api/auto-strategy/settings');
         const d = await res.json();
-        const newSymbols = (d.symbols || '').split(',').map(s => s.trim()).filter(s => s && s !== symbol).join(',');
-        await fetch('/api/auto-trade/settings', {
+        const newSymbols = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(s => s && s !== symbol).join(',');
+        await fetch('/api/auto-strategy/settings', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...d, symbols: newSymbols })
+          body: JSON.stringify({ ...d, candidate_symbols: newSymbols })
         });
         await renderAutoSavedSymbols();
       } catch(e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
