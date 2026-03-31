@@ -2456,12 +2456,10 @@
         // 이월 확률 기반으로 1~2개 확률적 선택 (실제 통계: 보통 1~2개 이월)
         const sortedByCarry=[...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]);
         const carryPicks=[];
-        // 1개는 확률 높은 번호 중 가중치 샘플링으로 선택
         const carryWeights=sortedByCarry.map(n=>Math.max(carryPct[n],0.01));
         const totalW=carryWeights.reduce((a,b)=>a+b,0);
         let r1=Math.random()*totalW,cum=0;
         for(let i=0;i<sortedByCarry.length;i++){cum+=carryWeights[i];if(cum>=r1){carryPicks.push(sortedByCarry[i]);break;}}
-        // 2번째: 50% 확률로 추가 (실제 2개 이월 빈도 ~50%)
         if(Math.random()<0.5){
           const rem2=sortedByCarry.filter(n=>!carryPicks.includes(n));
           const w2=rem2.map(n=>Math.max(carryPct[n],0.01));
@@ -2471,34 +2469,54 @@
         }
         const picks=new Set(carryPicks);
 
-        // 구간 패턴 통계 반영:
-        // - 3개 구간 27%, 4개 구간 38%, 5개 구간 30%
-        // - 40~45 구간은 70% 확률로 건너뜀
-        // - 빈 구간 수: 3개구간=2개빔, 4개구간=1개빔, 5개구간=0개빔
-        const zoneRand = Math.random();
-        const targetZoneCount = zoneRand < 0.27 ? 3 : zoneRand < 0.65 ? 4 : 5;
-        const skip4045 = Math.random() < 0.70; // 40~45 구간 70% 건너뜀
-        const allZones = [[1,9],[10,19],[20,29],[30,39],[40,45]];
-        // 활성 구간 결정
-        let activeZones = skip4045 ? allZones.slice(0,4) : allZones;
-        // targetZoneCount보다 많으면 랜덤으로 구간 제거 (40~45 제외 우선)
-        const shuffled = [...activeZones].sort(()=>Math.random()-0.5);
-        activeZones = shuffled.slice(0, targetZoneCount);
+        // ── 구간 패턴 통계 기반 번호 선택 ──
+        // 구간별 번호 개수 확률 (통계 기반)
+        // 1~9:    0개16% 1개53% 2개25% 3개6%
+        // 10~19:  0개18% 1개49% 2개22% 3개11%
+        // 20~29:  0개13% 1개49% 2개29% 3개8% 4개1%
+        // 30~39:  0개21% 1개40% 2개27% 3개11% 4개2%
+        // 40~45:  0개41% 1개40% 2개18% 3개1%
+        const zoneSpecs = [
+          { range:[1,9],   dist:[0.16,0.53,0.25,0.06,0.00] },
+          { range:[10,19], dist:[0.18,0.49,0.22,0.11,0.00] },
+          { range:[20,29], dist:[0.13,0.49,0.29,0.08,0.01] },
+          { range:[30,39], dist:[0.21,0.40,0.27,0.11,0.01] },
+          { range:[40,45], dist:[0.41,0.40,0.18,0.01,0.00] },
+        ];
 
-        // 이미 이월 picks가 있는 구간은 활성으로 유지
-        for(const n of carryPicks){
-          const z=allZones.find(([lo,hi])=>n>=lo&&n<=hi);
-          if(z&&!activeZones.includes(z)) activeZones.push(z);
+        // 각 구간별 뽑을 개수 결정 (확률 샘플링)
+        function sampleCount(dist) {
+          const r=Math.random(); let c=0;
+          for(let i=0;i<dist.length;i++){c+=dist[i];if(r<c)return i;}
+          return 1;
         }
 
-        // 활성 구간에서만 번호 선택
-        for(const[lo,hi]of activeZones){
-          if(picks.size>=6)break;
-          const z=Object.entries(scores).filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);}).sort((a,b)=>b[1]-a[1]);
-          if(z.length)picks.add(parseInt(z[0][0]));
+        // 이월 픽이 있는 구간 파악
+        const carryZones=new Set(carryPicks.map(n=>zoneSpecs.findIndex(z=>n>=z.range[0]&&n<=z.range[1])));
+
+        // 구간별로 번호 선택
+        for(let zi=0;zi<zoneSpecs.length;zi++){
+          if(picks.size>=6) break;
+          const {range:[lo,hi],dist}=zoneSpecs[zi];
+          // 이월 픽이 이미 있는 구간은 그 개수만큼 차감
+          const alreadyInZone=[...picks].filter(n=>n>=lo&&n<=hi).length;
+          let targetCnt=sampleCount(dist);
+          // 이미 이월로 채워진 경우 추가 안 함 (단, 이월 개수가 target보다 적으면 채움)
+          const need=Math.max(0, targetCnt-alreadyInZone);
+          const candidates=Object.entries(scores)
+            .filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);})
+            .sort((a,b)=>b[1]-a[1]);
+          for(let k=0;k<need&&k<candidates.length&&picks.size<6;k++){
+            picks.add(parseInt(candidates[k][0]));
+          }
         }
         const rem=Object.entries(scores).filter(([n])=>!picks.has(parseInt(n))).sort((a,b)=>b[1]-a[1]);
-        for(const[n]of rem){if(picks.size>=6)break;picks.add(parseInt(n));}
+        const top15=rem.slice(0,15);
+        while(picks.size<6&&top15.length>0){
+          const idx=Math.floor(Math.random()*top15.length);
+          picks.add(parseInt(top15[idx][0]));
+          top15.splice(idx,1);
+        }
         const finalPicks=[...picks].sort((a,b)=>a-b);
         const bColors=['#f59e0b','#3b82f6','#ef4444','#888888','#22c55e'];
         const getC=n=>n<=9?bColors[0]:n<=19?bColors[1]:n<=29?bColors[2]:n<=39?bColors[3]:bColors[4];
