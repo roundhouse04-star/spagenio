@@ -147,10 +147,10 @@ try {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`;
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_manual'  + backupCols); // type=1 수동
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_simple'  + backupCols); // type=2 단순자동
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_full'    + backupCols); // type=3 완전자동
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_general' + backupCols); // type=4 일반자동
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_manual'  + backupCols);
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_simple'  + backupCols);
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_full'    + backupCols);
+  db.exec('CREATE TABLE IF NOT EXISTS trade_log_general' + backupCols);
 } catch(e) {}
 
 // ── saveTradeLog 헬퍼: trade_log + 타입별 백업 테이블 동시 INSERT ──
