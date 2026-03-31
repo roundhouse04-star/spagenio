@@ -208,10 +208,10 @@ async function saveAlpacaKeys() {
     }
 
     // 2. 키 저장
+    const accountType = parseInt(document.getElementById('inputAccountType')?.value || '0');
     const res = await fetch('/api/user/broker-keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      const accountType = parseInt(document.getElementById('inputAccountType')?.value || '0');
       body: JSON.stringify({ account_name, alpaca_api_key: api_key, alpaca_secret_key: secret_key, alpaca_paper: paper, account_type: accountType })
     });
     const data = await res.json();
