@@ -5962,27 +5962,41 @@
     window.searchStock = async function(q) {
       if (!q || q.trim().length < 1) return;
       const el = document.getElementById('sp-stock-search-result');
-      el.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:16px;font-size:0.85rem;">🔍 검색 중...</div>';
+      el.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:24px;font-size:0.88rem;">🔍 검색 중...</div>';
       try {
-        const res = await fetch('/api/stock/search?q=' + encodeURIComponent(q.trim()));
-        const d = await res.json();
-        if (!d.results?.length) { el.innerHTML = '<div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">검색 결과 없음</div>'; return; }
-        el.innerHTML = d.results.map(r => `
-          <div onclick="selectStock('${r.symbol}','${(r.name||'').replace(/'/g,'')}')"
-            style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #2A2A2A;display:flex;justify-content:space-between;align-items:center;transition:background 0.15s;"
-            onmouseover="this.style.background='#1E242C'" onmouseout="this.style.background=''">
-            <div>
-              <div style="font-weight:700;color:#E5E7EB;font-size:0.9rem;">${r.symbol}</div>
-              <div style="font-size:0.78rem;color:#9CA3AF;">${r.name||''}</div>
-            </div>
-            <div style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.15);color:#a5b4fc;">${r.exchange||''}</div>
-          </div>`).join('');
+        const res = await fetch('/proxy/stock/api/stock/search?q=' + encodeURIComponent(q.trim()));
+        const data = await res.json();
+        const results = data.results || [];
+        if (!results.length) { el.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:24px;font-size:0.88rem;">검색 결과가 없습니다</div>'; return; }
+        el.innerHTML = results.map(r => {
+          const isKR = r.symbol.endsWith('.KS') || r.symbol.endsWith('.KQ');
+          const flag = isKR ? '🇰🇷' : '🇺🇸';
+          const exBadge = isKR
+            ? `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#fff7ed;color:#c2410c;font-weight:700;">${r.symbol.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI'}</span>`
+            : `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-weight:700;">${r.exchange}</span>`;
+          return `
+            <div data-symbol="${r.symbol}" data-name="${(r.name||r.symbol).replace(/"/g,'')}" onclick="selectStock(this.dataset.symbol, this.dataset.name)"
+              style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background 0.1s;"
+              onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:0.95rem;">${flag}</span>
+                  <span style="font-weight:700;font-size:0.92rem;color:#0f172a;">${r.name||r.symbol}</span>
+                </div>
+                <div style="font-size:0.78rem;color:#9ca3af;margin-top:2px;">${r.symbol}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                ${exBadge}
+                <span style="font-size:0.75rem;padding:1px 6px;border-radius:999px;background:#f1f5f9;color:#64748b;">${r.type||''}</span>
+              </div>
+            </div>`;
+        }).join('');
       } catch(e) {
-        el.innerHTML = '<div style="text-align:center;color:#ef4444;padding:16px;font-size:0.85rem;">검색 오류: ' + e.message + '</div>';
+        el.innerHTML = '<div style="color:#ef4444;padding:16px;font-size:0.88rem;">오류: ' + e.message + '</div>';
       }
     };
 
-    window.selectStock = function(symbol, name) {
+    window._baseSelectStock = function(symbol, name) {
       if (!_stockSearchTarget) return;
       // hidden input에 값 설정
       const inp = document.getElementById(_stockSearchTarget);
@@ -6014,6 +6028,7 @@
 
       closeStockSearch();
     };
+    window.selectStock = window._baseSelectStock;
 
     // 실시간 가격 조회 (tradeSymbol 선택 시)
     async function loadTradePrice(symbol) {
