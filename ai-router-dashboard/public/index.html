@@ -4913,6 +4913,9 @@
       if (tabKey === 'performance') {
         const perfTab = document.getElementById('tab-performance');
         if (perfTab) { perfTab.style.display = 'block'; }
+        // 즉시 실행 + 딜레이 후 재실행 (데이터 보장)
+        if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+        if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
         setTimeout(() => {
           if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
           if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
