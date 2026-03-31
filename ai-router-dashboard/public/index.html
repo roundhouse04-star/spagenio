@@ -3080,7 +3080,7 @@
               </div>
             </div>
             <!-- 시장 선택 -->
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <div id="topPicksUsMarket" style="display:flex;gap:8px;margin-bottom:12px;">
               <button id="topPicksBtnNasdaq" onclick="setTopPicksMarket('nasdaq')"
                 style="padding:5px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
                 📊 나스닥100
@@ -4308,6 +4308,9 @@
       const krBtn = document.getElementById('dayMarketBtnKr');
       if (usBtn) { usBtn.style.background = market === 'us' ? '#16a34a' : 'transparent'; usBtn.style.color = market === 'us' ? '#fff' : '#9CA3AF'; usBtn.style.borderColor = market === 'us' ? '#16a34a' : '#2A2A2A'; }
       if (krBtn) { krBtn.style.background = market === 'kr' ? '#16a34a' : 'transparent'; krBtn.style.color = market === 'kr' ? '#fff' : '#9CA3AF'; krBtn.style.borderColor = market === 'kr' ? '#16a34a' : '#2A2A2A'; }
+      // 나스닥/다우 버튼 미국일 때만 표시
+      const usMarketEl = document.getElementById('topPicksUsMarket');
+      if (usMarketEl) usMarketEl.style.display = market === 'us' ? 'flex' : 'none';
       // 자동 재조회
       loadVolumeSurge();
       loadNewsCatalyst();
