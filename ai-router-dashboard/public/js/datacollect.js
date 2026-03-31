@@ -914,7 +914,8 @@ window.loadTopPicks = async function() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">⏳ 분석 중... (10~20초 소요)</div>';
   try {
-    const res = await fetch('/api/auto-trade/top-picks');
+    const market = window._topPicksMarket || 'nasdaq';
+    const res = await fetch(`/api/auto-trade/top-picks?market=${market}`);
     const d = await res.json();
     if (!d.ok) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">${d.error}</div>`; return; }
     if (!d.picks?.length) {
