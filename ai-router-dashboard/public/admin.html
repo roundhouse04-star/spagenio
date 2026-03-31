@@ -2470,13 +2470,8 @@
         const picks=new Set(carryPicks);
 
         // ── 구간 패턴 통계 기반 번호 선택 ──
-        // 구간별 번호 개수 확률 (통계 기반)
-        // 1~9:    0개16% 1개53% 2개25% 3개6%
-        // 10~19:  0개18% 1개49% 2개22% 3개11%
-        // 20~29:  0개13% 1개49% 2개29% 3개8% 4개1%
-        // 30~39:  0개21% 1개40% 2개27% 3개11% 4개2%
-        // 40~45:  0개41% 1개40% 2개18% 3개1%
-        const zoneSpecs = [
+        // 기본 구간별 확률 (100회 통계)
+        const baseZoneSpecs = [
           { range:[1,9],   dist:[0.16,0.53,0.25,0.06,0.00] },
           { range:[10,19], dist:[0.18,0.49,0.22,0.11,0.00] },
           { range:[20,29], dist:[0.13,0.49,0.29,0.08,0.01] },
@@ -2484,24 +2479,67 @@
           { range:[40,45], dist:[0.41,0.40,0.18,0.01,0.00] },
         ];
 
+        // 이월 번호대 기반 보정 분포
+        // key: 이월 번호대 인덱스(0~4) 또는 두개 조합 '0+2'
+        // value: [1~9, 10~19, 20~29, 30~39, 40~45] 평균 개수 기반 dist
+        const carryBiasMap = {
+          // 이월 1개
+          '0': [0.10,0.35,0.20,0.35,0.00], // 1~9 이월 → 10~19, 30~39 강세
+          '1': [0.22,0.20,0.20,0.28,0.10], // 10~19 이월 → 30~39 강세
+          '2': [0.32,0.18,0.25,0.18,0.07], // 20~29 이월 → 1~9 강세
+          '3': [0.16,0.08,0.28,0.44,0.04], // 30~39 이월 → 30~39 자체 강세
+          '4': [0.27,0.30,0.17,0.17,0.09], // 40~45 이월 → 10~19 강세
+          // 이월 2개 조합
+          '1+3': [0.10,0.00,0.30,0.30,0.10], // 10~19+30~39 → 20~29, 30~39 강세
+          '2+3': [0.20,0.14,0.27,0.14,0.07], // 20~29+30~39 → 20~29 강세
+          '1+1': [0.10,0.20,0.30,0.20,0.00], // 10~19+10~19 → 20~29 강세
+        };
+
+        // 이월 번호의 구간 인덱스 파악
+        function getZoneIdx(n) {
+          if(n<=9) return 0;
+          if(n<=19) return 1;
+          if(n<=29) return 2;
+          if(n<=39) return 3;
+          return 4;
+        }
+
+        // 이월 번호대 기반 bias 가져오기
+        let biasWeights = null;
+        if(carryPicks.length === 1) {
+          const zi = getZoneIdx(carryPicks[0]);
+          biasWeights = carryBiasMap[String(zi)] || null;
+        } else if(carryPicks.length === 2) {
+          const [z1,z2] = [getZoneIdx(carryPicks[0]), getZoneIdx(carryPicks[1])].sort((a,b)=>a-b);
+          biasWeights = carryBiasMap[`${z1}+${z2}`] || null;
+        }
+
         // 각 구간별 뽑을 개수 결정 (확률 샘플링)
-        function sampleCount(dist) {
+        // biasWeights 있으면 기본분포와 6:4 혼합 적용
+        function sampleCount(baseDist, zoneIdx) {
+          let dist = baseDist;
+          if(biasWeights) {
+            // bias의 해당 구간 비중으로 목표 개수 보정
+            const biasTarget = Math.round(biasWeights[zoneIdx] * 6); // 6개 기준 배분
+            // 기본분포와 bias 6:4 혼합
+            const blended = baseDist.map((v,i) => v*0.6 + (i===biasTarget?0.4:0));
+            const total = blended.reduce((a,b)=>a+b,0);
+            dist = blended.map(v=>v/total);
+          }
           const r=Math.random(); let c=0;
           for(let i=0;i<dist.length;i++){c+=dist[i];if(r<c)return i;}
           return 1;
         }
 
         // 이월 픽이 있는 구간 파악
-        const carryZones=new Set(carryPicks.map(n=>zoneSpecs.findIndex(z=>n>=z.range[0]&&n<=z.range[1])));
+        const carryZones=new Set(carryPicks.map(n=>baseZoneSpecs.findIndex(z=>n>=z.range[0]&&n<=z.range[1])));
 
         // 구간별로 번호 선택
-        for(let zi=0;zi<zoneSpecs.length;zi++){
+        for(let zi=0;zi<baseZoneSpecs.length;zi++){
           if(picks.size>=6) break;
-          const {range:[lo,hi],dist}=zoneSpecs[zi];
-          // 이월 픽이 이미 있는 구간은 그 개수만큼 차감
+          const {range:[lo,hi],dist}=baseZoneSpecs[zi];
           const alreadyInZone=[...picks].filter(n=>n>=lo&&n<=hi).length;
-          let targetCnt=sampleCount(dist);
-          // 이미 이월로 채워진 경우 추가 안 함 (단, 이월 개수가 target보다 적으면 채움)
+          let targetCnt=sampleCount(dist, zi);
           const need=Math.max(0, targetCnt-alreadyInZone);
           const candidates=Object.entries(scores)
             .filter(([n])=>{const x=parseInt(n);return x>=lo&&x<=hi&&!picks.has(x);})
