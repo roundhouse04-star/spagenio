@@ -4904,28 +4904,26 @@
         if (typeof switchQuantTab === 'function') switchQuantTab(subKey);
       }
 
-      // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
-      if (typeof switchTab === 'function' && !subKey) {
-        switchTab(tabKey);
-        return; // switchTab이 탭 표시까지 처리
-      }
-
+      // ── performance 탭은 switchTab 이전에 먼저 처리 ──
       if (tabKey === 'performance') {
-        const perfTab = document.getElementById('tab-performance');
-        if (perfTab) { perfTab.style.display = 'block'; }
         // 즉시 실행 + 딜레이 후 재실행 (데이터 보장)
         if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
         if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
         setTimeout(() => {
-          if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
-          if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
           if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
           if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
           if (typeof loadTradeHistory === 'function') loadTradeHistory();
           if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
           if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
           if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
-        }, 500);
+        }, 300);
+        return;
+      }
+
+      // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
+      if (typeof switchTab === 'function' && !subKey) {
+        switchTab(tabKey);
+        return; // switchTab이 탭 표시까지 처리
       }
       if (tabKey === 'quant' && !subKey) {
         setTimeout(() => { if (typeof checkInvestorProfile === 'function') checkInvestorProfile(); }, 50);
