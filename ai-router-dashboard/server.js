@@ -178,6 +178,27 @@ function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason,
     } catch(e) { console.error('[saveTradeLog] 백업 실패:', backupTable, e.message); }
   }
 
+// ── updateTradeLogStatus 헬퍼: trade_log + 백업 테이블 status 동시 UPDATE ──
+function updateTradeLogStatus(user_id, symbol, trade_type) {
+  const backupTableMap = { 1: 'trade_log_manual', 2: 'trade_log_simple', 3: 'trade_log_full', 4: 'trade_log_general' };
+
+  // 1. trade_log UPDATE
+  db.prepare(
+    "UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=? AND action='BUY' AND status='active'"
+  ).run(user_id, symbol, trade_type);
+
+  // 2. 백업 테이블도 동시 UPDATE
+  const backupTable = backupTableMap[trade_type];
+  if (backupTable) {
+    try {
+      // 백업 테이블은 trade_log_id 기준으로 연결 — symbol + user_id로 매칭
+      db.prepare(
+        `UPDATE ${backupTable} SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'`
+      ).run(user_id, symbol);
+    } catch(e) { console.error('[updateTradeLogStatus] 백업 업데이트 실패:', backupTable, e.message); }
+  }
+}
+
   return trade_log_id;
 }
 
@@ -839,7 +860,7 @@ app.use((req, res, next) => { requestStats.total += 1; res.setHeader('Cache-Cont
 // 라우트 연결
 // ============================================================
 const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
-const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog };
+const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus };
 
 app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
@@ -1171,7 +1192,7 @@ async function runSimpleAutoTrade(userId) {
 
           // [레거시 제거] simple_auto_trade_log SELL → trade_log(type=2)만 사용
           saveTradeLog({ user_id:userId, trade_type:2, symbol:state.symbol, action:'SELL', qty, price:currentPrice, profit_pct:plPct*100, reason, status:'closed' });
-          db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=2 AND action='BUY' AND status='active'").run(userId, state.symbol);
+          updateTradeLogStatus(userId, state.symbol, 2);
 
           // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
           if (estTime >= forceCloseTime) {
@@ -1375,7 +1396,7 @@ async function runAutoTradeForUser(userId) {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
             // [레거시 제거] auto_trade_log SELL_PROFIT 제거
             saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_PROFIT', qty:pos.qty, price:pos.current_price, reason:`익절 +${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
-            db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(userId, pos.symbol);
+            updateTradeLogStatus(userId, pos.symbol, 4);
             results.push({ symbol: pos.symbol, action: '익절 매도' });
           } catch (e) { }
         }
@@ -1386,7 +1407,7 @@ async function runAutoTradeForUser(userId) {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
             // [레거시 제거] auto_trade_log SELL_LOSS 제거
             saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_LOSS', qty:pos.qty, price:pos.current_price, reason:`손절 ${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
-            db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(userId, pos.symbol);
+            updateTradeLogStatus(userId, pos.symbol, 4);
             results.push({ symbol: pos.symbol, action: '손절 매도' });
           } catch (e) { }
         }
@@ -1875,7 +1896,7 @@ async function runAutoStrategy(userId) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
           // [레거시 제거] auto_trade_log SELL_PROFIT2 제거
           saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT2', qty, price:currentPrice, reason:`퀀트전략:2차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
-          db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=3 AND action='BUY' AND status='active'").run(userId, pos.symbol);
+          updateTradeLogStatus(userId, pos.symbol, 3);
         }
       // 1차 익절 (절반 매도) — 2차 미달 시만 실행
       } else if (plPct >= s.take_profit1) {
@@ -1895,7 +1916,7 @@ async function runAutoStrategy(userId) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
           // [레거시 제거] auto_trade_log SELL_STOP 제거
           saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_STOP', qty, price:currentPrice, reason:`퀀트전략:손절 ${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
-          db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=3 AND action='BUY' AND status='active'").run(userId, pos.symbol);
+          updateTradeLogStatus(userId, pos.symbol, 3);
         }
       }
     }
