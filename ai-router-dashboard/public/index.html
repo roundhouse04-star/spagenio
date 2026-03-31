@@ -5069,9 +5069,9 @@
     }
 
     // 성과 대시보드 계좌 타입 선택
-    let _perfAccountType = 0;
+    window._perfAccountType = window._perfAccountType || 0;
     function setPerfAccountType(type) {
-      _perfAccountType = type;
+      window.window._perfAccountType = type;
       const labels = { 0: '전체 계좌 기준', 1: '수동 계좌 기준', 2: '자동매매 계좌 기준' };
       const labelEl = document.getElementById('perfAccLabel');
       if (labelEl) labelEl.textContent = labels[type] || '';
@@ -5095,7 +5095,7 @@
 
     async function loadPerformanceSummary() {
       try {
-        const res = await fetch(`/api/performance/summary?account_type=${_perfAccountType || 0}`);
+        const res = await fetch(`/api/performance/summary?account_type=${window._perfAccountType || 0}`);
         const d = await res.json();
         if (!d.ok || !d.latest) {
           document.getElementById('perf-equity').textContent = '-';
@@ -5131,7 +5131,7 @@
 
     async function loadPerformanceHistory() {
       try {
-        const res = await fetch(`/api/performance/history?days=30&account_type=${_perfAccountType || 0}`);
+        const res = await fetch(`/api/performance/history?days=30&account_type=${window._perfAccountType || 0}`);
         const d = await res.json();
         const chartEl = document.getElementById('perfEquityChart');
         const emptyEl = document.getElementById('perfChartEmpty');
