@@ -4466,11 +4466,6 @@
         });
         const d = await res.json();
         if (!d.ok || !d.top?.length) { el.innerHTML = '<div style="padding:12px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음</div>'; return; }
-          const saveBtn = !isKr
-            ? (timing === 'AVOID'
-              ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid rgba(255,59,48,0.3);background:rgba(255,59,48,0.08);color:#FF3B30;font-size:0.75rem;font-weight:700;cursor:pointer;">⚠️ ${item.symbol} AVOID — 그래도 저장</button>`
-              : `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`)
-            : '';
           if (item.roe && item.roe < roeMin) return false;
           if (item.debt_to_equity && item.debt_to_equity > debtMax) return false;
           if (item.revenue_growth && item.revenue_growth < revMin) return false;
@@ -4677,9 +4672,11 @@
             ? `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:rgba(255,214,10,0.12);color:#FFD60A;font-weight:700;">📊 분석용</span>`
             : `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:${timingColor}22;color:${timingColor};font-weight:700;">${item.timing_icon || ''} ${timing}</span>`;
           const techRow = !isKr ? `<div style="margin-bottom:4px;"><span style="font-size:0.7rem;color:#9CA3AF;font-weight:600;">타이밍: </span>${(item.tech_reasons || []).filter(Boolean).map(r => `<span style="font-size:0.7rem;padding:1px 6px;background:rgba(255,59,48,0.12);color:#FF3B30;border-radius:4px;margin-right:2px;">${r}</span>`).join('')}</div>` : '';
-          const saveBtn = isKr
-            ? `<button onclick="event.stopPropagation();saveKrSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`
-            : (timing !== 'AVOID' ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>` : '');
+          const saveBtn = !isKr
+            ? (timing === 'AVOID'
+              ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid rgba(255,59,48,0.3);background:rgba(255,59,48,0.08);color:#FF3B30;font-size:0.75rem;font-weight:700;cursor:pointer;">⚠️ ${item.symbol} AVOID — 그래도 저장</button>`
+              : `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`)
+            : '';
           return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart('${item.symbol}')">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <div><span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${medals[i] || ''} ${item.symbol}</span>${badge}</div>
