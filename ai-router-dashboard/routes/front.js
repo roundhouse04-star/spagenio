@@ -1518,5 +1518,20 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true, logs: rows });
   });
 
+  // 종목 검색 (stock_server.py 프록시)
+  router.get('/api/stock/search', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json({ results: [] });
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const r = await fetch(`http://localhost:5001/api/stock/search?q=${encodeURIComponent(q)}`);
+      const d = await r.json();
+      return res.json(d);
+    } catch(e) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   return router;
 }
