@@ -373,13 +373,16 @@ db.exec(`
 // 기본 RSS 소스 삽입 (없을 때만)
 const insertRss = db.prepare(`INSERT OR IGNORE INTO rss_sources (name, url, category) VALUES (?, ?, ?)`);
 [
-  ['Reuters', 'https://rsshub.app/reuters/world', 'global'],
-  ['BBC News', 'https://rsshub.app/bbc/world', 'global'],
-  ['New York Times', 'https://rsshub.app/nytimes/home', 'global'],
-  ['Al Jazeera', 'https://rsshub.app/aljazeera/news', 'global'],
-  ['The Economist', 'https://rsshub.app/economist/latest', 'economy'],
-  ['Nikkei', 'https://rsshub.app/nikkei/news', 'economy'],
+  ['BBC News',     'https://feeds.bbci.co.uk/news/rss.xml',       'global'],
+  ['BBC World',    'https://feeds.bbci.co.uk/news/world/rss.xml', 'global'],
+  ['Al Jazeera',   'https://www.aljazeera.com/xml/rss/all.xml',   'global'],
+  ['NPR News',     'https://feeds.npr.org/1001/rss.xml',          'global'],
+  ['NPR World',    'https://feeds.npr.org/1004/rss.xml',          'global'],
+  ['The Guardian', 'https://www.theguardian.com/world/rss',       'global'],
 ].forEach(([name, url, category]) => insertRss.run(name, url, category));
+
+// 차단된 rsshub.app 소스 정리
+db.prepare("DELETE FROM rss_sources WHERE url LIKE '%rsshub.app%'").run();
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS db_comments (
