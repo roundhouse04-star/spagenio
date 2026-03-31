@@ -108,25 +108,25 @@ try {
 } catch(e) {}
 
 // ── 기존 데이터 마이그레이션 ──
-try {
-  if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=4").get().c === 0) {
-    const rows = (function(){ try { return db.prepare("SELECT * FROM auto_trade_log").all(); } catch(e) { return []; } })();
-    const ins = db.prepare("INSERT OR IGNORE INTO trade_log (id,user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status,created_at) VALUES (?,?,4,?,?,?,?,?,?,?,?,?)");
-    rows.forEach(r => ins.run(r.id, r.user_id, r.symbol, r.action, r.qty, r.price, r.reason, r.order_id, r.profit_pct||0, r.status||'active', r.created_at));
-    console.log('[trade_log] 일반자동 마이그레이션:', rows.length, '건');
-  }
-} catch(e) {}
-try {
-  if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=2").get().c === 0) {
-    const rows = (function(){ try { return db.prepare("SELECT * FROM simple_auto_trade_log").all(); } catch(e) { return []; } })();
-    const ins = db.prepare("INSERT OR IGNORE INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status,created_at) VALUES (?,2,?,?,?,?,?,?,?,?)");
-    rows.forEach(r => ins.run(r.user_id, r.symbol, r.action, r.qty, r.price, r.profit_pct||0, r.reason, r.action==='BUY'?'active':'closed', r.created_at));
-    console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
-  }
+// try {
+//   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=4").get().c === 0) {
+//     const rows = (function(){ try { return db.prepare("SELECT * FROM auto_trade_log").all(); } catch(e) { return []; } })();
+//     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (id,user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status,created_at) VALUES (?,?,4,?,?,?,?,?,?,?,?,?)");
+//     rows.forEach(r => ins.run(r.id, r.user_id, r.symbol, r.action, r.qty, r.price, r.reason, r.order_id, r.profit_pct||0, r.status||'active', r.created_at));
+//     console.log('[trade_log] 일반자동 마이그레이션:', rows.length, '건');
+//   }
+// } catch(e) {}
+// try {
+//   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=2").get().c === 0) {
+//     const rows = (function(){ try { return db.prepare("SELECT * FROM simple_auto_trade_log").all(); } catch(e) { return []; } })();
+//     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status,created_at) VALUES (?,2,?,?,?,?,?,?,?,?)");
+//     rows.forEach(r => ins.run(r.user_id, r.symbol, r.action, r.qty, r.price, r.profit_pct||0, r.reason, r.action==='BUY'?'active':'closed', r.created_at));
+//     console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
+//   }
   // ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
   // try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
   // try { db.exec('DROP TABLE IF EXISTS simple_auto_trade_log'); console.log('[trade_log] simple_auto_trade_log 테이블 삭제 완료'); } catch(e) {}
-} catch(e) {}
+// } catch(e) {}
 
 // ── trade_log 백업 테이블 4개 (타입별 별도 관리) ──
 try {
