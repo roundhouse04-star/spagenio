@@ -2761,7 +2761,7 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">📋 저장된 분석 종목</div>
-                <span style="font-size:0.7rem;color:#636366;">키움 연동 후 활성화</span>
+                <button onclick="renderKrSavedSettings()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
               </div>
               <div id="krSavedSettings">
                 <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">
@@ -4212,6 +4212,7 @@
       if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#4f46e5;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (logBtn) logBtn.style.cssText = tab === 'log' ? 'flex:1;padding:12px;border:none;background:#0f766e;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); }
+      if (tab === 'kr') { setTimeout(() => { if (typeof renderKrSavedSettings === 'function') renderKrSavedSettings(); }, 300); }
       if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); loadCombinedSignal(); }
       if (tab === 'log') { loadUnifiedTradeLog(); }
       // 퀀트 탭 진입 시 성향 체크 (매번 확인)
@@ -4631,9 +4632,9 @@
             ? `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:rgba(255,214,10,0.12);color:#FFD60A;font-weight:700;">📊 분석용</span>`
             : `<span style="margin-left:8px;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:${timingColor}22;color:${timingColor};font-weight:700;">${item.timing_icon || ''} ${timing}</span>`;
           const techRow = !isKr ? `<div style="margin-bottom:4px;"><span style="font-size:0.7rem;color:#9CA3AF;font-weight:600;">타이밍: </span>${(item.tech_reasons || []).filter(Boolean).map(r => `<span style="font-size:0.7rem;padding:1px 6px;background:rgba(255,59,48,0.12);color:#FF3B30;border-radius:4px;margin-right:2px;">${r}</span>`).join('')}</div>` : '';
-          const saveBtn = (!isKr && timing !== 'AVOID')
-            ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`
-            : '';
+          const saveBtn = isKr
+            ? `<button onclick="event.stopPropagation();saveKrSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #16a34a40;background:rgba(22,163,74,0.1);color:#16a34a;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`
+            : (timing !== 'AVOID' ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>` : '');
           return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart('${item.symbol}')">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <div><span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${medals[i] || ''} ${item.symbol}</span>${badge}</div>
@@ -4774,6 +4775,76 @@
       } else {
         nb.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
         db.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(79,143,255,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.85rem;';
+      }
+    };
+
+    // ===== 한국 저장된 종목 렌더링 + 삭제 =====
+    window.saveKrSymbol = async function(symbol) {
+      try {
+        const res = await fetch('/api/auto-trade/settings');
+        const d = await res.json();
+        const existing = (d.kr_candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (existing.includes(symbol)) {
+          await spAlert(`${symbol}은 이미 저장된 종목이에요!`, '알림', 'ℹ️');
+          return;
+        }
+        existing.push(symbol);
+        await fetch('/api/auto-trade/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...d, kr_candidate_symbols: existing.join(',') })
+        });
+        // 버튼 피드백
+        const btns = document.querySelectorAll(`button[onclick="saveKrSymbol('${symbol}')"]`);
+        btns.forEach(btn => { btn.textContent = `✅ ${symbol} 저장됨`; btn.style.background = '#dcfce7'; btn.style.color = '#166534'; btn.disabled = true; });
+        await renderKrSavedSettings();
+      } catch(e) {
+        await spAlert('오류: ' + e.message, '오류', '❌');
+      }
+    };
+
+    async function renderKrSavedSettings() {
+      const el = document.getElementById('krSavedSettings');
+      if (!el) return;
+      try {
+        const res = await fetch('/api/auto-trade/settings');
+        const d = await res.json();
+        const symbols = (d.kr_candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (!symbols.length) {
+          el.innerHTML = '<div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">저장된 종목 없음</div>';
+          return;
+        }
+        el.innerHTML = `
+          <div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">저장 ${symbols.length}개</div>
+          ${symbols.map(sym => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
+              <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;">${sym}</span>
+              <button onclick="deleteKrSymbol('${sym}')"
+                style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                🗑️ 삭제
+              </button>
+            </div>`).join('')}`;
+      } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`;
+      }
+    }
+
+    window.deleteKrSymbol = async function(symbol) {
+      const ok = await spConfirm(`${symbol}을 저장 목록에서 삭제하시겠습니까?`, '종목 삭제', '🗑️', '삭제', '#ef4444');
+      if (!ok) return;
+      try {
+        const res = await fetch('/api/auto-trade/settings');
+        const d = await res.json();
+        const symbols = (d.kr_candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
+        const newSymbols = symbols.filter(s => s !== symbol).join(',');
+        await fetch('/api/auto-trade/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...d, kr_candidate_symbols: newSymbols })
+        });
+        await renderKrSavedSettings();
+      } catch(e) {
+        await spAlert('오류: ' + e.message, '오류', '❌');
       }
     };
 
