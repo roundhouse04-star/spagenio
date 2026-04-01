@@ -749,7 +749,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=?').get(req.user.id);
+    const bkId4 = req.query.broker_key_id || req.body?.broker_key_id || null;
+    const row = bkId4 ? db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? AND broker_key_id=?').get(req.user.id, bkId4) : db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? ORDER BY broker_key_id DESC LIMIT 1').get(req.user.id);
     res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined', factor_strategy: 'value_quality', factor_market: 'nasdaq' });
   });
 
@@ -758,13 +759,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market, kr_candidate_symbols } = req.body;
     const fs = factor_strategy || 'value_quality';
     const fm = factor_market || 'nasdaq';
-    const existing = db.prepare('SELECT id FROM trade_setting_type4 WHERE user_id=?').get(req.user.id);
+    const { broker_key_id: bkId4s } = req.body;
+    const existing = bkId4s ? db.prepare('SELECT id FROM trade_setting_type4 WHERE user_id=? AND broker_key_id=?').get(req.user.id, bkId4s) : db.prepare('SELECT id FROM trade_setting_type4 WHERE user_id=? AND broker_key_id IS NULL').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE trade_setting_type4 SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,kr_candidate_symbols=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-        .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null, req.user.id);
+      db.prepare('UPDATE trade_setting_type4 SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,kr_candidate_symbols=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+        .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null, existing.id);
     } else {
-      db.prepare('INSERT INTO trade_setting_type4 (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market,kr_candidate_symbols) VALUES (?,?,?,?,?,?,?,?,?,?)')
-        .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null);
+      db.prepare('INSERT INTO trade_setting_type4 (user_id,broker_key_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market,kr_candidate_symbols) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+        .run(req.user.id, bkId4s || null, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null);
     }
     res.json({ ok: true });
   });
@@ -838,7 +840,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/simple-auto-trade/state', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
-    const state = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=?').get(userId);
+    const bkId2 = req.query.broker_key_id || null;
+    const state = bkId2 ? db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=? AND broker_key_id=?').get(userId, bkId2) : db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=? ORDER BY broker_key_id DESC LIMIT 1').get(userId);
     const logs = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=2 ORDER BY created_at DESC LIMIT 20").all(userId);
     res.json({ ok: true, state: state || null, logs });
   });
@@ -860,13 +863,15 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/simple-auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
-    const { balance_ratio = 0.3, take_profit = 0.05, stop_loss = 0.05 } = req.body;
-    const existing = db.prepare('SELECT id FROM trade_setting_type2 WHERE user_id=?').get(userId);
+    const { balance_ratio = 0.3, take_profit = 0.05, stop_loss = 0.05, broker_key_id: bkId2s } = req.body;
+    const existing = bkId2s
+      ? db.prepare('SELECT id FROM trade_setting_type2 WHERE user_id=? AND broker_key_id=?').get(userId, bkId2s)
+      : db.prepare('SELECT id FROM trade_setting_type2 WHERE user_id=? AND broker_key_id IS NULL').get(userId);
     if (existing) {
-      db.prepare('UPDATE trade_setting_type2 SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-        .run(balance_ratio, take_profit, stop_loss, userId);
+      db.prepare('UPDATE trade_setting_type2 SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+        .run(balance_ratio, take_profit, stop_loss, existing.id);
     } else {
-      db.prepare('INSERT INTO trade_setting_type2 (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
+      db.prepare('INSERT INTO trade_setting_type2 (user_id,broker_key_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?,?)').run(userId, bkId2s || null, balance_ratio, take_profit, stop_loss);
     }
     res.json({ ok: true });
   });
@@ -1231,7 +1236,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // 설정 조회
   router.get('/api/auto-strategy/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
+    const bkId3 = req.query.broker_key_id || null;
+    const row = bkId3 ? db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? AND broker_key_id=?').get(req.user.id, bkId3) : db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? ORDER BY broker_key_id DESC LIMIT 1').get(req.user.id);
     res.json({ ok: true, settings: row || { enabled: 0, market: 'nasdaq', roe_min: 15, debt_max: 100, revenue_min: 10, momentum_top: 30, sma200_filter: 1, use_macd: 1, use_rsi: 1, rsi_threshold: 40, use_bb: 1, balance_ratio: 0.2, max_positions: 5, take_profit1: 0.1, take_profit2: 0.2, stop_loss: 0.05, factor_exit: 1, sma200_exit: 1 } });
   });
 
@@ -1244,7 +1250,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       db.prepare('UPDATE trade_setting_type3 SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0, req.user.id);
     } else {
-      db.prepare('INSERT INTO trade_setting_type3 (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      db.prepare('INSERT INTO trade_setting_type3 (user_id,broker_key_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
         .run(req.user.id, market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0);
     }
     res.json({ ok: true });

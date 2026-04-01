@@ -155,7 +155,7 @@ async function saveAutoTradeSettings(enabled) {
   const body = { symbols, balance_ratio: balanceRatio, take_profit: takeProfit, stop_loss: stopLoss, signal_mode: signalMode, broker_key_id: window.selectedAccountId || window.activeAccountId || null };
   if (isEnabled !== null) body.enabled = isEnabled ? 1 : 0;
 
-  const res = await fetch('/api/auto-trade/settings', {
+  const res = await fetch('/api/trade4/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
   const d = await res.json();
@@ -174,7 +174,7 @@ window.runAutoTradeNow = async function() {
   const el = document.getElementById('autoTradeResult');
   el.innerHTML = '<div style="padding:10px;color:#6b7280;">🔍 분석 중...</div>';
   try {
-    const res = await fetch('/api/auto-trade/run', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch('/api/trade4/run', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const d = await res.json();
     const resultHtml = d.results?.length
       ? d.results.map(r => `<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;">
@@ -194,7 +194,7 @@ window.runAutoTradeNow = async function() {
 async function loadAutoTradeSettings() {
   try {
     const bkId = window.selectedAccountId || window.activeAccountId || '';
-    const res = await fetch(`/api/auto-trade/settings${bkId ? '?broker_key_id='+bkId : ''}`);
+    const res = await fetch(`/api/trade4/settings${bkId ? '?broker_key_id='+bkId : ''}`);
     const d = await res.json();
     if (document.getElementById('atSymbols')) document.getElementById('atSymbols').value = d.symbols || 'QQQ,SPY,AAPL';
     if (document.getElementById('atBalanceRatio')) document.getElementById('atBalanceRatio').value = Math.round((d.balance_ratio||0.1)*100);
@@ -215,7 +215,7 @@ window.loadAutoPositions = async function() {
   const countEl = document.getElementById('autoPositionCount');
   if (!el) return;
   try {
-    const res = await fetch('/api/auto-trade/positions');
+    const res = await fetch('/api/trade4/positions');
     const d = await res.json();
     if (countEl) countEl.textContent = `(${d.total||0}/3종목)`;
     if (!d.positions?.length) {
@@ -243,7 +243,7 @@ window.cancelAutoTrade = async function(symbol) {
   const ok = await spConfirm(`${symbol} 자동매매를 취소하고 포지션을 청산할까요?`, '포지션 청산', '⚠️', '청산', '#ef4444');
   if (!ok) return;
   try {
-    const res = await fetch('/api/auto-trade/cancel/' + symbol, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch('/api/trade4/cancel/' + symbol, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const d = await res.json();
     if (d.ok) {
       await spAlert(`${symbol} 포지션 청산 완료!`, '청산 완료', '✅');
@@ -260,7 +260,7 @@ window.stopAllAutoTrade = async function() {
   const ok = await spConfirm('모든 자동매매 종목을 청산하고 자동매매를 종료할까요?', '전체 종료', '⚠️', '전체 종료', '#ef4444');
   if (!ok) return;
   try {
-    const res = await fetch('/api/auto-trade/stop-all', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch('/api/trade4/stop_all', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const d = await res.json();
     if (d.ok) {
       const msg = d.closed?.length ? `${d.closed.join(', ')} 청산 완료!` : '청산할 포지션 없음';
@@ -277,7 +277,7 @@ window.loadAutoTradeLog = async function() {
   const el = document.getElementById('autoTradeLog');
   if (!el) return;
   try {
-    const res = await fetch('/api/auto-trade/log');
+    const res = await fetch('/api/trade4/log');
     const d = await res.json();
     if (!d.logs?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동매매 이력이 없습니다</div>'; return; }
     const actionMap = { BUY:'매수', SELL_PROFIT:'익절 매도', SELL_LOSS:'손절 매도' };
@@ -768,7 +768,7 @@ window.loadVolumeSurge = async function() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
   try {
-    const res = await fetch('/api/auto-trade/volume-surge');
+    const res = await fetch('/api/trade4/volume_surge');
     const d = await res.json();
     if (!d.surges?.length) {
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">거래량 급등 종목 없음</div>';
@@ -812,7 +812,7 @@ window.loadNewsCatalyst = async function() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 뉴스 분석 중...</div>';
   try {
-    const res = await fetch('/api/auto-trade/news-catalyst');
+    const res = await fetch('/api/trade4/news_catalyst');
     const d = await res.json();
     if (!d.catalysts?.length) {
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">관련 뉴스 없음</div>';
@@ -850,7 +850,7 @@ window.calcRisk = async function() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:12px;font-size:0.85rem;">⏳ 계산 중...</div>';
   try {
-    const res = await fetch('/api/auto-trade/risk-calc', {
+    const res = await fetch('/api/trade4/risk_calc', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ symbol, stop_loss_pct: stopLossPct, risk_ratio: riskRatio })
@@ -906,7 +906,7 @@ window.loadTopPicks = async function() {
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">⏳ 분석 중... (10~20초 소요)</div>';
   try {
     const market = window._topPicksMarket || 'nasdaq';
-    const res = await fetch(`/api/auto-trade/top-picks?market=${market}`);
+    const res = await fetch(`/api/trade4/top_picks?market=${market}`);
     const d = await res.json();
     if (!d.ok) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">${d.error}</div>`; return; }
     if (!d.picks?.length) {
@@ -969,12 +969,12 @@ window.toggleSimpleAutoTrade = async function() {
   const stop_loss = parseFloat(document.getElementById('simpleStopLoss')?.value || 5) / 100;
 
   const _bkId = window.selectedAccountId || window.activeAccountId || null;
-  await fetch('/api/simple-auto-trade/settings', {
+  await fetch('/api/trade2/settings_save', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ balance_ratio, take_profit, stop_loss, broker_key_id: _bkId })
   });
 
-  await fetch('/api/simple-auto-trade/toggle', {
+  await fetch('/api/trade2/toggle', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ enabled: _simpleTradeEnabled, broker_key_id: _bkId })
   });
@@ -1006,7 +1006,7 @@ function updateSimpleTradeUI() {
 window.loadSimpleTradeState = async function() {
   try {
     const _bkId2 = window.selectedAccountId || window.activeAccountId || '';
-    const res = await fetch(`/api/simple-auto-trade/state${_bkId2 ? '?broker_key_id='+_bkId2 : ''}`);
+    const res = await fetch(`/api/trade2/state${_bkId2 ? '?broker_key_id='+_bkId2 : ''}`);
     const d = await res.json();
     if (!d.ok) return;
 
