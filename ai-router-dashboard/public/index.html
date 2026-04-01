@@ -4935,7 +4935,7 @@
         const newSymbols = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(s => s && s !== symbol).join(',');
         await fetch('/api/auto-strategy/settings', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...d, candidate_symbols: newSymbols })
+          body: JSON.stringify({ ...d, candidate_symbols: newSymbols, broker_key_id: window.selectedAccountId || window.activeAccountId || null })
         });
         await renderAutoSavedSymbols();
       } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
