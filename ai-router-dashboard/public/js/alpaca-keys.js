@@ -30,8 +30,7 @@ async function loadAlpacaKeyStatus() {
       const isSelected = acc.id === activeAccountId;
       const mode = acc.alpaca_paper ? '🧪 페이퍼' : '💰 실거래';
       return `
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--line)'};background:${isSelected ? '#eef2ff' : '#fff'};margin-bottom:8px;cursor:pointer;"
-          onclick="selectAccount(${acc.id})">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--line)'};background:${isSelected ? '#eef2ff' : '#fff'};margin-bottom:8px;">
           <div style="flex:1;">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-weight:700;font-size:0.92rem;color:${isSelected ? 'var(--accent)' : 'var(--text)'};">${acc.account_name}</span>
@@ -59,14 +58,13 @@ async function loadAlpacaKeyStatus() {
 }
 
 async function selectAccount(id) {
-  activeAccountId = id;
+  if (typeof window.setSelectedAccount === 'function') {
+    window.setSelectedAccount(String(id));
+  } else {
+    activeAccountId = id;
+    loadAccount();
+  }
   await loadAlpacaKeyStatus();
-  loadAccount();
-  loadPositions();
-  loadOrders();
-  loadAutoTradeSettings();
-  loadAutoTradeLog();
-  loadAutoPositions();
 }
 
 async function activateAccount(id) {

@@ -43,10 +43,6 @@ async function loadAlpacaKeyStatus() {
             <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">최종 수정: ${acc.updated_at?.slice(0, 16) || '-'}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-            ${!acc.is_active ? `<button onclick="event.stopPropagation();activateAccount(${acc.id})"
-              style="padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
-              선택
-            </button>` : ''}
             <button onclick="event.stopPropagation();changeAccountType(${acc.id}, ${acc.account_type || 0})"
               style="padding:5px 10px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">
               타입 설정
