@@ -1239,6 +1239,62 @@ def get_chart_data():
 
 # ===== 팩터 기반 퀀트 스크리너 =====
 
+
+SP500_SYMBOLS = [
+    # 정보기술
+    'AAPL','MSFT','NVDA','AVGO','ORCL','ADBE','CSCO','CRM','AMD','ACN',
+    'INTC','QCOM','IBM','TXN','AMAT','MU','INTU','KLAC','LRCX','SNPS',
+    'CDNS','MCHP','CTSH','FTNT','ANSS','KEYS','EPAM','MPWR','ENPH','ON',
+    # 통신/미디어
+    'GOOGL','META','NFLX','TMUS','VZ','T','DIS','CMCSA','ATVI','EA',
+    # 헬스케어
+    'UNH','JNJ','LLY','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN',
+    'ISRG','SYK','REGN','VRTX','ZTS','ELV','CI','HCA','IDXX','DXCM',
+    # 금융
+    'BRK.B','JPM','BAC','WFC','GS','MS','BLK','SCHW','CB','AXP',
+    'PGR','MMC','AON','TRV','MET','PRU','AFL','ALL','ICE','CME',
+    # 필수소비재
+    'AMZN','WMT','PG','KO','PEP','COST','MDLZ','CL','GIS','K',
+    'MCD','SBUX','YUM','DG','DLTR','KR','SYY','HSY','MKC','CHD',
+    # 에너지
+    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','PXD',
+    # 산업재
+    'CAT','HON','UPS','RTX','BA','LMT','GE','MMM','EMR','ETN',
+    'ITW','PH','FDX','CSX','NSC','UNP','DE','ROK','CARR','OTIS',
+    # 소재
+    'LIN','APD','SHW','ECL','DD','NEM','FCX','NUE','VMC','MLM',
+    # 유틸리티
+    'NEE','DUK','SO','AEP','EXC','XEL','WEC','ES','ETR','PPL',
+    # 부동산
+    'AMT','PLD','CCI','EQIX','PSA','DLR','O','WELL','SPG','EQR',
+    # 임의소비재
+    'TSLA','HD','TGT','LOW','NKE','TJX','ROST','ORLY','AZO','BBY',
+    'ABNB','BKNG','MAR','HLT','GM','F','APTV','LVS','WYNN','MGM',
+]
+
+RUSSELL1000_SYMBOLS = [
+    # S&P500 포함 + 중형주 추가
+    'AAPL','MSFT','NVDA','AMZN','META','GOOGL','TSLA','BRK.B','AVGO','JPM',
+    'LLY','UNH','XOM','JNJ','V','PG','MA','HD','COST','CVX',
+    'MRK','ABBV','CRM','BAC','NFLX','AMD','KO','PEP','TMO','WMT',
+    'ORCL','ACN','MCD','ADBE','CSCO','ABT','QCOM','CAT','DHR','TXN',
+    'WFC','LIN','INTU','PM','HON','AMGN','IBM','GE','NEE','GS',
+    'SPGI','BKNG','RTX','ISRG','C','LOW','AMAT','BX','SYK','TJX',
+    'UBER','UNP','BA','AXP','MS','SBUX','NOW','LRCX','KLAC','REGN',
+    'MU','VRTX','DE','PANW','GILD','MMC','ADI','MDLZ','SNPS','CDNS',
+    'CME','PGR','ELV','ZTS','CB','ETN','BMY','BSX','SCHW','APH',
+    'SO','DUK','SHW','ICE','AON','CL','HCA','FTNT','EOG','ITW',
+    # 중형주
+    'COIN','PLTR','RBLX','HOOD','RIVN','LCID','SOFI','AFRM','UPST','SQ',
+    'ROKU','DKNG','PENN','LYFT','DASH','ABNB','SNAP','PINS','MTCH','Z',
+    'W','ETSY','CHWY','CVNA','CARVANA','LULU','RH','SKX','DECK','CROX',
+    'CELH','ELF','USFD','SFM','PFGC','CHEF','CAKE','TXRH','JACK','WEN',
+    'HWM','TDY','LDOS','SAIC','BAH','CACI','MANT','DRS','VVV','WMS',
+    'TREX','AZEK','PGTI','NVR','MTH','MHO','GRBK','CCS','TPH','BLD',
+    'RRC','AR','CTRA','SM','CHRD','NOG','ESTE','VTLE','SWN','EQT',
+    'FANG','DVN','PDCE','PR','CPE','MTDR','REI','CLR','SBOW','CRC',
+]
+
 NASDAQ100_SYMBOLS = [
     'AAPL','MSFT','NVDA','AMZN','META','GOOGL','TSLA','AVGO','COST','NFLX',
     'AMD','ADBE','QCOM','PEP','TMUS','AMAT','TXN','INTU','MU','LRCX',
@@ -1556,7 +1612,7 @@ def factor_screen():
     # 투자 성향 가중치 (프론트에서 전달)
     profile_weights = data.get('profile_weights', None)
 
-    symbols = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
+    symbols = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else SP500_SYMBOLS if market == 'sp500' else RUSSELL1000_SYMBOLS if market == 'russell1000' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
 
     # 병렬 데이터 수집
     import concurrent.futures
@@ -1612,7 +1668,7 @@ def integrated_screen():
     market   = data.get('market', 'nasdaq')
     top_n    = int(data.get('top_n', 10))
     final_n  = int(data.get('final_n', 5))
-    symbols  = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
+    symbols  = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else SP500_SYMBOLS if market == 'sp500' else RUSSELL1000_SYMBOLS if market == 'russell1000' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
     factor_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(get_factor_data, sym): sym for sym in symbols}

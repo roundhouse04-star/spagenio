@@ -1664,10 +1664,12 @@ def factor_screen():
 def integrated_screen():
     import concurrent.futures
     data = request.json or {}
-    strategy = data.get('strategy', 'value_quality')
-    market   = data.get('market', 'nasdaq')
-    top_n    = int(data.get('top_n', 10))
-    final_n  = int(data.get('final_n', 5))
+    strategy     = data.get('strategy', 'value_quality')
+    market       = data.get('market', 'nasdaq')
+    top_n        = int(data.get('top_n', 10))
+    final_n      = int(data.get('final_n', 5))
+    signal_filter = data.get('signal_filter', 'all')  # 'all' or 'buy'
+    score_mode   = data.get('score_mode', 'combined')  # 'combined', 'factor', 'technical'
     symbols  = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else SP500_SYMBOLS if market == 'sp500' else RUSSELL1000_SYMBOLS if market == 'russell1000' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
     factor_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -1693,13 +1695,27 @@ def integrated_screen():
         if signal in ('buy', 'weak_buy'): timing, tcolor, ticon = 'BUY', '#10b981', '🟢'
         elif signal == 'hold': timing, tcolor, ticon = 'WATCH', '#f59e0b', '🟡'
         else: timing, tcolor, ticon = 'AVOID', '#ef4444', '🔴'
+        tech_score = tech.get('score', 0)
         tech_reasons = [r for r in [f"RSI {rsi_val:.1f}" if rsi_val else '', f"MACD {macd_val:.3f}" if macd_val else '', details.get('RSI', {}).get('reason', '')] if r]
-        final.append({**item, 'timing': timing, 'timing_color': tcolor, 'timing_icon': ticon, 'tech_signal': signal, 'tech_score': tech.get('score', 0), 'tech_reasons': tech_reasons, 'combined_score': round(item['factor_score'] + tech.get('score', 0) * 10, 2)})
-    order_map = {'BUY': 0, 'WATCH': 1, 'AVOID': 2}
-    final.sort(key=lambda x: (order_map.get(x['timing'], 1), -x['combined_score']))
+        combined_score = round(item['factor_score'] + tech_score * 10, 2)
+        final.append({**item, 'timing': timing, 'timing_color': tcolor, 'timing_icon': ticon, 'tech_signal': signal, 'tech_score': tech_score, 'tech_reasons': tech_reasons, 'combined_score': combined_score})
+
+    # 신호 필터 적용
+    if signal_filter == 'buy':
+        final = [x for x in final if x['timing'] == 'BUY']
+
+    # 점수 방식에 따라 정렬
+    if score_mode == 'factor':
+        final.sort(key=lambda x: -x['factor_score'])
+    elif score_mode == 'technical':
+        final.sort(key=lambda x: -x['tech_score'])
+    else:  # combined (기본)
+        order_map = {'BUY': 0, 'WATCH': 1, 'AVOID': 2}
+        final.sort(key=lambda x: (order_map.get(x['timing'], 1), -x['combined_score']))
+
     final = final[:final_n]
     strategy_labels = {'value': '가치주', 'growth': '성장주', 'quality': '퀄리티', 'momentum': '모멘텀', 'momentum_ma': '모멘텀+200일선', 'value_quality': '저평가+퀄리티'}
-    market_labels = {'nasdaq': '나스닥100', 'dow': '다우존스30', 'kospi': '코스피200', 'kosdaq': '코스닥150'}
+    market_labels = {'nasdaq': '나스닥100', 'dow': '다우존스30', 'kospi': '코스피200', 'kosdaq': '코스닥150', 'sp500': 'S&P500', 'russell1000': 'Russell1000'}
     return jsonify({'ok': True, 'strategy': strategy, 'strategy_label': strategy_labels.get(strategy, strategy), 'market': market, 'market_label': market_labels.get(market, market), 'screened': len(filtered), 'factor_top': top_n, 'results': final, 'updated_at': datetime.now().isoformat()})
 
 
