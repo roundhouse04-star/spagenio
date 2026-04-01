@@ -843,26 +843,24 @@ async function loadTradeLog() {
 })();
 
 // 종목 검색 팝업에서 선택 시 호가창도 자동 로드
+// 종목 선택 시 호가창 로드 + 현재가 자동 설정
 const _origSelectStock = window.selectStock;
-if (typeof _origSelectStock === 'function') {
-  window.selectStock = function(symbol, name) {
-    _origSelectStock(symbol, name);
-    setTimeout(() => {
-      if (document.getElementById('tradeSymbol')?.value === symbol) loadOrderBook();
-      // 현재가 자동 설정 (조건 밖으로)
-      fetch('/proxy/stock/api/stock/price?symbol=' + symbol)
-        .then(r => r.json())
-        .then(d => {
-          const price = d.price || d.regularMarketPrice;
-          const priceEl = document.getElementById('tradePrice');
-          if (price && priceEl) {
-            priceEl.value = parseFloat(price).toFixed(2);
-            _tradeCurrency = 'USD';
-            const btn = document.getElementById('tradeCurrencyBtn');
-            if (btn) btn.textContent = 'USD';
-          }
-        }).catch(() => {});
+window.selectStock = function(symbol, name) {
+  if (typeof _origSelectStock === 'function') _origSelectStock(symbol, name);
+  setTimeout(() => {
+    if (document.getElementById('tradeSymbol')?.value === symbol) loadOrderBook();
+  }, 100);
+  // 현재가 자동 설정
+  fetch('/proxy/stock/api/stock/price?symbol=' + symbol)
+    .then(r => r.json())
+    .then(d => {
+      const price = d.price || d.regularMarketPrice;
+      const priceEl = document.getElementById('tradePrice');
+      if (price && priceEl) {
+        priceEl.value = parseFloat(price).toFixed(2);
+        _tradeCurrency = 'USD';
+        const btn = document.getElementById('tradeCurrencyBtn');
+        if (btn) btn.textContent = 'USD';
       }
-    }, 100);
-  };
-}
+    }).catch(() => {});
+};
