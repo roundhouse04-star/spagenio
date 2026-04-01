@@ -2937,8 +2937,8 @@
             </div>
           </div>
 
-          <!-- ② 메인 2열 레이아웃 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:start;">
+          <!-- 상단 2열: 1단계 + 2단계 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
 
             <!-- 1단계: 팩터 조건 -->
             <div class="sp-card">
@@ -2985,12 +2985,9 @@
                   <input type="number" id="asMomentumTop" value="30" min="10" max="50" class="sp-input" />
                 </div>
               </div>
-              <div
-                style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;">
-                <input type="checkbox" id="asSma200Filter" checked
-                  style="width:16px;height:16px;accent-color:#6366f1;" />
-                <label for="asSma200Filter" style="font-size:0.82rem;color:#166534;font-weight:600;cursor:pointer;">▲
-                  200일선 위 종목만 (하락장 필터)</label>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;">
+                <input type="checkbox" id="asSma200Filter" checked style="width:16px;height:16px;accent-color:#6366f1;" />
+                <label for="asSma200Filter" style="font-size:0.82rem;color:#166534;font-weight:600;cursor:pointer;">▲ 200일선 위 종목만 (하락장 필터)</label>
               </div>
             </div>
 
@@ -3001,152 +2998,135 @@
                 <span style="font-size:0.7rem;color:#636366;">3가지 중 2개 충족 시 매수</span>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px;">
-                <div
-                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟢 MACD 골든크로스</div>
                     <div style="font-size:0.72rem;color:#9CA3AF;">단기 이평선이 장기 이평선 상향 돌파</div>
                   </div>
                   <input type="checkbox" id="asUseMacd" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div
-                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟡 RSI 과매도 반등</div>
-                    <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold"
-                        value="35" min="20" max="50"
-                        style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;">
-                      구간 진입</div>
+                    <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold" value="35" min="20" max="50" style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;"> 구간 진입</div>
                   </div>
                   <input type="checkbox" id="asUseRsi" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div
-                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🔵 볼린저밴드 반등</div>
                     <div style="font-size:0.72rem;color:#9CA3AF;">하단밴드 터치 후 반등 시</div>
                   </div>
                   <input type="checkbox" id="asUseBb" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div
-                  style="padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid #fde68a;font-size:0.75rem;color:#92400e;">
+                <div style="padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid #fde68a;font-size:0.75rem;color:#92400e;">
                   ⚡ 위 조건 중 <strong>2개 이상</strong> 동시 충족 시 매수 신호 발생
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 3단계: 리스크 관리 -->
-            <div class="sp-card">
-              <div class="sp-card-header">
-                <div class="sp-card-title">🛡️ 3단계 — 리스크 관리</div>
+          <!-- 3단계 + 스크리닝 옵션 (전체 너비) -->
+          <div class="sp-card" style="margin-bottom:16px;">
+            <div class="sp-card-header">
+              <div class="sp-card-title">🛡️ 3단계 — 리스크 관리</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div>
+                <label class="sp-label">💰 종목당 비율 (%)</label>
+                <input type="number" id="asBalanceRatio" value="20" min="5" max="50" class="sp-input" />
+                <div style="font-size:0.7rem;color:#636366;margin-top:2px;">최대 5종목 × 20% = 100%</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-                <div>
-                  <label class="sp-label">💰 종목당 비율 (%)</label>
-                  <input type="number" id="asBalanceRatio" value="20" min="5" max="50" class="sp-input" />
-                  <div style="font-size:0.7rem;color:#636366;margin-top:2px;">최대 5종목 × 20% = 100%</div>
-                </div>
-                <div>
-                  <label class="sp-label">📦 최대 동시 보유</label>
-                  <input type="number" id="asMaxPositions" value="5" min="1" max="10" class="sp-input" />
-                  <div style="font-size:0.7rem;color:#636366;margin-top:2px;">종목 수</div>
+              <div>
+                <label class="sp-label">📦 최대 동시 보유</label>
+                <input type="number" id="asMaxPositions" value="5" min="1" max="10" class="sp-input" />
+                <div style="font-size:0.7rem;color:#636366;margin-top:2px;">종목 수</div>
+              </div>
+              <div>
+                <label class="sp-label" style="color:#065f46;">✅ 1차 익절 (%)</label>
+                <input type="number" id="asTakeProfit1" value="10" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+                <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 보유량의 50% 매도</div>
+              </div>
+              <div>
+                <label class="sp-label" style="color:#065f46;">✅ 2차 익절 (%)</label>
+                <input type="number" id="asTakeProfit2" value="20" min="1" max="100" class="sp-input" style="border-color:#10b981;" />
+                <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 나머지 전량 매도</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #fecaca;">
+                <div style="font-size:0.8rem;color:#991b1b;font-weight:600;">❌ 손절</div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <input type="number" id="asStopLoss" value="5" min="1" max="20" style="width:50px;border:1px solid #fca5a5;border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;" />
+                  <span style="font-size:0.78rem;color:#991b1b;">% 하락 시 전량 매도</span>
                 </div>
               </div>
-              <div style="font-size:0.78rem;font-weight:700;color:#E5E7EB;margin-bottom:8px;">익절 규칙 (단계적)</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-                <div>
-                  <label class="sp-label" style="color:#065f46;">✅ 1차 익절 (%)</label>
-                  <input type="number" id="asTakeProfit1" value="10" min="1" max="50" class="sp-input"
-                    style="border-color:#10b981;" />
-                  <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 보유량의 50% 매도</div>
-                </div>
-                <div>
-                  <label class="sp-label" style="color:#065f46;">✅ 2차 익절 (%)</label>
-                  <input type="number" id="asTakeProfit2" value="20" min="1" max="100" class="sp-input"
-                    style="border-color:#10b981;" />
-                  <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 나머지 전량 매도</div>
-                </div>
-              </div>
-              <div style="font-size:0.78rem;font-weight:700;color:#E5E7EB;margin-bottom:8px;">매도 규칙</div>
-              <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
-                <div
-                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #fecaca;">
-                  <div style="font-size:0.8rem;color:#991b1b;font-weight:600;">❌ 손절</div>
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <input type="number" id="asStopLoss" value="5" min="1" max="20"
-                      style="width:50px;border:1px solid #fca5a5;border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;" />
-                    <span style="font-size:0.78rem;color:#991b1b;">% 하락 시 전량 매도</span>
-                  </div>
-                </div>
-                <div
-                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.8rem;color:#E5E7EB;font-weight:600;">📉 팩터 이탈 매도</div>
                     <div style="font-size:0.7rem;color:#9CA3AF;">월 리밸런싱 시 조건 탈락 종목 매도</div>
                   </div>
-                  <input type="checkbox" id="asFactorExit" checked
-                    style="width:16px;height:16px;accent-color:#6366f1;" />
+                  <input type="checkbox" id="asFactorExit" checked style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
-                <div
-                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.8rem;color:#E5E7EB;font-weight:600;">📉 200일선 이탈 매도</div>
                     <div style="font-size:0.7rem;color:#9CA3AF;">보유 중 200일선 아래로 내려오면 매도</div>
                   </div>
-                  <input type="checkbox" id="asSma200Exit" checked
-                    style="width:16px;height:16px;accent-color:#6366f1;" />
+                  <input type="checkbox" id="asSma200Exit" checked style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
-              </div>
-              <!-- 스크리닝 옵션 -->
-              <div style="background:#111827;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:10px;">
-                <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;padding:10px 12px 6px;">⚙️ 스크리닝 옵션</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #2A2A2A;">
-                  <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
-                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">후보 종목 수</div>
-                    <select id="asTopN" class="sp-select" style="width:100%;">
-                      <option value="10">상위 10개</option>
-                      <option value="20">상위 20개</option>
-                      <option value="30">상위 30개</option>
-                      <option value="50">상위 50개</option>
-                    </select>
-                  </div>
-                  <div style="padding:10px 12px;">
-                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">최종 결과</div>
-                    <select id="asFinalN" class="sp-select" style="width:100%;">
-                      <option value="3">TOP 3</option>
-                      <option value="5">TOP 5</option>
-                      <option value="10">TOP 10</option>
-                    </select>
-                  </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #2A2A2A;">
-                  <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
-                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">신호 필터</div>
-                    <select id="asSignalFilter" class="sp-select" style="width:100%;">
-                      <option value="all">BUY + WATCH</option>
-                      <option value="buy">BUY만</option>
-                    </select>
-                  </div>
-                  <div style="padding:10px 12px;">
-                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">점수 방식</div>
-                    <select id="asScoreMode" class="sp-select" style="width:100%;">
-                      <option value="combined">복합 (팩터+기술)</option>
-                      <option value="factor">팩터만</option>
-                      <option value="technical">기술적만</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button onclick="saveAutoStrategy()" class="sp-btn sp-btn-green" style="flex:1;">💾 전략 저장</button>
-                <button onclick="runAutoStrategyScreen()" class="sp-btn sp-btn-indigo" style="flex:1;">🔍 스크리닝</button>
               </div>
             </div>
+            <!-- 스크리닝 옵션 -->
+            <div style="background:#111827;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:10px;">
+              <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;padding:10px 12px 6px;">⚙️ 스크리닝 옵션</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-top:1px solid #2A2A2A;">
+                <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
+                  <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">후보 종목 수</div>
+                  <select id="asTopN" class="sp-select" style="width:100%;">
+                    <option value="10">상위 10개</option>
+                    <option value="20">상위 20개</option>
+                    <option value="30">상위 30개</option>
+                    <option value="50">상위 50개</option>
+                  </select>
+                </div>
+                <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
+                  <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">최종 결과</div>
+                  <select id="asFinalN" class="sp-select" style="width:100%;">
+                    <option value="3">TOP 3</option>
+                    <option value="5">TOP 5</option>
+                    <option value="10">TOP 10</option>
+                  </select>
+                </div>
+                <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
+                  <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">신호 필터</div>
+                  <select id="asSignalFilter" class="sp-select" style="width:100%;">
+                    <option value="all">BUY + WATCH</option>
+                    <option value="buy">BUY만</option>
+                  </select>
+                </div>
+                <div style="padding:10px 12px;">
+                  <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">점수 방식</div>
+                  <select id="asScoreMode" class="sp-select" style="width:100%;">
+                    <option value="combined">복합 (팩터+기술)</option>
+                    <option value="factor">팩터만</option>
+                    <option value="technical">기술적만</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="saveAutoStrategy()" class="sp-btn sp-btn-green" style="flex:1;">💾 전략 저장</button>
+              <button onclick="runAutoStrategyScreen()" class="sp-btn sp-btn-indigo" style="flex:1;">🔍 스크리닝</button>
+            </div>
+          </div>
 
-            <!-- 오른쪽: 저장된 종목 + 스크리닝 결과 + 현재 포지션 -->
+          <!-- 하단 2열: 스크리닝 결과 + 현재 포지션 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:start;">
+
+            <!-- 저장된 종목 + 스크리닝 결과 -->
             <div style="display:flex;flex-direction:column;gap:16px;">
-
-              <!-- 저장된 종목 -->
               <div class="sp-card">
                 <div class="sp-card-header">
                   <div class="sp-card-title">📋 저장된 종목</div>
@@ -3157,8 +3137,6 @@
                   <div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">로딩 중...</div>
                 </div>
               </div>
-
-              <!-- 스크리닝 결과 -->
               <div class="sp-card">
                 <div class="sp-card-header">
                   <div class="sp-card-title">🎯 스크리닝 결과</div>
@@ -3168,21 +3146,20 @@
                   <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
                 </div>
               </div>
+            </div>
 
-              <!-- 현재 포지션 -->
-              <div class="sp-card">
-                <div class="sp-card-header">
-                  <div class="sp-card-title">📊 현재 포지션</div>
-                  <button onclick="loadAutoStrategyPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
-                </div>
-                <div id="asPositions">
-                  <div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">로딩 중...</div>
-                </div>
+            <!-- 현재 포지션 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📊 현재 포지션</div>
+                <button onclick="loadAutoStrategyPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
               </div>
+              <div id="asPositions">
+                <div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">로딩 중...</div>
+              </div>
+            </div>
 
-            </div><!-- /오른쪽 -->
-
-          </div><!-- /메인 2열 -->
+          </div>
 
         </div><!-- /quantPanelAuto -->
         <!-- ===== ⚡ 일반 자동매매 패널 ===== -->
