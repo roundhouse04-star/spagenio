@@ -1889,7 +1889,7 @@ async function runAutoStrategy(userId, brokerKeyId = null) {
           }
           // 풀에 종목이 있을 때만 리밸런싱 완료 처리 (스크리닝 실패 시 재시도 보장)
           if (pool.length > 0) {
-            db.prepare('UPDATE trade_setting_type3 SET last_rebalanced_at=? WHERE user_id=?').run(now.toISOString(), userId);
+            db.prepare('UPDATE trade_setting_type3 SET last_rebalanced_at=? WHERE user_id=? AND broker_key_id IS ?').run(now.toISOString(), userId, s.broker_key_id || null);
           } else {
             console.log(`[완전자동] userId=${userId} 팩터 스크리닝 결과 없음 — 다음 실행 시 재시도`);
           }
