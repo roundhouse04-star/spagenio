@@ -1924,7 +1924,8 @@ async function runAutoStrategy(userId) {
     const posList = Array.isArray(positions) ? positions : [];
 
     // 익절/손절 체크 (else if로 중복 실행 방지)
-    for (const pos of posList) {
+    const type3Symbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=3 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol));
+    for (const pos of posList.filter(p => type3Symbols.has(p.symbol))) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       const currentPrice = parseFloat(pos.current_price);
       const qty = parseFloat(pos.qty);
