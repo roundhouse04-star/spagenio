@@ -579,6 +579,14 @@ async function loadOrderBook() {
     const todayBar = (histData.data || []).slice(-1)[0] || {};
 
     const latestPrice = parseFloat(stockInfo.price) || 0;
+    // tradePrice 입력란에 현재가 자동 설정
+    const tradePriceEl = document.getElementById('tradePrice');
+    if (latestPrice > 0 && tradePriceEl) {
+      tradePriceEl.value = latestPrice.toFixed(2);
+      if (typeof _tradeCurrency !== 'undefined') _tradeCurrency = 'USD';
+      const currBtn = document.getElementById('tradeCurrencyBtn');
+      if (currBtn) currBtn.textContent = 'USD';
+    }
     const askPrice = latestPrice > 0 ? parseFloat((latestPrice + 0.01).toFixed(2)) : 0;
     const bidPrice = latestPrice > 0 ? parseFloat((latestPrice - 0.01).toFixed(2)) : 0;
     const askSize  = 0;
