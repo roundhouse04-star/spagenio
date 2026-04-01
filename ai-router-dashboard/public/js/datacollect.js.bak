@@ -425,6 +425,8 @@ function dcSwitchSymbol(symbol) {
   dcRenderSelectedSymbols();
   // 해당 종목 자동 분석
   runQuantAnalysis();
+  // 히스토리 직접 호출 (quant 서버 실패 시에도 표시)
+  if (typeof loadHistoryData === 'function') loadHistoryData();
 }
 
 function dcRemoveSymbol(symbol) {

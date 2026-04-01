@@ -128,55 +128,19 @@ try {
   // try { db.exec('DROP TABLE IF EXISTS trade_setting_type2_log'); console.log('[trade_log] trade_setting_type2_log 테이블 삭제 완료'); } catch(e) {}
 // } catch(e) {}
 
-// ── trade_log 백업 테이블 4개 (타입별 별도 관리) ──
-try {
-  const backupCols = `(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    trade_log_id INTEGER,
-    user_id INTEGER NOT NULL,
-    symbol TEXT NOT NULL,
-    action TEXT NOT NULL,
-    qty REAL,
-    price REAL,
-    reason TEXT,
-    order_id TEXT,
-    profit_pct REAL DEFAULT 0,
-    status TEXT DEFAULT 'active',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )`;
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_manual'  + backupCols); // type=1 수동
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_simple'  + backupCols); // type=2 단순자동
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_full'    + backupCols); // type=3 완전자동
-  db.exec('CREATE TABLE IF NOT EXISTS trade_log_general' + backupCols); // type=4 일반자동
-} catch(e) {}
+// ── saveTradeLog 헬퍼 ──
+function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status, broker_key_id }) {
+  order_id      = order_id      || '';
+  profit_pct    = profit_pct    || 0;
+  reason        = reason        || '';
+  status        = status        || 'active';
+  broker_key_id = broker_key_id || null;
 
-// ── saveTradeLog 헬퍼: trade_log + 타입별 백업 테이블 동시 INSERT ──
-function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status }) {
-  order_id   = order_id   || '';
-  profit_pct = profit_pct || 0;
-  reason     = reason     || '';
-  status     = status     || 'active';
-
-  // 1. 통합 trade_log INSERT
   const result = db.prepare(
-    'INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?,?)'
-  ).run(user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status);
+    'INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status,broker_key_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+  ).run(user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status, broker_key_id);
 
-  const trade_log_id = result.lastInsertRowid;
-
-  // 2. 타입별 백업 테이블 INSERT
-  const backupTableMap = { 1: 'trade_log_manual', 2: 'trade_log_simple', 3: 'trade_log_full', 4: 'trade_log_general' };
-  const backupTable = backupTableMap[trade_type];
-  if (backupTable) {
-    try {
-      db.prepare(
-        `INSERT INTO ${backupTable} (trade_log_id,user_id,symbol,action,qty,price,reason,order_id,profit_pct,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`
-      ).run(trade_log_id, user_id, symbol, action, qty, price, reason, order_id, profit_pct, status);
-    } catch(e) { console.error('[saveTradeLog] 백업 실패:', backupTable, e.message); }
-  }
-
-  return trade_log_id;
+  return result.lastInsertRowid;
 
 }
 // ── updateTradeLogStatus 헬퍼: trade_log + 백업 테이블 status 동시 UPDATE ──
@@ -773,20 +737,18 @@ async function callClaude(userRequest, taskType, taskComplexity) {
 function getUserAlpacaKeys(userId, accountId, accountType = null) {
   let row;
   if (accountId) {
-    row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE id=? AND user_id=?').get(accountId, userId);
+    row = db.prepare('SELECT id,alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE id=? AND user_id=?').get(accountId, userId);
   } else if (accountType) {
-    // accountType: 1=수동전용, 2=자동전용
-    row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND account_type=?').get(userId, accountType);
+    row = db.prepare('SELECT id,alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND account_type=?').get(userId, accountType);
     if (!row) {
-      // 전용 계좌 없으면 is_active 계좌 폴백
-      row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND is_active=1').get(userId);
+      row = db.prepare('SELECT id,alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND is_active=1').get(userId);
     }
   } else {
-    row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND is_active=1').get(userId);
-    if (!row) row = db.prepare('SELECT alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? LIMIT 1').get(userId);
+    row = db.prepare('SELECT id,alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? AND is_active=1').get(userId);
+    if (!row) row = db.prepare('SELECT id,alpaca_api_key,alpaca_secret_key,alpaca_paper FROM user_broker_keys WHERE user_id=? LIMIT 1').get(userId);
   }
   if (!row) return null;
-  try { return { api_key: decryptEmail(row.alpaca_api_key), secret_key: decryptEmail(row.alpaca_secret_key), paper: row.alpaca_paper === 1 }; } catch (e) { return null; }
+  try { return { id: row.id, api_key: decryptEmail(row.alpaca_api_key), secret_key: decryptEmail(row.alpaca_secret_key), paper: row.alpaca_paper === 1 }; } catch (e) { return null; }
 }
 
 // ============================================================
@@ -1235,7 +1197,7 @@ async function runSimpleAutoTrade(userId) {
           })).json();
 
           // [레거시 제거] trade_setting_type2_log SELL → trade_log(type=2)만 사용
-          saveTradeLog({ user_id:userId, trade_type:2, symbol:state.symbol, action:'SELL', qty, price:currentPrice, profit_pct:plPct*100, reason, status:'closed' });
+          saveTradeLog({ user_id:userId, trade_type:2, symbol:state.symbol, action:'SELL', qty, price:currentPrice, profit_pct:plPct*100, reason, status:'closed', broker_key_id:keys.id });
           updateTradeLogStatus(userId, state.symbol, 2);
 
           // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
@@ -1359,7 +1321,7 @@ async function runSimpleAutoTrade(userId) {
 
       if (order.id) {
         // [레거시 제거] trade_setting_type2_log BUY → trade_log(type=2)만 사용
-        saveTradeLog({ user_id:userId, trade_type:2, symbol:top.symbol, action:'BUY', qty:finalQty, price:top.price, profit_pct:0, reason:`점수 ${top.score}점 TOP1 매수`, status:'active' });
+        saveTradeLog({ user_id:userId, trade_type:2, symbol:top.symbol, action:'BUY', qty:finalQty, price:top.price, profit_pct:0, reason:`점수 ${top.score}점 TOP1 매수`, status:'active', broker_key_id:keys.id });
         db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
           .run('holding', top.symbol, finalQty, top.price, order.id, userId);
 
@@ -1429,7 +1391,7 @@ async function runAutoTradeForUser(userId) {
     const posData = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
     const positions = Array.isArray(posData) ? posData : (posData.positions || []);
     // ✅ trade_type=4로 매수한 종목만 익절/손절 대상 (수동/다른 자동매매 포지션 보호)
-    const type4Symbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol));
+    const type4Symbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND broker_key_id=? AND action='BUY' AND status='active'").all(userId, keys.id).map(r => r.symbol));
     for (const pos of positions.filter(p => type4Symbols.has(p.symbol))) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       // 매수 기준으로 중복 매도 방지
@@ -1441,7 +1403,7 @@ async function runAutoTradeForUser(userId) {
           try {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
             // [레거시 제거] auto_trade_log SELL_PROFIT 제거
-            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_PROFIT', qty:pos.qty, price:pos.current_price, reason:`익절 +${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
+            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_PROFIT', qty:pos.qty, price:pos.current_price, reason:`익절 +${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
             updateTradeLogStatus(userId, pos.symbol, 4);
             results.push({ symbol: pos.symbol, action: '익절 매도' });
           } catch (e) { }
@@ -1452,7 +1414,7 @@ async function runAutoTradeForUser(userId) {
           try {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
             // [레거시 제거] auto_trade_log SELL_LOSS 제거
-            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_LOSS', qty:pos.qty, price:pos.current_price, reason:`손절 ${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
+            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_LOSS', qty:pos.qty, price:pos.current_price, reason:`손절 ${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
             updateTradeLogStatus(userId, pos.symbol, 4);
             results.push({ symbol: pos.symbol, action: '손절 매도' });
           } catch (e) { }
@@ -1463,7 +1425,7 @@ async function runAutoTradeForUser(userId) {
     // ✅ 수동 보유 종목(trade_type=1)은 자동매매 대상에서 제외
     const manualHeld = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
     manualHeld.forEach(s => heldSymbols.add(s));
-    const autoHeld = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol);
+    const autoHeld = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND broker_key_id=? AND action='BUY' AND status='active'").all(userId, keys.id).map(r => r.symbol);
     const needMore = (settings.max_positions || 3) - autoHeld.filter(s => heldSymbols.has(s)).length;
 
     // ── 1단계: 팩터 스크리닝으로 candidatePool 동적 생성 ──────────
@@ -1521,11 +1483,11 @@ async function runAutoTradeForUser(userId) {
           // ✅ 잔고 재확인 (동시 다발 매수 시 잔고 초과 방지)
           if (qty * currentPrice > remainingBuyPower) { console.log(`[자동매매] ${symbol} 매수 스킵: 잔고 부족`); continue; }
           // ✅ 이미 보유 중 재확인 (포지션 조회와 DB 불일치 방지)
-          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").get(userId, symbol);
+          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, symbol, keys.id);
           if (alreadyHeld) { heldSymbols.add(symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
-            saveTradeLog({ user_id:userId, trade_type:4, symbol, action:'BUY', qty, price:currentPrice, reason, order_id:order.id, profit_pct:0, status:'active' });
+            saveTradeLog({ user_id:userId, trade_type:4, symbol, action:'BUY', qty, price:currentPrice, reason, order_id:order.id, profit_pct:0, status:'active', broker_key_id:keys.id });
             results.push({ symbol, action: '매수', qty, reason });
             boughtCount++;
             remainingBuyPower -= qty * currentPrice;
@@ -1903,11 +1865,11 @@ async function runAutoStrategy(userId) {
             const poolSymbols = new Set(pool.map(i => i.symbol));
             const positions = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
             // ✅ trade_type=3로 매수한 종목만 팩터이탈 매도 대상 (수동/다른 자동매매 포지션 보호)
-            const type3ActiveSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=3 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol));
+            const type3ActiveSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=3 AND broker_key_id=? AND action='BUY' AND status='active'").all(userId, keys.id).map(r => r.symbol));
             for (const pos of (Array.isArray(positions) ? positions : []).filter(p => type3ActiveSymbols.has(p.symbol))) {
               if (!poolSymbols.has(pos.symbol)) {
                 await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-                saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_FACTOR', qty:pos.qty, price:pos.current_price, reason:'퀀트전략:팩터 이탈 매도', status:'closed' });
+                saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_FACTOR', qty:pos.qty, price:pos.current_price, reason:'퀀트전략:팩터 이탈 매도', status:'closed', broker_key_id:keys.id });
               }
             }
           }
@@ -1928,7 +1890,7 @@ async function runAutoStrategy(userId) {
     const posList = Array.isArray(positions) ? positions : [];
 
     // 익절/손절 체크 (else if로 중복 실행 방지)
-    const type3Symbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=3 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol));
+    const type3Symbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=3 AND broker_key_id=? AND action='BUY' AND status='active'").all(userId, keys.id).map(r => r.symbol));
     for (const pos of posList.filter(p => type3Symbols.has(p.symbol))) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       const currentPrice = parseFloat(pos.current_price);
@@ -1944,7 +1906,7 @@ async function runAutoStrategy(userId) {
         if (!existing2) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
           // [레거시 제거] auto_trade_log SELL_PROFIT2 제거
-          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT2', qty, price:currentPrice, reason:`퀀트전략:2차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
+          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT2', qty, price:currentPrice, reason:`퀀트전략:2차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
           updateTradeLogStatus(userId, pos.symbol, 3);
         }
       // 1차 익절 (절반 매도) — 2차 미달 시만 실행
@@ -1955,7 +1917,7 @@ async function runAutoStrategy(userId) {
           if (!existing1) {
             await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: String(halfQty), side: 'sell', type: 'market', time_in_force: 'day' }) });
             // [레거시 제거] auto_trade_log SELL_PROFIT1 제거
-            saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT1', qty:halfQty, price:currentPrice, reason:`퀀트전략:1차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
+            saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT1', qty:halfQty, price:currentPrice, reason:`퀀트전략:1차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
           }
         }
       // 손절 — 익절 조건 미달 시만 실행
@@ -1964,7 +1926,7 @@ async function runAutoStrategy(userId) {
         if (!existingStop) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
           // [레거시 제거] auto_trade_log SELL_STOP 제거
-          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_STOP', qty, price:currentPrice, reason:`퀀트전략:손절 ${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed' });
+          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_STOP', qty, price:currentPrice, reason:`퀀트전략:손절 ${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
           updateTradeLogStatus(userId, pos.symbol, 3);
         }
       }
@@ -2013,11 +1975,11 @@ async function runAutoStrategy(userId) {
           // ✅ 잔고 재확인
           if (qty * currentPrice > remainingBuyingPower) { console.log(`[완전자동] ${row.symbol} 매수 스킵: 잔고 부족`); continue; }
           // ✅ DB 이중 매수 방지
-          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND action='BUY' AND status='active'").get(userId, row.symbol);
+          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, row.symbol, keys.id);
           if (alreadyHeld) { heldSymbols.add(row.symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: row.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
-            saveTradeLog({ user_id:userId, trade_type:3, symbol:row.symbol, action:'BUY', qty, price:currentPrice, reason:`퀀트전략:3단계(${reasons.join('+')})`, order_id:order.id, status:'active' });
+            saveTradeLog({ user_id:userId, trade_type:3, symbol:row.symbol, action:'BUY', qty, price:currentPrice, reason:`퀀트전략:3단계(${reasons.join('+')})`, order_id:order.id, status:'active', broker_key_id:keys.id });
             heldSymbols.add(row.symbol);
             remainingBuyingPower -= qty * currentPrice;
           } else {

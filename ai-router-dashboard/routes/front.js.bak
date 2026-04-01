@@ -803,15 +803,22 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/manual-trade/log', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      const { symbol, action, qty, price, order_id, reason } = req.body;
+      const { symbol, action, qty, price, order_id, reason, broker_key_id } = req.body;
       if (!symbol || !action || !qty || !price) return res.status(400).json({ error: '필수값 누락' });
-      if (action === 'BUY') {
-        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'BUY', qty, price, reason:reason||'수동 매수', order_id:order_id||'', profit_pct:0, status:'active' });
+      if (action === 'CHECK') {
+        // 매수 전 중복 체크만 (실제 저장 안 함)
+        const existing = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND broker_key_id=? AND action='BUY' AND status='active'").get(req.user.id, symbol, broker_key_id || null);
+        if (existing) return res.json({ duplicate: true, error: `이미 매수된 종목입니다. (${symbol})` });
+        return res.json({ duplicate: false });
+      } else if (action === 'BUY') {
+        // ✅ 동일 계좌 + 종목 active 포지션 중복 체크
+        const existing = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND broker_key_id=? AND action='BUY' AND status='active'").get(req.user.id, symbol, broker_key_id || null);
+        if (existing) return res.status(400).json({ error: `이미 매수된 종목입니다. (${symbol})`, duplicate: true });
+        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'BUY', qty, price, reason:reason||'수동 매수', order_id:order_id||'', profit_pct:0, status:'active', broker_key_id: broker_key_id || null });
       } else if (action === 'SELL') {
-        // 평균단가 조회해서 수익률 계산
         const buyLog = db.prepare("SELECT price, qty FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(req.user.id, symbol);
         const profitPct = buyLog ? ((price - buyLog.price) / buyLog.price * 100) : 0;
-        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'SELL', qty, price, reason:reason||'수동 매도', order_id:order_id||'', profit_pct:profitPct, status:'closed' });
+        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'SELL', qty, price, reason:reason||'수동 매도', order_id:order_id||'', profit_pct:profitPct, status:'closed', broker_key_id: broker_key_id || null });
         db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active'").run(req.user.id, symbol);
       }
       res.json({ ok: true });
