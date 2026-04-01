@@ -2671,9 +2671,49 @@
                     style="border-color:#ef4444;" />
                 </div>
               </div>
+              <!-- 스크리닝 옵션 -->
+              <div style="margin-bottom:10px;padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;">
+                <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">⚙️ 스크리닝 옵션</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+                  <div>
+                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">후보 종목 수</label>
+                    <select id="atTopN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                      <option value="10">상위 10개</option>
+                      <option value="20">상위 20개</option>
+                      <option value="30">상위 30개</option>
+                      <option value="50">상위 50개</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">최종 결과</label>
+                    <select id="atFinalN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                      <option value="3">TOP 3</option>
+                      <option value="5">TOP 5</option>
+                      <option value="10">TOP 10</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div>
+                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">신호 필터</label>
+                    <select id="atSignalFilter" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                      <option value="all">BUY + WATCH</option>
+                      <option value="buy">BUY만</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">점수 방식</label>
+                    <select id="atScoreMode" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                      <option value="combined">복합 (팩터+기술)</option>
+                      <option value="factor">팩터만</option>
+                      <option value="technical">기술적만</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
               <button onclick="runFactorScreen('us')" class="sp-btn sp-btn-indigo"
                 style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
-              <div style="font-size:0.7rem;color:#636366;text-align:center;">팩터+타이밍 TOP3 · 1~2분</div>
+              <div style="font-size:0.7rem;color:#636366;text-align:center;">팩터+타이밍 · 1~2분</div>
               <input type="hidden" id="atSymbols" value="" />
               <div id="at-symbol-badge" style="display:none;"></div>
               <span id="at-symbol-placeholder" style="display:none;"></span>
@@ -3050,6 +3090,46 @@
               </div>
               <div style="display:flex;gap:8px;">
                 <button onclick="saveAutoStrategy()" class="sp-btn sp-btn-green" style="flex:1;">💾 전략 저장</button>
+                <!-- 스크리닝 옵션 -->
+                <div style="padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:8px;">
+                  <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">⚙️ 스크리닝 옵션</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">후보 종목 수</label>
+                      <select id="asTopN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="10">상위 10개</option>
+                        <option value="20">상위 20개</option>
+                        <option value="30">상위 30개</option>
+                        <option value="50">상위 50개</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">최종 결과</label>
+                      <select id="asFinalN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="3">TOP 3</option>
+                        <option value="5">TOP 5</option>
+                        <option value="10">TOP 10</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">신호 필터</label>
+                      <select id="asSignalFilter" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="all">BUY + WATCH</option>
+                        <option value="buy">BUY만</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">점수 방식</label>
+                      <select id="asScoreMode" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="combined">복합 (팩터+기술)</option>
+                        <option value="factor">팩터만</option>
+                        <option value="technical">기술적만</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
                 <button onclick="runAutoStrategyScreen()" class="sp-btn sp-btn-indigo" style="flex:1;">🔍 스크리닝</button>
               </div>
             </div>
@@ -4688,9 +4768,13 @@
         const revMin = parseFloat(document.getElementById('asRevenueMin').value);
         const momTop = parseFloat(document.getElementById('asMomentumTop').value);
         const sma200 = document.getElementById('asSma200Filter').checked;
+        const asTopN   = parseInt(document.getElementById('asTopN')?.value || '10');
+        const asFinalN = parseInt(document.getElementById('asFinalN')?.value || '3');
+        const asSignal = document.getElementById('asSignalFilter')?.value || 'all';
+        const asScore  = document.getElementById('asScoreMode')?.value || 'combined';
         const res = await fetch('/proxy/quant/api/quant/factor-screen', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ strategy: 'momentum_ma', market: _autoMarket, top_n: 10 })
+          body: JSON.stringify({ strategy: 'momentum_ma', market: _autoMarket, top_n: asTopN, final_n: asFinalN, signal_filter: asSignal, score_mode: asScore })
         });
         const d = await res.json();
         if (!d.ok || !d.top?.length) { el.innerHTML = '<div style="padding:12px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음</div>'; return; }
@@ -4884,13 +4968,31 @@
           w_quality: _investorProfile.w_quality,
           w_news: _investorProfile.w_news,
         } : null;
+        // 스크리닝 옵션 읽기
+        const topN    = parseInt(document.getElementById(isKr ? 'asTopN' : 'atTopN')?.value || '10');
+        const finalN  = parseInt(document.getElementById(isKr ? 'asFinalN' : 'atFinalN')?.value || '3');
+        const sigFilter = document.getElementById(isKr ? 'asSignalFilter' : 'atSignalFilter')?.value || 'all';
+        const scoreMode = document.getElementById(isKr ? 'asScoreMode' : 'atScoreMode')?.value || 'combined';
         const body = isKr
-          ? { strategy, market, top_n: 5, profile_weights: profileWeights }
-          : { strategy, market, top_n: 10, final_n: 3, profile_weights: profileWeights };
+          ? { strategy, market, top_n: topN, profile_weights: profileWeights }
+          : { strategy, market, top_n: topN, final_n: finalN, signal_filter: sigFilter, score_mode: scoreMode, profile_weights: profileWeights };
         const res = await fetch(apiPath, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const d = await res.json();
-        const items = isKr ? d.top : d.results;
+        let items = isKr ? d.top : d.results;
         if (!d.ok || !items?.length) { el.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:0.85rem;">조건 충족 종목 없음 — 전략을 바꿔보세요</div>'; return; }
+        // 신호 필터 적용
+        if (!isKr && sigFilter === 'buy') {
+          items = items.filter(item => item.timing === 'BUY');
+          if (!items.length) { el.innerHTML = '<div style="padding:10px;color:#9CA3AF;font-size:0.85rem;">BUY 신호 종목 없음 — 신호 필터를 BUY+WATCH로 바꿔보세요</div>'; return; }
+        }
+        // 점수 방식에 따라 재정렬
+        if (!isKr && scoreMode === 'factor') {
+          items = [...items].sort((a, b) => (b.factor_score || 0) - (a.factor_score || 0));
+        } else if (!isKr && scoreMode === 'technical') {
+          items = [...items].sort((a, b) => (b.tech_score || 0) - (a.tech_score || 0));
+        }
+        // finalN 적용
+        if (!isKr) items = items.slice(0, finalN);
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
         const tBg = { BUY: 'rgba(99,102,241,0.12)', WATCH: 'rgba(245,158,11,0.08)', AVOID: 'rgba(30,123,255,0.06)' };
         const tBor = { BUY: '#6366f1', WATCH: 'rgba(245,158,11,0.4)', AVOID: '#2A2A2A' };
@@ -4948,7 +5050,9 @@
           setTimeout(() => { if (typeof renderAtSavedSettings === 'function') renderAtSavedSettings(); }, 300);
         }
 
-        el.innerHTML = `<div style="margin-top:4px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📊 ${marketLabel} · ${d.strategy_label}<br>${d.screened}개 스크리닝 → TOP3${isKr ? ' (분석 전용)' : ' (팩터+타이밍)'}</div>${rows}${isKr ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid rgba(255,214,10,0.25);font-size:0.78rem;color:#FFD60A;font-weight:600;">⚠️ 자동매매는 키움증권 API 연동 후 활성화됩니다</div>' : ''}</div>`;
+        const scoreModeLabel = scoreMode === 'factor' ? '팩터점수' : scoreMode === 'technical' ? '기술점수' : '복합점수';
+        const sigLabel = sigFilter === 'buy' ? 'BUY만' : 'BUY+WATCH';
+        el.innerHTML = `<div style="margin-top:4px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📊 ${marketLabel} · ${d.strategy_label}<br>${d.screened}개 스크리닝 → TOP${isKr ? items.length : finalN}${isKr ? ' (분석 전용)' : ` (${scoreModeLabel} · ${sigLabel})`}</div>${rows}${isKr ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid rgba(255,214,10,0.25);font-size:0.78rem;color:#FFD60A;font-weight:600;">⚠️ 자동매매는 키움증권 API 연동 후 활성화됩니다</div>' : ''}</div>`;
       } catch (e) { el.innerHTML = `<div style="color:#ef4444;font-size:0.85rem;">오류: ${e.message}</div>`; }
     };
 
