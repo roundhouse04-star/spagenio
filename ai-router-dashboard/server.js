@@ -1487,7 +1487,7 @@ async function runAutoTradeForUser(userId) {
           // ✅ 잔고 재확인 (동시 다발 매수 시 잔고 초과 방지)
           if (qty * currentPrice > remainingBuyPower) { console.log(`[자동매매] ${symbol} 매수 스킵: 잔고 부족`); continue; }
           // ✅ 이미 보유 중 재확인 (포지션 조회와 DB 불일치 방지)
-          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, symbol, keys.id);
+          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, symbol, keys.id);
           if (alreadyHeld) { heldSymbols.add(symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
@@ -1979,7 +1979,7 @@ async function runAutoStrategy(userId) {
           // ✅ 잔고 재확인
           if (qty * currentPrice > remainingBuyingPower) { console.log(`[완전자동] ${row.symbol} 매수 스킵: 잔고 부족`); continue; }
           // ✅ DB 이중 매수 방지
-          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, row.symbol, keys.id);
+          const alreadyHeld = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, row.symbol, keys.id);
           if (alreadyHeld) { heldSymbols.add(row.symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: row.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {

@@ -516,6 +516,10 @@ if (!superAdminRole) {
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch (e) { }
 try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch (e) { }
 try { db.prepare("ALTER TABLE trade_setting_type4 ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch (e) { }
+// ── broker_key_id 마이그레이션 ──
+try { db.exec('ALTER TABLE trade_setting_type2 ADD COLUMN broker_key_id INTEGER DEFAULT NULL'); } catch (e) { }
+try { db.exec('ALTER TABLE trade_setting_type3 ADD COLUMN broker_key_id INTEGER DEFAULT NULL'); } catch (e) { }
+try { db.exec('ALTER TABLE trade_setting_type4 ADD COLUMN broker_key_id INTEGER DEFAULT NULL'); } catch (e) { }
 try { db.exec("CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch (e) { }
 
 // 기본 스케줄러 데이터 삽입
@@ -1141,10 +1145,10 @@ async function getNasdaqTop3(signalMode = 'combined', alpacaKeys = null, market 
 // 단순 자동매매 (1종목 / 30% / 당일청산)
 // ============================================================
 async function runSimpleAutoTrade(userId) {
-  const state = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=? AND enabled=1').get(userId);
+  const state = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=? AND enabled=1 ORDER BY broker_key_id DESC LIMIT 1').get(userId);
   if (!state) return;
 
-  const keys = getUserAlpacaKeys(userId, null);
+  const keys = getUserAlpacaKeys(userId, state.broker_key_id || null);
   if (!keys) return;
 
   const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
@@ -1379,9 +1383,9 @@ function calcMACD(closes) { if (closes.length < 35) return null; const macdLine 
 function calcRSI(closes, period = 14) { if (closes.length < period + 1) return null; const changes = closes.slice(1).map((c, i) => c - closes[i]); const avgGain = changes.slice(-period).filter(c => c > 0).reduce((a, b) => a + b, 0) / period; const avgLoss = changes.slice(-period).filter(c => c < 0).reduce((a, b) => a - b, 0) / period; return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)); }
 
 async function runAutoTradeForUser(userId) {
-  const settings = db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? AND enabled=1').get(userId);
+  const settings = db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? AND enabled=1 ORDER BY broker_key_id DESC LIMIT 1').get(userId);
   if (!settings) return { ok: false, message: '자동매매 비활성화 상태' };
-  const keys = getUserAlpacaKeys(userId, null, 2);
+  const keys = getUserAlpacaKeys(userId, settings.broker_key_id || null);
   if (!keys) return { ok: false, message: 'Alpaca 키 없음 (자동매매 전용 계좌를 등록해주세요)' };
   const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
   const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
@@ -1552,7 +1556,7 @@ setInterval(async () => {
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     if (!isMarketHours) return;
     updateSchedulerRun('auto_trade');
-    const users = db.prepare('SELECT user_id FROM trade_setting_type4 WHERE enabled=1').all();
+    const users = db.prepare('SELECT user_id, broker_key_id FROM trade_setting_type4 WHERE enabled=1').all();
     for (const u of users) await runAutoTradeForUser(u.user_id);
   } catch (e) { saveErrorLog({ event_type: 'AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -1570,7 +1574,7 @@ setInterval(async () => {
     }
     if (!isMarketHours) return;
     updateSchedulerRun('simple_trade');
-    const users = db.prepare('SELECT user_id FROM trade_setting_type2 WHERE enabled=1').all();
+    const users = db.prepare('SELECT user_id, broker_key_id FROM trade_setting_type2 WHERE enabled=1').all();
     for (const u of users) await runSimpleAutoTrade(u.user_id);
   } catch (e) { saveErrorLog({ event_type: 'SIMPLE_AUTO_TRADE_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -1826,9 +1830,9 @@ app.post('/api/mail/lotto', async (req, res) => {
 // 완전자동매매 스케줄러 (1분마다 + 월 1회 리밸런싱)
 // ============================================================
 async function runAutoStrategy(userId) {
-  const s = db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? AND enabled=1').get(userId);
+  const s = db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? AND enabled=1 ORDER BY broker_key_id DESC LIMIT 1').get(userId);
   if (!s) return;
-  const keys = getUserAlpacaKeys(userId, null, 2);
+  const keys = getUserAlpacaKeys(userId, s.broker_key_id || null);
   if (!keys) return;
   const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
   const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
@@ -1999,7 +2003,7 @@ setInterval(async () => {
     const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
     if (!isMarketHours) return;
     updateSchedulerRun('auto_strategy');
-    const users = db.prepare('SELECT user_id FROM trade_setting_type3 WHERE enabled=1').all();
+    const users = db.prepare('SELECT user_id, broker_key_id FROM trade_setting_type3 WHERE enabled=1').all();
     for (const u of users) await runAutoStrategy(u.user_id);
   } catch (e) { saveErrorLog({ event_type: 'AUTO_STRATEGY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -2061,7 +2065,7 @@ async function autoTradeFn() {
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
   const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
   if (!isMarketHours) return;
-  const users = db.prepare('SELECT user_id FROM trade_setting_type4 WHERE enabled=1').all();
+  const users = db.prepare('SELECT user_id, broker_key_id FROM trade_setting_type4 WHERE enabled=1').all();
   for (const u of users) await runAutoTradeForUser(u.user_id);
 }
 
@@ -2070,7 +2074,7 @@ async function simpleAutoTradeFn() {
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
   const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
   if (!isMarketHours) return;
-  const users = db.prepare('SELECT user_id FROM trade_setting_type2 WHERE enabled=1').all();
+  const users = db.prepare('SELECT user_id, broker_key_id FROM trade_setting_type2 WHERE enabled=1').all();
   for (const u of users) await runSimpleAutoTrade(u.user_id);
 }
 
@@ -2079,7 +2083,7 @@ async function autoStrategyFn() {
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
   const isMarketHours = (utcHour === 14 && utcMin >= 30) || (utcHour > 14 && utcHour < 21);
   if (!isMarketHours) return;
-  const users = db.prepare('SELECT user_id FROM trade_setting_type3 WHERE enabled=1').all();
+  const users = db.prepare('SELECT user_id, broker_key_id FROM trade_setting_type3 WHERE enabled=1').all();
   for (const u of users) await runAutoStrategy(u.user_id);
 }
 
