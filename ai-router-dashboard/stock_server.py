@@ -285,8 +285,15 @@ MARKET_INDICATORS = [
     {'symbol': 'DX-Y.NYB','label': 'USD Index',   'type': 'fx'},
 ]
 
+_market_cache = {'data': None, 'ts': 0}
+
 @app.route('/api/market/indicators', methods=['GET'])
 def get_market_indicators():
+    import time
+    global _market_cache
+    # 5분 캐시
+    if _market_cache['data'] and time.time() - _market_cache['ts'] < 300:
+        return jsonify(_market_cache['data'])
     results = []
     for item in MARKET_INDICATORS:
         try:
@@ -318,7 +325,11 @@ def get_market_indicators():
             })
         except Exception as e:
             results.append({'symbol': item['symbol'], 'label': item['label'], 'error': str(e)})
-    return jsonify({'indicators': results, 'timestamp': datetime.now().isoformat()})
+    resp = {'indicators': results, 'timestamp': datetime.now().isoformat()}
+    if any(r.get('price') for r in results):
+        _market_cache['data'] = resp
+        _market_cache['ts'] = time.time()
+    return jsonify(resp)
 
 # ============================================================
 # 종목 검색 API (Yahoo Finance)
