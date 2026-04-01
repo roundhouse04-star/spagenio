@@ -287,8 +287,11 @@ switchTab = function (tab) {
 // fetch에 Select된 계좌 ID 헤더 자동 추가 (alpaca-user 요청)
 const _origFetch2 = window.fetch;
 window.fetch = function (url, options = {}) {
-  if (typeof url === 'string' && url.includes('/api/alpaca-user/') && activeAccountId) {
-    options.headers = { ...options.headers, 'x-account-id': String(activeAccountId) };
+  if (typeof url === 'string' && url.includes('/api/alpaca-user/')) {
+    const accId = window.selectedAccountId || window.activeAccountId;
+    if (accId) {
+      options.headers = { ...options.headers, 'x-account-id': String(accId) };
+    }
   }
   return _origFetch2(url, options);
 };

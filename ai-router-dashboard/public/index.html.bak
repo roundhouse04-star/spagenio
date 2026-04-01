@@ -4697,7 +4697,8 @@
     // ===== 완전자동매매 설정 로드/저장 =====
     async function loadAutoStrategySettings() {
       try {
-        const res = await fetch('/api/auto-strategy/settings');
+        const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
+        const res = await fetch(`/api/auto-strategy/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
         if (!res.ok) return;
         const d = await res.json();
         if (!d.ok) return;
@@ -4753,6 +4754,7 @@
           stop_loss: parseFloat(document.getElementById('asStopLoss').value) / 100,
           factor_exit: document.getElementById('asFactorExit').checked,
           sma200_exit: document.getElementById('asSma200Exit').checked,
+          broker_key_id: window.selectedAccountId || window.activeAccountId || null,
         };
         const res = await fetch('/api/auto-strategy/settings', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
@@ -4775,7 +4777,7 @@
       }
       try {
         const res = await fetch('/api/auto-strategy/toggle', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next })
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next, broker_key_id: window.selectedAccountId || window.activeAccountId || null })
         });
         const d = await res.json();
         if (d.ok) {
@@ -4891,7 +4893,8 @@
 
     window.saveAutoSymbol = async function (symbol) {
       try {
-        const res = await fetch('/api/auto-strategy/settings');
+        const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
+        const res = await fetch(`/api/auto-strategy/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
         const d = await res.json();
         const existing = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
         if (existing.includes(symbol)) {
@@ -4916,7 +4919,8 @@
       const ok = await spConfirm(`${symbol}을 저장 목록에서 삭제하시겠습니까?`, '종목 삭제', '🗑️', '삭제', '#ef4444');
       if (!ok) return;
       try {
-        const res = await fetch('/api/auto-strategy/settings');
+        const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
+        const res = await fetch(`/api/auto-strategy/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
         const d = await res.json();
         const newSymbols = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(s => s && s !== symbol).join(',');
         await fetch('/api/auto-strategy/settings', {

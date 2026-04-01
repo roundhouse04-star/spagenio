@@ -109,6 +109,11 @@ async function buyStock() {
   const qtyRaw = document.getElementById('tradeQty').value;
   const resultEl = document.getElementById('tradeResult');
 
+  // 계좌 선택 여부 체크
+  if (!window.selectedAccountId && !window.activeAccountId) {
+    await spAlert('거래할 계좌를 먼저 선택해주세요', '계좌 미선택', '🔑'); return;
+  }
+
   // 수정1: 입력값 검증
   if (!symbol) { await spAlert('종목 심볼을 입력해주세요', '입력 오류', '⚠️'); return; }
   const qty = parseInt(qtyRaw);

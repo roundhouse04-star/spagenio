@@ -86,7 +86,12 @@ async function deleteAccount(id) {
     const data = await res.json();
     if (res.ok) {
       if (activeAccountId === id) activeAccountId = null;
+      // localStorage 캐시에서 삭제된 계좌 제거
+      if (localStorage.getItem('selectedAccountId') === String(id)) {
+        localStorage.removeItem('selectedAccountId');
+      }
       await loadAlpacaKeyStatus();
+      if (typeof loadAccountSelects === 'function') loadAccountSelects();
       loadAccount();
     } else {
       await spAlert(data.error, '오류', '❌');
