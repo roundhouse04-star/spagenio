@@ -1316,8 +1316,6 @@ async function runSimpleAutoTrade(userId) {
         // 최대 매수 가능 수량으로 조정
         console.log(`[단순매매] ${top.symbol} 수량 조정: ${qty}주 → ${maxQty}주 (잔고 부족)`);
       }
-      const alreadyHeld2 = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, top.symbol, keys.id);
-      if (alreadyHeld2) { db.prepare("UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?").run("idle", userId); return; }
       const finalQty = Math.min(qty, Math.floor(buyingPowerSimple / top.price));
 
       const order = await (await fetch(`${baseUrl}/v2/orders`, {
