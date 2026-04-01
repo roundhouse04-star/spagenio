@@ -406,25 +406,11 @@ window.showRealtimePrice = async function(symbol) {
     const posRes = await fetch('/api/alpaca-user/v2/positions/' + symbol);
     const posData = await posRes.json();
 
-    // 최근 거래 (latest trade)
-    const tradeRes = await fetch('/api/alpaca-user/v2/stocks/' + symbol + '/trades/latest');
-    const tradeData = await tradeRes.json();
-
-    // 최근 바 (최신 가격)
-    const barRes = await fetch('/api/alpaca-user/v2/stocks/' + symbol + '/bars/latest');
-    const barData = await barRes.json();
-
-    // yfinance 현재가 폴백
-    let yPrice = 0;
-    try {
-      const yRes = await fetch('/proxy/stock/price?symbol=' + symbol);
-      const yData = await yRes.json();
-      yPrice = parseFloat(yData?.price || yData?.regularMarketPrice || 0);
-    } catch(e) {}
-
-    // trade/bar/yfinance/포지션 순으로 폴백
-    const latestPrice = tradeData?.trade?.p || barData?.bar?.c || yPrice || posData?.current_price || 0;
-    const latestBar = barData?.bar || {};
+    // yfinance로 현재가 조회
+    const priceRes = await fetch('/proxy/stock/price?symbol=' + symbol);
+    const priceData = await priceRes.json();
+    const latestPrice = parseFloat(priceData?.price || priceData?.regularMarketPrice || 0) || parseFloat(posData?.current_price || 0);
+    const latestBar = {};
     const pl = parseFloat(posData?.unrealized_pl) || 0;
     const plpc = (parseFloat(posData?.unrealized_plpc) || 0) * 100;
 
