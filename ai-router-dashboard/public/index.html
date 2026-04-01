@@ -3088,48 +3088,48 @@
                     style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
               </div>
-              <div style="display:flex;gap:8px;">
-                <button onclick="saveAutoStrategy()" class="sp-btn sp-btn-green" style="flex:1;">💾 전략 저장</button>
-                <!-- 스크리닝 옵션 -->
-                <div style="padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:8px;">
-                  <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">⚙️ 스크리닝 옵션</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-                    <div>
-                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">후보 종목 수</label>
-                      <select id="asTopN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                        <option value="10">상위 10개</option>
-                        <option value="20">상위 20개</option>
-                        <option value="30">상위 30개</option>
-                        <option value="50">상위 50개</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">최종 결과</label>
-                      <select id="asFinalN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                        <option value="3">TOP 3</option>
-                        <option value="5">TOP 5</option>
-                        <option value="10">TOP 10</option>
-                      </select>
-                    </div>
+              <!-- 스크리닝 옵션 -->
+              <div style="background:#111827;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:10px;">
+                <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;padding:10px 12px 6px;">⚙️ 스크리닝 옵션</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #2A2A2A;">
+                  <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
+                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">후보 종목 수</div>
+                    <select id="asTopN" class="sp-select" style="width:100%;">
+                      <option value="10">상위 10개</option>
+                      <option value="20">상위 20개</option>
+                      <option value="30">상위 30개</option>
+                      <option value="50">상위 50개</option>
+                    </select>
                   </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                    <div>
-                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">신호 필터</label>
-                      <select id="asSignalFilter" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                        <option value="all">BUY + WATCH</option>
-                        <option value="buy">BUY만</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">점수 방식</label>
-                      <select id="asScoreMode" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                        <option value="combined">복합 (팩터+기술)</option>
-                        <option value="factor">팩터만</option>
-                        <option value="technical">기술적만</option>
-                      </select>
-                    </div>
+                  <div style="padding:10px 12px;">
+                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">최종 결과</div>
+                    <select id="asFinalN" class="sp-select" style="width:100%;">
+                      <option value="3">TOP 3</option>
+                      <option value="5">TOP 5</option>
+                      <option value="10">TOP 10</option>
+                    </select>
                   </div>
                 </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #2A2A2A;">
+                  <div style="padding:10px 12px;border-right:1px solid #2A2A2A;">
+                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">신호 필터</div>
+                    <select id="asSignalFilter" class="sp-select" style="width:100%;">
+                      <option value="all">BUY + WATCH</option>
+                      <option value="buy">BUY만</option>
+                    </select>
+                  </div>
+                  <div style="padding:10px 12px;">
+                    <div style="font-size:0.7rem;color:#9CA3AF;margin-bottom:5px;">점수 방식</div>
+                    <select id="asScoreMode" class="sp-select" style="width:100%;">
+                      <option value="combined">복합 (팩터+기술)</option>
+                      <option value="factor">팩터만</option>
+                      <option value="technical">기술적만</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button onclick="saveAutoStrategy()" class="sp-btn sp-btn-green" style="flex:1;">💾 전략 저장</button>
                 <button onclick="runAutoStrategyScreen()" class="sp-btn sp-btn-indigo" style="flex:1;">🔍 스크리닝</button>
               </div>
             </div>
