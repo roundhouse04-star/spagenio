@@ -291,8 +291,8 @@ _market_cache = {'data': None, 'ts': 0}
 def get_market_indicators():
     import time
     global _market_cache
-    # 5분 캐시
-    if _market_cache["data"] and time.time() - _market_cache["ts"] < 1800:
+    # 30분 캐시
+    if _market_cache['data'] and time.time() - _market_cache['ts'] < 1800:
         return jsonify(_market_cache['data'])
     results = []
     for item in MARKET_INDICATORS:
@@ -564,3 +564,4 @@ if __name__ == '__main__':
     print('🚀 주식 서버 시작: http://localhost:5001')
     print('📅 매일 00:00 주가 자동 업데이트 예정')
     app.run(host='0.0.0.0', port=5001, debug=False)
+
