@@ -171,6 +171,17 @@ def get_prices():
     return jsonify({'stocks': results, 'timestamp': datetime.now().isoformat()})
 
 
+MARKET_INDICATORS = [
+    {"symbol": "^GSPC",  "label": "S&P 500",     "type": "index"},
+    {"symbol": "^DJI",   "label": "Dow 30",       "type": "index"},
+    {"symbol": "^IXIC",  "label": "Nasdaq",       "type": "index"},
+    {"symbol": "^RUT",   "label": "Russell 2000", "type": "index"},
+    {"symbol": "^VIX",   "label": "VIX",          "type": "vix"},
+    {"symbol": "GC=F",   "label": "Gold",         "type": "commodity"},
+    {"symbol": "BTC-USD","label": "Bitcoin",      "type": "crypto"},
+    {"symbol": "DX-Y.NYB","label": "USD Index",   "type": "fx"},
+]
+
 @app.route('/api/market/indicators', methods=['GET'])
 def get_market_indicators():
     results = []
