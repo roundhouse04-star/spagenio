@@ -78,25 +78,6 @@ def _fh_history(symbol, period='2y'):
     return rows
 import urllib.parse
 
-try:
-    from alpaca.trading.client import TradingClient
-    from alpaca.trading.requests import MarketOrderRequest
-    from alpaca.trading.enums import OrderSide, TimeInForce
-    ALPACA_AVAILABLE = True
-except ImportError:
-    ALPACA_AVAILABLE = False
-
-app = Flask(__name__)
-CORS(app)
-
-ALPACA_API_KEY = 'PKNSYVAVTRCTHC675277MT7WLU'
-ALPACA_SECRET_KEY = 'E4MZhS8ju6QdCrZBaBgsYw2xc7YrKvdQiTeKCC9vYE3C'
-
-def get_alpaca_client():
-    if not ALPACA_AVAILABLE:
-        return None
-    return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True)
-
 
 import math as _math
 
@@ -189,101 +170,6 @@ def get_prices():
             results.append({'symbol': symbol, 'error': '조회 실패'})
     return jsonify({'stocks': results, 'timestamp': datetime.now().isoformat()})
 
-
-@app.route('/api/alpaca/account', methods=['GET'])
-def get_account():
-    try:
-        api = get_alpaca_client()
-        account = api.get_account()
-        return jsonify({
-            'cash': float(account.cash),
-            'portfolio_value': float(account.portfolio_value),
-            'buying_power': float(account.buying_power),
-            'equity': float(account.equity),
-            'status': str(account.status)
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/alpaca/positions', methods=['GET'])
-def get_positions():
-    try:
-        api = get_alpaca_client()
-        positions = api.get_all_positions()
-        result = []
-        for p in positions:
-            result.append({
-                'symbol': p.symbol,
-                'qty': float(p.qty),
-                'avg_entry_price': float(p.avg_entry_price),
-                'current_price': float(p.current_price),
-                'market_value': float(p.market_value),
-                'unrealized_pl': float(p.unrealized_pl),
-                'unrealized_plpc': round(float(p.unrealized_plpc) * 100, 2)
-            })
-        return jsonify({'positions': result})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/alpaca/buy', methods=['POST'])
-def buy_stock():
-    data = request.json
-    symbol = data.get('symbol')
-    qty = data.get('qty', 1)
-    try:
-        api = get_alpaca_client()
-        order_data = MarketOrderRequest(symbol=symbol, qty=qty, side=OrderSide.BUY, time_in_force=TimeInForce.GTC)
-        order = api.submit_order(order_data)
-        return jsonify({'status': 'success', 'order_id': str(order.id), 'symbol': symbol, 'qty': qty, 'side': 'buy'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/alpaca/sell', methods=['POST'])
-def sell_stock():
-    data = request.json
-    symbol = data.get('symbol')
-    qty = data.get('qty', 1)
-    try:
-        api = get_alpaca_client()
-        order_data = MarketOrderRequest(symbol=symbol, qty=qty, side=OrderSide.SELL, time_in_force=TimeInForce.GTC)
-        order = api.submit_order(order_data)
-        return jsonify({'status': 'success', 'order_id': str(order.id), 'symbol': symbol, 'qty': qty, 'side': 'sell'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/alpaca/orders', methods=['GET'])
-def get_orders():
-    try:
-        api = get_alpaca_client()
-        orders = api.get_orders()
-        result = []
-        for o in orders:
-            result.append({
-                'id': str(o.id),
-                'symbol': o.symbol,
-                'qty': float(o.qty),
-                'side': str(o.side),
-                'status': str(o.status),
-                'filled_at': str(o.filled_at),
-                'filled_avg_price': float(o.filled_avg_price) if o.filled_avg_price else None
-            })
-        return jsonify({'orders': result})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ============================================================
-# 시장 지표 API (S&P500, 나스닥, 다우, VIX, 금, 비트코인)
-# ============================================================
-MARKET_INDICATORS = [
-    {'symbol': '^GSPC',  'label': 'S&P 500',     'type': 'index'},
-    {'symbol': '^DJI',   'label': 'Dow 30',       'type': 'index'},
-    {'symbol': '^IXIC',  'label': 'Nasdaq',       'type': 'index'},
-    {'symbol': '^RUT',   'label': 'Russell 2000', 'type': 'index'},
-    {'symbol': '^VIX',   'label': 'VIX',          'type': 'vix'},
-    {'symbol': 'GC=F',   'label': 'Gold',         'type': 'commodity'},
-    {'symbol': 'BTC-USD','label': 'Bitcoin',      'type': 'crypto'},
-    {'symbol': 'DX-Y.NYB','label': 'USD Index',   'type': 'fx'},
-]
 
 @app.route('/api/market/indicators', methods=['GET'])
 def get_market_indicators():
