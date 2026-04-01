@@ -3173,7 +3173,7 @@
                   <div class="sp-card-title">📋 저장된 종목</div>
                   <button onclick="renderAutoSavedSymbols()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
                 </div>
-                <div style="font-size:0.75rem;color:#636366;margin-bottom:10px;">리밸런싱 시 자동으로 선별된 종목입니다</div>
+                <div style="font-size:0.75rem;color:#636366;margin-bottom:10px;">스크리닝 후 저장 버튼을 눌러 종목을 추가하세요</div>
                 <div id="autoSavedSymbols">
                   <div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">로딩 중...</div>
                 </div>
@@ -4860,7 +4860,7 @@
             ${item.news_label && item.news_label !== '뉴스없음' ? `<span style="padding:1px 6px;border-radius:999px;background:${item.news_score > 0.3 ? '#dcfce7' : item.news_score < -0.3 ? '#fee2e2' : '#f1f5f9'};color:${item.news_score > 0.3 ? '#166534' : item.news_score < -0.3 ? '#991b1b' : '#6b7280'};">${item.news_label} ${item.news_count}건</span>` : ''}
             ${item.macro_risk < -1 ? `<span style="padding:1px 6px;border-radius:999px;background:rgba(30,123,255,0.15);color:#991b1b;font-weight:700;">⚠️ 거시악재</span>` : ''}
           </div>
-
+          <button onclick="saveAutoSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
         </div>`).join('');
 
         const marketNames = {'nasdaq':'나스닥100','dow':'다우존스30','sp500':'S&P500','russell1000':'Russell1000'};
@@ -4891,16 +4891,55 @@
                 <span style="font-weight:700;font-size:0.9rem;color:#6366f1;cursor:pointer;" onclick="openChart('${p.symbol}')">${p.symbol} 📈</span>
                 <span style="font-size:0.72rem;color:#9CA3AF;margin-left:6px;">점수 ${p.factor_score}</span>
               </div>
-
+              <button onclick="deleteAutoSymbol('${p.symbol}')"
+                style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                🗑️ 삭제
+              </button>
             </div>`).join('')}`;
       } catch (e) {
         el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`;
       }
     }
 
+    window.saveAutoSymbol = async function (symbol) {
+      try {
+        const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
+        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
+        const d = await res.json();
+        const existing = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (existing.includes(symbol)) {
+          await spAlert(`${symbol}은 이미 저장된 종목이에요!`, '알림', 'ℹ️'); return;
+        }
+        if (existing.length >= 5) {
+          await spAlert(`종목은 최대 5개까지 저장 가능해요.\n현재 ${existing.length}개 저장됨`, '저장 한도 초과', '⚠️'); return;
+        }
+        existing.push(symbol);
+        await fetch('/api/trade3/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...d, candidate_symbols: existing.join(',') })
+        });
+        // 버튼 피드백
+        const btns = document.querySelectorAll(`button[onclick="saveAutoSymbol('${symbol}')"]`);
+        btns.forEach(btn => { btn.textContent = `✅ ${symbol} 저장됨`; btn.style.background = '#dcfce7'; btn.style.color = '#166534'; btn.disabled = true; });
+        await renderAutoSavedSymbols();
+      } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
+    };
 
-
-
+    window.deleteAutoSymbol = async function (symbol) {
+      const ok = await spConfirm(`${symbol}을 저장 목록에서 삭제하시겠습니까?`, '종목 삭제', '🗑️', '삭제', '#ef4444');
+      if (!ok) return;
+      try {
+        const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
+        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
+        const d = await res.json();
+        const newSymbols = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(s => s && s !== symbol).join(',');
+        await fetch('/api/trade3/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...d, candidate_symbols: newSymbols, broker_key_id: window.selectedAccountId || window.activeAccountId || null })
+        });
+        await renderAutoSavedSymbols();
+      } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
+    };
 
     // ===== 포지션 + 이력 로드 =====
     window.loadAutoStrategyPositions = async function () {
