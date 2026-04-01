@@ -5583,6 +5583,11 @@
         accountBtn.style.color = tab === 'account' ? '#fff' : '#9CA3AF';
       }
       if (tab === 'account') loadAlpacaKeyStatus();
+      // 주식 탭 진입 시 활성 계좌 자동 로드 (activeAccountId 세팅)
+      if (tab === 'stock') {
+        if (typeof loadAlpacaKeyStatus === 'function') loadAlpacaKeyStatus();
+        setTimeout(() => { if (typeof loadAccount === 'function') loadAccount(); }, 300);
+      }
     }
 
     // ── 통합 거래내역 (자동매매 거래내역 탭) ──
