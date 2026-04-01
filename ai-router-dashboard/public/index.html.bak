@@ -1875,6 +1875,21 @@
       color: #007AFF;
       font-weight: 700;
     }
+
+    /* ===== 종목 분석 탭 다크 테마 ===== */
+    #tab-analysis {
+      background: #0D1117;
+      min-height: 100vh;
+    }
+    #tab-analysis .sp-page { background: #0D1117; min-height: calc(100vh - 52px); }
+    #tab-analysis .sp-card { background: #161B22; border: 1px solid #2A2A2A; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+    #tab-analysis .sp-card-title { color: #E5E7EB; }
+    #tab-analysis .sp-card-header { border-bottom-color: #2A2A2A; }
+    #tab-analysis .sp-input { background: #0D1117; border-color: #2A2A2A; color: #E5E7EB; }
+    #tab-analysis .sp-input::placeholder { color: #4B5563; }
+    #tab-analysis .sp-btn-outline { border-color: #2A2A2A; color: #9CA3AF; background: transparent; }
+    #tab-analysis .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
+    #tab-analysis .sp-label { color: #9CA3AF; }
   </style>
 </head>
 
@@ -3850,14 +3865,17 @@
       <div class="sp-page" style="background:#0D1117;min-height:calc(100vh - 52px);">
 
         <!-- 검색 영역 -->
-        <div class="sp-card" style="margin-bottom:20px;">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🔍 종목 분석</div>
+        <div class="sp-card" style="margin-bottom:20px;background:#161B22;border:1px solid #2A2A2A;">
+          <div class="sp-card-header" style="border-bottom-color:#2A2A2A;">
+            <div class="sp-card-title" style="color:#E5E7EB;">🔍 종목 분석</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;">
-            <input type="text" id="analysisSymbolInput" placeholder="종목 심볼 입력 (예: AAPL, 005930.KS)"
-              class="sp-input" style="flex:1;font-size:1rem;height:44px;"
-              onkeydown="if(event.key==='Enter') runStockAnalysis()" />
+            <input type="hidden" id="analysisSymbolInput" value="" />
+            <div onclick="openStockSearch('analysisSymbolInput', false)"
+              style="flex:1;height:44px;border-radius:8px;border:1px solid #2A2A2A;padding:0 14px;background:#1E242C;display:flex;align-items:center;cursor:pointer;color:#636366;font-size:0.9rem;">
+              <span id="analysisSymbolBadge" style="color:#636366;">🔍 종목 검색 (예: Apple, 삼성전자, AAPL)</span>
+            </div>
+            <button onclick="openStockSearch('analysisSymbolInput', false)" class="sp-btn sp-btn-outline" title="종목 검색">🔍</button>
             <button onclick="runStockAnalysis()" class="sp-btn sp-btn-indigo" style="height:44px;padding:0 24px;font-size:0.95rem;">
               📊 분석
             </button>
@@ -5374,7 +5392,6 @@
       if (tabKey === 'analysis') {
         const analysisTab = document.getElementById('tab-analysis');
         if (analysisTab) analysisTab.style.display = 'block';
-        setTimeout(() => { document.getElementById('analysisSymbolInput')?.focus(); }, 100);
       }
     }
 
@@ -6208,6 +6225,13 @@
         if (dcSymEl) dcSymEl.value = symbol;
       }
 
+      // analysis 종목 배지 업데이트
+      if (_stockSearchTarget === 'analysisSymbolInput') {
+        const badge = document.getElementById('analysisSymbolBadge');
+        if (badge) badge.innerHTML = `<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:6px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`;
+        if (badge) badge.style.color = '#E5E7EB';
+      }
+
       // bt-symbol 백테스팅 심볼
       if (_stockSearchTarget === 'bt-symbol') {
         const display = document.getElementById('bt-symbol-display');
@@ -6254,7 +6278,7 @@
 
     async function runStockAnalysis() {
       const symbol = document.getElementById('analysisSymbolInput')?.value?.trim().toUpperCase();
-      if (!symbol) { await spAlert('종목 심볼을 입력해주세요', '알림', '⚠️'); return; }
+      if (!symbol) { await spAlert('종목을 먼저 검색해서 선택해주세요', '알림', '⚠️'); return; }
       _analysisSymbol = symbol;
       document.getElementById('analysisLoading').style.display = 'block';
       document.getElementById('analysisResult').style.display = 'none';

@@ -2,6 +2,24 @@
 quant_engine.py
 퀀트 분석 엔진 - pandas_ta 없이 직접 구현
 기존 stock_server.py와 통합되어 포트 5001에서 실행
+
+============================================================
+[Finnhub 전환 가이드]
+현재: yfinance (개인용, 비공식)
+대안: Finnhub (상업적 사용 허용, 무료 60콜/분)
+
+전환 방법:
+1. https://finnhub.io/register 에서 무료 API 키 발급
+2. .env 파일에 FINNHUB_API_KEY=your_key 추가
+3. 이 파일에서 USE_FINNHUB = True 로 변경 (약 30번째 줄)
+
+전환 범위:
+- ✅ 미국 주식 주가/차트 데이터
+- ✅ 미국 주식 재무지표 (PER/PBR/ROE/부채비율)
+- ✅ 미국 주식 팩터 스크리닝
+- ✅ 애널리스트 목표가/추천
+- ❌ 한국 주식 (.KS/.KQ) — yfinance/pykrx 유지
+============================================================
 """
 
 from flask import Flask, request, jsonify
@@ -19,6 +37,177 @@ try:
     YFINANCE_OK = True
 except:
     YFINANCE_OK = False
+
+# ============================================================
+# FINNHUB 설정 (상업적 사용 가능 - yfinance 대체용)
+# 사용법: .env에 FINNHUB_API_KEY=your_key 추가
+# API 키 발급: https://finnhub.io/register (무료)
+# 교체 시: USE_FINNHUB = True 로 변경
+# ============================================================
+import requests as _requests
+FINNHUB_API_KEY = os.environ.get('FINNHUB_API_KEY', '')
+FINNHUB_BASE = 'https://finnhub.io/api/v1'
+USE_FINNHUB = False  # True로 바꾸면 미국 주식 데이터를 Finnhub으로 조회
+
+def _finnhub_get(endpoint, params={}):
+    """Finnhub API 공통 호출 함수"""
+    try:
+        p = {**params, 'token': FINNHUB_API_KEY}
+        res = _requests.get(f'{FINNHUB_BASE}{endpoint}', params=p, timeout=10)
+        return res.json() if res.status_code == 200 else {}
+    except Exception as e:
+        print(f'[Finnhub] 오류: {e}')
+        return {}
+
+def _is_us_symbol(symbol):
+    """미국 주식 심볼 여부 판단 (한국 제외)"""
+    return not (symbol.endswith('.KS') or symbol.endswith('.KQ'))
+
+def get_stock_data_finnhub(symbol, period_days=300):
+    """Finnhub으로 주가 데이터 가져오기 (yfinance 대체)"""
+    import time as _time
+    end = int(_time.time())
+    start = end - period_days * 24 * 3600
+    data = _finnhub_get('/stock/candle', {
+        'symbol': symbol, 'resolution': 'D',
+        'from': start, 'to': end
+    })
+    if not data or data.get('s') != 'ok':
+        return None
+    closes = data.get('c', [])
+    volumes = data.get('v', [])
+    timestamps = data.get('t', [])
+    if not closes:
+        return None
+    from datetime import datetime as _dt
+    dates = [_dt.fromtimestamp(t).strftime('%Y-%m-%d') for t in timestamps]
+    return {
+        'closes': closes,
+        'volumes': volumes,
+        'last_price': round(float(closes[-1]), 2),
+        'dates': dates
+    }
+
+def get_factor_data_finnhub(symbol):
+    """Finnhub으로 팩터 데이터 가져오기 (yfinance 대체)"""
+    import time as _time
+    # 기본 재무지표
+    metrics = _finnhub_get('/stock/metric', {'symbol': symbol, 'metric': 'all'})
+    profile = _finnhub_get('/stock/profile2', {'symbol': symbol})
+    quote = _finnhub_get('/quote', {'symbol': symbol})
+
+    m = metrics.get('metric', {})
+    current_price = quote.get('c') or quote.get('pc')
+
+    # 모멘텀 계산용 캔들 데이터
+    end = int(_time.time())
+    start = end - 400 * 24 * 3600
+    candle = _finnhub_get('/stock/candle', {
+        'symbol': symbol, 'resolution': 'D',
+        'from': start, 'to': end
+    })
+    closes = candle.get('c', []) if candle.get('s') == 'ok' else []
+
+    momentum_3m = momentum_6m = momentum_12m = sma200 = above_sma200 = None
+    if len(closes) >= 60:
+        price_now = closes[-1]
+        price_3m  = closes[-63]  if len(closes) >= 63  else closes[0]
+        price_6m  = closes[-126] if len(closes) >= 126 else closes[0]
+        price_12m = closes[-252] if len(closes) >= 252 else closes[0]
+        momentum_3m  = round((price_now - price_3m)  / price_3m  * 100, 2)
+        momentum_6m  = round((price_now - price_6m)  / price_6m  * 100, 2)
+        momentum_12m = round((price_now - price_12m) / price_12m * 100, 2)
+        if len(closes) >= 200:
+            sma200 = round(sum(closes[-200:]) / 200, 2)
+            above_sma200 = 1 if price_now > sma200 else 0
+
+    per = m.get('peBasicExclExtraTTM') or m.get('peTTM')
+    pbr = m.get('pbAnnual') or m.get('pbQuarterly')
+    roe = m.get('roeTTM')  # % 단위
+    debt_to_equity = m.get('totalDebt/totalEquityAnnual')
+    revenue_growth = m.get('revenueGrowthTTMYoy')
+    market_cap = profile.get('marketCapitalization', 0) * 1e6 if profile.get('marketCapitalization') else 0
+
+    return {
+        'symbol': symbol,
+        'per': round(per, 2) if per else None,
+        'pbr': round(pbr, 2) if pbr else None,
+        'roe': round(roe, 4) if roe else None,  # 소수점 형식 유지
+        'debt_to_equity': round(debt_to_equity, 2) if debt_to_equity else None,
+        'revenue_growth': round(revenue_growth / 100, 4) if revenue_growth else None,
+        'market_cap': market_cap,
+        'current_price': current_price,
+        'volume': m.get('10DayAverageTradingVolume', 0) * 1e6,
+        'momentum_3m': momentum_3m,
+        'momentum_6m': momentum_6m,
+        'momentum_12m': momentum_12m,
+        'sma200': sma200,
+        'above_sma200': above_sma200,
+        'name': profile.get('name', symbol),
+        'sector': profile.get('finnhubIndustry', ''),
+    }
+
+def get_stock_analysis_finnhub(symbol):
+    """Finnhub으로 종목 분석 데이터 가져오기 (yfinance 대체)"""
+    import time as _time
+    quote = _finnhub_get('/quote', {'symbol': symbol})
+    profile = _finnhub_get('/stock/profile2', {'symbol': symbol})
+    metrics = _finnhub_get('/stock/metric', {'symbol': symbol, 'metric': 'all'})
+    # 애널리스트 목표가
+    target = _finnhub_get('/stock/price-target', {'symbol': symbol})
+    # 추천
+    rec_list = _finnhub_get('/stock/recommendation', {'symbol': symbol})
+    rec = rec_list[0] if rec_list else {}
+
+    m = metrics.get('metric', {})
+    current_price = quote.get('c')
+    prev_close = quote.get('pc')
+    change_pct = round((current_price - prev_close) / prev_close * 100, 2) if current_price and prev_close else None
+
+    target_mean = target.get('targetMean')
+    upside_pct = round((target_mean - current_price) / current_price * 100, 2) if target_mean and current_price else None
+
+    # 추천 집계 (buy/hold/sell)
+    total = (rec.get('buy', 0) + rec.get('hold', 0) + rec.get('sell', 0) +
+             rec.get('strongBuy', 0) + rec.get('strongSell', 0))
+    buy_cnt = rec.get('buy', 0) + rec.get('strongBuy', 0)
+    sell_cnt = rec.get('sell', 0) + rec.get('strongSell', 0)
+    if total > 0:
+        if buy_cnt / total > 0.6: recommendation = 'buy'
+        elif sell_cnt / total > 0.4: recommendation = 'sell'
+        else: recommendation = 'hold'
+    else:
+        recommendation = None
+
+    return {
+        'ok': True,
+        'symbol': symbol,
+        'current_price': current_price,
+        'prev_close': prev_close,
+        'change_pct': change_pct,
+        'consensus': {
+            'target_mean': target_mean,
+            'target_high': target.get('targetHigh'),
+            'target_low': target.get('targetLow'),
+            'recommendation': recommendation,
+            'analyst_count': total,
+            'upside_pct': upside_pct,
+        },
+        'fundamentals': {
+            'per': round(m.get('peBasicExclExtraTTM', 0), 2) if m.get('peBasicExclExtraTTM') else None,
+            'pbr': round(m.get('pbAnnual', 0), 2) if m.get('pbAnnual') else None,
+            'roe': round(m.get('roeTTM', 0), 2) if m.get('roeTTM') else None,
+            'debt_to_equity': round(m.get('totalDebt/totalEquityAnnual', 0), 2) if m.get('totalDebt/totalEquityAnnual') else None,
+            'revenue_growth': round(m.get('revenueGrowthTTMYoy', 0), 2) if m.get('revenueGrowthTTMYoy') else None,
+            'fifty_two_week_high': m.get('52WeekHigh'),
+            'fifty_two_week_low': m.get('52WeekLow'),
+            'market_cap': profile.get('marketCapitalization', 0) * 1e6 if profile.get('marketCapitalization') else None,
+            'volume': quote.get('v'),
+            'name': profile.get('name', symbol),
+            'sector': profile.get('finnhubIndustry', ''),
+            'industry': profile.get('finnhubIndustry', ''),
+        },
+    }
 
 try:
     from pykrx import stock as krx_stock
@@ -395,7 +584,10 @@ def calc_macd(closes, fast=12, slow=26, signal=9):
 
 
 def get_stock_data(symbol, period_days=60):
-    """yfinance로 주가 데이터 가져오기"""
+    """주가 데이터 가져오기 (USE_FINNHUB=True 시 Finnhub, 기본 yfinance)"""
+    # Finnhub 교체 분기
+    if USE_FINNHUB and _is_us_symbol(symbol):
+        return get_stock_data_finnhub(symbol, period_days)
     if not YFINANCE_OK:
         return None
     try:
@@ -1047,6 +1239,62 @@ def get_chart_data():
 
 # ===== 팩터 기반 퀀트 스크리너 =====
 
+
+SP500_SYMBOLS = [
+    # 정보기술
+    'AAPL','MSFT','NVDA','AVGO','ORCL','ADBE','CSCO','CRM','AMD','ACN',
+    'INTC','QCOM','IBM','TXN','AMAT','MU','INTU','KLAC','LRCX','SNPS',
+    'CDNS','MCHP','CTSH','FTNT','ANSS','KEYS','EPAM','MPWR','ENPH','ON',
+    # 통신/미디어
+    'GOOGL','META','NFLX','TMUS','VZ','T','DIS','CMCSA','ATVI','EA',
+    # 헬스케어
+    'UNH','JNJ','LLY','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN',
+    'ISRG','SYK','REGN','VRTX','ZTS','ELV','CI','HCA','IDXX','DXCM',
+    # 금융
+    'BRK.B','JPM','BAC','WFC','GS','MS','BLK','SCHW','CB','AXP',
+    'PGR','MMC','AON','TRV','MET','PRU','AFL','ALL','ICE','CME',
+    # 필수소비재
+    'AMZN','WMT','PG','KO','PEP','COST','MDLZ','CL','GIS','K',
+    'MCD','SBUX','YUM','DG','DLTR','KR','SYY','HSY','MKC','CHD',
+    # 에너지
+    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','PXD',
+    # 산업재
+    'CAT','HON','UPS','RTX','BA','LMT','GE','MMM','EMR','ETN',
+    'ITW','PH','FDX','CSX','NSC','UNP','DE','ROK','CARR','OTIS',
+    # 소재
+    'LIN','APD','SHW','ECL','DD','NEM','FCX','NUE','VMC','MLM',
+    # 유틸리티
+    'NEE','DUK','SO','AEP','EXC','XEL','WEC','ES','ETR','PPL',
+    # 부동산
+    'AMT','PLD','CCI','EQIX','PSA','DLR','O','WELL','SPG','EQR',
+    # 임의소비재
+    'TSLA','HD','TGT','LOW','NKE','TJX','ROST','ORLY','AZO','BBY',
+    'ABNB','BKNG','MAR','HLT','GM','F','APTV','LVS','WYNN','MGM',
+]
+
+RUSSELL1000_SYMBOLS = [
+    # S&P500 포함 + 중형주 추가
+    'AAPL','MSFT','NVDA','AMZN','META','GOOGL','TSLA','BRK.B','AVGO','JPM',
+    'LLY','UNH','XOM','JNJ','V','PG','MA','HD','COST','CVX',
+    'MRK','ABBV','CRM','BAC','NFLX','AMD','KO','PEP','TMO','WMT',
+    'ORCL','ACN','MCD','ADBE','CSCO','ABT','QCOM','CAT','DHR','TXN',
+    'WFC','LIN','INTU','PM','HON','AMGN','IBM','GE','NEE','GS',
+    'SPGI','BKNG','RTX','ISRG','C','LOW','AMAT','BX','SYK','TJX',
+    'UBER','UNP','BA','AXP','MS','SBUX','NOW','LRCX','KLAC','REGN',
+    'MU','VRTX','DE','PANW','GILD','MMC','ADI','MDLZ','SNPS','CDNS',
+    'CME','PGR','ELV','ZTS','CB','ETN','BMY','BSX','SCHW','APH',
+    'SO','DUK','SHW','ICE','AON','CL','HCA','FTNT','EOG','ITW',
+    # 중형주
+    'COIN','PLTR','RBLX','HOOD','RIVN','LCID','SOFI','AFRM','UPST','SQ',
+    'ROKU','DKNG','PENN','LYFT','DASH','ABNB','SNAP','PINS','MTCH','Z',
+    'W','ETSY','CHWY','CVNA','CARVANA','LULU','RH','SKX','DECK','CROX',
+    'CELH','ELF','USFD','SFM','PFGC','CHEF','CAKE','TXRH','JACK','WEN',
+    'HWM','TDY','LDOS','SAIC','BAH','CACI','MANT','DRS','VVV','WMS',
+    'TREX','AZEK','PGTI','NVR','MTH','MHO','GRBK','CCS','TPH','BLD',
+    'RRC','AR','CTRA','SM','CHRD','NOG','ESTE','VTLE','SWN','EQT',
+    'FANG','DVN','PDCE','PR','CPE','MTDR','REI','CLR','SBOW','CRC',
+]
+
 NASDAQ100_SYMBOLS = [
     'AAPL','MSFT','NVDA','AMZN','META','GOOGL','TSLA','AVGO','COST','NFLX',
     'AMD','ADBE','QCOM','PEP','TMUS','AMAT','TXN','INTU','MU','LRCX',
@@ -1129,6 +1377,10 @@ def get_factor_data(symbol):
     cached = cache_get(cache_key)
     if cached:
         return cached
+
+    # Finnhub 교체 분기
+    if USE_FINNHUB and _is_us_symbol(symbol):
+        return get_factor_data_finnhub(symbol)
 
     try:
         ticker = yf.Ticker(symbol)
@@ -1360,7 +1612,7 @@ def factor_screen():
     # 투자 성향 가중치 (프론트에서 전달)
     profile_weights = data.get('profile_weights', None)
 
-    symbols = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
+    symbols = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else SP500_SYMBOLS if market == 'sp500' else RUSSELL1000_SYMBOLS if market == 'russell1000' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
 
     # 병렬 데이터 수집
     import concurrent.futures
@@ -1416,7 +1668,7 @@ def integrated_screen():
     market   = data.get('market', 'nasdaq')
     top_n    = int(data.get('top_n', 10))
     final_n  = int(data.get('final_n', 5))
-    symbols  = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
+    symbols  = DOW30_SYMBOLS if market == 'dow' else NASDAQ100_SYMBOLS if market == 'nasdaq' else SP500_SYMBOLS if market == 'sp500' else RUSSELL1000_SYMBOLS if market == 'russell1000' else KOSDAQ150_SYMBOLS if market == 'kosdaq' else KOSPI200_SYMBOLS
     factor_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(get_factor_data, sym): sym for sym in symbols}
@@ -1457,16 +1709,23 @@ def stock_analysis():
     if not symbol:
         return jsonify({'ok': False, 'error': '종목 심볼을 입력해주세요'})
     try:
+        # Finnhub 분기 (미국 주식만)
+        if USE_FINNHUB and _is_us_symbol(symbol):
+            result = get_stock_analysis_finnhub(symbol)
+            tech = analyze_combined(symbol)
+            result['technical'] = tech
+            result['updated_at'] = datetime.now().isoformat()
+            return jsonify(result)
+
+        # yfinance (한국 주식 또는 USE_FINNHUB=False)
         import yfinance as yf
         ticker = yf.Ticker(symbol)
         info = ticker.info
 
-        # 기본 정보
         current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
         prev_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
         change_pct = round(((current_price - prev_close) / prev_close * 100), 2) if current_price and prev_close else None
 
-        # 애널리스트 컨센서스
         consensus = {
             'target_mean': info.get('targetMeanPrice'),
             'target_high': info.get('targetHighPrice'),
@@ -1476,7 +1735,6 @@ def stock_analysis():
             'upside_pct': round((info.get('targetMeanPrice', 0) - current_price) / current_price * 100, 2) if current_price and info.get('targetMeanPrice') else None
         }
 
-        # 재무지표
         fundamentals = {
             'per': round(info.get('trailingPE', 0), 2) if info.get('trailingPE') else None,
             'pbr': round(info.get('priceToBook', 0), 2) if info.get('priceToBook') else None,
@@ -1493,7 +1751,6 @@ def stock_analysis():
             'industry': info.get('industry'),
         }
 
-        # 기술적 분석
         tech = analyze_combined(symbol)
 
         return jsonify({
