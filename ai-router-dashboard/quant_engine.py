@@ -1058,6 +1058,114 @@ def korea_analysis():
     return jsonify(result)
 
 
+@app.route('/api/quant/history', methods=['GET'])
+def history():
+    """분석 히스토리 조회"""
+    symbol = request.args.get('symbol', '')
+    limit = int(request.args.get('limit', 50))
+
+    conn = sqlite3.connect(DB_PATH)
+    if symbol:
+        rows = conn.execute("""
+            SELECT * FROM quant_analysis WHERE symbol = ?
+            ORDER BY created_at DESC LIMIT ?
+        """, (symbol, limit)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT * FROM quant_analysis
+            ORDER BY created_at DESC LIMIT ?
+        """, (limit,)).fetchall()
+    conn.close()
+
+    return jsonify({'history': [
+        {'id': r[0], 'symbol': r[1], 'strategy': r[2], 'signal': r[3],
+         'value': r[4], 'price': r[5], 'created_at': r[6]}
+        for r in rows
+    ]})
+
+
+@app.route('/api/quant/kr/history', methods=['GET'])
+def kr_history():
+    """한국 수급 추천 히스토리"""
+    limit = int(request.args.get('limit', 30))
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("""
+        SELECT * FROM kr_recommendations ORDER BY created_at DESC LIMIT ?
+    """, (limit,)).fetchall()
+    conn.close()
+    return jsonify({'history': [
+        {'id': r[0], 'ticker': r[1], 'name': r[2], 'volume': r[3],
+         'short_ratio': r[4], 'score': r[5], 'price': r[6], 'created_at': r[7]}
+        for r in rows
+    ]})
+
+
+@app.route('/api/quant/trade', methods=['POST'])
+def trade():
+    """퀀트 신호 기반 매매 실행"""
+    data = request.json
+    symbol = data.get('symbol')
+    signal = data.get('signal')  # buy or sell
+    strategy = data.get('strategy', 'manual')
+    qty = int(data.get('qty', 1))
+
+    if not symbol or signal not in ['buy', 'sell']:
+        return jsonify({'error': '종목 또는 신호 오류'}), 400
+
+    # 자동 분석 후 매매
+    analysis = analyze_combined(symbol)
+    price = analysis.get('price', 0)
+
+    result = execute_quant_trade(symbol, signal, strategy, price, qty)
+    return jsonify(result)
+
+
+@app.route('/api/quant/trade/log', methods=['GET'])
+def trade_log():
+    """매매 로그 조회"""
+    limit = int(request.args.get('limit', 20))
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("""
+        SELECT * FROM quant_trade_log ORDER BY created_at DESC LIMIT ?
+    """, (limit,)).fetchall()
+    conn.close()
+    return jsonify({'logs': [
+        {'id': r[0], 'symbol': r[1], 'side': r[2], 'qty': r[3],
+         'price': r[4], 'strategy': r[5], 'order_id': r[6], 'created_at': r[7]}
+        for r in rows
+    ]})
+
+
+@app.route('/api/quant/auto', methods=['POST'])
+def auto_trade():
+    """자동매매 - 분석 후 신호에 따라 자동 주문"""
+    data = request.json
+    symbol = data.get('symbol', 'QQQ')
+    strategy = data.get('strategy', 'combined')
+    qty = int(data.get('qty', 1))
+    threshold = float(data.get('threshold', 0.3))  # 최소 신호 강도
+
+    # 분석
+    analysis = analyze_combined(symbol)
+    signal = analysis.get('signal', 'hold')
+    score = abs(analysis.get('score', 0))
+
+    # 임계값 이상일 때만 매매
+    if signal in ['buy', 'sell'] and score >= threshold:
+        trade_result = execute_quant_trade(symbol, signal, strategy, analysis.get('price', 0), qty)
+        return jsonify({
+            'traded': True,
+            'analysis': analysis,
+            'trade': trade_result
+        })
+
+    return jsonify({
+        'traded': False,
+        'reason': f'신호 강도 부족 (score: {score:.2f} < threshold: {threshold})',
+        'analysis': analysis
+    })
+
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({
