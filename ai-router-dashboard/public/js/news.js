@@ -245,7 +245,7 @@ async function showMarketChart(symbol, label, price, changePct) {
   const bg = color === '#10b981' ? '#dcfce7' : '#fee2e2';
   document.getElementById('chartSymbolLabel').textContent = label;
   document.getElementById('chartSymbolSub').textContent = symbol;
-  document.getElementById('chartPriceBadge').textContent = price.toLocaleString();
+  document.getElementById('chartPriceBadge').textContent = price != null ? price.toLocaleString() : '-';
   const badge = document.getElementById('chartChangeBadge');
   badge.textContent = `${up ? '▲' : '▼'} ${Math.abs(changePct)}%`;
   badge.style.color = color;
