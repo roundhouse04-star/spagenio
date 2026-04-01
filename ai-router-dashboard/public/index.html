@@ -1881,15 +1881,50 @@
       background: #0D1117;
       min-height: 100vh;
     }
-    #tab-analysis .sp-page { background: #0D1117; min-height: calc(100vh - 52px); }
-    #tab-analysis .sp-card { background: #161B22; border: 1px solid #2A2A2A; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
-    #tab-analysis .sp-card-title { color: #E5E7EB; }
-    #tab-analysis .sp-card-header { border-bottom-color: #2A2A2A; }
-    #tab-analysis .sp-input { background: #0D1117; border-color: #2A2A2A; color: #E5E7EB; }
-    #tab-analysis .sp-input::placeholder { color: #4B5563; }
-    #tab-analysis .sp-btn-outline { border-color: #2A2A2A; color: #9CA3AF; background: transparent; }
-    #tab-analysis .sp-btn-outline:hover { border-color: #4f8fff; color: #4f8fff; }
-    #tab-analysis .sp-label { color: #9CA3AF; }
+
+    #tab-analysis .sp-page {
+      background: #0D1117;
+      min-height: calc(100vh - 52px);
+    }
+
+    #tab-analysis .sp-card {
+      background: #161B22;
+      border: 1px solid #2A2A2A;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    #tab-analysis .sp-card-title {
+      color: #E5E7EB;
+    }
+
+    #tab-analysis .sp-card-header {
+      border-bottom-color: #2A2A2A;
+    }
+
+    #tab-analysis .sp-input {
+      background: #0D1117;
+      border-color: #2A2A2A;
+      color: #E5E7EB;
+    }
+
+    #tab-analysis .sp-input::placeholder {
+      color: #4B5563;
+    }
+
+    #tab-analysis .sp-btn-outline {
+      border-color: #2A2A2A;
+      color: #9CA3AF;
+      background: transparent;
+    }
+
+    #tab-analysis .sp-btn-outline:hover {
+      border-color: #4f8fff;
+      color: #4f8fff;
+    }
+
+    #tab-analysis .sp-label {
+      color: #9CA3AF;
+    }
   </style>
 </head>
 
@@ -2120,7 +2155,8 @@
                 style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
                 <option value="">계좌 로딩 중...</option>
               </select>
-              <span id="accountSelectStockBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
+              <span id="accountSelectStockBadge"
+                style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
             </div>
           </div>
 
@@ -2620,10 +2656,13 @@
                 <span style="font-size:1.6rem;">🤖</span>
                 <div>
                   <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">미국 자동매매 시스템</div>
-                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">검증된 알고리즘(MACD+RSI) · 1분마다 미국 장 시간(EST 9:30~16:00) 체크</div>
+                  <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">검증된 알고리즘(MACD+RSI) · 1분마다 미국 장 시간(EST
+                    9:30~16:00) 체크</div>
                 </div>
               </div>
-              <span id="autoTradeStatusBadge" style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:700;">⏹ 비활성</span>
+              <span id="autoTradeStatusBadge"
+                style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:700;">⏹
+                비활성</span>
             </div>
           </div>
 
@@ -2635,7 +2674,8 @@
                 style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
                 <option value="">계좌 로딩 중...</option>
               </select>
-              <span id="accountSelectUsBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
+              <span id="accountSelectUsBadge"
+                style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
             </div>
           </div>
 
@@ -2705,14 +2745,17 @@
               <div class="sp-grid-2" style="margin-bottom:12px;">
                 <div>
                   <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
-                  <input type="number" id="atTakeProfit" value="5" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+                  <input type="number" id="atTakeProfit" value="5" min="1" max="50" class="sp-input"
+                    style="border-color:#10b981;" />
                 </div>
                 <div>
                   <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
-                  <input type="number" id="atStopLoss" value="5" min="1" max="50" class="sp-input" style="border-color:#ef4444;" />
+                  <input type="number" id="atStopLoss" value="5" min="1" max="50" class="sp-input"
+                    style="border-color:#ef4444;" />
                 </div>
               </div>
-              <div style="margin-bottom:12px;padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;">
+              <div
+                style="margin-bottom:12px;padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;">
                 <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">⚙️ 스크리닝 옵션</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
                   <div>
@@ -2751,7 +2794,8 @@
                   </div>
                 </div>
               </div>
-              <button onclick="runFactorScreen('us')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
+              <button onclick="runFactorScreen('us')" class="sp-btn sp-btn-indigo"
+                style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
               <div style="font-size:0.7rem;color:#636366;text-align:center;">팩터+타이밍 · 1~2분</div>
             </div>
 
@@ -2772,7 +2816,8 @@
 
             <div class="sp-card">
               <div class="sp-card-header">
-                <div class="sp-card-title">📊 현재 포지션 <span id="autoPositionCount" style="font-size:0.75rem;color:#9CA3AF;"></span></div>
+                <div class="sp-card-title">📊 현재 포지션 <span id="autoPositionCount"
+                    style="font-size:0.75rem;color:#9CA3AF;"></span></div>
                 <div style="display:flex;gap:6px;">
                   <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
                   <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 종료</button>
@@ -2795,7 +2840,7 @@
             </div>
           </div>
 
-                    <!-- 자동매매 이력 → 거래내역 탭으로 통합됨 -->
+          <!-- 자동매매 이력 → 거래내역 탭으로 통합됨 -->
 
         </div><!-- /quantPanelUs -->
 
@@ -2826,7 +2871,9 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">⚙️ 분석 설정</div>
-                <span style="font-size:0.72rem;padding:3px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">매매 준비 중</span>
+                <span
+                  style="font-size:0.72rem;padding:3px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">매매
+                  준비 중</span>
               </div>
               <div class="sp-grid-2" style="margin-bottom:12px;opacity:0.5;pointer-events:none;">
                 <div>
@@ -2869,14 +2916,17 @@
               <div class="sp-grid-2" style="margin-bottom:12px;opacity:0.5;pointer-events:none;">
                 <div>
                   <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
-                  <input type="number" id="krTakeProfit" value="5" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+                  <input type="number" id="krTakeProfit" value="5" min="1" max="50" class="sp-input"
+                    style="border-color:#10b981;" />
                 </div>
                 <div>
                   <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
-                  <input type="number" id="krStopLoss" value="5" min="1" max="50" class="sp-input" style="border-color:#ef4444;" />
+                  <input type="number" id="krStopLoss" value="5" min="1" max="50" class="sp-input"
+                    style="border-color:#ef4444;" />
                 </div>
               </div>
-              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
+              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo"
+                style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
               <div style="font-size:0.7rem;color:#636366;text-align:center;">코스피200/코스닥150 · 1~2분</div>
             </div>
 
@@ -2884,7 +2934,9 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">📊 현재 보유 현황</div>
-                <span style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">키움증권 연동 후</span>
+                <span
+                  style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">키움증권
+                  연동 후</span>
               </div>
               <div style="text-align:center;padding:24px;color:#636366;">
                 <div style="font-size:1.8rem;margin-bottom:8px;">🏗️</div>
@@ -2912,7 +2964,9 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">📊 스크리닝 결과</div>
-                <span style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석 전용</span>
+                <span
+                  style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석
+                  전용</span>
               </div>
               <div id="krTradeResult" style="min-height:80px;">
                 <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
@@ -2921,7 +2975,7 @@
 
           </div><!-- /2행 -->
 
-                    <!-- 한국 매매 이력 → 거래내역 탭으로 통합됨 -->
+          <!-- 한국 매매 이력 → 거래내역 탭으로 통합됨 -->
 
         </div><!-- /quantPanelKr -->
 
@@ -2974,7 +3028,8 @@
                 style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
                 <option value="">계좌 로딩 중...</option>
               </select>
-              <span id="accountSelectAutoBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
+              <span id="accountSelectAutoBadge"
+                style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
             </div>
           </div>
 
@@ -3026,9 +3081,12 @@
                   <input type="number" id="asMomentumTop" value="30" min="10" max="50" class="sp-input" />
                 </div>
               </div>
-              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;">
-                <input type="checkbox" id="asSma200Filter" checked style="width:16px;height:16px;accent-color:#6366f1;" />
-                <label for="asSma200Filter" style="font-size:0.82rem;color:#166534;font-weight:600;cursor:pointer;">▲ 200일선 위 종목만 (하락장 필터)</label>
+              <div
+                style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #bbf7d0;">
+                <input type="checkbox" id="asSma200Filter" checked
+                  style="width:16px;height:16px;accent-color:#6366f1;" />
+                <label for="asSma200Filter" style="font-size:0.82rem;color:#166534;font-weight:600;cursor:pointer;">▲
+                  200일선 위 종목만 (하락장 필터)</label>
               </div>
             </div>
 
@@ -3039,28 +3097,35 @@
                 <span style="font-size:0.7rem;color:#636366;">3가지 중 2개 충족 시 매수</span>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟢 MACD 골든크로스</div>
                     <div style="font-size:0.72rem;color:#9CA3AF;">단기 이평선이 장기 이평선 상향 돌파</div>
                   </div>
                   <input type="checkbox" id="asUseMacd" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🟡 RSI 과매도 반등</div>
-                    <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold" value="35" min="20" max="50" style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;"> 구간 진입</div>
+                    <div style="font-size:0.72rem;color:#9CA3AF;">RSI &lt; <input type="number" id="asRsiThreshold"
+                        value="35" min="20" max="50"
+                        style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:1px 4px;font-size:0.72rem;">
+                      구간 진입</div>
                   </div>
                   <input type="checkbox" id="asUseRsi" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.82rem;font-weight:700;color:#E5E7EB;">🔵 볼린저밴드 반등</div>
                     <div style="font-size:0.72rem;color:#9CA3AF;">하단밴드 터치 후 반등 시</div>
                   </div>
                   <input type="checkbox" id="asUseBb" checked style="width:18px;height:18px;accent-color:#6366f1;" />
                 </div>
-                <div style="padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid #fde68a;font-size:0.75rem;color:#92400e;">
+                <div
+                  style="padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid #fde68a;font-size:0.75rem;color:#92400e;">
                   ⚡ 위 조건 중 <strong>2개 이상</strong> 동시 충족 시 매수 신호 발생
                 </div>
               </div>
@@ -3085,37 +3150,45 @@
               </div>
               <div>
                 <label class="sp-label" style="color:#065f46;">✅ 1차 익절 (%)</label>
-                <input type="number" id="asTakeProfit1" value="10" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+                <input type="number" id="asTakeProfit1" value="10" min="1" max="50" class="sp-input"
+                  style="border-color:#10b981;" />
                 <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 보유량의 50% 매도</div>
               </div>
               <div>
                 <label class="sp-label" style="color:#065f46;">✅ 2차 익절 (%)</label>
-                <input type="number" id="asTakeProfit2" value="20" min="1" max="100" class="sp-input" style="border-color:#10b981;" />
+                <input type="number" id="asTakeProfit2" value="20" min="1" max="100" class="sp-input"
+                  style="border-color:#10b981;" />
                 <div style="font-size:0.7rem;color:#636366;margin-top:2px;">→ 나머지 전량 매도</div>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #fecaca;">
+              <div
+                style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(255,59,48,0.08);border-radius:8px;border:1px solid #fecaca;">
                 <div style="font-size:0.8rem;color:#991b1b;font-weight:600;">❌ 손절</div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                  <input type="number" id="asStopLoss" value="5" min="1" max="20" style="width:50px;border:1px solid #fca5a5;border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;" />
+                  <input type="number" id="asStopLoss" value="5" min="1" max="20"
+                    style="width:50px;border:1px solid #fca5a5;border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;" />
                   <span style="font-size:0.78rem;color:#991b1b;">% 하락 시 전량 매도</span>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.8rem;color:#E5E7EB;font-weight:600;">📉 팩터 이탈 매도</div>
                     <div style="font-size:0.7rem;color:#9CA3AF;">월 리밸런싱 시 조건 탈락 종목 매도</div>
                   </div>
-                  <input type="checkbox" id="asFactorExit" checked style="width:16px;height:16px;accent-color:#6366f1;" />
+                  <input type="checkbox" id="asFactorExit" checked
+                    style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
                   <div>
                     <div style="font-size:0.8rem;color:#E5E7EB;font-weight:600;">📉 200일선 이탈 매도</div>
                     <div style="font-size:0.7rem;color:#9CA3AF;">보유 중 200일선 아래로 내려오면 매도</div>
                   </div>
-                  <input type="checkbox" id="asSma200Exit" checked style="width:16px;height:16px;accent-color:#6366f1;" />
+                  <input type="checkbox" id="asSma200Exit" checked
+                    style="width:16px;height:16px;accent-color:#6366f1;" />
                 </div>
               </div>
             </div>
@@ -3231,7 +3304,8 @@
                 style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
                 <option value="">계좌 로딩 중...</option>
               </select>
-              <span id="accountSelectDayBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
+              <span id="accountSelectDayBadge"
+                style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
             </div>
           </div>
 
@@ -3354,10 +3428,12 @@
                 <div class="sp-card-title">🛡️ 리스크 관리 계산기</div>
               </div>
               <div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:16px;">계좌 잔고의 1~2% 리스크 룰로 적정 매수 수량을 계산해요</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:flex-end;margin-bottom:16px;">
+              <div
+                style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:flex-end;margin-bottom:16px;">
                 <div>
                   <label class="sp-label">종목</label>
-                  <input type="text" id="riskSymbol" placeholder="예: AAPL" class="sp-input" style="text-transform:uppercase;" />
+                  <input type="text" id="riskSymbol" placeholder="예: AAPL" class="sp-input"
+                    style="text-transform:uppercase;" />
                 </div>
                 <div>
                   <label class="sp-label">손절 비율 (%)</label>
@@ -3368,7 +3444,8 @@
                   <input type="number" id="riskRatio" value="2" min="0.5" max="5" step="0.5" class="sp-input" />
                 </div>
               </div>
-              <button onclick="calcRisk()" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:12px;">계산</button>
+              <button onclick="calcRisk()" class="sp-btn sp-btn-indigo"
+                style="width:100%;margin-bottom:12px;">계산</button>
               <div id="riskResult">
                 <div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">종목을 입력하고 계산 버튼을 눌러주세요</div>
               </div>
@@ -4020,8 +4097,10 @@
               style="flex:1;height:44px;border-radius:8px;border:1px solid #2A2A2A;padding:0 14px;background:#1E242C;display:flex;align-items:center;cursor:pointer;color:#636366;font-size:0.9rem;">
               <span id="analysisSymbolBadge" style="color:#636366;">🔍 종목 검색 (예: Apple, 삼성전자, AAPL)</span>
             </div>
-            <button onclick="openStockSearch('analysisSymbolInput', false)" class="sp-btn sp-btn-outline" title="종목 검색">🔍</button>
-            <button onclick="runStockAnalysis()" class="sp-btn sp-btn-indigo" style="height:44px;padding:0 24px;font-size:0.95rem;">
+            <button onclick="openStockSearch('analysisSymbolInput', false)" class="sp-btn sp-btn-outline"
+              title="종목 검색">🔍</button>
+            <button onclick="runStockAnalysis()" class="sp-btn sp-btn-indigo"
+              style="height:44px;padding:0 24px;font-size:0.95rem;">
               📊 분석
             </button>
           </div>
@@ -4075,7 +4154,9 @@
                 <span id="analysisAnalystCount" style="font-size:0.78rem;color:#9CA3AF;"></span>
               </div>
               <div style="text-align:center;margin-bottom:16px;">
-                <div id="analysisRecommendation" style="font-size:1.5rem;font-weight:800;padding:8px 20px;border-radius:999px;display:inline-block;">-</div>
+                <div id="analysisRecommendation"
+                  style="font-size:1.5rem;font-weight:800;padding:8px 20px;border-radius:999px;display:inline-block;">-
+                </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:0.82rem;">
                 <div style="padding:8px;background:#1E242C;border-radius:8px;text-align:center;">
@@ -4091,7 +4172,8 @@
                   <div id="analysisTargetLow" style="font-weight:800;color:#1E7BFF;">-</div>
                 </div>
               </div>
-              <div id="analysisUpside" style="margin-top:12px;text-align:center;font-size:0.85rem;font-weight:700;"></div>
+              <div id="analysisUpside" style="margin-top:12px;text-align:center;font-size:0.85rem;font-weight:700;">
+              </div>
             </div>
           </div>
 
@@ -4103,7 +4185,8 @@
               <div class="sp-card-header">
                 <div class="sp-card-title">📊 재무지표</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;" id="analysisFundamentals">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;"
+                id="analysisFundamentals">
               </div>
             </div>
 
@@ -4111,7 +4194,8 @@
             <div class="sp-card">
               <div class="sp-card-header">
                 <div class="sp-card-title">📈 기술적 지표</div>
-                <span id="analysisTechSignal" style="font-size:0.78rem;padding:3px 10px;border-radius:999px;font-weight:700;"></span>
+                <span id="analysisTechSignal"
+                  style="font-size:0.78rem;padding:3px 10px;border-radius:999px;font-weight:700;"></span>
               </div>
               <div id="analysisTechnical" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82rem;">
               </div>
@@ -4123,10 +4207,14 @@
             <div class="sp-card-header">
               <div class="sp-card-title">📉 주가 차트</div>
               <div style="display:flex;gap:6px;">
-                <button onclick="loadAnalysisChart('1mo')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">1M</button>
-                <button onclick="loadAnalysisChart('3mo')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm active">3M</button>
-                <button onclick="loadAnalysisChart('6mo')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">6M</button>
-                <button onclick="loadAnalysisChart('1y')" class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">1Y</button>
+                <button onclick="loadAnalysisChart('1mo')"
+                  class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">1M</button>
+                <button onclick="loadAnalysisChart('3mo')"
+                  class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm active">3M</button>
+                <button onclick="loadAnalysisChart('6mo')"
+                  class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">6M</button>
+                <button onclick="loadAnalysisChart('1y')"
+                  class="analysis-period-btn sp-btn sp-btn-outline sp-btn-sm">1Y</button>
               </div>
             </div>
             <canvas id="analysisChartCanvas" height="80"></canvas>
@@ -4135,7 +4223,8 @@
         </div><!-- /analysisResult -->
 
         <!-- 에러 -->
-        <div id="analysisError" style="display:none;padding:16px;color:#ef4444;background:rgba(239,68,68,0.1);border-radius:8px;"></div>
+        <div id="analysisError"
+          style="display:none;padding:16px;color:#ef4444;background:rgba(239,68,68,0.1);border-radius:8px;"></div>
 
       </div>
     </div>
@@ -4708,7 +4797,7 @@
     async function loadAutoStrategySettings() {
       try {
         const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
-        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
+        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id=' + _bkId3 : ''}`);
         if (!res.ok) return;
         const d = await res.json();
         if (!d.ok) return;
@@ -4812,10 +4901,10 @@
         const revMin = parseFloat(document.getElementById('asRevenueMin').value);
         const momTop = parseFloat(document.getElementById('asMomentumTop').value);
         const sma200 = document.getElementById('asSma200Filter').checked;
-        const asTopN   = parseInt(document.getElementById('asTopN')?.value || '10');
+        const asTopN = parseInt(document.getElementById('asTopN')?.value || '10');
         const asFinalN = parseInt(document.getElementById('asFinalN')?.value || '3');
         const asSignal = document.getElementById('asSignalFilter')?.value || 'all';
-        const asScore  = document.getElementById('asScoreMode')?.value || 'combined';
+        const asScore = document.getElementById('asScoreMode')?.value || 'combined';
         const res = await fetch('/proxy/quant/api/quant/factor-screen', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ strategy: 'momentum_ma', market: _autoMarket, top_n: asTopN, final_n: asFinalN, signal_filter: asSignal, score_mode: asScore })
@@ -4863,7 +4952,7 @@
           <button onclick="saveAutoSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
         </div>`).join('');
 
-        const marketNames = {'nasdaq':'나스닥100','dow':'다우존스30','sp500':'S&P500','russell1000':'Russell1000'};
+        const marketNames = { 'nasdaq': '나스닥100', 'dow': '다우존스30', 'sp500': 'S&P500', 'russell1000': 'Russell1000' };
         const marketLabel = marketNames[_autoMarket] || _autoMarket;
         el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">${marketLabel} · ${d.screened}개 → TOP${asFinalN} (${asScore === 'combined' ? '복합점수' : asScore === 'factor' ? '팩터점수' : '기술점수'} · ${asSignal === 'buy' ? 'BUY만' : 'BUY+WATCH'})</div>${rows}`;
         // 스크리닝 후 저장된 종목 새로고침
@@ -4904,7 +4993,7 @@
     window.saveAutoSymbol = async function (symbol) {
       try {
         const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
-        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
+        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id=' + _bkId3 : ''}`);
         const d = await res.json();
         const existing = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(Boolean);
         if (existing.includes(symbol)) {
@@ -4930,7 +5019,7 @@
       if (!ok) return;
       try {
         const _bkId3 = window.selectedAccountId || window.activeAccountId || '';
-        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id='+_bkId3 : ''}`);
+        const res = await fetch(`/api/trade3/settings${_bkId3 ? '?broker_key_id=' + _bkId3 : ''}`);
         const d = await res.json();
         const newSymbols = (d.candidate_symbols || '').split(',').map(s => s.trim()).filter(s => s && s !== symbol).join(',');
         await fetch('/api/trade3/settings', {
@@ -5019,8 +5108,8 @@
           w_news: _investorProfile.w_news,
         } : null;
         // 스크리닝 옵션 읽기
-        const topN    = parseInt(document.getElementById(isKr ? 'asTopN' : 'atTopN')?.value || '10');
-        const finalN  = parseInt(document.getElementById(isKr ? 'asFinalN' : 'atFinalN')?.value || '3');
+        const topN = parseInt(document.getElementById(isKr ? 'asTopN' : 'atTopN')?.value || '10');
+        const finalN = parseInt(document.getElementById(isKr ? 'asFinalN' : 'atFinalN')?.value || '3');
         const sigFilter = document.getElementById(isKr ? 'asSignalFilter' : 'atSignalFilter')?.value || 'all';
         const scoreMode = document.getElementById(isKr ? 'asScoreMode' : 'atScoreMode')?.value || 'combined';
         const body = isKr
@@ -6505,7 +6594,7 @@
       document.getElementById('analysis52Low').textContent = fmt(d.fundamentals?.fifty_two_week_low);
       document.getElementById('analysisVolume').textContent = d.fundamentals?.volume ? (d.fundamentals.volume / 1e6).toFixed(1) + 'M' : '-';
       const mc = d.fundamentals?.market_cap;
-      document.getElementById('analysisMktCap').textContent = mc ? (mc >= 1e12 ? (mc/1e12).toFixed(1)+'T' : (mc/1e9).toFixed(1)+'B') : '-';
+      document.getElementById('analysisMktCap').textContent = mc ? (mc >= 1e12 ? (mc / 1e12).toFixed(1) + 'T' : (mc / 1e9).toFixed(1) + 'B') : '-';
 
       const c = d.consensus || {};
       const recMap = { buy: { label: '매수', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }, hold: { label: '보유', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' }, sell: { label: '매도', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' }, 'strong buy': { label: '강력매수', color: '#10b981', bg: 'rgba(16,185,129,0.2)' }, 'strong sell': { label: '강력매도', color: '#ef4444', bg: 'rgba(239,68,68,0.2)' } };
@@ -6571,16 +6660,16 @@
         if (_analysisChartInstance) { _analysisChartInstance.destroy(); _analysisChartInstance = null; }
         const ctx = document.getElementById('analysisChartCanvas')?.getContext('2d');
         if (!ctx) return;
-        const up = data.ohlc.close[data.ohlc.close.length-1] >= data.ohlc.close[0];
+        const up = data.ohlc.close[data.ohlc.close.length - 1] >= data.ohlc.close[0];
         _analysisChartInstance = new Chart(ctx, {
           type: 'line',
           data: {
             labels: data.dates,
             datasets: [
               { label: '종가', data: data.ohlc.close, borderColor: up ? '#FF3B30' : '#1E7BFF', borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true, backgroundColor: up ? 'rgba(255,59,48,0.05)' : 'rgba(30,123,255,0.05)' },
-              { label: 'SMA20', data: data.sma?.sma20, borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [4,2] },
-              { label: 'BB상단', data: data.bb?.upper, borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3,3] },
-              { label: 'BB하단', data: data.bb?.lower, borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3,3] },
+              { label: 'SMA20', data: data.sma?.sma20, borderColor: '#f59e0b', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, borderDash: [4, 2] },
+              { label: 'BB상단', data: data.bb?.upper, borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3, 3] },
+              { label: 'BB하단', data: data.bb?.lower, borderColor: 'rgba(16,185,129,0.4)', borderWidth: 1, pointRadius: 0, fill: false, borderDash: [3, 3] },
             ]
           },
           options: {
@@ -6592,79 +6681,79 @@
             }
           }
         });
-      } catch(e) { console.error('차트 로드 실패:', e); }
+      } catch (e) { console.error('차트 로드 실패:', e); }
     }
   </script>
 
-<script>
-// ── 자동매매 계좌 선택기 ──────────────────────────────
-window.selectedAccountId = localStorage.getItem('selectedAccountId') || null;
+  <script>
+    // ── 자동매매 계좌 선택기 ──────────────────────────────
+    window.selectedAccountId = localStorage.getItem('selectedAccountId') || null;
 
-window.setSelectedAccount = function(accountId) {
-  window.selectedAccountId = accountId || null;
-  // localStorage에 저장
-  if (accountId) localStorage.setItem('selectedAccountId', accountId);
-  else localStorage.removeItem('selectedAccountId');
-  // alpaca-keys.js fetch 오버라이드와 동기화
-  window.activeAccountId = accountId ? parseInt(accountId) : null;
-  // 드롭다운 동기화
-  ['accountSelectUs','accountSelectAuto','accountSelectDay','accountSelectStock'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.value !== accountId) el.value = accountId;
-  });
-  // 배지 업데이트
-  const opt = document.querySelector(`#accountSelectUs option[value="${accountId}"]`);
-  const label = opt ? opt.dataset.label : '';
-  ['accountSelectUsBadge','accountSelectAutoBadge','accountSelectDayBadge','accountSelectStockBadge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = label;
-  });
-  // 주식 탭이 활성화된 경우 계좌 정보 새로고침
-  const stockTab = document.getElementById('tab-stock');
-  const stockTabVisible = stockTab && (stockTab.style.display === '' || stockTab.style.display === 'block' || stockTab.style.display === 'flex');
-  if (stockTabVisible && typeof loadAccount === 'function') {
-    setTimeout(() => loadAccount(), 100);
-  }
-};
+    window.setSelectedAccount = function (accountId) {
+      window.selectedAccountId = accountId || null;
+      // localStorage에 저장
+      if (accountId) localStorage.setItem('selectedAccountId', accountId);
+      else localStorage.removeItem('selectedAccountId');
+      // alpaca-keys.js fetch 오버라이드와 동기화
+      window.activeAccountId = accountId ? parseInt(accountId) : null;
+      // 드롭다운 동기화
+      ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.value !== accountId) el.value = accountId;
+      });
+      // 배지 업데이트
+      const opt = document.querySelector(`#accountSelectUs option[value="${accountId}"]`);
+      const label = opt ? opt.dataset.label : '';
+      ['accountSelectUsBadge', 'accountSelectAutoBadge', 'accountSelectDayBadge', 'accountSelectStockBadge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = label;
+      });
+      // 주식 탭이 활성화된 경우 계좌 정보 새로고침
+      const stockTab = document.getElementById('tab-stock');
+      const stockTabVisible = stockTab && (stockTab.style.display === '' || stockTab.style.display === 'block' || stockTab.style.display === 'flex');
+      if (stockTabVisible && typeof loadAccount === 'function') {
+        setTimeout(() => loadAccount(), 100);
+      }
+    };
 
-async function loadAccountSelects() {
-  try {
-    const res = await fetch('/api/user/broker-keys');
-    const data = await res.json();
-    const accounts = data.accounts || data.keys || [];
-    if (!Array.isArray(accounts) || !accounts.length) return;
+    async function loadAccountSelects() {
+      try {
+        const res = await fetch('/api/user/broker-keys');
+        const data = await res.json();
+        const accounts = data.accounts || data.keys || [];
+        if (!Array.isArray(accounts) || !accounts.length) return;
 
-    const selects = ['accountSelectUs','accountSelectAuto','accountSelectDay','accountSelectStock'];
-    selects.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.innerHTML = accounts.map(a => {
-        const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
-        const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
-        const activeLabel = a.is_active ? ' ✓' : '';
-        const label = `${paperLabel}·${typeLabel}${activeLabel}`;
-        return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
-      }).join('');
+        const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock'];
+        selects.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.innerHTML = accounts.map(a => {
+            const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
+            const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
+            const activeLabel = a.is_active ? ' ✓' : '';
+            const label = `${paperLabel}·${typeLabel}${activeLabel}`;
+            return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
+          }).join('');
+        });
+
+        // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
+        const cached = localStorage.getItem('selectedAccountId');
+        const cachedValid = cached && accounts.find(a => String(a.id) === cached);
+        const active = cachedValid ? accounts.find(a => String(a.id) === cached) : (accounts.find(a => a.is_active) || accounts[0]);
+        if (active) window.setSelectedAccount(String(active.id));
+      } catch (e) { console.error('계좌 로드 실패', e); }
+    }
+
+    // alpaca-keys.js의 fetch 오버라이드가 x-account-id를 자동으로 붙여주므로
+    // selectedAccountId만 activeAccountId와 동기화
+    Object.defineProperty(window, 'activeAccountId', {
+      get() { return window.selectedAccountId; },
+      set(v) { window.selectedAccountId = v; },
+      configurable: true
     });
 
-    // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
-    const cached = localStorage.getItem('selectedAccountId');
-    const cachedValid = cached && accounts.find(a => String(a.id) === cached);
-    const active = cachedValid ? accounts.find(a => String(a.id) === cached) : (accounts.find(a => a.is_active) || accounts[0]);
-    if (active) window.setSelectedAccount(String(active.id));
-  } catch(e) { console.error('계좌 로드 실패', e); }
-}
-
-// alpaca-keys.js의 fetch 오버라이드가 x-account-id를 자동으로 붙여주므로
-// selectedAccountId만 activeAccountId와 동기화
-Object.defineProperty(window, 'activeAccountId', {
-  get() { return window.selectedAccountId; },
-  set(v) { window.selectedAccountId = v; },
-  configurable: true
-});
-
-if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
-</script>
+    if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
+  </script>
 </body>
 
 </html>
