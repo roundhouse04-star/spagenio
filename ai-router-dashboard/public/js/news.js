@@ -200,7 +200,7 @@ function renderMarketBar(indicators) {
   }).join('<div style="width:1px;height:36px;background:#e5e7eb;flex-shrink:0;"></div>');
 
   // 첫 로드 시 나스닥 기본 표시
-  const nasdaq = indicators.find(i => i.symbol === '^IXIC');
+  const nasdaq = indicators.find(i => i.symbol === '^IXIC' && !i.error && i.price != null);
   if (nasdaq && !window._chartInitialized) {
     window._chartInitialized = true;
     showMarketChart(nasdaq.symbol, nasdaq.label, nasdaq.price, nasdaq.change_pct);
