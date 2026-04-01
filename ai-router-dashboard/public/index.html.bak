@@ -2605,6 +2605,18 @@
             </div>
           </div>
 
+          <!-- 계좌 선택기 -->
+          <div class="sp-card" style="margin-bottom:16px;padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:0.85rem;font-weight:700;color:#94a3b8;white-space:nowrap;">🔑 거래 계좌</span>
+              <select id="accountSelectUs" onchange="window.setSelectedAccount(this.value)"
+                style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
+                <option value="">계좌 로딩 중...</option>
+              </select>
+              <span id="accountSelectUsBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
+            </div>
+          </div>
+
           <!-- 상단 2열: 자동매매 설정(왼) + 스크리닝설정(오) -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
 
@@ -2932,6 +2944,18 @@
             </div>
           </div>
 
+          <!-- 계좌 선택기 -->
+          <div class="sp-card" style="margin-bottom:16px;padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:0.85rem;font-weight:700;color:#94a3b8;white-space:nowrap;">🔑 거래 계좌</span>
+              <select id="accountSelectAuto" onchange="window.setSelectedAccount(this.value)"
+                style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
+                <option value="">계좌 로딩 중...</option>
+              </select>
+              <span id="accountSelectAutoBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
+            </div>
+          </div>
+
           <!-- 상단 2열: 1단계 + 2단계 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
 
@@ -3174,6 +3198,18 @@
                 <span id="simpleTradeStatusBadge2"
                   style="font-size:0.78rem;padding:4px 12px;border-radius:999px;background:#f1f5f9;color:#6b7280;font-weight:700;">비활성</span>
               </div>
+            </div>
+          </div>
+
+          <!-- 계좌 선택기 -->
+          <div class="sp-card" style="margin-bottom:16px;padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:0.85rem;font-weight:700;color:#94a3b8;white-space:nowrap;">🔑 거래 계좌</span>
+              <select id="accountSelectDay" onchange="window.setSelectedAccount(this.value)"
+                style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:0.85rem;cursor:pointer;">
+                <option value="">계좌 로딩 중...</option>
+              </select>
+              <span id="accountSelectDayBadge" style="font-size:0.75rem;padding:3px 10px;border-radius:999px;background:#334155;color:#94a3b8;font-weight:600;white-space:nowrap;"></span>
             </div>
           </div>
 
@@ -6534,6 +6570,62 @@
     }
   </script>
 
+<script>
+// ── 자동매매 계좌 선택기 ──────────────────────────────
+window.selectedAccountId = null;
+
+window.setSelectedAccount = function(accountId) {
+  window.selectedAccountId = accountId || null;
+  // 3개 드롭다운 동기화
+  ['accountSelectUs','accountSelectAuto','accountSelectDay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== accountId) el.value = accountId;
+  });
+  // 배지 업데이트
+  const opt = document.querySelector(`#accountSelectUs option[value="${accountId}"]`);
+  const label = opt ? opt.dataset.label : '';
+  ['accountSelectUsBadge','accountSelectAutoBadge','accountSelectDayBadge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = label;
+  });
+};
+
+async function loadAccountSelects() {
+  try {
+    const res = await fetch('/api/user/broker-keys');
+    const data = await res.json();
+    const accounts = data.accounts || data.keys || [];
+    if (!Array.isArray(accounts) || !accounts.length) return;
+
+    const selects = ['accountSelectUs','accountSelectAuto','accountSelectDay'];
+    selects.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = accounts.map(a => {
+        const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
+        const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
+        const activeLabel = a.is_active ? ' ✓' : '';
+        const label = `${paperLabel}·${typeLabel}${activeLabel}`;
+        return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} (${label})</option>`;
+      }).join('');
+    });
+
+    // 기본값: is_active=1 계좌
+    const active = accounts.find(a => a.is_active) || accounts[0];
+    if (active) window.setSelectedAccount(String(active.id));
+  } catch(e) { console.error('계좌 로드 실패', e); }
+}
+
+// alpaca-keys.js의 fetch 오버라이드가 x-account-id를 자동으로 붙여주므로
+// selectedAccountId만 activeAccountId와 동기화
+Object.defineProperty(window, 'activeAccountId', {
+  get() { return window.selectedAccountId; },
+  set(v) { window.selectedAccountId = v; },
+  configurable: true
+});
+
+document.addEventListener('DOMContentLoaded', loadAccountSelects);
+</script>
 </body>
 
 </html>

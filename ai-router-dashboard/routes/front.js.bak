@@ -6,28 +6,29 @@ const router = express.Router();
 // 거래량 급등 감지
 // ============================================================
 async function detectVolumeSurge(symbols, alpacaKeys = null) {
-  const headers = alpacaKeys
-    ? { 'APCA-API-KEY-ID': alpacaKeys.api_key, 'APCA-API-SECRET-KEY': alpacaKeys.secret_key }
-    : {};
+  // Alpaca Paper 계좌는 data.alpaca.markets 미지원 → yfinance proxy 사용
+  const STOCK_API = process.env.STOCK_API_URL || 'http://localhost:5001';
   const results = [];
-  const end = new Date().toISOString().split('T')[0];
-  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   await Promise.allSettled(symbols.map(async (symbol) => {
     try {
-      const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=30`, { headers });
+      const resp = await fetch(`${STOCK_API}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=1mo&interval=1d`);
       const json = await resp.json();
-      const bars = json.bars || [];
+      const bars = json.data || json.bars || [];
       if (bars.length < 10) return;
-      const volumes = bars.map(b => b.v);
+      const volumes = bars.map(b => b.volume || b.v || 0).filter(v => v > 0);
+      if (volumes.length < 5) return;
       const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
       const todayVolume = volumes[volumes.length - 1];
-      const ratio = todayVolume / avgVolume;
-      const closes = bars.map(b => b.c);
-      const change_pct = ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100;
+      const ratio = avgVolume > 0 ? todayVolume / avgVolume : 0;
+      const closes = bars.map(b => b.close || b.c || 0).filter(v => v > 0);
+      const price = closes[closes.length - 1] || 0;
+      const change_pct = closes.length >= 2
+        ? ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100
+        : 0;
       if (ratio >= 1.5) {
         results.push({
           symbol, today_volume: todayVolume, avg_volume: Math.round(avgVolume),
-          volume_ratio: parseFloat(ratio.toFixed(2)), price: closes[closes.length - 1],
+          volume_ratio: parseFloat(ratio.toFixed(2)), price,
           change_pct: parseFloat(change_pct.toFixed(2)),
           surge_level: ratio >= 3 ? 'extreme' : ratio >= 2 ? 'high' : 'moderate'
         });
@@ -99,7 +100,7 @@ async function fetchJson(url, options = {}) {
   return { response, data: safeJson(text) };
 }
 
-export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, __dirname }) {
+export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname }) {
 
   // ✅ 페이지 라우트
   router.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -173,9 +174,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   router.get('/api/user/broker-keys', (req, res) => {
-    const rows = db.prepare('SELECT id, account_name, alpaca_paper, is_active, updated_at FROM user_broker_keys WHERE user_id = ? ORDER BY created_at ASC').all(req.user.id);
+    const rows = db.prepare('SELECT id, account_name, alpaca_api_key, alpaca_paper, is_active, account_type, updated_at FROM user_broker_keys WHERE user_id = ? ORDER BY created_at ASC').all(req.user.id);
     if (!rows.length) return res.json({ registered: false, accounts: [] });
-    return res.json({ registered: true, accounts: rows.map(r => ({ id: r.id, account_name: r.account_name, alpaca_paper: r.alpaca_paper === 1, is_active: r.is_active === 1, updated_at: r.updated_at })) });
+    return res.json({ registered: true, accounts: rows.map(r => ({ id: r.id, account_name: r.account_name, alpaca_paper: r.alpaca_paper === 1, is_active: r.is_active === 1, account_type: r.account_type || 0, updated_at: r.updated_at })) });
   });
 
   router.post('/api/user/broker-keys', (req, res) => {
@@ -188,7 +189,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const name = account_name || (paper ? '페이퍼 트레이딩' : '실거래 계좌');
       const count = db.prepare('SELECT COUNT(*) as cnt FROM user_broker_keys WHERE user_id = ?').get(req.user.id).cnt;
       const isActive = count === 0 ? 1 : 0;
-      db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active) VALUES (?,?,?,?,?,?)').run(req.user.id, name, encKey, encSecret, paper, isActive);
+      const { account_type = 0 } = req.body;
+      // account_type 중복 체크 (1=수동, 2=자동은 각 1개만 허용)
+      if (account_type === 1 || account_type === 2) {
+        const existing = db.prepare('SELECT id FROM user_broker_keys WHERE user_id=? AND account_type=?').get(req.user.id, account_type);
+        if (existing) return res.status(400).json({ error: account_type === 1 ? '수동 전용 계좌는 1개만 등록 가능합니다.' : '자동매매 전용 계좌는 1개만 등록 가능합니다.' });
+      }
+      db.prepare('INSERT INTO user_broker_keys (user_id, account_name, alpaca_api_key, alpaca_secret_key, alpaca_paper, is_active, account_type) VALUES (?,?,?,?,?,?,?)').run(req.user.id, name, encKey, encSecret, paper, isActive, account_type);
       return res.json({ status: 'ok', message: `'${name}' 계좌가 등록됐습니다.` });
     } catch (e) {
       saveErrorLog({ event_type: 'BROKER_KEY_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId: req.user?.id } });
@@ -197,7 +204,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   router.delete('/api/user/broker-keys/:id', (req, res) => {
-    const row = db.prepare('SELECT id, is_active FROM user_broker_keys WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    const row = db.prepare('SELECT id, is_active, account_type FROM user_broker_keys WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
     if (!row) return res.status(404).json({ error: '계좌를 찾을 수 없습니다.' });
     db.prepare('DELETE FROM user_broker_keys WHERE id = ?').run(req.params.id);
     if (row.is_active) {
@@ -205,6 +212,42 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       if (next) db.prepare('UPDATE user_broker_keys SET is_active = 1 WHERE id = ?').run(next.id);
     }
     return res.json({ status: 'ok', message: '계좌가 삭제됐습니다.' });
+  });
+
+  // 계좌 타입 변경 API (포지션 없을 때만 가능)
+  router.post('/api/user/broker-keys/:id/type', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { account_type } = req.body;
+    if (![0, 1, 2].includes(account_type)) return res.status(400).json({ error: '잘못된 계좌 타입' });
+    const row = db.prepare('SELECT * FROM user_broker_keys WHERE id=? AND user_id=?').get(req.params.id, req.user.id);
+    if (!row) return res.status(404).json({ error: '계좌를 찾을 수 없음' });
+
+    // 타입 변경 시 기존 타입과 다를 경우에만 포지션 체크
+    if (row.account_type !== account_type && (row.account_type === 1 || row.account_type === 2)) {
+      try {
+        const keys = getUserAlpacaKeys(req.user.id, row.id);
+        if (keys) {
+          const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+          const posRes = await fetch(`${baseUrl}/v2/positions`, {
+            headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key }
+          });
+          const positions = await posRes.json();
+          const posList = Array.isArray(positions) ? positions : [];
+          if (posList.length > 0) {
+            return res.status(400).json({ error: `보유 종목 ${posList.length}개가 있어 계좌 타입을 변경할 수 없습니다. 모든 포지션을 정리 후 변경해주세요.` });
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 동일 타입 중복 체크 (1=수동, 2=자동은 각 1개만)
+    if (account_type === 1 || account_type === 2) {
+      const existing = db.prepare('SELECT id FROM user_broker_keys WHERE user_id=? AND account_type=? AND id!=?').get(req.user.id, account_type, row.id);
+      if (existing) return res.status(400).json({ error: account_type === 1 ? '수동 전용 계좌가 이미 있습니다.' : '자동매매 전용 계좌가 이미 있습니다.' });
+    }
+
+    db.prepare('UPDATE user_broker_keys SET account_type=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(account_type, row.id);
+    res.json({ ok: true });
   });
 
   router.post('/api/user/broker-keys/:id/activate', (req, res) => {
@@ -650,7 +693,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
       const posData = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
       const positions = Array.isArray(posData) ? posData : (posData.positions || []);
-      const autoSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(req.user.id).map(r => r.symbol));
+      const autoSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(req.user.id).map(r => r.symbol));
       res.json({ positions: positions.filter(p => autoSymbols.has(p.symbol)) });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -667,9 +710,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       if (!pos.qty) return res.status(404).json({ error: '포지션 없음' });
       const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
-      db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
-      db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(req.user.id, symbol);
-      db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_MANUAL', pos.qty, pos.current_price, '수동 취소', order.id || '', plPct * 100, 'closed');
+      // [레거시 제거] auto_trade_log SELL_MANUAL 제거
+      saveTradeLog({ user_id:req.user.id, trade_type:4, symbol, action:'SELL_MANUAL', qty:pos.qty, price:pos.current_price, reason:'수동 취소', order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
       db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(req.user.id, symbol);
       res.json({ ok: true, order });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -682,8 +724,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
       const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' };
-      db.prepare('UPDATE auto_trade_settings SET enabled=0 WHERE user_id=?').run(req.user.id);
-      const autoSymbols = db.prepare("SELECT DISTINCT symbol FROM auto_trade_log WHERE user_id=? AND action='BUY' AND status='active'").all(req.user.id);
+      db.prepare('UPDATE trade_setting_type4 SET enabled=0 WHERE user_id=?').run(req.user.id);
+      const autoSymbols = db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(req.user.id);
       const results = [];
       for (const { symbol } of autoSymbols) {
         try {
@@ -691,9 +733,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           if (!pos.qty) continue;
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
           const plPct = parseFloat(pos.unrealized_plpc) || 0;
-          db.prepare('INSERT INTO auto_trade_log (user_id,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
-          db.prepare("UPDATE auto_trade_log SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'").run(req.user.id, symbol);
-          db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,4,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL_STOP_ALL', pos.qty, pos.current_price, '전체 종료', order.id || '', plPct * 100, 'closed');
+          // [레거시 제거] auto_trade_log SELL_STOP_ALL 제거
+          saveTradeLog({ user_id:req.user.id, trade_type:4, symbol, action:'SELL_STOP_ALL', qty:pos.qty, price:pos.current_price, reason:'전체 종료', order_id:order.id||'', profit_pct:plPct*100, status:'closed' });
           db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active'").run(req.user.id, symbol);
           results.push(symbol);
         } catch (e) { }
@@ -704,22 +745,22 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=?').get(req.user.id);
     res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined', factor_strategy: 'value_quality', factor_market: 'nasdaq' });
   });
 
   router.post('/api/auto-trade/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market } = req.body;
+    const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market, kr_candidate_symbols } = req.body;
     const fs = factor_strategy || 'value_quality';
     const fm = factor_market || 'nasdaq';
-    const existing = db.prepare('SELECT id FROM auto_trade_settings WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type4 WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_trade_settings SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-        .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, req.user.id);
+      db.prepare('UPDATE trade_setting_type4 SET enabled=?,symbols=?,balance_ratio=?,take_profit=?,stop_loss=?,signal_mode=?,factor_strategy=?,factor_market=?,kr_candidate_symbols=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+        .run(enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_trade_settings (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market) VALUES (?,?,?,?,?,?,?,?,?)')
-        .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm);
+      db.prepare('INSERT INTO trade_setting_type4 (user_id,enabled,symbols,balance_ratio,take_profit,stop_loss,signal_mode,factor_strategy,factor_market,kr_candidate_symbols) VALUES (?,?,?,?,?,?,?,?,?,?)')
+        .run(req.user.id, enabled ? 1 : 0, symbols, balance_ratio, take_profit, stop_loss, signal_mode, fs, fm, kr_candidate_symbols || null);
     }
     res.json({ ok: true });
   });
@@ -754,24 +795,19 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ✅ 단순 자동매매 API
-  router.get('/api/simple-auto-trade/state', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const userId = req.user.user_id || req.user.id;
-    const state = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
-
   // ── 수동 거래 trade_log 저장 API ──
   router.post('/api/manual-trade/log', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const { symbol, action, qty, price, order_id, reason } = req.body;
       if (!symbol || !action || !qty || !price) return res.status(400).json({ error: '필수값 누락' });
       if (action === 'BUY') {
-        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,1,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'BUY', qty, price, reason||'수동 매수', order_id||'', 0, 'active');
+        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'BUY', qty, price, reason:reason||'수동 매수', order_id:order_id||'', profit_pct:0, status:'active' });
       } else if (action === 'SELL') {
         // 평균단가 조회해서 수익률 계산
         const buyLog = db.prepare("SELECT price, qty FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(req.user.id, symbol);
         const profitPct = buyLog ? ((price - buyLog.price) / buyLog.price * 100) : 0;
-        db.prepare('INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status) VALUES (?,1,?,?,?,?,?,?,?,?)').run(req.user.id, symbol, 'SELL', qty, price, reason||'수동 매도', order_id||'', profitPct, 'closed');
+        saveTradeLog({ user_id:req.user.id, trade_type:1, symbol, action:'SELL', qty, price, reason:reason||'수동 매도', order_id:order_id||'', profit_pct:profitPct, status:'closed' });
         db.prepare("UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=1 AND action='BUY' AND status='active'").run(req.user.id, symbol);
       }
       res.json({ ok: true });
@@ -780,13 +816,19 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   // ── 수동 보유종목 조회 (trade_type=1 active) ──
   router.get('/api/manual-trade/positions', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const rows = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC").all(req.user.id);
       res.json({ positions: rows });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
-    const logs = db.prepare('SELECT * FROM simple_auto_trade_log WHERE user_id=? ORDER BY created_at DESC LIMIT 20').all(userId);
+  // ✅ 단순 자동매매 API
+  router.get('/api/simple-auto-trade/state', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const userId = req.user.user_id || req.user.id;
+    const state = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=?').get(userId);
+    const logs = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=2 ORDER BY created_at DESC LIMIT 20").all(userId);
     res.json({ ok: true, state: state || null, logs });
   });
 
@@ -794,12 +836,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const { enabled } = req.body;
-    const existing = db.prepare('SELECT * FROM simple_auto_trade WHERE user_id=?').get(userId);
+    const existing = db.prepare('SELECT * FROM trade_setting_type2 WHERE user_id=?').get(userId);
     if (existing) {
-      db.prepare('UPDATE simple_auto_trade SET enabled=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type2 SET enabled=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(enabled ? 1 : 0, enabled ? 'idle' : 'idle', userId);
     } else {
-      db.prepare('INSERT INTO simple_auto_trade (user_id,enabled,status) VALUES (?,?,?)').run(userId, enabled ? 1 : 0, 'idle');
+      db.prepare('INSERT INTO trade_setting_type2 (user_id,enabled,status) VALUES (?,?,?)').run(userId, enabled ? 1 : 0, 'idle');
     }
     res.json({ ok: true, enabled });
   });
@@ -808,12 +850,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const { balance_ratio = 0.3, take_profit = 0.05, stop_loss = 0.05 } = req.body;
-    const existing = db.prepare('SELECT id FROM simple_auto_trade WHERE user_id=?').get(userId);
+    const existing = db.prepare('SELECT id FROM trade_setting_type2 WHERE user_id=?').get(userId);
     if (existing) {
-      db.prepare('UPDATE simple_auto_trade SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type2 SET balance_ratio=?,take_profit=?,stop_loss=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(balance_ratio, take_profit, stop_loss, userId);
     } else {
-      db.prepare('INSERT INTO simple_auto_trade (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
+      db.prepare('INSERT INTO trade_setting_type2 (user_id,balance_ratio,take_profit,stop_loss) VALUES (?,?,?,?)').run(userId, balance_ratio, take_profit, stop_loss);
     }
     res.json({ ok: true });
   });
@@ -902,7 +944,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const userId = req.user.user_id || req.user.id;
       const keys = getUserAlpacaKeys(userId, null);
-      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
+      const settings = db.prepare('SELECT candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
       const symbols = settings?.candidate_symbols
         ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
         : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY','NFLX','PYPL','INTC','AMD','CRM'];
@@ -967,7 +1009,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           if (news) { score += 2; signals.push(`📰 뉴스 ${news.news_count}건`); }
 
           // 기술적 신호 점수
-          const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=60`, { headers: alpacaHeaders });
+          const STOCK_API2 = process.env.STOCK_API_URL || 'http://localhost:5001';
+      const resp = await fetch(`${STOCK_API2}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=3mo&interval=1d`);
           const json = await resp.json();
           const bars = json.bars || [];
           if (bars.length >= 35) {
@@ -999,13 +1042,21 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
+      const market = req.query.market || 'us'; // us 또는 kr
       const keys = getUserAlpacaKeys(userId, null);
-      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
-      const symbols = settings?.candidate_symbols
-        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
-        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY'];
+      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
+      let symbols;
+      if (market === 'kr') {
+        symbols = settings?.kr_candidate_symbols
+          ? settings.kr_candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['005930.KS','000660.KS','035420.KS','035720.KS','051910.KS'];
+      } else {
+        symbols = settings?.candidate_symbols
+          ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY'];
+      }
       const result = await detectVolumeSurge(symbols, keys);
-      res.json({ ok: true, surges: result });
+      res.json({ ok: true, surges: result, market });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -1014,12 +1065,20 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
-      const settings = db.prepare('SELECT candidate_symbols FROM auto_trade_settings WHERE user_id=?').get(userId);
-      const symbols = settings?.candidate_symbols
-        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
-        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD'];
+      const market = req.query.market || 'us';
+      const settings = db.prepare('SELECT candidate_symbols, kr_candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
+      let symbols;
+      if (market === 'kr') {
+        symbols = settings?.kr_candidate_symbols
+          ? settings.kr_candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['005930.KS','000660.KS','035420.KS','035720.KS','051910.KS'];
+      } else {
+        symbols = settings?.candidate_symbols
+          ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
+          : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD'];
+      }
       const result = await detectNewsCatalyst(db, symbols);
-      res.json({ ok: true, catalysts: result });
+      res.json({ ok: true, catalysts: result, market });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -1061,7 +1120,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
             const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
             const end = new Date().toISOString().split('T')[0];
             const start = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const bars = (await (await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=5`, { headers })).json()).bars || [];
+            const _sapi = process.env.STOCK_API_URL || 'http://localhost:5001';
+            const _sresp = await fetch(`${_sapi}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=5d&interval=1d`);
+            const _sdata = await _sresp.json();
+            const bars = _sdata.data || _sdata.bars || [];
             if (bars.length) price = bars[bars.length - 1].c;
           }
         } catch(e) {}
@@ -1158,7 +1220,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // 설정 조회
   router.get('/api/auto-strategy/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
     res.json({ ok: true, settings: row || { enabled: 0, market: 'nasdaq', roe_min: 15, debt_max: 100, revenue_min: 10, momentum_top: 30, sma200_filter: 1, use_macd: 1, use_rsi: 1, rsi_threshold: 40, use_bb: 1, balance_ratio: 0.2, max_positions: 5, take_profit1: 0.1, take_profit2: 0.2, stop_loss: 0.05, factor_exit: 1, sma200_exit: 1 } });
   });
 
@@ -1166,12 +1228,12 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/auto-strategy/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter, use_macd, use_rsi, rsi_threshold, use_bb, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit, sma200_exit } = req.body;
-    const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_strategy_settings SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
+      db.prepare('UPDATE trade_setting_type3 SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_strategy_settings (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      db.prepare('INSERT INTO trade_setting_type3 (user_id,market,roe_min,debt_max,revenue_min,momentum_top,sma200_filter,use_macd,use_rsi,rsi_threshold,use_bb,balance_ratio,max_positions,take_profit1,take_profit2,stop_loss,factor_exit,sma200_exit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
         .run(req.user.id, market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter?1:0, use_macd?1:0, use_rsi?1:0, rsi_threshold, use_bb?1:0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit?1:0, sma200_exit?1:0);
     }
     res.json({ ok: true });
@@ -1181,11 +1243,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/auto-strategy/toggle', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled } = req.body;
-    const existing = db.prepare('SELECT id FROM auto_strategy_settings WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
     if (existing) {
-      db.prepare('UPDATE auto_strategy_settings SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled?1:0, req.user.id);
+      db.prepare('UPDATE trade_setting_type3 SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled?1:0, req.user.id);
     } else {
-      db.prepare('INSERT INTO auto_strategy_settings (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled?1:0);
+      db.prepare('INSERT INTO trade_setting_type3 (user_id,enabled) VALUES (?,?)').run(req.user.id, enabled?1:0);
     }
     res.json({ ok: true, enabled: !!enabled });
   });
@@ -1193,7 +1255,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // 종목 풀 조회
   router.get('/api/auto-strategy/pool', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const rows = db.prepare('SELECT * FROM auto_strategy_pool WHERE user_id=? ORDER BY factor_score DESC').all(req.user.id);
+    const rows = db.prepare('SELECT * FROM trade_pool_type3 WHERE user_id=? ORDER BY factor_score DESC').all(req.user.id);
     res.json({ ok: true, pool: rows });
   });
 
@@ -1291,61 +1353,64 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/performance/snapshot', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      const keys = getUserAlpacaKeys(req.user.id);
-      if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
-      const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
-      const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
-
-      const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
-      const equity = parseFloat(account.equity) || 0;
-      const cash = parseFloat(account.cash) || 0;
-      const portfolioValue = parseFloat(account.portfolio_value) || 0;
-
-      // 전날 스냅샷으로 일일 손익 계산
       const today = new Date().toISOString().split('T')[0];
-      const yesterday = db.prepare(`SELECT total_equity, total_pnl, peak_equity, win_count, loss_count FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id);
+      const results = {};
 
-      const prevEquity = yesterday?.total_equity || equity;
-      const dailyPnl = equity - prevEquity;
-      const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
+      // 계좌별로 스냅샷 저장하는 헬퍼
+      async function saveSnapshot(accountType, keysOverride = null) {
+        const keys = keysOverride || getUserAlpacaKeys(req.user.id, null, accountType || null);
+        if (!keys) return null;
+        const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
+        const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
 
-      // 매매 이력에서 승/패 집계
-      const trades = db.prepare(`SELECT action, profit_pct FROM auto_trade_log WHERE user_id=? AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS')`).all(req.user.id);
-      const winCount = trades.filter(t => t.action.includes('PROFIT')).length;
-      const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS')).length;
+        const account = await (await fetch(`${baseUrl}/v2/account`, { headers })).json();
+        const equity = parseFloat(account.equity) || 0;
+        const cash = parseFloat(account.cash) || 0;
+        const portfolioValue = parseFloat(account.portfolio_value) || 0;
 
-      // 초기 자본 (첫 스냅샷 기준)
-      const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date ASC LIMIT 1`).get(req.user.id);
-      const initialEquity = first?.total_equity || equity;
-      const totalPnl = equity - initialEquity;
-      const totalPnlPct = initialEquity > 0 ? (totalPnl / initialEquity * 100) : 0;
+        const yesterday = db.prepare(`SELECT total_equity, total_pnl, peak_equity, win_count, loss_count FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountType);
+        const prevEquity = yesterday?.total_equity || equity;
+        const dailyPnl = equity - prevEquity;
+        const dailyPnlPct = prevEquity > 0 ? (dailyPnl / prevEquity * 100) : 0;
 
-      // MDD 계산
-      const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
-      const allPeaks = db.prepare(`SELECT MAX(peak_equity) as peak FROM portfolio_performance WHERE user_id=?`).get(req.user.id);
-      const maxPeak = Math.max(allPeaks?.peak || equity, equity);
-      const maxDrawdown = maxPeak > 0 ? ((maxPeak - equity) / maxPeak * 100) : 0;
+        // 계좌 타입별 trade_log 승/패 집계
+        const tradeTypes = accountType === 1 ? [1] : accountType === 2 ? [2, 3, 4] : [1, 2, 3, 4];
+        const placeholders = tradeTypes.map(() => '?').join(',');
+        const trades = db.prepare(`SELECT action, profit_pct FROM trade_log WHERE user_id=? AND trade_type IN (${placeholders}) AND action IN ('SELL_PROFIT','SELL_PROFIT1','SELL_PROFIT2','SELL_STOP','SELL_LOSS','SELL','SELL_MANUAL','SELL_STOP_ALL','SELL_FACTOR')`).all(req.user.id, ...tradeTypes);
+        const winCount = trades.filter(t => t.action.includes('PROFIT') || ((t.action === 'SELL' || t.action === 'SELL_MANUAL') && (t.profit_pct || 0) > 0)).length;
+        const lossCount = trades.filter(t => t.action.includes('STOP') || t.action.includes('LOSS') || ((t.action === 'SELL' || t.action === 'SELL_MANUAL') && (t.profit_pct || 0) <= 0)).length;
 
-      db.prepare(`INSERT OR REPLACE INTO portfolio_performance
-        (user_id, snapshot_date, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(
-          req.user.id,
-          today,
-          equity || 0,
-          cash || 0,
-          portfolioValue || 0,
-          dailyPnl || 0,
-          dailyPnlPct || 0,
-          totalPnl || 0,
-          totalPnlPct || 0,
-          winCount || 0,
-          lossCount || 0,
-          maxDrawdown || 0,
-          peakEquity || equity || 0
-        );
+        const first = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date ASC LIMIT 1`).get(req.user.id, accountType);
+        const initialEquity = first?.total_equity || equity;
+        const totalPnl = equity - initialEquity;
+        const totalPnlPct = initialEquity > 0 ? (totalPnl / initialEquity * 100) : 0;
 
-      res.json({ ok: true, equity, cash, portfolioValue, dailyPnl, dailyPnlPct, totalPnl, totalPnlPct, winCount, lossCount, maxDrawdown });
+        const allPeaks = db.prepare(`SELECT MAX(peak_equity) as peak FROM portfolio_performance WHERE user_id=? AND account_type=?`).get(req.user.id, accountType);
+        const maxPeak = Math.max(allPeaks?.peak || equity, equity);
+        const maxDrawdown = maxPeak > 0 ? ((maxPeak - equity) / maxPeak * 100) : 0;
+        const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
+
+        db.prepare(`INSERT OR REPLACE INTO portfolio_performance
+          (user_id, snapshot_date, account_type, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .run(req.user.id, today, accountType, equity||0, cash||0, portfolioValue||0, dailyPnl||0, dailyPnlPct||0, totalPnl||0, totalPnlPct||0, winCount||0, lossCount||0, maxDrawdown||0, peakEquity||equity||0);
+
+        return { equity, cash, portfolioValue, dailyPnl, dailyPnlPct, totalPnl, totalPnlPct, winCount, lossCount, maxDrawdown };
+      }
+
+      // 수동 계좌 (account_type=1)
+      const manualKeys = getUserAlpacaKeys(req.user.id, null, 1);
+      if (manualKeys) results.manual = await saveSnapshot(1, manualKeys);
+
+      // 자동 계좌 (account_type=2)
+      const autoKeys = getUserAlpacaKeys(req.user.id, null, 2);
+      if (autoKeys) results.auto = await saveSnapshot(2, autoKeys);
+
+      // 전체 (account_type=0) — is_active 계좌 기준
+      const allKeys = getUserAlpacaKeys(req.user.id, null);
+      if (allKeys) results.all = await saveSnapshot(0, allKeys);
+
+      res.json({ ok: true, ...results });
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -1353,17 +1418,19 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/performance/history', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const days = parseInt(req.query.days || 30);
-    const rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, days);
+    const accountType = parseInt(req.query.account_type ?? 0);
+    const rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, accountType, days);
     res.json({ ok: true, history: rows.reverse() });
   });
 
   // 성과 요약 (홈 화면용)
   router.get('/api/performance/summary', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const latest = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id);
-    const weekAgo = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id);
-    const monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id);
-    const maxMdd = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=?`).get(req.user.id);
+    const accountType = parseInt(req.query.account_type ?? 0);
+    const latest = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountType);
+    const weekAgo = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id, accountType);
+    const monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND account_type=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id, accountType);
+    const maxMdd = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=? AND account_type=?`).get(req.user.id, accountType);
     const winRate = latest ? (latest.win_count + latest.loss_count > 0 ? (latest.win_count / (latest.win_count + latest.loss_count) * 100) : 0) : 0;
     res.json({ ok: true, latest, weekHistory: weekAgo.reverse(), monthPnl: monthPnl?.pnl || 0, maxMdd: maxMdd?.mdd || 0, winRate });
   });
@@ -1450,6 +1517,175 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const rows = db.prepare('SELECT * FROM telegram_alert_log WHERE user_id=? ORDER BY sent_at DESC LIMIT 50').all(req.user.id);
     res.json({ ok: true, logs: rows });
   });
+
+  // 종목 검색 (stock_server.py 프록시)
+  router.get('/api/stock/search', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json({ results: [] });
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const r = await fetch(`http://localhost:5001/api/stock/search?q=${encodeURIComponent(q)}`);
+      const d = await r.json();
+      return res.json(d);
+    } catch(e) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 로또 이력 일괄 수집 (1회 ~ 지정 회차)
+  router.post('/api/lotto/history/bulk', async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { from = 1, to = 799 } = req.body;
+    const fetch = (await import('node-fetch')).default;
+
+    let saved = 0, skipped = 0, errors = 0;
+    // 5개씩 병렬 처리
+    const CHUNK = 5;
+    for (let start = from; start <= to; start += CHUNK) {
+      const chunk = [];
+      for (let i = start; i < start + CHUNK && i <= to; i++) chunk.push(i);
+      await Promise.all(chunk.map(async (drw_no) => {
+        try {
+          const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
+          if (existing) { skipped++; return; }
+          const r = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000)
+          });
+          if (!r.ok) { errors++; return; }
+          const d = await r.json();
+          if (!d.drwtNo1) { errors++; return; }
+          const winning = [d.drwtNo1,d.drwtNo2,d.drwtNo3,d.drwtNo4,d.drwtNo5,d.drwtNo6].sort((a,b)=>a-b);
+          const bonus = d.bnusNo;
+          db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
+            .run(drw_no, JSON.stringify(winning), bonus, d.drwNoDate || '');
+          saved++;
+        } catch(e) { errors++; }
+      }));
+    }
+    res.json({ ok: true, saved, skipped, errors, total: to - from + 1 });
+  });
+
+  // ── 로또 bias_map 조회 ──
+  router.get('/api/lotto/bias-map', async (req, res) => {
+    try {
+      const row = db.prepare('SELECT data FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if (row) return res.json({ ok: true, bias_map: JSON.parse(row.data) });
+      // 없으면 즉시 계산
+      const biasMap = computeLottoBiasMap(db);
+      res.json({ ok: true, bias_map: biasMap });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── bias_map 수동 재계산 트리거 ──
+  router.post('/api/lotto/bias-map/recalc', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    try {
+      const biasMap = computeLottoBiasMap(db);
+      res.json({ ok: true, bias_map: biasMap });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── bias_map 계산 함수 ──
+  function computeLottoBiasMap(db) {
+    const rows = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all();
+    const data = rows.map(r => JSON.parse(r.numbers));
+    if (data.length < 50) return null;
+
+    function getZoneIdx(n) {
+      if(n<=9) return 0; if(n<=19) return 1; if(n<=29) return 2; if(n<=39) return 3; return 4;
+    }
+
+    const stats1 = {}; // {zoneIdx: {zoneIdx: [counts]}}
+    const stats2 = {}; // {'z1+z2': {zoneIdx: [counts]}}
+
+    for(let i=1; i<data.length; i++) {
+      const prev = new Set(data[i-1]);
+      const curr = data[i];
+      const carry = data[i-1].filter(n => prev.has(n) && curr.includes(n));
+
+      if(carry.length === 1) {
+        const zi = getZoneIdx(carry[0]);
+        if(!stats1[zi]) stats1[zi] = Array.from({length:5}, ()=>[]);
+        const cnt = [0,0,0,0,0];
+        curr.filter(n=>!carry.includes(n)).forEach(n=>cnt[getZoneIdx(n)]++);
+        cnt.forEach((c,z) => stats1[zi][z].push(c));
+
+      } else if(carry.length === 2) {
+        const [z1,z2] = [getZoneIdx(carry[0]),getZoneIdx(carry[1])].sort((a,b)=>a-b);
+        const key = `${z1}+${z2}`;
+        if(!stats2[key]) stats2[key] = Array.from({length:5}, ()=>[]);
+        const cnt = [0,0,0,0,0];
+        curr.filter(n=>!carry.includes(n)).forEach(n=>cnt[getZoneIdx(n)]++);
+        cnt.forEach((c,z) => stats2[key][z].push(c));
+      }
+    }
+
+    function toWeights(zoneCounts) {
+      const avgs = zoneCounts.map(arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0);
+      const total = avgs.reduce((a,b)=>a+b,0);
+      return avgs.map(v => total>0 ? Math.round(v/total*100)/100 : 0.2);
+    }
+
+    const biasMap = {};
+    for(const zi in stats1) {
+      if(stats1[zi][0].length >= 10)
+        biasMap[String(zi)] = toWeights(stats1[zi]);
+    }
+    for(const key in stats2) {
+      if(stats2[key][0].length >= 5)
+        biasMap[key] = toWeights(stats2[key]);
+    }
+
+    // DB 저장
+    try {
+      const existing = db.prepare('SELECT key FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if(existing) db.prepare('UPDATE lotto_algorithm_config SET data=?,updated_at=CURRENT_TIMESTAMP WHERE key=?').run(JSON.stringify(biasMap), 'bias_map');
+      else db.prepare('INSERT INTO lotto_algorithm_config (key,data) VALUES (?,?)').run('bias_map', JSON.stringify(biasMap));
+    } catch(e) {
+      // 테이블 없으면 생성 후 재시도
+      db.prepare('CREATE TABLE IF NOT EXISTS lotto_algorithm_config (key TEXT PRIMARY KEY, data TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)').run();
+      const existing = db.prepare('SELECT key FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+      if(existing) db.prepare('UPDATE lotto_algorithm_config SET data=?,updated_at=CURRENT_TIMESTAMP WHERE key=?').run(JSON.stringify(biasMap), 'bias_map');
+      else db.prepare('INSERT INTO lotto_algorithm_config (key,data) VALUES (?,?)').run('bias_map', JSON.stringify(biasMap));
+    }
+    return biasMap;
+  }
+
+  // ── 매주 토요일 21시 이후 bias_map 자동 재계산 스케줄러 ──
+  function scheduleLottoBiasRecalc() {
+    const now = new Date();
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const kst = new Date(now.getTime() + KST_OFFSET);
+    const day = kst.getUTCDay(); // 6 = 토요일
+    const hour = kst.getUTCHours();
+
+    // 토요일 22시에 재계산 (추첨 21시 이후)
+    const next = new Date(kst);
+    next.setUTCHours(22, 0, 0, 0);
+    if(day > 6 || (day === 6 && hour >= 22)) next.setUTCDate(next.getUTCDate() + (13 - day));
+    else next.setUTCDate(next.getUTCDate() + (6 - day));
+
+    const delay = next.getTime() - kst.getTime();
+    setTimeout(() => {
+      try {
+        console.log('[로또] bias_map 자동 재계산 시작...');
+        computeLottoBiasMap(db);
+        console.log('[로또] bias_map 재계산 완료');
+      } catch(e) { console.error('[로또] bias_map 재계산 오류:', e.message); }
+      scheduleLottoBiasRecalc(); // 다음 주 예약
+    }, delay);
+
+    console.log(`[로또] bias_map 재계산 예약: ${new Date(now.getTime() + delay).toISOString()}`);
+  }
+
+  // 서버 시작 시 bias_map 초기화 + 스케줄러 등록
+  try {
+    db.prepare('CREATE TABLE IF NOT EXISTS lotto_algorithm_config (key TEXT PRIMARY KEY, data TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)').run();
+    const existing = db.prepare('SELECT key FROM lotto_algorithm_config WHERE key=?').get('bias_map');
+    if(!existing) computeLottoBiasMap(db);
+  } catch(e) { console.error('[로또] bias_map 초기화 오류:', e.message); }
+  scheduleLottoBiasRecalc();
 
   return router;
 }
