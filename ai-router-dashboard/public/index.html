@@ -6594,7 +6594,7 @@ async function loadAccountSelects() {
   try {
     const res = await fetch('/api/user/broker-keys');
     const data = await res.json();
-    const accounts = data.keys || data || [];
+    const accounts = data.accounts || data.keys || [];
     if (!Array.isArray(accounts) || !accounts.length) return;
 
     const selects = ['accountSelectUs','accountSelectAuto','accountSelectDay'];
