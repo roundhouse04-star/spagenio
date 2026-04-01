@@ -176,7 +176,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/user/broker-keys', (req, res) => {
     const rows = db.prepare('SELECT id, account_name, alpaca_api_key, alpaca_paper, is_active, account_type, updated_at FROM user_broker_keys WHERE user_id = ? ORDER BY created_at ASC').all(req.user.id);
     if (!rows.length) return res.json({ registered: false, accounts: [] });
-    return res.json({ registered: true, accounts: rows.map(r => ({ id: r.id, account_name: r.account_name, alpaca_paper: r.alpaca_paper === 1, is_active: r.is_active === 1, account_type: r.account_type || 0, updated_at: r.updated_at })) });
+    return res.json({ registered: true, accounts: rows.map(r => {
+      let key_preview = '****';
+      try { key_preview = decryptEmail(r.alpaca_api_key).slice(0, 10) + '...'; } catch(e) {}
+      return { id: r.id, account_name: r.account_name, key_preview, alpaca_paper: r.alpaca_paper === 1, is_active: r.is_active === 1, account_type: r.account_type || 0, updated_at: r.updated_at };
+    }) });
   });
 
   router.post('/api/user/broker-keys', (req, res) => {

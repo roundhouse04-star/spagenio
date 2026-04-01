@@ -196,6 +196,21 @@ async function buyStock() {
     if (!confirmBuy) { resultEl.textContent = ''; return; }
 
     resultEl.textContent = '⏳ 주문 중...';
+
+    // ✅ 매수 전 동일 계좌+종목 중복 체크
+    const brokerId = window.selectedAccountId || window.activeAccountId || null;
+    const dupCheck = await fetch('/api/manual-trade/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, action: 'CHECK', qty, price: currentPrice, broker_key_id: brokerId })
+    });
+    const dupData = await dupCheck.json();
+    if (dupData.duplicate) {
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = `❌ ${dupData.error}`;
+      return;
+    }
+
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -209,7 +224,7 @@ async function buyStock() {
       await fetch('/api/manual-trade/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol, action: 'BUY', qty, price: currentPrice, order_id: data.id, reason: '수동 매수' })
+        body: JSON.stringify({ symbol, action: 'BUY', qty, price: currentPrice, order_id: data.id, reason: '수동 매수', broker_key_id: window.selectedAccountId || window.activeAccountId || null })
       }).catch(() => {});
     } else {
       resultEl.style.color = 'var(--red)';
@@ -311,7 +326,7 @@ async function sellStock() {
       await fetch('/api/manual-trade/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol, action: 'SELL', qty, price: parseFloat(data.filled_avg_price || currentPrice || 0), order_id: data.id, reason: '수동 매도' })
+        body: JSON.stringify({ symbol, action: 'SELL', qty, price: parseFloat(data.filled_avg_price || currentPrice || 0), order_id: data.id, reason: '수동 매도', broker_key_id: window.selectedAccountId || window.activeAccountId || null })
       }).catch(() => {});
     } else {
       resultEl.textContent = `❌ Error: ${data.message || data.error || JSON.stringify(data)}`;
@@ -393,7 +408,6 @@ async function loadPositions() {
 
 // 실시간 가격 팝업
 window.showRealtimePrice = async function(symbol) {
-  symbol = symbol.split(':')[0];  // :1 suffix 제거
   const modal = document.getElementById('realtimeModal');
   const title = document.getElementById('realtimeTitle');
   const body = document.getElementById('realtimeBody');
@@ -404,11 +418,11 @@ window.showRealtimePrice = async function(symbol) {
 
   try {
     // 현재 포지션 정보
-    const posRes = await fetch('/api/alpaca-user/v2/positions/' + symbol + '?accountId=1');
+    const posRes = await fetch('/api/alpaca-user/v2/positions/' + symbol);
     const posData = await posRes.json();
 
     // yfinance로 현재가 조회
-    const priceRes = await fetch('/proxy/stock/api/stock/price?symbol=' + symbol);
+    const priceRes = await fetch('/proxy/stock/price?symbol=' + symbol);
     const priceData = await priceRes.json();
     const latestPrice = parseFloat(priceData?.price || priceData?.regularMarketPrice || 0) || parseFloat(posData?.current_price || 0);
     const latestBar = {};

@@ -404,7 +404,7 @@ window.showRealtimePrice = async function(symbol) {
 
   try {
     // 현재 포지션 정보
-    const posRes = await fetch('/api/alpaca-user/v2/positions/' + symbol);
+    const posRes = await fetch('/api/alpaca-user/v2/positions/' + symbol + '?accountId=1');
     const posData = await posRes.json();
 
     // yfinance로 현재가 조회

@@ -1428,7 +1428,9 @@ async function runAutoTradeForUser(userId) {
     const buyingPower = parseFloat((await (await fetch(`${baseUrl}/v2/account`, { headers })).json()).buying_power) || 0;
     const posData = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
     const positions = Array.isArray(posData) ? posData : (posData.positions || []);
-    for (const pos of positions) {
+    // ✅ trade_type=4로 매수한 종목만 익절/손절 대상 (수동/다른 자동매매 포지션 보호)
+    const type4Symbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=4 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol));
+    for (const pos of positions.filter(p => type4Symbols.has(p.symbol))) {
       const plPct = parseFloat(pos.unrealized_plpc) || 0;
       // 매수 기준으로 중복 매도 방지
       const buyLog = db.prepare("SELECT created_at FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=4 AND action='BUY' AND status='active' ORDER BY created_at DESC LIMIT 1").get(userId, pos.symbol);
@@ -1900,7 +1902,9 @@ async function runAutoStrategy(userId) {
           if (s.factor_exit) {
             const poolSymbols = new Set(pool.map(i => i.symbol));
             const positions = await (await fetch(`${baseUrl}/v2/positions`, { headers })).json();
-            for (const pos of (Array.isArray(positions) ? positions : [])) {
+            // ✅ trade_type=3로 매수한 종목만 팩터이탈 매도 대상 (수동/다른 자동매매 포지션 보호)
+            const type3ActiveSymbols = new Set(db.prepare("SELECT DISTINCT symbol FROM trade_log WHERE user_id=? AND trade_type=3 AND action='BUY' AND status='active'").all(userId).map(r => r.symbol));
+            for (const pos of (Array.isArray(positions) ? positions : []).filter(p => type3ActiveSymbols.has(p.symbol))) {
               if (!poolSymbols.has(pos.symbol)) {
                 await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
                 saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_FACTOR', qty:pos.qty, price:pos.current_price, reason:'퀀트전략:팩터 이탈 매도', status:'closed' });
