@@ -1210,12 +1210,12 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
 
           // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
           if (estTime >= forceCloseTime) {
-            db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,order_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-              .run('closed_today', userId);
+            db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,order_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?')
+              .run('closed_today', userId, state.broker_key_id || null);
           } else {
             // 매도 후 재분석 → 재매수 (장 마감 충분히 전일 때만)
-            db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-              .run('analyzing', userId);
+            db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?')
+              .run('analyzing', userId, state.broker_key_id || null);
             setTimeout(() => runSimpleAutoTrade(userId, state.broker_key_id || null), 3000);
           }
 
@@ -1240,8 +1240,8 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
         }
       } else {
         // 포지션 없으면 idle로 리셋
-        db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-          .run('idle', userId);
+        db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=NULL,qty=NULL,buy_price=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?')
+          .run('idle', userId, state.broker_key_id || null);
       }
     }
 
@@ -1296,7 +1296,7 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
 
       scored.sort((a, b) => b.score - a.score);
       const top = scored[0];
-      if (!top) { db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId); return; }
+      if (!top) { db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?').run('idle', userId, state.broker_key_id || null); return; }
 
       // 매수 금액 계산 (계좌 잔고 비율)
       const buyingPowerSimple = parseFloat(account.buying_power) || 0;
@@ -1306,7 +1306,7 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
       // ✅ 1주 미만 체크
       if (qty < 1) {
         console.log(`[단순매매] ${top.symbol} 매수 스킵: 1주 미만 (buyAmount=$${buyAmount.toFixed(0)}, price=$${top.price})`);
-        db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
+        db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?').run('idle', userId, state.broker_key_id || null);
         return;
       }
       // ✅ 잔고 부족 체크
@@ -1314,14 +1314,14 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
         const maxQty = Math.floor(buyingPowerSimple / top.price);
         if (maxQty < 1) {
           console.log(`[단순매매] ${top.symbol} 매수 스킵: 잔고 부족 (buying_power=$${buyingPowerSimple.toFixed(0)})`);
-          db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run('idle', userId);
+          db.prepare('UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?').run('idle', userId, state.broker_key_id || null);
           return;
         }
         // 최대 매수 가능 수량으로 조정
         console.log(`[단순매매] ${top.symbol} 수량 조정: ${qty}주 → ${maxQty}주 (잔고 부족)`);
       }
       const alreadyHeld2 = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND broker_key_id=? AND action='BUY' AND status='active'").get(userId, top.symbol, keys.id);
-      if (alreadyHeld2) { db.prepare("UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?").run("idle", userId); return; }
+      if (alreadyHeld2) { db.prepare("UPDATE trade_setting_type2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?").run("idle", userId, state.broker_key_id || null); return; }
       const finalQty = Math.min(qty, Math.floor(buyingPowerSimple / top.price));
 
       const order = await (await fetch(`${baseUrl}/v2/orders`, {
@@ -1332,8 +1332,8 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
       if (order.id) {
         // [레거시 제거] trade_setting_type2_log BUY → trade_log(type=2)만 사용
         saveTradeLog({ user_id:userId, trade_type:2, symbol:top.symbol, action:'BUY', qty:finalQty, price:top.price, profit_pct:0, reason:`점수 ${top.score}점 TOP1 매수`, status:'active', broker_key_id:keys.id });
-        db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
-          .run('holding', top.symbol, finalQty, top.price, order.id, userId);
+        db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?')
+          .run('holding', top.symbol, finalQty, top.price, order.id, userId, state.broker_key_id || null);
 
         // 텔레그램 알림
         try {
