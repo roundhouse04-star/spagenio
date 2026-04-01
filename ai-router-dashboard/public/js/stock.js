@@ -414,7 +414,8 @@ window.showRealtimePrice = async function(symbol) {
     const barRes = await fetch('/api/alpaca-user/v2/stocks/' + symbol + '/bars/latest');
     const barData = await barRes.json();
 
-    const latestPrice = tradeData?.trade?.p || posData?.current_price || '-';
+    // trade/bar API 실패 시 포지션의 current_price 폴백
+    const latestPrice = tradeData?.trade?.p || barData?.bar?.c || posData?.current_price || 0;
     const latestBar = barData?.bar || {};
     const pl = parseFloat(posData?.unrealized_pl) || 0;
     const plpc = (parseFloat(posData?.unrealized_plpc) || 0) * 100;
@@ -423,7 +424,7 @@ window.showRealtimePrice = async function(symbol) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
           <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">현재가</div>
-          <div style="font-size:1.6rem;font-weight:800;color:#6366f1;">$${parseFloat(latestPrice).toFixed(2)}</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#6366f1;">$${(parseFloat(latestPrice)||0).toFixed(2)}</div>
         </div>
         <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
           <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">평균단가</div>
