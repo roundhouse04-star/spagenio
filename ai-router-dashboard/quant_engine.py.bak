@@ -216,7 +216,11 @@ except:
     PYKRX_OK = False
 
 # ===== 설정 =====
-ALPACA_OK = False  # Alpaca 직접 매매 미사용 (server.js에서 처리)
+try:
+    from alpaca.trading.client import TradingClient
+    ALPACA_OK = True
+except:
+    ALPACA_OK = False
 DB_PATH = os.path.join(os.path.dirname(__file__), 'news.db')
 
 app = Flask(__name__)

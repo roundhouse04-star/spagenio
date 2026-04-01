@@ -215,12 +215,18 @@ try:
 except:
     PYKRX_OK = False
 
-# ===== 설정 =====
+# Alpaca
 try:
     from alpaca.trading.client import TradingClient
+    from alpaca.trading.requests import MarketOrderRequest
+    from alpaca.trading.enums import OrderSide, TimeInForce
     ALPACA_OK = True
 except:
     ALPACA_OK = False
+
+# ===== 설정 =====
+ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY', '')
+ALPACA_SECRET_KEY = os.environ.get('ALPACA_SECRET_KEY', '')
 DB_PATH = os.path.join(os.path.dirname(__file__), 'news.db')
 
 app = Flask(__name__)
@@ -914,6 +920,52 @@ def get_korea_market_analysis():
 
 
 # ===== Alpaca 매매 =====
+
+def get_alpaca_client():
+    if not ALPACA_OK or not ALPACA_API_KEY:
+        return None
+    try:
+        paper = os.environ.get('ALPACA_PAPER', 'true').lower() == 'true'
+        return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=paper)
+    except:
+        return None
+
+
+def execute_quant_trade(symbol, signal, strategy, price, qty=1):
+    """퀀트 신호에 따른 Alpaca 매매 실행"""
+    client = get_alpaca_client()
+    if not client:
+        return {'error': 'Alpaca 연결 실패'}
+
+    try:
+        side = OrderSide.BUY if signal == 'buy' else OrderSide.SELL
+        order_req = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=side,
+            time_in_force=TimeInForce.GTC
+        )
+        order = client.submit_order(order_req)
+
+        # DB 저장
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("""
+            INSERT INTO quant_trade_log (symbol, side, qty, price, strategy, order_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (symbol, signal, qty, price, strategy, str(order.id)))
+        conn.commit()
+        conn.close()
+
+        return {'status': 'ok', 'order_id': str(order.id), 'symbol': symbol, 'side': signal}
+
+    except Exception as e:
+        return {'error': str(e)}
+
+
+# ===== API 엔드포인트 =====
+
+
+import math as _math
 
 def _sanitize(obj):
     if isinstance(obj, float) and (_math.isnan(obj) or _math.isinf(obj)):
