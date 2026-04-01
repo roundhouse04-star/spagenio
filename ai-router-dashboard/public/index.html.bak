@@ -2630,7 +2630,7 @@
                 <label class="sp-label">🏦 분석 시장</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
                   <button id="marketBtnNasdaq" onclick="setMarket('nasdaq')"
-                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
                     📊 나스닥100
                   </button>
                   <button id="marketBtnDow" onclick="setMarket('dow')"
@@ -2812,7 +2812,7 @@
                 <label class="sp-label">🏦 분석 시장</label>
                 <div style="display:flex;gap:6px;">
                   <button id="krMarketBtnKospi" onclick="setKrMarket('kospi')"
-                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.85rem;">
                     🏛 코스피200
                   </button>
                   <button id="krMarketBtnKosdaq" onclick="setKrMarket('kosdaq')"
@@ -2945,7 +2945,7 @@
                 <label class="sp-label">🏦 대상 시장</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
                   <button id="asBtnNasdaq" onclick="setAutoMarket('nasdaq')"
-                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
                     📊 나스닥100
                   </button>
                   <button id="asBtnDow" onclick="setAutoMarket('dow')"
@@ -4546,8 +4546,8 @@
         const el = document.getElementById(id);
         if (!el) return;
         el.style.cssText = m === market
-          ? 'padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;'
-          : 'padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;';
+          ? 'flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;'
+          : 'flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;';
       });
     };
 
@@ -4928,11 +4928,11 @@
       const kospiBtn = document.getElementById('krMarketBtnKospi');
       const kosdaqBtn = document.getElementById('krMarketBtnKosdaq');
       if (market === 'kospi') {
-        kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.85rem;';
+        kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
         kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
       } else {
         kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
-        kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.85rem;';
+        kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
       }
     };
 
@@ -5144,8 +5144,8 @@
         const el = document.getElementById(idMap[m]);
         if (!el) return;
         el.style.cssText = m === market
-          ? 'padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;'
-          : 'padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;';
+          ? 'flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;'
+          : 'flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;';
       });
     };
 

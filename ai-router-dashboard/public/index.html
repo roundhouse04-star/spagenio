@@ -4469,8 +4469,9 @@
       autoBtn.style.cssText = tab === 'auto' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (dayBtn) dayBtn.style.cssText = tab === 'day' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
       if (logBtn) logBtn.style.cssText = tab === 'log' ? 'flex:1;padding:12px;border:none;background:#6366f1;color:#fff;font-weight:800;font-size:0.95rem;cursor:pointer;' : inactiveStyle;
-      if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); setTimeout(() => { if (typeof renderAutoSavedSymbols === 'function') renderAutoSavedSymbols(); }, 300); }
-      if (tab === 'kr') { setTimeout(() => { if (typeof renderKrSavedSettings === 'function') renderKrSavedSettings(); }, 300); }
+      if (tab === 'auto') { loadAutoStrategySettings(); loadAutoStrategyPositions(); setTimeout(() => { if (typeof renderAutoSavedSymbols === 'function') renderAutoSavedSymbols(); }, 300); setAutoMarket(_autoMarket || 'nasdaq'); }
+      if (tab === 'kr') { setTimeout(() => { if (typeof renderKrSavedSettings === 'function') renderKrSavedSettings(); }, 300); setKrMarket(_selectedKrMarket || 'kospi'); }
+      if (tab === 'us') { setMarket(_selectedMarket || 'nasdaq'); }
       if (tab === 'day') { loadVolumeSurge(); loadNewsCatalyst(); loadSimpleTradeState(); loadCombinedSignal(); }
       if (tab === 'log') { loadUnifiedTradeLog(); }
       // 퀀트 탭 진입 시 성향 체크 (매번 확인)
