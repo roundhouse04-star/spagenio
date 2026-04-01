@@ -393,6 +393,7 @@ async function loadPositions() {
 
 // 실시간 가격 팝업
 window.showRealtimePrice = async function(symbol) {
+  symbol = symbol.split(':')[0];  // :1 suffix 제거
   const modal = document.getElementById('realtimeModal');
   const title = document.getElementById('realtimeTitle');
   const body = document.getElementById('realtimeBody');

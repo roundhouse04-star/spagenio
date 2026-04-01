@@ -407,7 +407,7 @@ window.showRealtimePrice = async function(symbol) {
     const posData = await posRes.json();
 
     // yfinance로 현재가 조회
-    const priceRes = await fetch('/proxy/stock/price?symbol=' + symbol);
+    const priceRes = await fetch('/proxy/stock/api/stock/price?symbol=' + symbol);
     const priceData = await priceRes.json();
     const latestPrice = parseFloat(priceData?.price || priceData?.regularMarketPrice || 0) || parseFloat(posData?.current_price || 0);
     const latestBar = {};
