@@ -2608,163 +2608,168 @@
             </div>
           </div>
 
-          <!-- 상단 2열: 자동매매 설정(왼) + 익절손절/스크리닝옵션(오) -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
+          <!-- ② 메인 2열 레이아웃 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:start;">
 
-            <!-- 상단 왼쪽: 자동매매 설정 -->
-            <div class="sp-card">
-              <div class="sp-card-header">
-                <div class="sp-card-title">⚙️ 자동매매 설정</div>
-              </div>
-              <div style="margin-bottom:10px;">
-                <label class="sp-label">💰 매수 비율 (%)</label>
-                <input type="number" id="atBalanceRatio" value="10" min="1" max="50" class="sp-input" />
-                <div style="font-size:0.72rem;color:#636366;margin-top:3px;">계좌 잔고 대비 %</div>
-              </div>
-              <div style="margin-bottom:12px;">
-                <label class="sp-label">📈 신호 방식</label>
-                <select id="atSignalMode" class="sp-select">
-                  <option value="macd">MACD 골든크로스</option>
-                  <option value="rsi">RSI 과매도</option>
-                  <option value="combined" selected>Combined (MACD+RSI)</option>
-                </select>
-              </div>
-              <div style="margin-bottom:12px;">
-                <label class="sp-label">🏦 분석 시장</label>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
-                  <button id="marketBtnNasdaq" onclick="setMarket('nasdaq')"
-                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
-                    📊 나스닥100
-                  </button>
-                  <button id="marketBtnDow" onclick="setMarket('dow')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
-                    🏦 다우존스30
-                  </button>
-                  <button id="marketBtnSp500" onclick="setMarket('sp500')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
-                    🇺🇸 S&P500
-                  </button>
-                  <button id="marketBtnRussell" onclick="setMarket('russell1000')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
-                    📈 Russell1000
-                  </button>
-                </div>
-              </div>
-              <div style="margin-bottom:0;">
-                <label class="sp-label">🎯 팩터 전략</label>
-                <select id="atFactorStrategy" class="sp-select">
-                  <option value="value_quality">⭐ 저평가+퀄리티 (추천)</option>
-                  <option value="value">💰 가치주 (PER↓ PBR↓)</option>
-                  <option value="quality">🏆 퀄리티 (ROE↑ 부채↓)</option>
-                  <option value="growth">🚀 성장주 (성장률↑)</option>
-                  <option value="momentum">⚡ 모멘텀 (수익률↑)</option>
-                  <option value="momentum_ma">📈 모멘텀+200일선 (종목선택+타이밍)</option>
-                </select>
-              </div>
-              <input type="hidden" id="atSymbols" value="" />
-              <div id="at-symbol-badge" style="display:none;"></div>
-              <span id="at-symbol-placeholder" style="display:none;"></span>
-            </div>
+            <!-- 왼쪽: 자동매매 설정 + 저장된 목록 -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
 
-            <!-- 상단 오른쪽: 익절/손절 + 스크리닝 옵션 + 버튼 -->
-            <div class="sp-card">
-              <div class="sp-card-header">
-                <div class="sp-card-title">🎯 스크리닝 설정</div>
-              </div>
-              <div class="sp-grid-2" style="margin-bottom:12px;">
-                <div>
-                  <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
-                  <input type="number" id="atTakeProfit" value="5" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+              <!-- 자동매매 설정 -->
+              <div class="sp-card">
+                <div class="sp-card-header">
+                  <div class="sp-card-title">⚙️ 자동매매 설정</div>
                 </div>
-                <div>
-                  <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
-                  <input type="number" id="atStopLoss" value="5" min="1" max="50" class="sp-input" style="border-color:#ef4444;" />
+                <div style="margin-bottom:10px;">
+                  <label class="sp-label">💰 매수 비율 (%)</label>
+                  <input type="number" id="atBalanceRatio" value="10" min="1" max="50" class="sp-input" />
+                  <div style="font-size:0.72rem;color:#636366;margin-top:3px;">계좌 잔고 대비 %</div>
                 </div>
-              </div>
-              <div style="margin-bottom:12px;padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;">
-                <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">⚙️ 스크리닝 옵션</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-                  <div>
-                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">후보 종목 수</label>
-                    <select id="atTopN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                      <option value="10">상위 10개</option>
-                      <option value="20">상위 20개</option>
-                      <option value="30">상위 30개</option>
-                      <option value="50">상위 50개</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">최종 결과</label>
-                    <select id="atFinalN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                      <option value="3">TOP 3</option>
-                      <option value="5">TOP 5</option>
-                      <option value="10">TOP 10</option>
-                    </select>
+                <div style="margin-bottom:12px;">
+                  <label class="sp-label">📈 신호 방식</label>
+                  <select id="atSignalMode" class="sp-select">
+                    <option value="macd">MACD 골든크로스</option>
+                    <option value="rsi">RSI 과매도</option>
+                    <option value="combined" selected>Combined (MACD+RSI)</option>
+                  </select>
+                </div>
+                <div style="margin-bottom:12px;">
+                  <label class="sp-label">🏦 분석 시장</label>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
+                    <button id="marketBtnNasdaq" onclick="setMarket('nasdaq')"
+                      style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                      📊 나스닥100
+                    </button>
+                    <button id="marketBtnDow" onclick="setMarket('dow')"
+                      style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                      🏦 다우존스30
+                    </button>
+                    <button id="marketBtnSp500" onclick="setMarket('sp500')"
+                      style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                      🇺🇸 S&P500
+                    </button>
+                    <button id="marketBtnRussell" onclick="setMarket('russell1000')"
+                      style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                      📈 Russell1000
+                    </button>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div style="margin-bottom:12px;">
+                  <label class="sp-label">🎯 팩터 전략</label>
+                  <select id="atFactorStrategy" class="sp-select">
+                    <option value="value_quality">⭐ 저평가+퀄리티 (추천)</option>
+                    <option value="value">💰 가치주 (PER↓ PBR↓)</option>
+                    <option value="quality">🏆 퀄리티 (ROE↑ 부채↓)</option>
+                    <option value="growth">🚀 성장주 (성장률↑)</option>
+                    <option value="momentum">⚡ 모멘텀 (수익률↑)</option>
+                    <option value="momentum_ma">📈 모멘텀+200일선 (종목선택+타이밍)</option>
+                  </select>
+                </div>
+                <div class="sp-grid-2" style="margin-bottom:12px;">
                   <div>
-                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">신호 필터</label>
-                    <select id="atSignalFilter" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                      <option value="all">BUY + WATCH</option>
-                      <option value="buy">BUY만</option>
-                    </select>
+                    <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
+                    <input type="number" id="atTakeProfit" value="5" min="1" max="50" class="sp-input"
+                      style="border-color:#10b981;" />
                   </div>
                   <div>
-                    <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">점수 방식</label>
-                    <select id="atScoreMode" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
-                      <option value="combined">복합 (팩터+기술)</option>
-                      <option value="factor">팩터만</option>
-                      <option value="technical">기술적만</option>
-                    </select>
+                    <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
+                    <input type="number" id="atStopLoss" value="5" min="1" max="50" class="sp-input"
+                      style="border-color:#ef4444;" />
                   </div>
                 </div>
+                <!-- 스크리닝 옵션 -->
+                <div style="margin-bottom:10px;padding:10px;background:#111827;border-radius:8px;border:1px solid #2A2A2A;">
+                  <div style="font-size:0.72rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">⚙️ 스크리닝 옵션</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">후보 종목 수</label>
+                      <select id="atTopN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="10">상위 10개</option>
+                        <option value="20">상위 20개</option>
+                        <option value="30">상위 30개</option>
+                        <option value="50">상위 50개</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">최종 결과</label>
+                      <select id="atFinalN" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="3">TOP 3</option>
+                        <option value="5">TOP 5</option>
+                        <option value="10">TOP 10</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">신호 필터</label>
+                      <select id="atSignalFilter" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="all">BUY + WATCH</option>
+                        <option value="buy">BUY만</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem;color:#9CA3AF;display:block;margin-bottom:3px;">점수 방식</label>
+                      <select id="atScoreMode" class="sp-select" style="font-size:0.78rem;padding:4px 8px;">
+                        <option value="combined">복합 (팩터+기술)</option>
+                        <option value="factor">팩터만</option>
+                        <option value="technical">기술적만</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <button onclick="runFactorScreen('us')" class="sp-btn sp-btn-indigo"
+                  style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
+                <div style="font-size:0.7rem;color:#636366;text-align:center;">팩터+타이밍 · 1~2분</div>
+                <input type="hidden" id="atSymbols" value="" />
+                <div id="at-symbol-badge" style="display:none;"></div>
+                <span id="at-symbol-placeholder" style="display:none;"></span>
               </div>
-              <button onclick="runFactorScreen('us')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
-              <div style="font-size:0.7rem;color:#636366;text-align:center;">팩터+타이밍 · 1~2분</div>
-            </div>
 
-          </div><!-- /상단 2열 -->
+            </div><!-- /왼쪽 -->
 
-          <!-- 하단 2열: 저장된 종목(왼) + 현재 포지션(오) -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
+            <!-- 오른쪽: 저장된 목록 + 스크리닝 결과 + 현재 포지션 -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
 
-            <div class="sp-card">
-              <div class="sp-card-header">
-                <div class="sp-card-title">📋 저장된 종목</div>
-                <button onclick="renderAtSavedSettings()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-              </div>
-              <div id="atSavedSettings">
-                <div style="text-align:center;color:#9CA3AF;padding:16px;font-size:0.85rem;">로딩 중...</div>
-              </div>
-            </div>
-
-            <div class="sp-card">
-              <div class="sp-card-header">
-                <div class="sp-card-title">📊 현재 포지션 <span id="autoPositionCount" style="font-size:0.75rem;color:#9CA3AF;"></span></div>
-                <div style="display:flex;gap:6px;">
-                  <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
-                  <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 종료</button>
+              <!-- 저장된 목록 -->
+              <div class="sp-card">
+                <div class="sp-card-header">
+                  <div class="sp-card-title">📋 저장된 종목</div>
+                  <button onclick="renderAtSavedSettings()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
+                </div>
+                <div id="atSavedSettings">
+                  <div style="text-align:center;color:#9CA3AF;padding:16px;font-size:0.85rem;">로딩 중...</div>
                 </div>
               </div>
-              <div id="autoPositionsList">
-                <div style="text-align:center;color:#9CA3AF;padding:16px;font-size:0.85rem;">로딩 중...</div>
+
+              <!-- 스크리닝 결과 -->
+              <div class="sp-card">
+                <div class="sp-card-header">
+                  <div class="sp-card-title">📊 스크리닝 결과</div>
+                </div>
+                <div id="autoTradeResult" style="min-height:80px;">
+                  <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
+                </div>
               </div>
-            </div>
 
-          </div><!-- /하단 2열 -->
+              <!-- 현재 포지션 -->
+              <div class="sp-card">
+                <div class="sp-card-header">
+                  <div class="sp-card-title">📊 현재 포지션 <span id="autoPositionCount"
+                      style="font-size:0.75rem;color:#9CA3AF;"></span></div>
+                  <div style="display:flex;gap:6px;">
+                    <button onclick="loadAutoPositions()" class="sp-btn sp-btn-outline sp-btn-sm">🔄</button>
+                    <button onclick="stopAllAutoTrade()" class="sp-btn sp-btn-red sp-btn-sm">⏹ 종료</button>
+                  </div>
+                </div>
+                <div id="autoPositionsList">
+                  <div style="text-align:center;color:#9CA3AF;padding:16px;font-size:0.85rem;">로딩 중...</div>
+                </div>
+              </div>
 
-          <!-- 스크리닝 결과 전체 너비 -->
-          <div class="sp-card" style="margin-bottom:20px;">
-            <div class="sp-card-header">
-              <div class="sp-card-title">📊 스크리닝 결과</div>
-            </div>
-            <div id="autoTradeResult" style="min-height:80px;">
-              <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
-            </div>
-          </div>
+            </div><!-- /오른쪽 -->
 
-                    <!-- 자동매매 이력 → 거래내역 탭으로 통합됨 -->
+          </div><!-- /메인 2열 -->
+
+          <!-- 자동매매 이력 → 거래내역 탭으로 통합됨 -->
 
         </div><!-- /quantPanelUs -->
 
@@ -2788,106 +2793,109 @@
             </div>
           </div>
 
-          <!-- ② 메인 2열 레이아웃 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:start;">
+          <!-- 1행 2열: 분석설정 / 현재보유현황 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
 
-            <!-- 왼쪽: 분석 설정 + 현재 보유현황 -->
-            <div style="display:flex;flex-direction:column;gap:16px;">
-              <div class="sp-card">
-                <div class="sp-card-header">
-                  <div class="sp-card-title">⚙️ 분석 설정</div>
-                  <span style="font-size:0.72rem;padding:3px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">매매 준비 중</span>
+            <!-- 분석 설정 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">⚙️ 분석 설정</div>
+                <span style="font-size:0.72rem;padding:3px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">매매 준비 중</span>
+              </div>
+              <div class="sp-grid-2" style="margin-bottom:12px;opacity:0.5;pointer-events:none;">
+                <div>
+                  <label class="sp-label">💰 매수 비율 (%)</label>
+                  <input type="number" id="krBalanceRatio" value="10" min="1" max="50" class="sp-input" />
                 </div>
-                <div class="sp-grid-2" style="margin-bottom:12px;opacity:0.5;pointer-events:none;">
-                  <div>
-                    <label class="sp-label">💰 매수 비율 (%)</label>
-                    <input type="number" id="krBalanceRatio" value="10" min="1" max="50" class="sp-input" />
-                  </div>
-                  <div>
-                    <label class="sp-label">📈 신호 방식</label>
-                    <select id="krSignalMode" class="sp-select">
-                      <option value="combined" selected>Combined (MACD+RSI)</option>
-                      <option value="macd">MACD 골든크로스</option>
-                      <option value="rsi">RSI 과매도</option>
-                    </select>
-                  </div>
-                </div>
-                <div style="margin-bottom:12px;">
-                  <label class="sp-label">🏦 분석 시장</label>
-                  <div style="display:flex;gap:6px;">
-                    <button id="krMarketBtnKospi" onclick="setKrMarket('kospi')"
-                      style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.78rem;">
-                      🏛 코스피200
-                    </button>
-                    <button id="krMarketBtnKosdaq" onclick="setKrMarket('kosdaq')"
-                      style="flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;">
-                      📈 코스닥150
-                    </button>
-                  </div>
-                </div>
-                <div style="margin-bottom:12px;">
-                  <label class="sp-label">🎯 팩터 전략</label>
-                  <select id="krFactorStrategy" class="sp-select">
-                    <option value="value_quality">⭐ 저평가+퀄리티 (추천)</option>
-                    <option value="value">💰 가치주 (PER↓ PBR↓)</option>
-                    <option value="quality">🏆 퀄리티 (ROE↑ 부채↓)</option>
-                    <option value="growth">🚀 성장주 (성장률↑)</option>
-                    <option value="momentum">⚡ 모멘텀 (수익률↑)</option>
-                    <option value="momentum_ma">📈 모멘텀+200일선 (종목선택+타이밍)</option>
+                <div>
+                  <label class="sp-label">📈 신호 방식</label>
+                  <select id="krSignalMode" class="sp-select">
+                    <option value="combined" selected>Combined (MACD+RSI)</option>
+                    <option value="macd">MACD 골든크로스</option>
+                    <option value="rsi">RSI 과매도</option>
                   </select>
                 </div>
-                <div class="sp-grid-2" style="margin-bottom:12px;opacity:0.5;pointer-events:none;">
-                  <div>
-                    <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
-                    <input type="number" id="krTakeProfit" value="5" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
-                  </div>
-                  <div>
-                    <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
-                    <input type="number" id="krStopLoss" value="5" min="1" max="50" class="sp-input" style="border-color:#ef4444;" />
-                  </div>
-                </div>
-                <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
-                <div style="font-size:0.7rem;color:#636366;text-align:center;">코스피200/코스닥150 · 1~2분</div>
               </div>
+              <div style="margin-bottom:12px;">
+                <label class="sp-label">🏦 분석 시장</label>
+                <div style="display:flex;gap:6px;">
+                  <button id="krMarketBtnKospi" onclick="setKrMarket('kospi')"
+                    style="flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.1);color:#6366f1;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    🏛 코스피200
+                  </button>
+                  <button id="krMarketBtnKosdaq" onclick="setKrMarket('kosdaq')"
+                    style="flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    📈 코스닥150
+                  </button>
+                </div>
+              </div>
+              <div style="margin-bottom:12px;">
+                <label class="sp-label">🎯 팩터 전략</label>
+                <select id="krFactorStrategy" class="sp-select">
+                  <option value="value_quality">⭐ 저평가+퀄리티 (추천)</option>
+                  <option value="value">💰 가치주 (PER↓ PBR↓)</option>
+                  <option value="quality">🏆 퀄리티 (ROE↑ 부채↓)</option>
+                  <option value="growth">🚀 성장주 (성장률↑)</option>
+                  <option value="momentum">⚡ 모멘텀 (수익률↑)</option>
+                  <option value="momentum_ma">📈 모멘텀+200일선 (종목선택+타이밍)</option>
+                </select>
+              </div>
+              <div class="sp-grid-2" style="margin-bottom:12px;opacity:0.5;pointer-events:none;">
+                <div>
+                  <label class="sp-label" style="color:#065f46;">✅ 익절 (%)</label>
+                  <input type="number" id="krTakeProfit" value="5" min="1" max="50" class="sp-input" style="border-color:#10b981;" />
+                </div>
+                <div>
+                  <label class="sp-label" style="color:#991b1b;">❌ 손절 (%)</label>
+                  <input type="number" id="krStopLoss" value="5" min="1" max="50" class="sp-input" style="border-color:#ef4444;" />
+                </div>
+              </div>
+              <button onclick="runFactorScreen('kr')" class="sp-btn sp-btn-indigo" style="width:100%;margin-bottom:4px;">🔍 스크리닝</button>
+              <div style="font-size:0.7rem;color:#636366;text-align:center;">코스피200/코스닥150 · 1~2분</div>
+            </div>
 
-              <!-- 현재 보유현황 -->
-              <div class="sp-card">
-                <div class="sp-card-header">
-                  <div class="sp-card-title">📊 현재 보유 현황</div>
-                  <span style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">키움증권 연동 후</span>
-                </div>
-                <div style="text-align:center;padding:24px;color:#636366;">
-                  <div style="font-size:1.8rem;margin-bottom:8px;">🏗️</div>
-                  <div style="font-weight:700;color:#9CA3AF;font-size:0.85rem;">키움증권 API 연동 준비 중</div>
-                </div>
+            <!-- 현재 보유현황 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📊 현재 보유 현황</div>
+                <span style="font-size:0.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;font-weight:700;">키움증권 연동 후</span>
+              </div>
+              <div style="text-align:center;padding:24px;color:#636366;">
+                <div style="font-size:1.8rem;margin-bottom:8px;">🏗️</div>
+                <div style="font-weight:700;color:#9CA3AF;font-size:0.85rem;">키움증권 API 연동 준비 중</div>
               </div>
             </div>
 
-            <!-- 오른쪽: 저장된 종목 + 스크리닝 결과 -->
-            <div style="display:flex;flex-direction:column;gap:16px;">
-              <div class="sp-card">
-                <div class="sp-card-header">
-                  <div class="sp-card-title">📋 저장된 분석 종목</div>
-                  <button onclick="renderKrSavedSettings()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
-                </div>
-                <div id="krSavedSettings">
-                  <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 후 표시됩니다</div>
-                </div>
+          </div><!-- /1행 -->
+
+          <!-- 2행 2열: 저장된 분석 종목 / 스크리닝 결과 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:start;">
+
+            <!-- 저장된 분석 종목 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📋 저장된 분석 종목</div>
+                <button onclick="renderKrSavedSettings()" class="sp-btn sp-btn-outline sp-btn-sm">새로고침</button>
               </div>
-              <div class="sp-card">
-                <div class="sp-card-header">
-                  <div class="sp-card-title">📊 스크리닝 결과</div>
-                  <span style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석 전용</span>
-                </div>
-                <div id="krTradeResult" style="min-height:80px;">
-                  <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
-                </div>
+              <div id="krSavedSettings">
+                <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 후 표시됩니다</div>
               </div>
             </div>
 
-          </div>
+            <!-- 스크리닝 결과 -->
+            <div class="sp-card">
+              <div class="sp-card-header">
+                <div class="sp-card-title">📊 스크리닝 결과</div>
+                <span style="font-size:0.7rem;padding:2px 8px;border-radius:999px;background:rgba(255,214,10,0.12);color:#92400e;">분석 전용</span>
+              </div>
+              <div id="krTradeResult" style="min-height:80px;">
+                <div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">🔍 스크리닝 버튼을 눌러주세요</div>
+              </div>
+            </div>
 
-          <!-- 한국 매매 이력 → 거래내역 탭으로 통합됨 -->
+          </div><!-- /2행 -->
+
+                    <!-- 한국 매매 이력 → 거래내역 탭으로 통합됨 -->
 
         </div><!-- /quantPanelKr -->
 
