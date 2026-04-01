@@ -215,18 +215,8 @@ try:
 except:
     PYKRX_OK = False
 
-# Alpaca
-try:
-    from alpaca.trading.client import TradingClient
-    from alpaca.trading.requests import MarketOrderRequest
-    from alpaca.trading.enums import OrderSide, TimeInForce
-    ALPACA_OK = True
-except:
-    ALPACA_OK = False
-
 # ===== 설정 =====
-ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY', '')
-ALPACA_SECRET_KEY = os.environ.get('ALPACA_SECRET_KEY', '')
+ALPACA_OK = False  # Alpaca 직접 매매 미사용 (server.js에서 처리)
 DB_PATH = os.path.join(os.path.dirname(__file__), 'news.db')
 
 app = Flask(__name__)
@@ -921,52 +911,6 @@ def get_korea_market_analysis():
 
 # ===== Alpaca 매매 =====
 
-def get_alpaca_client():
-    if not ALPACA_OK or not ALPACA_API_KEY:
-        return None
-    try:
-        paper = os.environ.get('ALPACA_PAPER', 'true').lower() == 'true'
-        return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=paper)
-    except:
-        return None
-
-
-def execute_quant_trade(symbol, signal, strategy, price, qty=1):
-    """퀀트 신호에 따른 Alpaca 매매 실행"""
-    client = get_alpaca_client()
-    if not client:
-        return {'error': 'Alpaca 연결 실패'}
-
-    try:
-        side = OrderSide.BUY if signal == 'buy' else OrderSide.SELL
-        order_req = MarketOrderRequest(
-            symbol=symbol,
-            qty=qty,
-            side=side,
-            time_in_force=TimeInForce.GTC
-        )
-        order = client.submit_order(order_req)
-
-        # DB 저장
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute("""
-            INSERT INTO quant_trade_log (symbol, side, qty, price, strategy, order_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (symbol, signal, qty, price, strategy, str(order.id)))
-        conn.commit()
-        conn.close()
-
-        return {'status': 'ok', 'order_id': str(order.id), 'symbol': symbol, 'side': signal}
-
-    except Exception as e:
-        return {'error': str(e)}
-
-
-# ===== API 엔드포인트 =====
-
-
-import math as _math
-
 def _sanitize(obj):
     if isinstance(obj, float) and (_math.isnan(obj) or _math.isinf(obj)):
         return None
@@ -1056,114 +1000,6 @@ def korea_analysis():
     """한국 시장 수급 분석"""
     result = get_korea_market_analysis()
     return jsonify(result)
-
-
-@app.route('/api/quant/history', methods=['GET'])
-def history():
-    """분석 히스토리 조회"""
-    symbol = request.args.get('symbol', '')
-    limit = int(request.args.get('limit', 50))
-
-    conn = sqlite3.connect(DB_PATH)
-    if symbol:
-        rows = conn.execute("""
-            SELECT * FROM quant_analysis WHERE symbol = ?
-            ORDER BY created_at DESC LIMIT ?
-        """, (symbol, limit)).fetchall()
-    else:
-        rows = conn.execute("""
-            SELECT * FROM quant_analysis
-            ORDER BY created_at DESC LIMIT ?
-        """, (limit,)).fetchall()
-    conn.close()
-
-    return jsonify({'history': [
-        {'id': r[0], 'symbol': r[1], 'strategy': r[2], 'signal': r[3],
-         'value': r[4], 'price': r[5], 'created_at': r[6]}
-        for r in rows
-    ]})
-
-
-@app.route('/api/quant/kr/history', methods=['GET'])
-def kr_history():
-    """한국 수급 추천 히스토리"""
-    limit = int(request.args.get('limit', 30))
-    conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute("""
-        SELECT * FROM kr_recommendations ORDER BY created_at DESC LIMIT ?
-    """, (limit,)).fetchall()
-    conn.close()
-    return jsonify({'history': [
-        {'id': r[0], 'ticker': r[1], 'name': r[2], 'volume': r[3],
-         'short_ratio': r[4], 'score': r[5], 'price': r[6], 'created_at': r[7]}
-        for r in rows
-    ]})
-
-
-@app.route('/api/quant/trade', methods=['POST'])
-def trade():
-    """퀀트 신호 기반 매매 실행"""
-    data = request.json
-    symbol = data.get('symbol')
-    signal = data.get('signal')  # buy or sell
-    strategy = data.get('strategy', 'manual')
-    qty = int(data.get('qty', 1))
-
-    if not symbol or signal not in ['buy', 'sell']:
-        return jsonify({'error': '종목 또는 신호 오류'}), 400
-
-    # 자동 분석 후 매매
-    analysis = analyze_combined(symbol)
-    price = analysis.get('price', 0)
-
-    result = execute_quant_trade(symbol, signal, strategy, price, qty)
-    return jsonify(result)
-
-
-@app.route('/api/quant/trade/log', methods=['GET'])
-def trade_log():
-    """매매 로그 조회"""
-    limit = int(request.args.get('limit', 20))
-    conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute("""
-        SELECT * FROM quant_trade_log ORDER BY created_at DESC LIMIT ?
-    """, (limit,)).fetchall()
-    conn.close()
-    return jsonify({'logs': [
-        {'id': r[0], 'symbol': r[1], 'side': r[2], 'qty': r[3],
-         'price': r[4], 'strategy': r[5], 'order_id': r[6], 'created_at': r[7]}
-        for r in rows
-    ]})
-
-
-@app.route('/api/quant/auto', methods=['POST'])
-def auto_trade():
-    """자동매매 - 분석 후 신호에 따라 자동 주문"""
-    data = request.json
-    symbol = data.get('symbol', 'QQQ')
-    strategy = data.get('strategy', 'combined')
-    qty = int(data.get('qty', 1))
-    threshold = float(data.get('threshold', 0.3))  # 최소 신호 강도
-
-    # 분석
-    analysis = analyze_combined(symbol)
-    signal = analysis.get('signal', 'hold')
-    score = abs(analysis.get('score', 0))
-
-    # 임계값 이상일 때만 매매
-    if signal in ['buy', 'sell'] and score >= threshold:
-        trade_result = execute_quant_trade(symbol, signal, strategy, analysis.get('price', 0), qty)
-        return jsonify({
-            'traded': True,
-            'analysis': analysis,
-            'trade': trade_result
-        })
-
-    return jsonify({
-        'traded': False,
-        'reason': f'신호 강도 부족 (score: {score:.2f} < threshold: {threshold})',
-        'analysis': analysis
-    })
 
 
 @app.route('/health', methods=['GET'])
