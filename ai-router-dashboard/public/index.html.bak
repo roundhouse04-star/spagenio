@@ -6588,10 +6588,13 @@
 
 <script>
 // ── 자동매매 계좌 선택기 ──────────────────────────────
-window.selectedAccountId = null;
+window.selectedAccountId = localStorage.getItem('selectedAccountId') || null;
 
 window.setSelectedAccount = function(accountId) {
   window.selectedAccountId = accountId || null;
+  // localStorage에 저장
+  if (accountId) localStorage.setItem('selectedAccountId', accountId);
+  else localStorage.removeItem('selectedAccountId');
   // alpaca-keys.js fetch 오버라이드와 동기화
   window.activeAccountId = accountId ? parseInt(accountId) : null;
   // 드롭다운 동기화
@@ -6634,8 +6637,10 @@ async function loadAccountSelects() {
       }).join('');
     });
 
-    // 기본값: is_active=1 계좌
-    const active = accounts.find(a => a.is_active) || accounts[0];
+    // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
+    const cached = localStorage.getItem('selectedAccountId');
+    const cachedValid = cached && accounts.find(a => String(a.id) === cached);
+    const active = cachedValid ? accounts.find(a => String(a.id) === cached) : (accounts.find(a => a.is_active) || accounts[0]);
     if (active) window.setSelectedAccount(String(active.id));
   } catch(e) { console.error('계좌 로드 실패', e); }
 }
