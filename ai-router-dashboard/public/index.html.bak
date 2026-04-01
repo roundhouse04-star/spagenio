@@ -2939,21 +2939,21 @@
               </div>
               <div style="margin-bottom:10px;">
                 <label class="sp-label">🏦 대상 시장</label>
-                <div style="display:flex;gap:6px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
                   <button id="asBtnNasdaq" onclick="setAutoMarket('nasdaq')"
-                    style="flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.82rem;">
                     📊 나스닥100
                   </button>
                   <button id="asBtnDow" onclick="setAutoMarket('dow')"
-                    style="flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.82rem;">
                     🏦 다우존스30
                   </button>
                   <button id="asBtnSp500" onclick="setAutoMarket('sp500')"
-                    style="flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.82rem;">
                     🇺🇸 S&P500
                   </button>
                   <button id="asBtnRussell" onclick="setAutoMarket('russell1000')"
-                    style="flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.82rem;">
                     📈 Russell1000
                   </button>
                 </div>
@@ -4786,10 +4786,17 @@
           return true;
         });
 
-        cnt.textContent = `${d.screened}개 → ${filtered.length}개`;
+        // finalN 적용 + 신호필터 적용
+        let finalFiltered = filtered;
+        if (asSignal === 'buy') finalFiltered = finalFiltered.filter(item => item.timing === 'BUY');
+        if (asScore === 'technical') finalFiltered = [...finalFiltered].sort((a, b) => (b.tech_score || 0) - (a.tech_score || 0));
+        else if (asScore === 'factor') finalFiltered = [...finalFiltered].sort((a, b) => (b.factor_score || 0) - (a.factor_score || 0));
+        finalFiltered = finalFiltered.slice(0, asFinalN);
+
+        cnt.textContent = `${d.screened}개 → ${finalFiltered.length}개`;
 
         const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-        const rows = filtered.slice(0, 10).map((item, i) => `
+        const rows = finalFiltered.map((item, i) => `
         <div style="padding:10px 12px;background:${i === 0 ? 'rgba(99,102,241,0.1)' : '#1E242C'};border-radius:8px;border:1px solid ${i === 0 ? '#6366f1' : '#2A2A2A'};margin-bottom:6px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div>
@@ -4812,7 +4819,9 @@
           <button onclick="saveAutoSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
         </div>`).join('');
 
-        el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">$({'nasdaq':'나스닥100','dow':'다우존스30','sp500':'S&P500','russell1000':'Russell1000'}[_autoMarket] || _autoMarket) · 3단계 필터 통과 종목</div>${rows}`;
+        const marketNames = {'nasdaq':'나스닥100','dow':'다우존스30','sp500':'S&P500','russell1000':'Russell1000'};
+        const marketLabel = marketNames[_autoMarket] || _autoMarket;
+        el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">${marketLabel} · ${d.screened}개 → TOP${asFinalN} (${asScore === 'combined' ? '복합점수' : asScore === 'factor' ? '팩터점수' : '기술점수'} · ${asSignal === 'buy' ? 'BUY만' : 'BUY+WATCH'})</div>${rows}`;
         // 스크리닝 후 저장된 종목 새로고침
         setTimeout(() => { if (typeof renderAutoSavedSymbols === 'function') renderAutoSavedSymbols(); }, 300);
       } catch (e) { el.innerHTML = `<div style="color:#ef4444;font-size:0.85rem;">오류: ${e.message}</div>`; }
