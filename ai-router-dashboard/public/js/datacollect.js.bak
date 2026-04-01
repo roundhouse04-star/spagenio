@@ -152,7 +152,7 @@ async function saveAutoTradeSettings(enabled) {
   const signalMode = document.getElementById('atSignalMode')?.value || 'combined';
   const isEnabled = enabled !== undefined ? enabled : null;
 
-  const body = { symbols, balance_ratio: balanceRatio, take_profit: takeProfit, stop_loss: stopLoss, signal_mode: signalMode };
+  const body = { symbols, balance_ratio: balanceRatio, take_profit: takeProfit, stop_loss: stopLoss, signal_mode: signalMode, broker_key_id: window.selectedAccountId || window.activeAccountId || null };
   if (isEnabled !== null) body.enabled = isEnabled ? 1 : 0;
 
   const res = await fetch('/api/auto-trade/settings', {
@@ -193,7 +193,8 @@ window.runAutoTradeNow = async function() {
 
 async function loadAutoTradeSettings() {
   try {
-    const res = await fetch('/api/auto-trade/settings');
+    const bkId = window.selectedAccountId || window.activeAccountId || '';
+    const res = await fetch(`/api/auto-trade/settings${bkId ? '?broker_key_id='+bkId : ''}`);
     const d = await res.json();
     if (document.getElementById('atSymbols')) document.getElementById('atSymbols').value = d.symbols || 'QQQ,SPY,AAPL';
     if (document.getElementById('atBalanceRatio')) document.getElementById('atBalanceRatio').value = Math.round((d.balance_ratio||0.1)*100);
@@ -951,14 +952,15 @@ window.toggleSimpleAutoTrade = async function() {
   const take_profit = parseFloat(document.getElementById('simpleTakeProfit')?.value || 5) / 100;
   const stop_loss = parseFloat(document.getElementById('simpleStopLoss')?.value || 5) / 100;
 
+  const _bkId = window.selectedAccountId || window.activeAccountId || null;
   await fetch('/api/simple-auto-trade/settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ balance_ratio, take_profit, stop_loss })
+    body: JSON.stringify({ balance_ratio, take_profit, stop_loss, broker_key_id: _bkId })
   });
 
   await fetch('/api/simple-auto-trade/toggle', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ enabled: _simpleTradeEnabled })
+    body: JSON.stringify({ enabled: _simpleTradeEnabled, broker_key_id: _bkId })
   });
 
   updateSimpleTradeUI();
@@ -987,7 +989,8 @@ function updateSimpleTradeUI() {
 
 window.loadSimpleTradeState = async function() {
   try {
-    const res = await fetch('/api/simple-auto-trade/state');
+    const _bkId2 = window.selectedAccountId || window.activeAccountId || '';
+    const res = await fetch(`/api/simple-auto-trade/state${_bkId2 ? '?broker_key_id='+_bkId2 : ''}`);
     const d = await res.json();
     if (!d.ok) return;
 

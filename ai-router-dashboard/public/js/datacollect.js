@@ -541,6 +541,22 @@ function selectStock(symbol, name) {
   }
 
   closeStockSearch();
+
+  // 주식 탭 tradeSymbol 선택 시 현재가 자동 설정
+  if (_searchTargetId === 'tradeSymbol') {
+    fetch('/proxy/stock/api/stock/price?symbol=' + symbol)
+      .then(r => r.json())
+      .then(d => {
+        const price = d.price || d.regularMarketPrice;
+        const priceEl = document.getElementById('tradePrice');
+        if (price && priceEl) {
+          priceEl.value = parseFloat(price).toFixed(2);
+          if (typeof _tradeCurrency !== 'undefined') _tradeCurrency = 'USD';
+          const btn = document.getElementById('tradeCurrencyBtn');
+          if (btn) btn.textContent = 'USD';
+        }
+      }).catch(() => {});
+  }
 }
 
 function stockRenderSymbolBadge() {
