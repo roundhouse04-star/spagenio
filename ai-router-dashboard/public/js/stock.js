@@ -414,8 +414,16 @@ window.showRealtimePrice = async function(symbol) {
     const barRes = await fetch('/api/alpaca-user/v2/stocks/' + symbol + '/bars/latest');
     const barData = await barRes.json();
 
-    // trade/bar API 실패 시 포지션의 current_price 폴백
-    const latestPrice = tradeData?.trade?.p || barData?.bar?.c || posData?.current_price || 0;
+    // yfinance 현재가 폴백
+    let yPrice = 0;
+    try {
+      const yRes = await fetch('/proxy/stock/price?symbol=' + symbol);
+      const yData = await yRes.json();
+      yPrice = parseFloat(yData?.price || yData?.regularMarketPrice || 0);
+    } catch(e) {}
+
+    // trade/bar/yfinance/포지션 순으로 폴백
+    const latestPrice = tradeData?.trade?.p || barData?.bar?.c || yPrice || posData?.current_price || 0;
     const latestBar = barData?.bar || {};
     const pl = parseFloat(posData?.unrealized_pl) || 0;
     const plpc = (parseFloat(posData?.unrealized_plpc) || 0) * 100;
