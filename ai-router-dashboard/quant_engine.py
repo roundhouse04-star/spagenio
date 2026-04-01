@@ -919,6 +919,52 @@ def get_korea_market_analysis():
         return {'error': str(e)}
 
 
+# ===== Alpaca 매매 =====
+
+def get_alpaca_client():
+    if not ALPACA_OK or not ALPACA_API_KEY:
+        return None
+    try:
+        paper = os.environ.get('ALPACA_PAPER', 'true').lower() == 'true'
+        return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=paper)
+    except:
+        return None
+
+
+def execute_quant_trade(symbol, signal, strategy, price, qty=1):
+    """퀀트 신호에 따른 Alpaca 매매 실행"""
+    client = get_alpaca_client()
+    if not client:
+        return {'error': 'Alpaca 연결 실패'}
+
+    try:
+        side = OrderSide.BUY if signal == 'buy' else OrderSide.SELL
+        order_req = MarketOrderRequest(
+            symbol=symbol,
+            qty=qty,
+            side=side,
+            time_in_force=TimeInForce.GTC
+        )
+        order = client.submit_order(order_req)
+
+        # DB 저장
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("""
+            INSERT INTO quant_trade_log (symbol, side, qty, price, strategy, order_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (symbol, signal, qty, price, strategy, str(order.id)))
+        conn.commit()
+        conn.close()
+
+        return {'status': 'ok', 'order_id': str(order.id), 'symbol': symbol, 'side': signal}
+
+    except Exception as e:
+        return {'error': str(e)}
+
+
+# ===== API 엔드포인트 =====
+
+
 import math as _math
 
 def _sanitize(obj):
@@ -1054,6 +1100,26 @@ def kr_history():
     ]})
 
 
+@app.route('/api/quant/trade', methods=['POST'])
+def trade():
+    """퀀트 신호 기반 매매 실행"""
+    data = request.json
+    symbol = data.get('symbol')
+    signal = data.get('signal')  # buy or sell
+    strategy = data.get('strategy', 'manual')
+    qty = int(data.get('qty', 1))
+
+    if not symbol or signal not in ['buy', 'sell']:
+        return jsonify({'error': '종목 또는 신호 오류'}), 400
+
+    # 자동 분석 후 매매
+    analysis = analyze_combined(symbol)
+    price = analysis.get('price', 0)
+
+    result = execute_quant_trade(symbol, signal, strategy, price, qty)
+    return jsonify(result)
+
+
 @app.route('/api/quant/trade/log', methods=['GET'])
 def trade_log():
     """매매 로그 조회"""
@@ -1068,6 +1134,36 @@ def trade_log():
          'price': r[4], 'strategy': r[5], 'order_id': r[6], 'created_at': r[7]}
         for r in rows
     ]})
+
+
+@app.route('/api/quant/auto', methods=['POST'])
+def auto_trade():
+    """자동매매 - 분석 후 신호에 따라 자동 주문"""
+    data = request.json
+    symbol = data.get('symbol', 'QQQ')
+    strategy = data.get('strategy', 'combined')
+    qty = int(data.get('qty', 1))
+    threshold = float(data.get('threshold', 0.3))  # 최소 신호 강도
+
+    # 분석
+    analysis = analyze_combined(symbol)
+    signal = analysis.get('signal', 'hold')
+    score = abs(analysis.get('score', 0))
+
+    # 임계값 이상일 때만 매매
+    if signal in ['buy', 'sell'] and score >= threshold:
+        trade_result = execute_quant_trade(symbol, signal, strategy, analysis.get('price', 0), qty)
+        return jsonify({
+            'traded': True,
+            'analysis': analysis,
+            'trade': trade_result
+        })
+
+    return jsonify({
+        'traded': False,
+        'reason': f'신호 강도 부족 (score: {score:.2f} < threshold: {threshold})',
+        'analysis': analysis
+    })
 
 
 @app.route('/health', methods=['GET'])
