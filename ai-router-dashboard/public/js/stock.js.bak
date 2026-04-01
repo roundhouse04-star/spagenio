@@ -1,3 +1,21 @@
+// ===== 가격 입력 원/달러 토글 =====
+let _tradeCurrency = 'USD'; // 'USD' or 'KRW'
+window.toggleTradeCurrency = function() {
+  _tradeCurrency = _tradeCurrency === 'USD' ? 'KRW' : 'USD';
+  const btn = document.getElementById('tradeCurrencyBtn');
+  if (btn) btn.textContent = _tradeCurrency;
+};
+
+function getTradePriceUSD() {
+  const priceRaw = parseFloat(document.getElementById('tradePrice')?.value || '');
+  if (!priceRaw || isNaN(priceRaw)) return null; // 비어있으면 시장가
+  if (_tradeCurrency === 'KRW') {
+    // 원 → 달러 환산 (현재 환율은 직접 입력값 기준, 약 1350원/달러)
+    return parseFloat((priceRaw / 1350).toFixed(2));
+  }
+  return priceRaw;
+}
+
 // ===== 계좌 정보 =====
 async function safeJson(res) {
   const text = await res.text();
@@ -219,7 +237,12 @@ async function buyStock() {
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty, side: 'buy', type: 'market', time_in_force: 'day' })
+      body: JSON.stringify((() => {
+        const limitPrice = getTradePriceUSD();
+        return limitPrice
+          ? { symbol, qty, side: 'buy', type: 'limit', limit_price: limitPrice, time_in_force: 'day' }
+          : { symbol, qty, side: 'buy', type: 'market', time_in_force: 'day' };
+      })())
     });
     const data = await res.json();
     if (res.ok && data.id) {
@@ -321,7 +344,12 @@ async function sellStock() {
     const res = await fetch('/api/alpaca-user/v2/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty, side: 'sell', type: 'market', time_in_force: 'day' })
+      body: JSON.stringify((() => {
+        const limitPrice = getTradePriceUSD();
+        return limitPrice
+          ? { symbol, qty, side: 'sell', type: 'limit', limit_price: limitPrice, time_in_force: 'day' }
+          : { symbol, qty, side: 'sell', type: 'market', time_in_force: 'day' };
+      })())
     });
     const data = await res.json();
     if (res.ok && data.id) {

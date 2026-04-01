@@ -848,7 +848,17 @@ if (typeof _origSelectStock === 'function') {
   window.selectStock = function(symbol, name) {
     _origSelectStock(symbol, name);
     setTimeout(() => {
-      if (document.getElementById('tradeSymbol')?.value === symbol) loadOrderBook();
+      if (document.getElementById('tradeSymbol')?.value === symbol) {
+        loadOrderBook();
+        // 현재가 자동 설정
+        fetch('/proxy/stock/api/stock/price?symbol=' + symbol)
+          .then(r => r.json())
+          .then(d => {
+            const price = d.price || d.regularMarketPrice;
+            const priceEl = document.getElementById('tradePrice');
+            if (price && priceEl) priceEl.value = parseFloat(price).toFixed(2);
+          }).catch(() => {});
+      }
     }, 100);
   };
 }
