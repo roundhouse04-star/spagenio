@@ -3,6 +3,79 @@ from flask_cors import CORS
 import yfinance as yf
 from datetime import datetime
 import os
+import requests as _req
+
+# ============================================================
+# FINNHUB 설정 (상업적 사용 가능 - yfinance 대체용)
+# 전환 방법:
+#   1. https://finnhub.io/register 에서 무료 API 키 발급
+#   2. .env 파일에 FINNHUB_API_KEY=your_key 추가
+#   3. USE_FINNHUB = True 로 변경
+# 전환 범위: 미국 주식 현재가, 복수 시세, 시장 지표, 히스토리 DB
+# 한국 주식(.KS/.KQ)은 yfinance 유지
+# ============================================================
+FINNHUB_API_KEY = os.environ.get('FINNHUB_API_KEY', '')
+FINNHUB_BASE = 'https://finnhub.io/api/v1'
+USE_FINNHUB = False  # ← True 로 바꾸면 Finnhub 사용
+
+def _fh(endpoint, params={}):
+    """Finnhub API 공통 호출"""
+    try:
+        res = _req.get(f'{FINNHUB_BASE}{endpoint}',
+                       params={**params, 'token': FINNHUB_API_KEY}, timeout=10)
+        return res.json() if res.status_code == 200 else {}
+    except Exception as e:
+        print(f'[Finnhub] 오류: {e}')
+        return {}
+
+def _is_us(symbol):
+    """미국 주식 여부 판단"""
+    return not (symbol.endswith('.KS') or symbol.endswith('.KQ'))
+
+def _fh_price(symbol):
+    """Finnhub 단일 종목 현재가 조회"""
+    q = _fh('/quote', {'symbol': symbol})
+    p = _fh('/stock/profile2', {'symbol': symbol})
+    price = q.get('c')
+    prev  = q.get('pc')
+    if not price:
+        return None
+    change     = round(price - prev, 2) if prev else 0
+    change_pct = round((change / prev) * 100, 2) if prev else 0
+    return {
+        'symbol':     symbol,
+        'name':       p.get('name', symbol),
+        'price':      round(price, 2),
+        'open':       round(q.get('o', price), 2),
+        'change':     change,
+        'change_pct': change_pct,
+        'volume':     int(q.get('v', 0)),
+        'currency':   'USD',
+        'timestamp':  datetime.now().isoformat()
+    }
+
+def _fh_history(symbol, period='2y'):
+    """Finnhub 주가 히스토리 DB 저장용 (fetch_and_save_history 대체)"""
+    import time as _time
+    days = 730 if '2y' in period else 365
+    end   = int(_time.time())
+    start = end - days * 24 * 3600
+    data  = _fh('/stock/candle', {'symbol': symbol, 'resolution': 'D', 'from': start, 'to': end})
+    if not data or data.get('s') != 'ok':
+        return []
+    rows = []
+    for i, t in enumerate(data.get('t', [])):
+        from datetime import datetime as _dt
+        date_str = _dt.fromtimestamp(t).strftime('%Y-%m-%d')
+        rows.append({
+            'date':   date_str,
+            'open':   round(data['o'][i], 4),
+            'high':   round(data['h'][i], 4),
+            'low':    round(data['l'][i], 4),
+            'close':  round(data['c'][i], 4),
+            'volume': int(data['v'][i]),
+        })
+    return rows
 import urllib.parse
 
 try:
@@ -52,6 +125,13 @@ def sanitize_nan(response):
 def get_price():
     symbol = request.args.get('symbol', 'AAPL')
     try:
+        # Finnhub 분기 (미국 주식만)
+        if USE_FINNHUB and _is_us(symbol):
+            result = _fh_price(symbol)
+            if result:
+                return jsonify(result)
+            return jsonify({'error': f'{symbol} 데이터 없음'}), 404
+        # yfinance (한국 주식 또는 USE_FINNHUB=False)
         ticker = yf.Ticker(symbol)
         info = ticker.info
         hist = ticker.history(period='1d')
@@ -82,6 +162,16 @@ def get_prices():
     results = []
     for symbol in symbol_list:
         try:
+            # Finnhub 분기 (미국 주식만)
+            if USE_FINNHUB and _is_us(symbol):
+                r = _fh_price(symbol)
+                if r:
+                    results.append({'symbol': symbol, 'price': r['price'],
+                                    'change': r['change'], 'change_pct': r['change_pct']})
+                else:
+                    results.append({'symbol': symbol, 'error': '조회 실패'})
+                continue
+            # yfinance
             ticker = yf.Ticker(symbol)
             hist = ticker.history(period='1d')
             if not hist.empty:
@@ -200,14 +290,24 @@ def get_market_indicators():
     results = []
     for item in MARKET_INDICATORS:
         try:
-            ticker = yf.Ticker(item['symbol'])
-            hist = ticker.history(period='2d')
-            if hist.empty:
-                continue
-            price = round(float(hist['Close'].iloc[-1]), 2)
-            prev  = round(float(hist['Close'].iloc[-2]), 2) if len(hist) >= 2 else price
-            change = round(price - prev, 2)
-            change_pct = round((change / prev) * 100, 2) if prev else 0
+            # Finnhub 분기 (미국 지표만, 한국/FX 제외)
+            if USE_FINNHUB and _is_us(item['symbol']) and not item['symbol'].startswith('^'):
+                q = _fh('/quote', {'symbol': item['symbol']})
+                price = round(float(q.get('c', 0)), 2)
+                prev  = round(float(q.get('pc', price)), 2)
+                if not price:
+                    continue
+                change = round(price - prev, 2)
+                change_pct = round((change / prev) * 100, 2) if prev else 0
+            else:
+                ticker = yf.Ticker(item['symbol'])
+                hist = ticker.history(period='2d')
+                if hist.empty:
+                    continue
+                price = round(float(hist['Close'].iloc[-1]), 2)
+                prev  = round(float(hist['Close'].iloc[-2]), 2) if len(hist) >= 2 else price
+                change = round(price - prev, 2)
+                change_pct = round((change / prev) * 100, 2) if prev else 0
             results.append({
                 'symbol':     item['symbol'],
                 'label':      item['label'],
@@ -294,8 +394,30 @@ def init_stock_price_db():
     print('✅ stock_price_history DB 초기화 완료')
 
 def fetch_and_save_history(symbol, period='2y'):
-    """yfinance로 주가 히스토리 가져와서 DB에 저장"""
+    """주가 히스토리 가져와서 DB에 저장 (USE_FINNHUB=True 시 Finnhub 사용)"""
     try:
+        # Finnhub 분기 (미국 주식만)
+        if USE_FINNHUB and _is_us(symbol):
+            rows = _fh_history(symbol, period)
+            if not rows:
+                print(f'⚠️ {symbol}: Finnhub 데이터 없음')
+                return 0
+            conn = get_db()
+            saved = 0
+            for r in rows:
+                try:
+                    conn.execute('''
+                        INSERT OR IGNORE INTO stock_price_history (symbol, date, open, high, low, close, volume)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (symbol, r['date'], r['open'], r['high'], r['low'], r['close'], r['volume']))
+                    saved += conn.execute('SELECT changes()').fetchone()[0]
+                except:
+                    pass
+            conn.commit()
+            conn.close()
+            print(f'✅ {symbol}: {saved}건 저장 (Finnhub)')
+            return saved
+        # yfinance
         ticker = yf.Ticker(symbol)
         hist = ticker.history(period=period)
         if hist.empty:
