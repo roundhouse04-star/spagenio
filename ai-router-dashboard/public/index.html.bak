@@ -6606,7 +6606,7 @@ async function loadAccountSelects() {
         const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
         const activeLabel = a.is_active ? ' ✓' : '';
         const label = `${paperLabel}·${typeLabel}${activeLabel}`;
-        return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} (${label})</option>`;
+        return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
       }).join('');
     });
 
@@ -6624,7 +6624,7 @@ Object.defineProperty(window, 'activeAccountId', {
   configurable: true
 });
 
-document.addEventListener('DOMContentLoaded', loadAccountSelects);
+if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
 </script>
 </body>
 
