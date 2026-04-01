@@ -6600,6 +6600,11 @@ window.setSelectedAccount = function(accountId) {
     const el = document.getElementById(id);
     if (el) el.textContent = label;
   });
+  // 주식 탭이 활성화된 경우 계좌 정보 새로고침
+  const stockTab = document.getElementById('tab-stock');
+  if (stockTab && stockTab.style.display !== 'none' && typeof loadAccount === 'function') {
+    loadAccount();
+  }
 };
 
 async function loadAccountSelects() {

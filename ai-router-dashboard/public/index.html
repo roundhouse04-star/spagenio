@@ -6588,7 +6588,9 @@ window.selectedAccountId = null;
 
 window.setSelectedAccount = function(accountId) {
   window.selectedAccountId = accountId || null;
-  // 3개 드롭다운 동기화
+  // alpaca-keys.js fetch 오버라이드와 동기화
+  window.activeAccountId = accountId ? parseInt(accountId) : null;
+  // 드롭다운 동기화
   ['accountSelectUs','accountSelectAuto','accountSelectDay','accountSelectStock'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value !== accountId) el.value = accountId;
@@ -6602,8 +6604,9 @@ window.setSelectedAccount = function(accountId) {
   });
   // 주식 탭이 활성화된 경우 계좌 정보 새로고침
   const stockTab = document.getElementById('tab-stock');
-  if (stockTab && stockTab.style.display !== 'none' && typeof loadAccount === 'function') {
-    loadAccount();
+  const stockTabVisible = stockTab && (stockTab.style.display === '' || stockTab.style.display === 'block' || stockTab.style.display === 'flex');
+  if (stockTabVisible && typeof loadAccount === 'function') {
+    setTimeout(() => loadAccount(), 100);
   }
 };
 
