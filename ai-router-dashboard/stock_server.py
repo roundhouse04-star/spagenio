@@ -292,7 +292,7 @@ def get_market_indicators():
     import time
     global _market_cache
     # 5분 캐시
-    if _market_cache['data'] and time.time() - _market_cache['ts'] < 300:
+    if _market_cache["data"] and time.time() - _market_cache["ts"] < 1800:
         return jsonify(_market_cache['data'])
     results = []
     for item in MARKET_INDICATORS:
