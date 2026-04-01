@@ -2630,19 +2630,19 @@
                 <label class="sp-label">🏦 분석 시장</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
                   <button id="marketBtnNasdaq" onclick="setMarket('nasdaq')"
-                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
                     📊 나스닥100
                   </button>
                   <button id="marketBtnDow" onclick="setMarket('dow')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     🏦 다우존스30
                   </button>
                   <button id="marketBtnSp500" onclick="setMarket('sp500')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     🇺🇸 S&P500
                   </button>
                   <button id="marketBtnRussell" onclick="setMarket('russell1000')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     📈 Russell1000
                   </button>
                 </div>
@@ -2812,11 +2812,11 @@
                 <label class="sp-label">🏦 분석 시장</label>
                 <div style="display:flex;gap:6px;">
                   <button id="krMarketBtnKospi" onclick="setKrMarket('kospi')"
-                    style="flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.85rem;">
+                    style="flex:1;padding:6px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
                     🏛 코스피200
                   </button>
                   <button id="krMarketBtnKosdaq" onclick="setKrMarket('kosdaq')"
-                    style="flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;">
+                    style="flex:1;padding:6px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     📈 코스닥150
                   </button>
                 </div>
@@ -2945,19 +2945,19 @@
                 <label class="sp-label">🏦 대상 시장</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
                   <button id="asBtnNasdaq" onclick="setAutoMarket('nasdaq')"
-                    style="padding:8px 4px;border-radius:8px;border:2px solid #6366f1;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
                     📊 나스닥100
                   </button>
                   <button id="asBtnDow" onclick="setAutoMarket('dow')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     🏦 다우존스30
                   </button>
                   <button id="asBtnSp500" onclick="setAutoMarket('sp500')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     🇺🇸 S&P500
                   </button>
                   <button id="asBtnRussell" onclick="setAutoMarket('russell1000')"
-                    style="padding:8px 4px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.75rem;text-align:center;">
+                    style="flex:1;padding:6px 4px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;border:1px solid #2A2A2A;background:transparent;color:#9CA3AF;">
                     📈 Russell1000
                   </button>
                 </div>
@@ -4546,11 +4546,11 @@
       Object.entries(idMap).forEach(([m, id]) => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.style.cssText = m === market
-          ? 'flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;'
-          : 'flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;';
+        el.style.background = m === market ? '#6366f1' : 'transparent';
+        el.style.color = m === market ? '#fff' : '#9CA3AF';
+        el.style.borderColor = m === market ? '#6366f1' : '#2A2A2A';
       });
-    };
+    }
 
     // ===== TOP5 시장 선택 (일반 자동매매) =====
     let _topPicksMarket = 'nasdaq';
@@ -4928,14 +4928,9 @@
       _selectedKrMarket = market;
       const kospiBtn = document.getElementById('krMarketBtnKospi');
       const kosdaqBtn = document.getElementById('krMarketBtnKosdaq');
-      if (market === 'kospi') {
-        kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
-        kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
-      } else {
-        kospiBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.85rem;';
-        kosdaqBtn.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid #6366f1;background:rgba(255,59,48,0.08);color:#dc2626;font-weight:700;cursor:pointer;font-size:0.85rem;';
-      }
-    };
+      if (kospiBtn) { kospiBtn.style.background = market === 'kospi' ? '#6366f1' : 'transparent'; kospiBtn.style.color = market === 'kospi' ? '#fff' : '#9CA3AF'; kospiBtn.style.borderColor = market === 'kospi' ? '#6366f1' : '#2A2A2A'; }
+      if (kosdaqBtn) { kosdaqBtn.style.background = market === 'kosdaq' ? '#6366f1' : 'transparent'; kosdaqBtn.style.color = market === 'kosdaq' ? '#fff' : '#9CA3AF'; kosdaqBtn.style.borderColor = market === 'kosdaq' ? '#6366f1' : '#2A2A2A'; }
+    }
 
     // ===== 통합 스크리너 (미국/한국 분기) =====
     window.runFactorScreen = async function (mode) {
@@ -5139,16 +5134,15 @@
 
     window.setMarket = function (market) {
       _selectedMarket = market;
-      const btns = ['nasdaq','dow','sp500','russell1000'];
-      btns.forEach(m => {
-        const idMap = { nasdaq: 'marketBtnNasdaq', dow: 'marketBtnDow', sp500: 'marketBtnSp500', russell1000: 'marketBtnRussell' };
-        const el = document.getElementById(idMap[m]);
+      const idMap = { nasdaq: 'marketBtnNasdaq', dow: 'marketBtnDow', sp500: 'marketBtnSp500', russell1000: 'marketBtnRussell' };
+      Object.entries(idMap).forEach(([m, id]) => {
+        const el = document.getElementById(id);
         if (!el) return;
-        el.style.cssText = m === market
-          ? 'flex:1;padding:6px;border-radius:8px;border:2px solid #6366f1;background:rgba(99,102,241,0.15);color:#a5b4fc;font-weight:700;cursor:pointer;font-size:0.78rem;'
-          : 'flex:1;padding:6px;border-radius:8px;border:1px solid #2A2A2A;background:#1E242C;color:#9CA3AF;font-weight:700;cursor:pointer;font-size:0.78rem;';
+        el.style.background = m === market ? '#6366f1' : 'transparent';
+        el.style.color = m === market ? '#fff' : '#9CA3AF';
+        el.style.borderColor = m === market ? '#6366f1' : '#2A2A2A';
       });
-    };
+    }
 
     // ===== 한국 저장된 종목 렌더링 + 삭제 =====
     window.saveKrSymbol = async function (symbol) {
