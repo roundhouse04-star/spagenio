@@ -5634,6 +5634,15 @@
         }
       }
 
+      // ── stock 탭 직접 처리 ──
+      if (tabKey === 'stock' && !subKey) {
+        setTimeout(() => {
+          if (typeof loadAccount === 'function') loadAccount();
+          if (typeof loadTradeLog === 'function') loadTradeLog();
+        }, 300);
+        return;
+      }
+
       // ── performance 탭은 switchTab 이전에 먼저 처리 ──
       if (tabKey === 'performance') {
         // 즉시 실행 + 딜레이 후 재실행 (데이터 보장)

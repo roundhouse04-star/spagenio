@@ -837,19 +837,6 @@ async function loadTradeLog() {
   }
 }
 
-// 주식 탭 진입 시 거래 로그 자동 로드
-(function() {
-  const _origSwitchTab = window.switchTab;
-  if (typeof _origSwitchTab === 'function') {
-    window.switchTab = function(tabKey, ...args) {
-      _origSwitchTab(tabKey, ...args);
-      if (tabKey === 'stock') {
-        setTimeout(() => loadTradeLog(), 300);
-      }
-    };
-  }
-})();
-
 // 종목 검색 팝업에서 선택 시 호가창도 자동 로드
 // 종목 선택 시 호가창 로드 + 현재가 자동 설정
 const _origSelectStock = window.selectStock;
