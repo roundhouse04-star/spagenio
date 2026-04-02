@@ -724,6 +724,23 @@ function setSelectedAccount(accountId) {
     if (el && el.value !== normalized) el.value = normalized;
   });
 
+  // 계좌 변경 시 현재 탭에 맞게 재조회
+  const tab = window._currentTab || '';
+  if (tab === 'stock') {
+    if (typeof loadAccount === 'function') loadAccount();
+    if (typeof loadPositions === 'function') loadPositions();
+    if (typeof loadOrders === 'function') loadOrders();
+    if (typeof loadTradeLog === 'function') loadTradeLog();
+  } else if (tab === 'quant' || tab === 'datacollect') {
+    if (typeof loadAutoTradeSettings === 'function') loadAutoTradeSettings();
+    if (typeof loadAutoPositions === 'function') loadAutoPositions();
+  } else if (tab === 'performance') {
+    if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+    if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
+    if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
+    if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+  }
+
   return normalized;
 }
 window.setSelectedAccount = setSelectedAccount;
