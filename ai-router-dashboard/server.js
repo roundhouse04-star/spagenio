@@ -48,7 +48,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ============================================================
 // DB 초기화
 // ============================================================
-const dbPath = path.join(__dirname, 'news.db');
+const dbPath = path.join(__dirname, 'stock.db');
 const db = new Database(dbPath);
 
 db.exec(`
