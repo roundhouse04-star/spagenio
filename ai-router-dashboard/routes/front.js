@@ -1276,6 +1276,25 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true, pool: rows });
   });
 
+  // type3 pool 종목 저장
+  router.post('/api/trade3/pool_save', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { symbol, factor_score } = req.body;
+    if (!symbol) return res.status(400).json({ error: '종목 필요' });
+    const existing = db.prepare('SELECT id FROM trade_pool_type3 WHERE user_id=? AND symbol=?').get(req.user.id, symbol);
+    if (existing) return res.json({ ok: true, message: '이미 저장된 종목' });
+    db.prepare('INSERT INTO trade_pool_type3 (user_id, symbol, factor_score) VALUES (?,?,?)').run(req.user.id, symbol, factor_score || 0);
+    res.json({ ok: true });
+  });
+
+  // type3 pool 종목 삭제
+  router.delete('/api/trade3/pool/:symbol', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    const { symbol } = req.params;
+    db.prepare('DELETE FROM trade_pool_type3 WHERE user_id=? AND symbol=?').run(req.user.id, symbol);
+    res.json({ ok: true });
+  });
+
   // ============================================================
   // 투자 성향 (Investor Profile) API
   // ============================================================

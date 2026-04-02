@@ -688,7 +688,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 자동매매 API
-  router.get('/api/auto-trade/positions', async (req, res) => {
+  router.get('/api/trade4/positions', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const keys = getUserAlpacaKeys(req.user.id, null);
     if (!keys) return res.json({ positions: [] });
@@ -702,7 +702,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  router.post('/api/auto-trade/cancel/:symbol', async (req, res) => {
+  router.post('/api/trade4/cancel/:symbol', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { symbol } = req.params;
     const keys = getUserAlpacaKeys(req.user.id, null);
@@ -721,7 +721,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  router.post('/api/auto-trade/stop-all', async (req, res) => {
+  router.post('/api/trade4/stop_all', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const keys = getUserAlpacaKeys(req.user.id, null);
     if (!keys) return res.status(400).json({ error: 'Alpaca 키 없음' });
@@ -747,14 +747,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  router.get('/api/auto-trade/settings', (req, res) => {
+  router.get('/api/trade4/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const bkId4 = req.query.broker_key_id || req.body?.broker_key_id || null;
     const row = bkId4 ? db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? AND broker_key_id=?').get(req.user.id, bkId4) : db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? ORDER BY broker_key_id DESC LIMIT 1').get(req.user.id);
     res.json(row || { enabled: 0, symbols: 'QQQ,SPY,AAPL', balance_ratio: 0.1, take_profit: 0.05, stop_loss: 0.05, signal_mode: 'combined', factor_strategy: 'value_quality', factor_market: 'nasdaq' });
   });
 
-  router.post('/api/auto-trade/settings', (req, res) => {
+  router.post('/api/trade4/settings_save', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled, symbols, balance_ratio, take_profit, stop_loss, signal_mode, factor_strategy, factor_market, kr_candidate_symbols } = req.body;
     const fs = factor_strategy || 'value_quality';
@@ -771,13 +771,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true });
   });
 
-  router.get('/api/auto-trade/log', (req, res) => {
+  router.get('/api/trade4/log', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const rows = db.prepare("SELECT tl.*, CASE tl.trade_type WHEN 1 THEN '수동' WHEN 2 THEN '단순자동' WHEN 3 THEN '완전자동' WHEN 4 THEN '일반자동' ELSE '기타' END as type_name FROM trade_log tl WHERE tl.user_id=? ORDER BY tl.created_at DESC LIMIT 100").all(req.user.id);
     res.json({ logs: rows });
   });
 
-  router.post('/api/auto-trade/run', async (req, res) => {
+  router.post('/api/trade4/run', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const result = await runAutoTradeForUser(req.user.id);
@@ -837,7 +837,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 단순 자동매매 API
-  router.get('/api/simple-auto-trade/state', (req, res) => {
+  router.get('/api/trade2/state', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const bkId2 = req.query.broker_key_id || null;
@@ -846,7 +846,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true, state: state || null, logs });
   });
 
-  router.post('/api/simple-auto-trade/toggle', async (req, res) => {
+  router.post('/api/trade2/toggle', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const { enabled } = req.body;
@@ -860,7 +860,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true, enabled });
   });
 
-  router.post('/api/simple-auto-trade/settings', (req, res) => {
+  router.post('/api/trade2/settings_save', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const userId = req.user.user_id || req.user.id;
     const { balance_ratio = 0.3, take_profit = 0.05, stop_loss = 0.05, broker_key_id: bkId2s } = req.body;
@@ -878,7 +878,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
 
   // ✅ 한국 TOP5 추천 종목 (KOSPI/KOSDAQ)
-  router.get('/api/auto-trade/kr-top-picks', async (req, res) => {
+  router.get('/api/trade4/kr_top_picks', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const KR_SYMBOLS = [
@@ -955,7 +955,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 오늘의 추천 종목 (거래량 + 뉴스 + 기술적 신호 종합)
-  router.get('/api/auto-trade/top-picks', async (req, res) => {
+  router.get('/api/trade4/top_picks', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
@@ -1054,7 +1054,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 거래량 급등 감지
-  router.get('/api/auto-trade/volume-surge', async (req, res) => {
+  router.get('/api/trade4/volume_surge', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
@@ -1077,7 +1077,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 뉴스 촉매 탐지
-  router.get('/api/auto-trade/news-catalyst', async (req, res) => {
+  router.get('/api/trade4/news_catalyst', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
@@ -1099,7 +1099,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // ✅ 리스크 계산
-  router.post('/api/auto-trade/risk-calc', async (req, res) => {
+  router.post('/api/trade4/risk_calc', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const userId = req.user.user_id || req.user.id;
@@ -1151,7 +1151,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch(e) { res.status(500).json({ error: e.message }); }
   });
 
-  router.post('/api/auto-trade/nasdaq-top3', async (req, res) => {
+  router.post('/api/trade4/nasdaq_top3', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const { signal_mode = 'combined', market = 'nasdaq' } = req.body;
@@ -1234,7 +1234,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // ============================================================
 
   // 설정 조회
-  router.get('/api/auto-strategy/settings', (req, res) => {
+  router.get('/api/trade3/settings', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const bkId3 = req.query.broker_key_id || null;
     const row = bkId3 ? db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? AND broker_key_id=?').get(req.user.id, bkId3) : db.prepare('SELECT * FROM trade_setting_type3 WHERE user_id=? ORDER BY broker_key_id DESC LIMIT 1').get(req.user.id);
@@ -1242,7 +1242,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // 설정 저장
-  router.post('/api/auto-strategy/settings', (req, res) => {
+  router.post('/api/trade3/settings_save', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter, use_macd, use_rsi, rsi_threshold, use_bb, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit, sma200_exit } = req.body;
     const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
@@ -1257,7 +1257,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // 활성화 토글
-  router.post('/api/auto-strategy/toggle', (req, res) => {
+  router.post('/api/trade3/toggle', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled } = req.body;
     const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
@@ -1270,7 +1270,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   });
 
   // 종목 풀 조회
-  router.get('/api/auto-strategy/pool', (req, res) => {
+  router.get('/api/trade3/pool', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const rows = db.prepare('SELECT * FROM trade_pool_type3 WHERE user_id=? ORDER BY factor_score DESC').all(req.user.id);
     res.json({ ok: true, pool: rows });
