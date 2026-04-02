@@ -4,28 +4,14 @@
 // readForm, applyForm, getJson, postJson, renderStatusCards, renderPresets,
 // writeOutput, writeSummaryCards, calcClaudeCost, summarizeResult,
 // previewRoute, runRoute, loadAll, toggleConfig → dead code 제거
-
-// searchBtn 이벤트 (news.js의 runNewsSearch 호출)
-if (document.getElementById('searchBtn')) {
-  document.getElementById('searchBtn').addEventListener('click', runNewsSearch);
-}
-
-// Ctrl+Enter 단축키
-document.addEventListener('keydown', (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-    event.preventDefault();
-    if (typeof runNewsSearch === 'function') runNewsSearch();
-  }
-});
+// searchBtn 이벤트, DOMContentLoaded 탭버튼 등록 → dead code 제거
 
 // ===== 탭 전환 =====
+// activateMenu(common.js)에서 호출 / alpaca-keys.js에서 오버라이드
 function switchTab(tab) {
-  document.querySelectorAll('.tab-content').forEach(el => {
-    el.style.display = 'none';
-  });
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
+  document.querySelectorAll('.tab-content').forEach(el => { el.style.display = 'none'; });
+  document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('active'); });
+
   const tabEl = document.getElementById('tab-' + tab);
   if (tabEl) tabEl.style.display = 'block';
   const activeBtn = document.getElementById('tab-btn-' + tab);
@@ -70,10 +56,7 @@ function switchTab(tab) {
     if (btPh) btPh.style.display = 'inline';
   }
   if (tab === 'datacollect') {
-    if (typeof _dcSelectedSymbols !== 'undefined') {
-      _dcSelectedSymbols = [];
-      _dcActiveSymbol = '';
-    }
+    if (typeof _dcSelectedSymbols !== 'undefined') { _dcSelectedSymbols = []; _dcActiveSymbol = ''; }
     const searchInput = document.getElementById('dc-search-input');
     if (searchInput) searchInput.value = '';
     const searchResult = document.getElementById('dc-search-result');
@@ -88,20 +71,3 @@ function switchTab(tab) {
     if (historyResult) historyResult.innerHTML = '';
   }
 }
-
-// 탭 버튼 이벤트 등록
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      if (typeof activateMenu === 'function') {
-        activateMenu(tab, null, btn.dataset.id || 0);
-      } else {
-        switchTab(tab);
-      }
-    });
-  });
-  if (typeof loadSidebarMenus === 'undefined') {
-    switchTab('ai');
-  }
-});

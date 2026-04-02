@@ -31,6 +31,7 @@ function switchTab(tab) {
     if (typeof loadAccount === 'function') loadAccount();
     if (typeof loadPositions === 'function') loadPositions();
     if (typeof loadOrders === 'function') loadOrders();
+    if (typeof loadTradeLog === 'function') loadTradeLog();
   }
   if (tab === 'lotto') {
     if (typeof lottoInit === 'function') lottoInit();
