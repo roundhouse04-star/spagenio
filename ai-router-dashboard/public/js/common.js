@@ -674,16 +674,22 @@ function activateMenu(tabKey, subKey, menuId) {
     return;
   }
 
-  if (typeof switchTab === 'function' && !subKey) {
-    switchTab(tabKey);
+  if (tabKey === 'stock' && !subKey) {
+    if (typeof switchTab === 'function') {
+      switchTab(tabKey);
+    }
+
+    setTimeout(() => {
+      if (typeof loadAccount === 'function') loadAccount();
+      if (typeof loadPositions === 'function') loadPositions();
+      if (typeof loadOrders === 'function') loadOrders();
+      if (typeof loadTradeLog === 'function') loadTradeLog();
+    }, 300);
     return;
   }
 
-  if (tabKey === 'stock' && !subKey) {
-    setTimeout(() => {
-      if (typeof loadAccount === 'function') loadAccount();
-      if (typeof loadTradeLog === 'function') loadTradeLog();
-    }, 300);
+  if (typeof switchTab === 'function' && !subKey) {
+    switchTab(tabKey);
     return;
   }
 
@@ -724,7 +730,6 @@ function setSelectedAccount(accountId) {
     if (el && el.value !== normalized) el.value = normalized;
   });
 
-  // 계좌 변경 시 현재 탭에 맞게 재조회
   const tab = window._currentTab || '';
   if (tab === 'stock') {
     if (typeof loadAccount === 'function') loadAccount();
@@ -799,6 +804,12 @@ async function loadAccountSelects() {
         const label = `${paperLabel}·${typeLabel}${activeLabel}`;
         return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
       }).join('');
+
+      el.onchange = function () {
+        if (typeof window.setSelectedAccount === 'function') {
+          window.setSelectedAccount(this.value);
+        }
+      };
     });
      // 성과 탭 계좌 선택 콤보박스 (전체 옵션 포함)
     const perfSel = document.getElementById('accountSelectPerf');
@@ -809,6 +820,12 @@ async function loadAccountSelects() {
         const activeLabel = a.is_active ? ' ✓' : '';
         return `<option value="${a.id}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${paperLabel}·${typeLabel}${activeLabel})</option>`;
       }).join('');
+
+      perfSel.onchange = function () {
+        if (this.value && typeof window.setSelectedAccount === 'function') {
+          window.setSelectedAccount(this.value);
+        }
+      };
     }
      // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
     const cached = localStorage.getItem('selectedAccountId');
