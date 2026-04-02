@@ -1327,7 +1327,11 @@ let _searchTargetId = '';
 let _searchMulti = false;
 let _searchDebounceTimer = null;
 
+let _stockSearchTarget = '';
+let _stockSearchMulti = false;
 function openStockSearch(targetInputId, isMulti = false) {
+  _stockSearchTarget = targetInputId;
+  _stockSearchMulti = isMulti;
   _searchTargetId = targetInputId;
   _searchMulti = isMulti;
   const layer = document.getElementById('sp-stock-search-layer');

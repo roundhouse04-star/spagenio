@@ -2926,11 +2926,8 @@ window.toggleSymbolActive = async function (symbol, toggleEl) {
 };
 // 페이지 로드 시 실행
 // ============================================================
-// 사이드바 동적 렌더링
+// 사이드바 동적 렌더링 (_currentTab/_currentSubTab/_menuData → common.js에서 선언)
 // ============================================================
-let _currentTab = 'ai';
-let _currentSubTab = null;
-let _menuData = [];
 function renderSidebar(menus) {
   const nav = document.getElementById('sidebarNav');
   if (!nav) return;
