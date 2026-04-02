@@ -711,7 +711,7 @@ async function loadTradeLog() {
   if (!el) return;
   el.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;padding:12px;">로딩 중...</p>';
   try {
-    const res = await fetch('/api/auto-trade/log');
+    const res = await fetch('/api/trade4/log');
     const d = await res.json();
     const logs = d.logs || [];
 
