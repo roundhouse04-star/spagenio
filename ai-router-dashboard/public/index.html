@@ -4403,7 +4403,6 @@
   <script src="/js/news.js?v=20260331c"></script>
   <script src="/js/chart.js?v=20260331c"></script>
   <script src="/js/lotto.js?v=20260331c"></script>
-  <script src="/js/backtest.js?v=20260331c"></script>
   <script>
     // ===== 전역 변수 =====
     let _selectedMarket = 'nasdaq';
@@ -5191,38 +5190,6 @@
 
     // ===== 종목 개별 저장 =====
     // ===== sp 팝업 헬퍼 (기존 sp-alert-layer / sp-confirm-layer 사용) =====
-    function spAlert(icon, title, msg) {
-      return new Promise(resolve => {
-        const layer = document.getElementById('sp-alert-layer');
-        if (!layer) { alert(`${title}\n${msg}`); resolve(); return; }
-        document.getElementById('sp-alert-icon').textContent = icon;
-        document.getElementById('sp-alert-title').textContent = title;
-        document.getElementById('sp-alert-msg').textContent = msg;
-        layer.style.display = 'flex';
-        const btn = document.getElementById('sp-alert-ok');
-        const handler = () => { layer.style.display = 'none'; btn.removeEventListener('click', handler); resolve(); };
-        btn.addEventListener('click', handler);
-      });
-    }
-
-    function spConfirm(icon, title, msg, okLabel = '확인', okColor = '#ef4444') {
-      return new Promise(resolve => {
-        const layer = document.getElementById('sp-confirm-layer');
-        if (!layer) { resolve(confirm(`${title}\n${msg}`)); return; }
-        document.getElementById('sp-confirm-icon').textContent = icon;
-        document.getElementById('sp-confirm-title').textContent = title;
-        document.getElementById('sp-confirm-msg').textContent = msg;
-        const okBtn = document.getElementById('sp-confirm-ok');
-        okBtn.textContent = okLabel;
-        okBtn.style.background = okColor;
-        layer.style.display = 'flex';
-        const okHandler = () => { layer.style.display = 'none'; okBtn.removeEventListener('click', okHandler); cancelBtn.removeEventListener('click', cancelHandler); resolve(true); };
-        const cancelBtn = document.getElementById('sp-confirm-cancel');
-        const cancelHandler = () => { layer.style.display = 'none'; okBtn.removeEventListener('click', okHandler); cancelBtn.removeEventListener('click', cancelHandler); resolve(false); };
-        okBtn.addEventListener('click', okHandler);
-        cancelBtn.addEventListener('click', cancelHandler);
-      });
-    }
 
     window.saveOneSymbol = async function (symbol) {
       try {

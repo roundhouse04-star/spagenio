@@ -458,7 +458,7 @@ window.fetch = function (url, options = {}) {
 };
 
 // ===== 퀀트 차트 팝업 =====
-let chartInstances = {};
+// chartInstances → chart.js로 이동
 // ===== 인증 관련 =====
 // checkAuth, logout, loadUserInfo
 
