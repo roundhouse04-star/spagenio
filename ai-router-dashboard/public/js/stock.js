@@ -1,4 +1,3 @@
-// ===== 공통 상수 =====
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const STOCK_API = isLocal ? 'http://localhost:5001' : '/proxy/stock';
 
