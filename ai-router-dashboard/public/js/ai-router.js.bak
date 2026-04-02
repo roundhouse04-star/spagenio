@@ -98,65 +98,7 @@ async function runNewsSearch() {
 }
 
 // ✅ 인증 체크
-async function checkAuth() {
-  const token = sessionStorage.getItem('auth_token');
-  if (!token) {
-    window.location.href = '/login';
-    return false;
-  }
-  try {
-    const res = await originalFetch('/api/auth/verify', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.status === 401) {
-      sessionStorage.removeItem('auth_token');
-      window.location.href = '/login';
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.warn('Auth check failed:', e);
-    return true;
-  }
-}
-
-// 페이지 로드 시 인증 체크
-checkAuth();
-
-// ===== 로그아웃 =====
-async function logout() {
-  try {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('auth_token') }
-    });
-  } catch (e) { }
-  sessionStorage.removeItem('auth_token');
-  window.location.href = '/login';
-}
-
-// 헤더 유저명 표시
-async function loadUserInfo() {
-  const token = sessionStorage.getItem('auth_token');
-  if (!token) return;
-  try {
-    const res = await fetch('/api/auth/verify', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const el = document.getElementById('headerUsername');
-      if (el && data.user?.username) {
-        el.textContent = '👤 ' + data.user.username;
-      }
-      const el2 = document.getElementById('headerUsername2');
-      if (el2 && data.user?.username) {
-        el2.textContent = data.user.username + ' 님';
-      }
-    }
-  } catch (e) { }
-}
-loadUserInfo();
+// checkAuth, logout, loadUserInfo → common.js로 이동
 
 const state = {
   config: null,
