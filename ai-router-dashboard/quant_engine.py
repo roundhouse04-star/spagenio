@@ -227,7 +227,7 @@ except:
 # ===== 설정 =====
 ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY', '')
 ALPACA_SECRET_KEY = os.environ.get('ALPACA_SECRET_KEY', '')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'news.db')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'stock.db')
 
 app = Flask(__name__)
 CORS(app)
