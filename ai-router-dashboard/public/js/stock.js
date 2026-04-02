@@ -2253,6 +2253,7 @@ window.setDayMarket = function (market) {
 };
  // loadVolumeSurge / loadNewsCatalyst — market 파라미터 주입
 const _origLoadVolumeSurge = typeof window.loadVolumeSurge === 'function' ? window.loadVolumeSurge : null;
+window.loadVolumeSurge = async function() {
   const el = document.getElementById('volumeSurgeList');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
@@ -2277,6 +2278,7 @@ const _origLoadVolumeSurge = typeof window.loadVolumeSurge === 'function' ? wind
   }
 };
  const _origLoadNewsCatalyst = typeof window.loadNewsCatalyst === 'function' ? window.loadNewsCatalyst : null;
+window.loadNewsCatalyst = async function() {
   const el = document.getElementById('newsCatalystList');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.85rem;">⏳ 조회 중...</div>';
@@ -2798,7 +2800,11 @@ window.saveKrSymbol = async function (symbol) {
 };
  // ===== 저장된 설정 카드 렌더링 =====
 const _origLoadAutoTradeSettings = typeof loadAutoTradeSettings === 'function' ? loadAutoTradeSettings : null;
- async function renderAtSavedSettings() {
+window.loadAutoTradeSettings = async function() {
+  if (typeof _origLoadAutoTradeSettings === 'function') await _origLoadAutoTradeSettings();
+  renderAtSavedSettings();
+};
+async function renderAtSavedSettings() {
   const el = document.getElementById('atSavedSettings');
   if (!el) return;
   try {
@@ -2927,6 +2933,7 @@ const _origLoadAutoTradeSettings = typeof loadAutoTradeSettings === 'function' ?
 let _currentTab = 'ai';
 let _currentSubTab = null;
 let _menuData = [];
+function renderSidebar(menus) {
    const nav = document.getElementById('sidebarNav');
   if (!nav) return;
    // 그룹 레이블 매핑
@@ -2973,6 +2980,7 @@ let _menuData = [];
   });
    nav.innerHTML = html;
 }
+function toggleSubMenu(menuId) {
    const subMenu = document.getElementById(`sub-menu-${menuId}`);
   const parentBtn = document.querySelector(`[data-id="${menuId}"]`);
   if (!subMenu) return;
@@ -2988,6 +2996,7 @@ let _menuData = [];
     if (firstChild) firstChild.click();
   }
 }
+function activateMenu(tabKey, subKey, menuId) {
    const allTabs = document.querySelectorAll('.tab-content');
   allTabs.forEach(t => { t.style.display = 'none'; t.classList.remove('active-tab'); });
   const targetTab = document.getElementById(`tab-${tabKey}`);
@@ -3056,6 +3065,7 @@ let _menuData = [];
     if (analysisTab) analysisTab.style.display = 'block';
   }
 }
+function renderDefaultSidebar() {
    const nav = document.getElementById('sidebarNav');
   if (!nav) return;
   nav.innerHTML = `
@@ -3215,7 +3225,10 @@ function switchDcTab(tab) {
 window.switchDcTab = switchDcTab;
  // 성과 대시보드 계좌 타입 선택
 window._perfAccountType = window._perfAccountType || 0;
+window._perfAccountType = window._perfAccountType || 0;
 window._perfAccountId = window._perfAccountId || '';
+function setPerfAccount(accountId) {
+  window._perfAccountId = accountId || '';
    const badge = document.getElementById('accountSelectPerfBadge');
   if (badge) badge.textContent = accountId ? '계좌별 조회 중' : '';
   loadPerformanceSummary();
@@ -3225,6 +3238,8 @@ window._perfAccountId = window._perfAccountId || '';
   loadTradeHistory();
 }
 window.setPerfAccount = setPerfAccount;
+function setPerfAccountType(type) {
+  window._perfAccountType = type;
    const labels = { 0: '전체 계좌 기준', 1: '수동 계좌 기준', 2: '자동매매 계좌 기준' };
   const labelEl = document.getElementById('perfAccLabel');
   if (labelEl) labelEl.textContent = labels[type] || '';
@@ -3363,6 +3378,7 @@ let _topPicksCacheTime = 0;
 let _topPicksCacheMarket = 'nasdaq';
 const _origLoadTopPicks = typeof window.loadTopPicks === 'function'
   ? window.loadTopPicks : null;
+window.loadTopPicks = async function() {
   const el = document.getElementById('topPicksList');
   if (!el) return;
   const now = Date.now();

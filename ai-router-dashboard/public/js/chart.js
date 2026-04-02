@@ -496,6 +496,8 @@ async function loadHomePortfolioSummary() {
  // ============================================================
 // 백테스트 결과 DB 저장 연동
 // ============================================================
+let _lastBtResult = null;
+const _origRunBacktest = typeof window.runBacktest === 'function' ? window.runBacktest : null;
 window.runBacktest = async function (...args) {
   document.getElementById('bt-save-wrap').style.display = 'none';
   _lastBtResult = null;
@@ -513,6 +515,10 @@ async function saveBtResultToDb() {
  // 백테스트 결과 캡처 (공통 js와 연동)
 window._captureBtResult = function (result) {
   _lastBtResult = result;
+};
+
+// ── 성과 스냅샷 자동 저장 스케줄러 (KST 06:05) ──
+(function autoSnapshotScheduler() {
   function msUntilSnapshot() {
     const now = new Date();
     const target = new Date();
@@ -532,4 +538,11 @@ window._captureBtResult = function (result) {
   }
   scheduleSnapshot();
 })();
- // TOP5 분석 결과 캐싱 (탭 재진입 시 즉시 표시, 5분 유효)
+}
+}
+}
+}
+}
+}
+}
+}
