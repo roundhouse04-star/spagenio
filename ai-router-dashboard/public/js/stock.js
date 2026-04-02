@@ -3240,10 +3240,9 @@ function setPerfAccount(accountId) {
 window.setPerfAccount = setPerfAccount;
 function setPerfAccountType(type) {
   window._perfAccountType = type;
-   const labels = { 0: '전체 계좌 기준', 1: '수동 계좌 기준', 2: '자동매매 계좌 기준' };
+  const labels = { 0: '전체 계좌 기준', 1: '수동 계좌 기준', 2: '자동매매 계좌 기준' };
   const labelEl = document.getElementById('perfAccLabel');
   if (labelEl) labelEl.textContent = labels[type] || '';
-  // 버튼 스타일
   [0, 1, 2].forEach(t => {
     const btn = document.getElementById(`perfAccBtn${t}`);
     if (!btn) return;
@@ -3260,7 +3259,9 @@ function setPerfAccountType(type) {
   loadPerformanceSummary();
   loadPerformanceHistory();
 }
-   const el = document.getElementById('perfTradeHistory');
+
+async function loadTradeHistory() {
+  const el = document.getElementById('perfTradeHistory');
   if (!el) return;
   try {
     const res = await fetch('/api/trade4/log');
@@ -3276,24 +3277,27 @@ function setPerfAccountType(type) {
         <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">손익</th>
       </tr></thead><tbody>
       ${d.logs.slice(0, 20).map(l => {
-      const isBuy = l.action === 'BUY';
-      const isProfit = l.action.includes('PROFIT');
-      const color = isBuy ? '#4f8fff' : isProfit ? '#FF3B30' : '#007AFF';
-      const pnl = l.profit_pct ? `${l.profit_pct > 0 ? '+' : ''}${parseFloat(l.profit_pct).toFixed(2)}%` : '-';
-      return `<tr>
+        const isBuy = l.action === 'BUY';
+        const isProfit = (l.action || '').includes('PROFIT');
+        const color = isBuy ? '#4f8fff' : isProfit ? '#FF3B30' : '#007AFF';
+        const pnl = l.profit_pct ? `${l.profit_pct > 0 ? '+' : ''}${parseFloat(l.profit_pct).toFixed(2)}%` : '-';
+        return `<tr>
           <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-size:0.78rem;color:#9CA3AF;">${new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
           <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:#E5E7EB;">${l.symbol}</td>
           <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;"><span style="padding:2px 7px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${color}22;color:${color};">${actionMap[l.action] || l.action}</span></td>
           <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;color:#E5E7EB;">$${parseFloat(l.price || 0).toFixed(2)}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:${isProfit ? '#FF3B30' : l.action.includes('LOSS') || l.action.includes('STOP') ? '#007AFF' : '#9CA3AF'};">${pnl}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:${isProfit ? '#FF3B30' : (l.action || '').includes('LOSS') || (l.action || '').includes('STOP') ? '#007AFF' : '#9CA3AF'};">${pnl}</td>
         </tr>`;
-    }).join('')}
+      }).join('')}
       </tbody></table></div>`;
   } catch (e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
 }
- // ============================================================
+window.loadTradeHistory = loadTradeHistory;
+
+// ============================================================
 // 백테스트 결과 저장 JS
 // ============================================================
+async function loadSavedBacktests() {
   const el = document.getElementById('savedBacktestList');
   if (!el) return;
   try {
@@ -3311,24 +3315,29 @@ function setPerfAccountType(type) {
         </div>
         <div style="text-align:right;">
           <div style="font-size:1.1rem;font-weight:800;color:${retColor};">${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%</div>
-          <div style="font-size:0.72rem;color:#4B5563;margin-top:2px;">${r.created_at?.slice(0, 10)}</div>
+          <div style="font-size:0.72rem;color:#4B5563;margin-top:2px;">${r.created_at?.slice(0, 10) || ''}</div>
           <button onclick="deleteBacktestResult(${r.id})" style="font-size:0.72rem;color:#4B5563;background:none;border:none;cursor:pointer;margin-top:2px;">🗑️ 삭제</button>
         </div>
       </div>`;
     }).join('');
   } catch (e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
 }
-   const ok = await spConfirm('이 백테스트 결과를 삭제할까요?', '삭제 확인', '🗑️', '삭제', '#FF3B30');
+window.loadSavedBacktests = loadSavedBacktests;
+
+async function deleteBacktestResult(id) {
+  const ok = await spConfirm('🗑️', '삭제 확인', '이 백테스트 결과를 삭제할까요?', '삭제', '#FF3B30');
   if (!ok) return;
   await fetch(`/api/backtest/results/${id}`, { method: 'DELETE' });
   loadSavedBacktests();
 }
- // ============================================================
+window.deleteBacktestResult = deleteBacktestResult;
+
+// ============================================================
 // 텔레그램 JS
 // ============================================================
+async function saveTelegramSettings() {
   const botToken = document.getElementById('tgBotToken')?.value?.trim();
   const chatId = document.getElementById('tgChatId')?.value?.trim();
-  const msgEl = document.getElementById('tgSettingMsg');
   if (!botToken || !chatId) { showTgMsg('Bot Token과 Chat ID를 입력해주세요', false); return; }
   try {
     const res = await fetch('/api/user/telegram', {
@@ -3336,18 +3345,37 @@ function setPerfAccountType(type) {
       body: JSON.stringify({ chat_id: chatId, bot_token: botToken })
     });
     const d = await res.json();
-    showTgMsg(d.ok ? '✅ 텔레그램 설정 저장 완료!' : '❌ 저장 실패: ' + d.error, d.ok);
+    showTgMsg(d.ok ? '✅ 텔레그램 설정 저장 완료!' : '❌ 저장 실패: ' + (d.error || '오류'), !!d.ok);
   } catch (e) { showTgMsg('❌ 오류: ' + e.message, false); }
 }
-   const el = document.getElementById('tgSettingMsg');
+window.saveTelegramSettings = saveTelegramSettings;
+
+function showTgMsg(msg, isOk) {
+  const el = document.getElementById('tgSettingMsg');
   if (!el) return;
   el.style.display = 'block';
-  el.style.background = isOk ? 'rgba(255,59,48,0.1)' : 'rgba(30,123,255,0.1)';
-  el.style.color = isOk ? '#FF3B30' : '#007AFF';
+  el.style.background = isOk ? 'rgba(16,185,129,0.12)' : 'rgba(255,59,48,0.12)';
+  el.style.color = isOk ? '#10B981' : '#FF3B30';
   el.textContent = msg;
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
-   const el = document.getElementById('tgAlertLog');
+
+async function loadTelegramSettings() {
+  const botEl = document.getElementById('tgBotToken');
+  const chatEl = document.getElementById('tgChatId');
+  if (!botEl && !chatEl) return;
+  try {
+    const res = await fetch('/api/user/telegram');
+    const d = await res.json();
+    if (!d.ok) return;
+    if (botEl) botEl.value = d.bot_token || '';
+    if (chatEl) chatEl.value = d.chat_id || '';
+  } catch (e) {}
+}
+window.loadTelegramSettings = loadTelegramSettings;
+
+async function loadTelegramAlertLog() {
+  const el = document.getElementById('tgAlertLog');
   if (!el) return;
   try {
     const res = await fetch('/api/telegram/alert/log');
@@ -3358,9 +3386,11 @@ function setPerfAccountType(type) {
         <span style="color:#4f8fff;font-size:0.72rem;font-weight:700;">${l.alert_type}</span>
         <span style="color:#4B5563;font-size:0.7rem;">${new Date(l.sent_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
       </div>`).join('');
-  } catch (e) { }
+  } catch (e) {}
 }
- // ============================================================
+window.loadTelegramAlertLog = loadTelegramAlertLog;
+
+// ============================================================
 // 홈 포트폴리오 요약
 // ============================================================
 // _lastBtResult, runBacktest, _captureBtResult → chart.js에서 처리
@@ -3438,55 +3468,7 @@ window.loadTopPicks = async function() {
     }
   }
 };
- // ===== 종목 검색 팝업 =====
-let _stockSearchTarget = null;
-let _stockSearchMulti = false;
-let _stockSearchDebounceTimer = null;
-   const layer = document.getElementById('sp-stock-search-layer');
-  if (layer) {
-    layer.style.display = 'flex';
-    const inp = document.getElementById('sp-stock-search-input');
-    if (inp) { inp.value = ''; inp.focus(); }
-    document.getElementById('sp-stock-search-result').innerHTML = '<div style="text-align:center;color:#636366;padding:24px;font-size:0.88rem;">종목명을 입력하세요</div>';
-  }
-};
-   const layer = document.getElementById('sp-stock-search-layer');
-  if (layer) layer.style.display = 'none';
-};
-   const el = document.getElementById('sp-stock-search-result');
-  el.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:24px;font-size:0.88rem;">🔍 검색 중...</div>';
-  try {
-    const res = await fetch('/proxy/stock/api/stock/search?q=' + encodeURIComponent(q.trim()));
-    const data = await res.json();
-    const results = data.results || [];
-    if (!results.length) { el.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:24px;font-size:0.88rem;">검색 결과가 없습니다</div>'; return; }
-    el.innerHTML = results.map(r => {
-      const isKR = r.symbol.endsWith('.KS') || r.symbol.endsWith('.KQ');
-      const flag = isKR ? '🇰🇷' : '🇺🇸';
-      const exBadge = isKR
-        ? `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#fff7ed;color:#c2410c;font-weight:700;">${r.symbol.endsWith('.KQ') ? 'KOSDAQ' : 'KOSPI'}</span>`
-        : `<span style="font-size:0.72rem;padding:1px 6px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-weight:700;">${r.exchange}</span>`;
-      return `
-        <div data-symbol="${r.symbol}" data-name="${(r.name || r.symbol).replace(/"/g, '')}" onclick="selectStock(this.dataset.symbol, this.dataset.name)"
-          style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background 0.1s;"
-          onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-          <div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:0.95rem;">${flag}</span>
-              <span style="font-weight:700;font-size:0.92rem;color:#0f172a;">${r.name || r.symbol}</span>
-            </div>
-            <div style="font-size:0.78rem;color:#9ca3af;margin-top:2px;">${r.symbol}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            ${exBadge}
-            <span style="font-size:0.75rem;padding:1px 6px;border-radius:999px;background:#f1f5f9;color:#64748b;">${r.type || ''}</span>
-          </div>
-        </div>`;
-    }).join('');
-  } catch (e) {
-    el.innerHTML = '<div style="color:#ef4444;padding:16px;font-size:0.88rem;">오류: ' + e.message + '</div>';
-  }
-};
+
  window._baseSelectStock = function (symbol, name) {
   if (!_stockSearchTarget) return;
   // hidden input에 값 설정
@@ -3671,17 +3653,4 @@ let _analysisChartInstance = null;
   } catch (e) { console.error('차트 로드 실패:', e); }
 }
 // ── 자동매매 계좌 선택기 ──────────────────────────────
-window.selectedAccountId = localStorage.getItem('selectedAccountId') || null;
-   const opt = document.querySelector(`#accountSelectUs option[value="${accountId}"]`);
-  const label = opt ? opt.dataset.label : '';
-  ['accountSelectUsBadge', 'accountSelectAutoBadge', 'accountSelectDayBadge', 'accountSelectStockBadge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = label;
-  });
-  // 주식 탭이 활성화된 경우 계좌 정보 새로고침
-  const stockTab = document.getElementById('tab-stock');
-  const stockTabVisible = stockTab && (stockTab.style.display === '' || stockTab.style.display === 'block' || stockTab.style.display === 'flex');
-  if (stockTabVisible && typeof loadAccount === 'function') {
-    setTimeout(() => loadAccount(), 100);
-  }
-};
+window.selectedAccountId = window.selectedAccountId || localStorage.getItem('selectedAccountId') || null;

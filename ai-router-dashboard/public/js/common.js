@@ -512,30 +512,257 @@ loadUserInfo();
 
 
 // ===== 사이드바 메뉴 시스템 (index.html에서 이동) =====
+let _currentTab = window._currentTab || 'ai';
+let _currentSubTab = window._currentSubTab || null;
+let _menuData = window._menuData || [];
+window._currentTab = _currentTab;
+window._currentSubTab = _currentSubTab;
+window._menuData = _menuData;
+
 async function loadSidebarMenus() {
   try {
     const res = await fetch('/api/menus');
     const d = await res.json();
-    if (!d.ok) return;
-    _menuData = d.menus;
-    renderSidebar(d.menus);
-    // 첫 번째 메뉴 활성화
-    if (d.menus.length > 0) {
-      const first = d.menus[0];
-      activateMenu(first.tab_key, first.sub_key, first.id);
+    if (!d.ok) throw new Error(d.error || '메뉴 조회 실패');
+    _menuData = Array.isArray(d.menus) ? d.menus : [];
+    window._menuData = _menuData;
+    renderSidebar(_menuData);
+
+    if (_menuData.length > 0) {
+      const first = _menuData[0];
+      activateMenu(first.tab_key, first.sub_key || null, first.id || 0);
     }
   } catch (e) {
-    // 폴백: 기본 사이드바 렌더링
+    console.warn('사이드바 메뉴 로드 실패:', e);
     renderDefaultSidebar();
   }
 }
- function renderSidebar(menus) {
-function toggleSubMenu(menuId, tabKey) {
+
+function renderSidebar(menus) {
+  const nav = document.getElementById('sidebarNav') || document.getElementById('sidebarMenus');
+  if (!nav) return;
+
+  const groupLabels = {
+    ai: '메인',
+    stock: '트레이딩',
+    datacollect: '트레이딩',
+    quant: '트레이딩',
+    backtest: '트레이딩',
+    performance: '분석',
+    analysis: '분석'
+  };
+
+  let html = '';
+  let lastGroup = '';
+
+  (menus || []).forEach(menu => {
+    const group = groupLabels[menu.tab_key] || '';
+    if (group && group !== lastGroup) {
+      html += `<div class="sp-nav-label" style="margin-top:8px;">${group}</div>`;
+      lastGroup = group;
+    }
+
+    const hasChildren = Array.isArray(menu.children) && menu.children.length > 0;
+    const icon = menu.icon || '•';
+    const name = menu.name || menu.menu_name || menu.tab_key || '메뉴';
+
+    if (hasChildren) {
+      html += `
+        <button class="tab-btn sp-parent-btn" id="tab-btn-${menu.tab_key}" data-tab="${menu.tab_key}" data-id="${menu.id}"
+          onclick="toggleSubMenu(${menu.id})">
+          <span class="nav-icon">${icon}</span> ${name}
+          <span class="sp-parent-arrow">▶</span>
+        </button>
+        <div class="sp-sub-menu" id="sub-menu-${menu.id}">
+          ${menu.children.map(child => {
+            const childIcon = child.icon || '•';
+            const childName = child.name || child.menu_name || child.sub_key || '서브메뉴';
+            return `
+              <button class="sp-sub-btn" id="sub-btn-${child.id}" data-tab="${child.tab_key}" data-sub="${child.sub_key || ''}" data-id="${child.id}"
+                onclick="activateMenu('${child.tab_key}', '${child.sub_key || ''}', ${child.id})">
+                <span>${childIcon}</span> ${childName}
+              </button>`;
+          }).join('')}
+        </div>`;
+    } else {
+      html += `
+        <button class="tab-btn" id="tab-btn-${menu.tab_key}-${menu.id}" data-tab="${menu.tab_key}" data-id="${menu.id}"
+          onclick="activateMenu('${menu.tab_key}', ${menu.sub_key ? `'${menu.sub_key}'` : 'null'}, ${menu.id || 0})">
+          <span class="nav-icon">${icon}</span> ${name}
+        </button>`;
+    }
+  });
+
+  nav.innerHTML = html;
+}
+
+function toggleSubMenu(menuId) {
+  const subMenu = document.getElementById(`sub-menu-${menuId}`);
+  const parentBtn = document.querySelector(`.sp-parent-btn[data-id="${menuId}"]`);
+  if (!subMenu) return;
+
+  const isOpen = subMenu.classList.contains('open');
+  document.querySelectorAll('.sp-sub-menu').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.sp-parent-btn').forEach(b => b.classList.remove('open'));
+
+  if (!isOpen) {
+    subMenu.classList.add('open');
+    if (parentBtn) parentBtn.classList.add('open');
+    const firstChild = subMenu.querySelector('.sp-sub-btn');
+    if (firstChild) firstChild.click();
+  }
+}
+
 function activateMenu(tabKey, subKey, menuId) {
   _currentTab = tabKey;
-  _currentSubTab = subKey;
-   // 탭 전환
+  _currentSubTab = subKey || null;
+  window._currentTab = _currentTab;
+  window._currentSubTab = _currentSubTab;
+
+  document.querySelectorAll('.tab-content').forEach(t => {
+    t.style.display = 'none';
+    t.classList.remove('active-tab');
+  });
+
+  const targetTab = document.getElementById(`tab-${tabKey}`);
+  if (targetTab) {
+    targetTab.style.display = 'block';
+    targetTab.classList.add('active-tab');
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sp-sub-btn').forEach(b => b.classList.remove('active'));
+
+  const parentBtn = document.querySelector(`.sp-parent-btn[data-tab="${tabKey}"]`);
+  if (parentBtn) parentBtn.classList.add('active');
+  const subBtn = document.getElementById(`sub-btn-${menuId}`);
+  if (subBtn) subBtn.classList.add('active');
+  const directBtn = document.getElementById(`tab-btn-${tabKey}-${menuId}`);
+  if (directBtn) directBtn.classList.add('active');
+
+  if (subKey) {
+    const parentMenu = (_menuData || []).find(m => m.tab_key === tabKey && !m.parent_id);
+    if (parentMenu?.id) {
+      const subMenu = document.getElementById(`sub-menu-${parentMenu.id}`);
+      const parentBtnEl = document.querySelector(`.sp-parent-btn[data-id="${parentMenu.id}"]`);
+      if (subMenu) subMenu.classList.add('open');
+      if (parentBtnEl) parentBtnEl.classList.add('open');
+    }
+
+    if (tabKey === 'quant' && typeof switchQuantTab === 'function') {
+      switchQuantTab(subKey);
+      return;
+    }
+
+    if (tabKey === 'datacollect') {
+      if (typeof switchDcTab === 'function') switchDcTab(subKey || 'stock');
+      return;
+    }
+  }
+
+  if (tabKey === 'performance') {
+    if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+    if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
+    setTimeout(() => {
+      if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
+      if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+      if (typeof loadTradeHistory === 'function') loadTradeHistory();
+      if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
+      if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
+      if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
+    }, 300);
+    return;
+  }
+
+  if (typeof switchTab === 'function' && !subKey) {
+    switchTab(tabKey);
+    return;
+  }
+
+  if (tabKey === 'stock' && !subKey) {
+    setTimeout(() => {
+      if (typeof loadAccount === 'function') loadAccount();
+      if (typeof loadTradeLog === 'function') loadTradeLog();
+    }, 300);
+    return;
+  }
+
+  if (tabKey === 'analysis') {
+    const analysisTab = document.getElementById('tab-analysis');
+    if (analysisTab) analysisTab.style.display = 'block';
+  }
+}
+
 function renderDefaultSidebar() {
+  const nav = document.getElementById('sidebarNav') || document.getElementById('sidebarMenus');
+  if (!nav) return;
+
+  nav.innerHTML = `
+    <div class="sp-nav-label">메인</div>
+    <button class="tab-btn active" id="tab-btn-ai-0" onclick="activateMenu('ai', null, 0)"><span class="nav-icon">📰</span> 뉴스</button>
+    <div class="sp-nav-label" style="margin-top:8px;">트레이딩</div>
+    <button class="tab-btn" id="tab-btn-stock-0" onclick="activateMenu('stock', null, 0)"><span class="nav-icon">📈</span> 주식</button>
+    <button class="tab-btn" id="tab-btn-datacollect-0" onclick="activateMenu('datacollect', null, 0)"><span class="nav-icon">📊</span> 데이터 수집</button>
+    <button class="tab-btn" id="tab-btn-quant-0" onclick="activateMenu('quant', null, 0)"><span class="nav-icon">🤖</span> 자동매매</button>
+    <button class="tab-btn" id="tab-btn-backtest-0" onclick="activateMenu('backtest', null, 0)"><span class="nav-icon">🔬</span> 백테스팅</button>
+    <div class="sp-nav-label" style="margin-top:8px;">분석</div>
+    <button class="tab-btn" id="tab-btn-performance-0" onclick="activateMenu('performance', null, 0)"><span class="nav-icon">💹</span> 성과 대시보드</button>`;
+}
+
+
+function setSelectedAccount(accountId) {
+  const normalized = accountId != null && accountId !== '' ? String(accountId) : '';
+  window.selectedAccountId = normalized;
+  if (normalized) {
+    localStorage.setItem('selectedAccountId', normalized);
+  } else {
+    localStorage.removeItem('selectedAccountId');
+  }
+
+  ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== normalized) el.value = normalized;
+  });
+
+  return normalized;
+}
+window.setSelectedAccount = setSelectedAccount;
+
+async function deleteAlpacaKeys() {
+  try {
+    const res = await fetch('/api/user/broker-keys');
+    const { ok, data } = await safeJson(res);
+    if (!ok || !data.accounts?.length) {
+      await spAlert('⚠️', '안내', '삭제할 계좌가 없습니다.');
+      return;
+    }
+
+    const targetId = window.selectedAccountId || window.activeAccountId || String((data.accounts.find(a => a.is_active) || data.accounts[0]).id);
+    const confirmed = await spConfirm('🗑️', '계좌 삭제', '현재 선택된 Alpaca 계좌를 삭제하시겠습니까?', '삭제', '#ef4444');
+    if (!confirmed) return;
+
+    const delRes = await fetch(`/api/user/broker-keys/${targetId}`, { method: 'DELETE' });
+    const delData = await safeJson(delRes);
+    if (!delData.ok) {
+      await spAlert('❌', '오류', delData.data?.error || '계좌 삭제에 실패했습니다.');
+      return;
+    }
+
+    if (String(window.selectedAccountId || '') === String(targetId)) {
+      setSelectedAccount('');
+    }
+
+    await loadAlpacaKeyStatus();
+    if (typeof loadAccountSelects === 'function') await loadAccountSelects();
+    if (typeof loadAccount === 'function') loadAccount();
+    if (typeof loadPositions === 'function') loadPositions();
+    if (typeof loadOrders === 'function') loadOrders();
+    await spAlert('✅', '완료', '계좌가 삭제되었습니다.');
+  } catch (e) {
+    await spAlert('❌', '오류', e.message || '계좌 삭제 중 오류가 발생했습니다.');
+  }
+}
+window.deleteAlpacaKeys = deleteAlpacaKeys;
 
 // ===== 계좌 선택기 (index.html에서 이동) =====
 async function loadAccountSelects() {
