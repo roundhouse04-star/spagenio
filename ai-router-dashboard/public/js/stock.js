@@ -3348,12 +3348,7 @@ window.setPerfAccount = setPerfAccount;
  // ============================================================
 // 홈 포트폴리오 요약
 // ============================================================
-let _lastBtResult = null; // 마지막 백테스트 결과 저장
- // runBacktest 완료 후 훅
-const _origRunBacktest = window.runBacktest;
-  const wrap = document.getElementById('bt-save-wrap');
-  if (wrap) wrap.style.display = 'block';
-};
+// _lastBtResult, runBacktest, _captureBtResult → chart.js에서 처리
 // ── saveAutoTradeSettings 오버라이드 ─────────────────────────────
 // 버그 수정: _origSave 선언 순서 수정 + API 이중 호출 제거
 const _origSave = typeof window.saveAutoTradeSettings === 'function'
