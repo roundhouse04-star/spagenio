@@ -509,3 +509,76 @@ async function loadUserInfo() {
   } catch (e) { }
 }
 loadUserInfo();
+
+
+// ===== 사이드바 메뉴 시스템 (index.html에서 이동) =====
+async function loadSidebarMenus() {
+  try {
+    const res = await fetch('/api/menus');
+    const d = await res.json();
+    if (!d.ok) return;
+    _menuData = d.menus;
+    renderSidebar(d.menus);
+    // 첫 번째 메뉴 활성화
+    if (d.menus.length > 0) {
+      const first = d.menus[0];
+      activateMenu(first.tab_key, first.sub_key, first.id);
+    }
+  } catch (e) {
+    // 폴백: 기본 사이드바 렌더링
+    renderDefaultSidebar();
+  }
+}
+ function renderSidebar(menus) {
+function toggleSubMenu(menuId, tabKey) {
+function activateMenu(tabKey, subKey, menuId) {
+  _currentTab = tabKey;
+  _currentSubTab = subKey;
+   // 탭 전환
+function renderDefaultSidebar() {
+
+// ===== 계좌 선택기 (index.html에서 이동) =====
+async function loadAccountSelects() {
+  try {
+    const res = await fetch('/api/user/broker-keys');
+    const data = await res.json();
+    const accounts = data.accounts || data.keys || [];
+    if (!Array.isArray(accounts) || !accounts.length) return;
+     const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock'];
+    selects.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = accounts.map(a => {
+        const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
+        const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
+        const activeLabel = a.is_active ? ' ✓' : '';
+        const label = `${paperLabel}·${typeLabel}${activeLabel}`;
+        return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
+      }).join('');
+    });
+     // 성과 탭 계좌 선택 콤보박스 (전체 옵션 포함)
+    const perfSel = document.getElementById('accountSelectPerf');
+    if (perfSel) {
+      perfSel.innerHTML = '<option value="">— 전체 계좌 합산 —</option>' + accounts.map(a => {
+        const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
+        const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
+        const activeLabel = a.is_active ? ' ✓' : '';
+        return `<option value="${a.id}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${paperLabel}·${typeLabel}${activeLabel})</option>`;
+      }).join('');
+    }
+     // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
+    const cached = localStorage.getItem('selectedAccountId');
+    const cachedValid = cached && accounts.find(a => String(a.id) === cached);
+    const active = cachedValid ? accounts.find(a => String(a.id) === cached) : (accounts.find(a => a.is_active) || accounts[0]);
+    if (active) window.setSelectedAccount(String(active.id));
+  } catch (e) { console.error('계좌 로드 실패', e); }
+}
+ // alpaca-keys.js의 fetch 오버라이드가 x-account-id를 자동으로 붙여주므로
+// selectedAccountId만 activeAccountId와 동기화
+Object.defineProperty(window, 'activeAccountId', {
+  get() { return window.selectedAccountId; },
+  set(v) { window.selectedAccountId = v; },
+  configurable: true
+});
+ if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
+  

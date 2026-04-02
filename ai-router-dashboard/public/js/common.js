@@ -581,4 +581,5 @@ Object.defineProperty(window, 'activeAccountId', {
   configurable: true
 });
  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
+if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadSidebarMenus); } else { loadSidebarMenus(); }
   
