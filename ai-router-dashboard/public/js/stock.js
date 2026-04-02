@@ -3503,7 +3503,7 @@ window._baseSelectStock = function (symbol, name) {
   }
   closeStockSearch();
 };
-window.selectStock = window._baseSelectStock;
+// window.selectStock은 1348줄 function selectStock 사용 (덮어쓰기 제거)
 // 실시간 가격 조회 (tradeSymbol 선택 시)
 async function loadTradePrice(symbol) {
   const priceBox = document.getElementById('tradePriceDisplay');
