@@ -329,10 +329,10 @@ async function loadPositionPieChart() {
     });
     legendEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;">
       ${positions.map((p, i) => {
-        const val = parseFloat(p.market_value) || 0;
-        const pct = (val / total * 100).toFixed(1);
-        const pl = parseFloat(p.unrealized_plpc || 0) * 100;
-        return `<div style="display:flex;align-items:center;gap:6px;">
+      const val = parseFloat(p.market_value) || 0;
+      const pct = (val / total * 100).toFixed(1);
+      const pl = parseFloat(p.unrealized_plpc || 0) * 100;
+      return `<div style="display:flex;align-items:center;gap:6px;">
           <div style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0;"></div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;justify-content:space-between;">
@@ -345,17 +345,14 @@ async function loadPositionPieChart() {
             </div>
           </div>
         </div>`;
-      }).join('')}
+    }).join('')}
     </div>`;
   } catch (e) { legendEl.innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">Alpaca 연결 필요</div>'; }
 }
 
 
 // ===== 성과/백테스트/텔레그램 (index.html에서 이동) =====
-function setPerfAccount(accountId) {
-  window._perfAccountId = accountId || '';
-function setPerfAccountType(type) {
-  window._perfAccountType = type;
+
 async function loadPerformanceSummary() {
   try {
     const accountId = window._perfAccountId || '';
@@ -372,29 +369,29 @@ async function loadPerformanceSummary() {
       return;
     }
     const { latest, winRate, maxMdd, monthPnl } = d;
-     // 총 자산
+    // 총 자산
     document.getElementById('perf-equity').textContent = `$${parseFloat(latest.total_equity || 0).toLocaleString()}`;
     document.getElementById('perf-equity-sub').textContent = `현금 $${parseFloat(latest.cash || 0).toLocaleString()}`;
-     // 오늘 손익
+    // 오늘 손익
     const dp = parseFloat(latest.daily_pnl || 0);
     const dpc = parseFloat(latest.daily_pnl_pct || 0);
     const dpEl = document.getElementById('perf-daily-pnl');
     dpEl.textContent = `${dp >= 0 ? '+' : ''}$${dp.toFixed(0)}`;
     dpEl.style.color = dp >= 0 ? '#FF3B30' : '#007AFF';
     document.getElementById('perf-daily-pct').textContent = `${dpc >= 0 ? '+' : ''}${dpc.toFixed(2)}%`;
-     // 누적 수익률
+    // 누적 수익률
     const tp = parseFloat(latest.total_pnl || 0);
     const tpc = parseFloat(latest.total_pnl_pct || 0);
     const tpEl = document.getElementById('perf-total-pnl');
     tpEl.textContent = `${tp >= 0 ? '+' : ''}$${tp.toFixed(0)}`;
     tpEl.style.color = tp >= 0 ? '#FF3B30' : '#007AFF';
     document.getElementById('perf-total-pct').textContent = `${tpc >= 0 ? '+' : ''}${tpc.toFixed(2)}%`;
-     // 승률 / MDD
+    // 승률 / MDD
     document.getElementById('perf-winrate').textContent = `${winRate.toFixed(0)}%`;
     document.getElementById('perf-mdd').textContent = `MDD -${parseFloat(maxMdd || 0).toFixed(1)}%`;
   } catch (e) { console.error('성과 요약 로드 실패', e); }
 }
- async function loadPerformanceHistory() {
+async function loadPerformanceHistory() {
   try {
     const accountId = window._perfAccountId || '';
     const accountParam = accountId ? `&account_id=${accountId}` : '';
@@ -439,7 +436,7 @@ async function loadPerformanceSummary() {
     });
   } catch (e) { console.error('성과 이력 로드 실패', e); }
 }
- async function savePerformanceSnapshot() {
+async function savePerformanceSnapshot() {
   try {
     const res = await fetch('/api/performance/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const d = await res.json();
@@ -450,99 +447,97 @@ async function loadPerformanceSummary() {
     } else { await spAlert(d.error || '저장 실패', '오류', '❌'); }
   } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
 }
- async function loadTradeHistory() {
-async function saveBacktestResult(resultData) {
-  try {
-    const res = await fetch('/api/backtest/save', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(resultData)
-    });
-    const d = await res.json();
-    if (d.ok) await spAlert(`백테스트 결과가 저장됐어요! (ID: ${d.id})`, '저장 완료', '✅');
-    else await spAlert(d.error || '저장 실패', '오류', '❌');
-  } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
-}
- async function loadSavedBacktests() {
-async function deleteBacktestResult(id) {
-async function saveTelegramSettings() {
-async function testTelegramAlert() {
-  try {
-    const res = await fetch('/api/telegram/alert/test', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    const d = await res.json();
-    showTgMsg(d.ok ? '✅ 테스트 메시지 발송 완료!' : '❌ 발송 실패 — Bot Token/Chat ID를 확인해주세요', d.ok);
-    if (d.ok) loadTelegramAlertLog();
-  } catch (e) { showTgMsg('❌ 오류: ' + e.message, false); }
-}
- function showTgMsg(msg, isOk) {
-async function loadTelegramAlertLog() {
-async function loadHomePortfolioSummary() {
-  try {
-    const res = await fetch('/api/performance/summary');
-    const d = await res.json();
-    if (!d.ok || !d.latest) return;
-    const wrap = document.getElementById('homePortfolioWrap');
-    if (wrap) wrap.style.display = 'block';
-    const { latest, winRate, maxMdd } = d;
-    const el = (id) => document.getElementById(id);
-    if (el('homeEquity')) el('homeEquity').textContent = `$${parseFloat(latest.total_equity || 0).toLocaleString()}`;
-    const dp = parseFloat(latest.daily_pnl || 0);
-    const dpc = parseFloat(latest.daily_pnl_pct || 0);
-    if (el('homeDailyPnl')) { el('homeDailyPnl').textContent = `${dp >= 0 ? '+' : ''}$${dp.toFixed(0)} (${dpc >= 0 ? '+' : ''}${dpc.toFixed(2)}%)`; el('homeDailyPnl').style.color = dp >= 0 ? '#16a34a' : '#dc2626'; }
-    const tp = parseFloat(latest.total_pnl_pct || 0);
-    if (el('homeTotalPnl')) { el('homeTotalPnl').textContent = `${tp >= 0 ? '+' : ''}${tp.toFixed(2)}%`; el('homeTotalPnl').style.color = tp >= 0 ? '#16a34a' : '#dc2626'; }
-    if (el('homeWinRate')) el('homeWinRate').textContent = `${winRate.toFixed(0)}% / -${parseFloat(maxMdd || 0).toFixed(1)}%`;
-  } catch (e) { }
-}
- // ============================================================
-// 백테스트 결과 DB 저장 연동
-// ============================================================
-let _lastBtResult = null;
-const _origRunBacktest = typeof window.runBacktest === 'function' ? window.runBacktest : null;
-window.runBacktest = async function (...args) {
-  document.getElementById('bt-save-wrap').style.display = 'none';
-  _lastBtResult = null;
-  if (typeof _origRunBacktest === 'function') await _origRunBacktest.apply(this, args);
-};
- // 결과 저장 함수
-async function saveBtResultToDb() {
-  if (!_lastBtResult) {
-    await spAlert('저장할 결과가 없어요. 먼저 백테스트를 실행해주세요.', '알림', 'ℹ️');
-    return;
+async function loadTradeHistory() {
+  async function saveBacktestResult(resultData) {
+    try {
+      const res = await fetch('/api/backtest/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resultData)
+      });
+      const d = await res.json();
+      if (d.ok) await spAlert(`백테스트 결과가 저장됐어요! (ID: ${d.id})`, '저장 완료', '✅');
+      else await spAlert(d.error || '저장 실패', '오류', '❌');
+    } catch (e) { await spAlert('오류: ' + e.message, '오류', '❌'); }
   }
-  await saveBacktestResult(_lastBtResult);
-  loadSavedBacktests();
-}
- // 백테스트 결과 캡처 (공통 js와 연동)
-window._captureBtResult = function (result) {
-  _lastBtResult = result;
-};
+  async function loadSavedBacktests() {
+    async function deleteBacktestResult(id) {
+      async function saveTelegramSettings() {
+        async function testTelegramAlert() {
+          try {
+            const res = await fetch('/api/telegram/alert/test', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+            const d = await res.json();
+            showTgMsg(d.ok ? '✅ 테스트 메시지 발송 완료!' : '❌ 발송 실패 — Bot Token/Chat ID를 확인해주세요', d.ok);
+            if (d.ok) loadTelegramAlertLog();
+          } catch (e) { showTgMsg('❌ 오류: ' + e.message, false); }
+        }
+        function showTgMsg(msg, isOk) {
+          async function loadTelegramAlertLog() {
+            async function loadHomePortfolioSummary() {
+              try {
+                const res = await fetch('/api/performance/summary');
+                const d = await res.json();
+                if (!d.ok || !d.latest) return;
+                const wrap = document.getElementById('homePortfolioWrap');
+                if (wrap) wrap.style.display = 'block';
+                const { latest, winRate, maxMdd } = d;
+                const el = (id) => document.getElementById(id);
+                if (el('homeEquity')) el('homeEquity').textContent = `$${parseFloat(latest.total_equity || 0).toLocaleString()}`;
+                const dp = parseFloat(latest.daily_pnl || 0);
+                const dpc = parseFloat(latest.daily_pnl_pct || 0);
+                if (el('homeDailyPnl')) { el('homeDailyPnl').textContent = `${dp >= 0 ? '+' : ''}$${dp.toFixed(0)} (${dpc >= 0 ? '+' : ''}${dpc.toFixed(2)}%)`; el('homeDailyPnl').style.color = dp >= 0 ? '#16a34a' : '#dc2626'; }
+                const tp = parseFloat(latest.total_pnl_pct || 0);
+                if (el('homeTotalPnl')) { el('homeTotalPnl').textContent = `${tp >= 0 ? '+' : ''}${tp.toFixed(2)}%`; el('homeTotalPnl').style.color = tp >= 0 ? '#16a34a' : '#dc2626'; }
+                if (el('homeWinRate')) el('homeWinRate').textContent = `${winRate.toFixed(0)}% / -${parseFloat(maxMdd || 0).toFixed(1)}%`;
+              } catch (e) { }
+            }
+            // ============================================================
+            // 백테스트 결과 DB 저장 연동
+            // ============================================================
+            let _lastBtResult = null;
+            const _origRunBacktest = typeof window.runBacktest === 'function' ? window.runBacktest : null;
+            window.runBacktest = async function (...args) {
+              document.getElementById('bt-save-wrap').style.display = 'none';
+              _lastBtResult = null;
+              if (typeof _origRunBacktest === 'function') await _origRunBacktest.apply(this, args);
+            };
+            // 결과 저장 함수
+            async function saveBtResultToDb() {
+              if (!_lastBtResult) {
+                await spAlert('저장할 결과가 없어요. 먼저 백테스트를 실행해주세요.', '알림', 'ℹ️');
+                return;
+              }
+              await saveBacktestResult(_lastBtResult);
+              loadSavedBacktests();
+            }
+            // 백테스트 결과 캡처 (공통 js와 연동)
+            window._captureBtResult = function (result) {
+              _lastBtResult = result;
+            };
 
-// ── 성과 스냅샷 자동 저장 스케줄러 (KST 06:05) ──
-(function autoSnapshotScheduler() {
-  function msUntilSnapshot() {
-    const now = new Date();
-    const target = new Date();
-    target.setHours(6, 5, 0, 0);
-    if (now >= target) target.setDate(target.getDate() + 1);
-    return target - now;
+            // ── 성과 스냅샷 자동 저장 스케줄러 (KST 06:05) ──
+            (function autoSnapshotScheduler() {
+              function msUntilSnapshot() {
+                const now = new Date();
+                const target = new Date();
+                target.setHours(6, 5, 0, 0);
+                if (now >= target) target.setDate(target.getDate() + 1);
+                return target - now;
+              }
+              function scheduleSnapshot() {
+                setTimeout(async () => {
+                  try {
+                    const res = await fetch('/api/performance/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                    const d = await res.json();
+                    if (d.ok) console.log('[spagenio] 성과 스냅샷 자동 저장 완료');
+                  } catch (e) { }
+                  scheduleSnapshot();
+                }, msUntilSnapshot());
+              }
+              scheduleSnapshot();
+            })();
+          }
+        }
+      }
+    }
   }
-  function scheduleSnapshot() {
-    setTimeout(async () => {
-      try {
-        const res = await fetch('/api/performance/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-        const d = await res.json();
-        if (d.ok) console.log('[spagenio] 성과 스냅샷 자동 저장 완료');
-      } catch (e) { }
-      scheduleSnapshot();
-    }, msUntilSnapshot());
-  }
-  scheduleSnapshot();
-})();
-}
-}
-}
-}
-}
-}
-}
 }
