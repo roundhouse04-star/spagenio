@@ -9,6 +9,7 @@
 // ===== 탭 전환 =====
 // activateMenu(common.js)에서 호출 / alpaca-keys.js에서 오버라이드
 function switchTab(tab) {
+  window._currentTab = tab;
   document.querySelectorAll('.tab-content').forEach(el => { el.style.display = 'none'; });
   document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('active'); });
 
