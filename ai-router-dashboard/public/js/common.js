@@ -512,7 +512,7 @@ loadUserInfo();
 
 
 // ===== 사이드바 메뉴 시스템 (index.html에서 이동) =====
-let _currentTab = window._currentTab || 'ai';
+let _currentTab = window._currentTab || '';
 let _currentSubTab = window._currentSubTab || null;
 let _menuData = window._menuData || [];
 window._currentTab = _currentTab;
