@@ -5949,17 +5949,17 @@
     window._perfAccountType = window._perfAccountType || 0;
     window._perfAccountId = window._perfAccountId || '';
 
-    function onPerfAccountChange(accountId) {
+    function setPerfAccount(accountId) {
       window._perfAccountId = accountId || '';
-      // 전역 선택 계좌도 동기화
-      window.setSelectedAccount(accountId);
-      // 성과 탭 전체 새로고침
+      const badge = document.getElementById('accountSelectPerfBadge');
+      if (badge) badge.textContent = accountId ? '계좌별 조회 중' : '';
       loadPerformanceSummary();
       loadPerformanceHistory();
       loadAssetPieChart();
       loadPositionPieChart();
       loadTradeHistory();
     }
+    window.setPerfAccount = setPerfAccount;
 
     function setPerfAccountType(type) {
       window._perfAccountType = type;
