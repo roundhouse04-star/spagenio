@@ -112,47 +112,39 @@ window.addEventListener('unhandledrejection', function (e) {
 });
 
 // ===== 전역 팝업 시스템 =====
-// spAlert(msg, title, icon) — alert() 대체
-// spConfirm(msg, title, icon) — confirm() 대체 → Promise<boolean>
+// spAlert(icon, title, msg) — alert() 대체
+// spConfirm(icon, title, msg) — confirm() 대체 → Promise<boolean>
 
-function spAlert(msg, title = '알림', icon = 'ℹ️') {
+function spAlert(icon, title, msg) {
   return new Promise(resolve => {
     const layer = document.getElementById('sp-alert-layer');
-    if (!layer) { alert(msg); resolve(); return; }
+    if (!layer) { alert(`${title}\n${msg}`); resolve(); return; }
     document.getElementById('sp-alert-icon').textContent = icon;
     document.getElementById('sp-alert-title').textContent = title;
     document.getElementById('sp-alert-msg').textContent = msg;
-    layer.style.cssText = 'display:flex;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99998;align-items:center;justify-content:center;';
+    layer.style.display = 'flex';
     const btn = document.getElementById('sp-alert-ok');
-    const handler = () => {
-      layer.style.display = 'none';
-      btn.removeEventListener('click', handler);
-      resolve();
-    };
+    const handler = () => { layer.style.display = 'none'; btn.removeEventListener('click', handler); resolve(); };
     btn.addEventListener('click', handler);
   });
 }
 
-function spConfirm(msg, title = '확인', icon = '⚠️', okLabel = '확인', okColor = '#ef4444') {
+function spConfirm(icon, title, msg, okLabel = '확인', okColor = '#ef4444') {
   return new Promise(resolve => {
     const layer = document.getElementById('sp-confirm-layer');
-    if (!layer) { resolve(confirm(msg)); return; }
+    if (!layer) { resolve(confirm(`${title}\n${msg}`)); return; }
     document.getElementById('sp-confirm-icon').textContent = icon;
     document.getElementById('sp-confirm-title').textContent = title;
     document.getElementById('sp-confirm-msg').textContent = msg;
     const okBtn = document.getElementById('sp-confirm-ok');
     okBtn.textContent = okLabel;
     okBtn.style.background = okColor;
-    layer.style.cssText = 'display:flex;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99999;align-items:center;justify-content:center;';
-    const okHandler = () => { cleanup(); resolve(true); };
-    const cancelHandler = () => { cleanup(); resolve(false); };
-    function cleanup() {
-      layer.style.display = 'none';
-      okBtn.removeEventListener('click', okHandler);
-      document.getElementById('sp-confirm-cancel').removeEventListener('click', cancelHandler);
-    }
+    layer.style.display = 'flex';
+    const okHandler = () => { layer.style.display = 'none'; okBtn.removeEventListener('click', okHandler); cancelBtn.removeEventListener('click', cancelHandler); resolve(true); };
+    const cancelBtn = document.getElementById('sp-confirm-cancel');
+    const cancelHandler = () => { layer.style.display = 'none'; okBtn.removeEventListener('click', okHandler); cancelBtn.removeEventListener('click', cancelHandler); resolve(false); };
     okBtn.addEventListener('click', okHandler);
-    document.getElementById('sp-confirm-cancel').addEventListener('click', cancelHandler);
+    cancelBtn.addEventListener('click', cancelHandler);
   });
 }
 
@@ -242,7 +234,7 @@ async function activateAccount(id) {
 }
 
 async function deleteAccount(id) {
-  const ok = await spConfirm('이 계좌를 삭제하시겠습니까?', '계좌 삭제', '🗑️', '삭제', '#ef4444');
+  const ok = await spConfirm('🗑️', '계좌 삭제', '이 계좌를 삭제하시겠습니까?', '삭제', '#ef4444');
   if (!ok) return;
   try {
     const res = await fetch(`/api/user/broker-keys/${id}`, { method: 'DELETE' });
@@ -257,7 +249,7 @@ async function deleteAccount(id) {
       if (typeof loadAccountSelects === 'function') loadAccountSelects();
       loadAccount();
     } else {
-      await spAlert(data.error, '오류', '❌');
+      await spAlert('❌', '오류', data.error);
     }
   } catch (e) { }
 }
@@ -315,13 +307,13 @@ async function changeAccountType(id, currentType) {
     });
     const data = await res.json();
     if (res.ok) {
-      await spAlert('계좌 타입이 변경됐습니다.', '완료', '✅');
+      await spAlert('✅', '완료', '계좌 타입이 변경됐습니다.');
       await loadAlpacaKeyStatus();
     } else {
-      await spAlert(data.error || '변경 실패', '오류', '❌');
+      await spAlert('❌', '오류', data.error || '변경 실패');
     }
   } catch(e) {
-    await spAlert('서버 오류: ' + e.message, '오류', '❌');
+    await spAlert('❌', '오류', '서버 오류: ' + e.message);
   }
 }
 

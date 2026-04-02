@@ -1,4 +1,8 @@
 // ===== stock.js — 수동 매수/매도 =====
+// ===== 공통 상수 =====
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const STOCK_API = isLocal ? 'http://localhost:5001' : '/proxy/stock';
+
 // ===== 가격 입력 원/달러 토글 =====
 let _tradeCurrency = 'USD'; // 'USD' or 'KRW'
 window.toggleTradeCurrency = function() {
