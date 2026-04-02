@@ -124,11 +124,16 @@ def sanitize_nan(response):
 @app.route('/api/stock/price', methods=['GET'])
 def get_price():
     symbol = request.args.get('symbol', 'AAPL')
+    # 30분 캐시 확인
+    cached = _price_cache.get(symbol)
+    if cached and time.time() - cached['ts'] < 1800:
+        return jsonify(cached['data'])
     try:
         # Finnhub 분기 (미국 주식만)
         if USE_FINNHUB and _is_us(symbol):
             result = _fh_price(symbol)
             if result:
+                _price_cache[symbol] = {'data': result, 'ts': time.time()}
                 return jsonify(result)
             return jsonify({'error': f'{symbol} 데이터 없음'}), 404
         # yfinance (한국 주식 또는 USE_FINNHUB=False)
@@ -141,7 +146,7 @@ def get_price():
         open_price = hist['Open'].iloc[-1]
         change = current_price - open_price
         change_pct = (change / open_price) * 100
-        return jsonify({
+        result = {
             'symbol': symbol,
             'name': info.get('longName', symbol),
             'price': round(current_price, 2),
@@ -151,13 +156,19 @@ def get_price():
             'volume': int(hist['Volume'].iloc[-1]),
             'currency': info.get('currency', 'USD'),
             'timestamp': datetime.now().isoformat()
-        })
+        }
+        _price_cache[symbol] = {'data': result, 'ts': time.time()}
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/stock/prices', methods=['GET'])
 def get_prices():
     symbols = request.args.get('symbols', 'AAPL,MSFT,GOOGL,NVDA,TSLA')
+    # 30분 캐시 확인
+    cached = _prices_cache.get(symbols)
+    if cached and time.time() - cached['ts'] < 1800:
+        return jsonify(cached['data'])
     symbol_list = [s.strip() for s in symbols.split(',')]
     results = []
     for symbol in symbol_list:
@@ -187,7 +198,9 @@ def get_prices():
                 })
         except:
             results.append({'symbol': symbol, 'error': '조회 실패'})
-    return jsonify({'stocks': results, 'timestamp': datetime.now().isoformat()})
+    resp = {'stocks': results, 'timestamp': datetime.now().isoformat()}
+    _prices_cache[symbols] = {'data': resp, 'ts': time.time()}
+    return jsonify(resp)
 
 
 @app.route('/api/alpaca/account', methods=['GET'])
@@ -285,6 +298,8 @@ MARKET_INDICATORS = [
     {'symbol': 'DX-Y.NYB','label': 'USD Index',   'type': 'fx'},
 ]
 
+_price_cache = {}   # symbol → {'data': ..., 'ts': ...}  30분 캐시
+_prices_cache = {}  # symbols(str) → {'data': ..., 'ts': ...}  30분 캐시
 _market_cache = {'data': None, 'ts': 0}
 
 @app.route('/api/market/indicators', methods=['GET'])
