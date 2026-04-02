@@ -345,6 +345,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 외부 접속 시 프록시 사용, 로컬 시 직접 연결
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const STOCK_API = isLocal ? 'http://localhost:5001' : '/proxy/stock';
+// isLocal, STOCK_API → stock.js로 이동
