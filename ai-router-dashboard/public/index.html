@@ -3728,7 +3728,7 @@
       <div class="sp-page">
 
         <!-- 계좌 선택 탭 -->
-        <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
           <button onclick="setPerfAccountType(0)" id="perfAccBtn0"
             style="padding:6px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
             📊 전체
@@ -3742,6 +3742,14 @@
             🤖 자동
           </button>
           <span id="perfAccLabel" style="font-size:0.78rem;color:#636366;margin-left:4px;">전체 계좌 기준</span>
+        </div>
+        <!-- 계좌 선택 콤보박스 -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:0.78rem;color:#9CA3AF;font-weight:600;white-space:nowrap;">🏦 계좌 선택</span>
+          <select id="accountSelectPerf" onchange="setPerfAccount(this.value)"
+            style="flex:1;max-width:340px;background:#1E242C;color:#E5E7EB;border:1px solid #2A2A2A;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;outline:none;">
+          </select>
+          <span id="accountSelectPerfBadge" style="font-size:0.72rem;color:#9CA3AF;padding:3px 8px;background:#1E242C;border-radius:6px;border:1px solid #2A2A2A;white-space:nowrap;"></span>
         </div>
 
         <!-- 상단 요약 카드 4개 -->
@@ -5694,7 +5702,9 @@
 
     async function loadAssetPieChart() {
       try {
-        const res = await fetch('/api/performance/summary');
+        const accountId = window._perfAccountId || '';
+        const accountParam = accountId ? `&account_id=${accountId}` : '';
+        const res = await fetch(`/api/performance/summary?account_type=${window._perfAccountType || 0}${accountParam}`);
         const d = await res.json();
         const chartEl = document.getElementById('assetPieChart');
         const legendEl = document.getElementById('assetPieLegend');
@@ -5937,6 +5947,20 @@
 
     // 성과 대시보드 계좌 타입 선택
     window._perfAccountType = window._perfAccountType || 0;
+    window._perfAccountId = window._perfAccountId || '';
+
+    function onPerfAccountChange(accountId) {
+      window._perfAccountId = accountId || '';
+      // 전역 선택 계좌도 동기화
+      window.setSelectedAccount(accountId);
+      // 성과 탭 전체 새로고침
+      loadPerformanceSummary();
+      loadPerformanceHistory();
+      loadAssetPieChart();
+      loadPositionPieChart();
+      loadTradeHistory();
+    }
+
     function setPerfAccountType(type) {
       window._perfAccountType = type;
       const labels = { 0: '전체 계좌 기준', 1: '수동 계좌 기준', 2: '자동매매 계좌 기준' };
@@ -5962,11 +5986,13 @@
 
     async function loadPerformanceSummary() {
       try {
-        let res = await fetch(`/api/performance/summary?account_type=${window._perfAccountType || 0}`);
+        const accountId = window._perfAccountId || '';
+        const accountParam = accountId ? `&account_id=${accountId}` : '';
+        let res = await fetch(`/api/performance/summary?account_type=${window._perfAccountType || 0}${accountParam}`);
         let d = await res.json();
         // 선택한 타입 데이터 없으면 account_type=0(전체)으로 폴백
         if (!d.ok || !d.latest) {
-          res = await fetch(`/api/performance/summary?account_type=0`);
+          res = await fetch(`/api/performance/summary?account_type=0${accountParam}`);
           d = await res.json();
         }
         if (!d.ok || !d.latest) {
@@ -6003,7 +6029,9 @@
 
     async function loadPerformanceHistory() {
       try {
-        const res = await fetch(`/api/performance/history?days=30&account_type=${window._perfAccountType || 0}`);
+        const accountId = window._perfAccountId || '';
+        const accountParam = accountId ? `&account_id=${accountId}` : '';
+        const res = await fetch(`/api/performance/history?days=30&account_type=${window._perfAccountType || 0}${accountParam}`);
         const d = await res.json();
         const chartEl = document.getElementById('perfEquityChart');
         const emptyEl = document.getElementById('perfChartEmpty');
@@ -6722,6 +6750,17 @@
             return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
           }).join('');
         });
+
+        // 성과 탭 계좌 선택 콤보박스 (전체 옵션 포함)
+        const perfSel = document.getElementById('accountSelectPerf');
+        if (perfSel) {
+          perfSel.innerHTML = '<option value="">— 전체 계좌 합산 —</option>' + accounts.map(a => {
+            const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
+            const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
+            const activeLabel = a.is_active ? ' ✓' : '';
+            return `<option value="${a.id}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${paperLabel}·${typeLabel}${activeLabel})</option>`;
+          }).join('');
+        }
 
         // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
         const cached = localStorage.getItem('selectedAccountId');
