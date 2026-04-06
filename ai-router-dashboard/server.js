@@ -28,13 +28,13 @@ const app = express();
 // ── NaN/Infinity 공통 처리 (모든 res.json에 자동 적용) ──
 app.use((req, res, next) => {
   const _json = res.json.bind(res);
-  res.json = function(obj) {
+  res.json = function (obj) {
     try {
       const cleaned = JSON.parse(JSON.stringify(obj, (_, v) =>
         typeof v === 'number' && !isFinite(v) ? null : v
       ));
       return _json(cleaned);
-    } catch(e) {
+    } catch (e) {
       return _json(obj);
     }
   };
@@ -105,7 +105,7 @@ try {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`);
-} catch(e) {}
+} catch (e) { }
 
 // ── 기존 데이터 마이그레이션 ──
 // try {
@@ -123,17 +123,17 @@ try {
 //     rows.forEach(r => ins.run(r.user_id, r.symbol, r.action, r.qty, r.price, r.profit_pct||0, r.reason, r.action==='BUY'?'active':'closed', r.created_at));
 //     console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
 //   }
-  // ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
-  // try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
-  // try { db.exec('DROP TABLE IF EXISTS trade_setting_type2_log'); console.log('[trade_log] trade_setting_type2_log 테이블 삭제 완료'); } catch(e) {}
+// ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
+// try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
+// try { db.exec('DROP TABLE IF EXISTS trade_setting_type2_log'); console.log('[trade_log] trade_setting_type2_log 테이블 삭제 완료'); } catch(e) {}
 // } catch(e) {}
 
 // ── saveTradeLog 헬퍼 ──
 function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status, broker_key_id }) {
-  order_id      = order_id      || '';
-  profit_pct    = profit_pct    || 0;
-  reason        = reason        || '';
-  status        = status        || 'active';
+  order_id = order_id || '';
+  profit_pct = profit_pct || 0;
+  reason = reason || '';
+  status = status || 'active';
   broker_key_id = broker_key_id || null;
 
   const result = db.prepare(
@@ -160,14 +160,14 @@ function updateTradeLogStatus(user_id, symbol, trade_type) {
       db.prepare(
         `UPDATE ${backupTable} SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'`
       ).run(user_id, symbol);
-    } catch(e) { console.error('[updateTradeLogStatus] 백업 업데이트 실패:', backupTable, e.message); }
+    } catch (e) { console.error('[updateTradeLogStatus] 백업 업데이트 실패:', backupTable, e.message); }
   }
 }
 
 
-try { db.exec("ALTER TABLE user_broker_keys ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE user_broker_keys ADD COLUMN account_type INTEGER DEFAULT 0"); } catch (e) { }
 // account_type: 0=미설정, 1=수동전용, 2=자동전용
-try { db.exec("ALTER TABLE portfolio_performance ADD COLUMN account_type INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE portfolio_performance ADD COLUMN account_type INTEGER DEFAULT 0"); } catch (e) { }
 try { db.exec("ALTER TABLE trade_setting_type4 ADD COLUMN factor_strategy TEXT DEFAULT 'value_quality'"); } catch (e) { }
 try { db.exec("ALTER TABLE trade_setting_type4 ADD COLUMN factor_market TEXT DEFAULT 'nasdaq'"); } catch (e) { }
 
@@ -339,12 +339,12 @@ db.exec(`
 // 기본 RSS 소스 삽입 (없을 때만)
 const insertRss = db.prepare(`INSERT OR IGNORE INTO rss_sources (name, url, category) VALUES (?, ?, ?)`);
 [
-  ['BBC News',     'https://feeds.bbci.co.uk/news/rss.xml',       'global'],
-  ['BBC World',    'https://feeds.bbci.co.uk/news/world/rss.xml', 'global'],
-  ['Al Jazeera',   'https://www.aljazeera.com/xml/rss/all.xml',   'global'],
-  ['NPR News',     'https://feeds.npr.org/1001/rss.xml',          'global'],
-  ['NPR World',    'https://feeds.npr.org/1004/rss.xml',          'global'],
-  ['The Guardian', 'https://www.theguardian.com/world/rss',       'global'],
+  ['BBC News', 'https://feeds.bbci.co.uk/news/rss.xml', 'global'],
+  ['BBC World', 'https://feeds.bbci.co.uk/news/world/rss.xml', 'global'],
+  ['Al Jazeera', 'https://www.aljazeera.com/xml/rss/all.xml', 'global'],
+  ['NPR News', 'https://feeds.npr.org/1001/rss.xml', 'global'],
+  ['NPR World', 'https://feeds.npr.org/1004/rss.xml', 'global'],
+  ['The Guardian', 'https://www.theguardian.com/world/rss', 'global'],
 ].forEach(([name, url, category]) => insertRss.run(name, url, category));
 
 // 차단된 rsshub.app 소스 정리
@@ -774,7 +774,7 @@ app.set('trust proxy', 1);
 // m.spagenio.com → 모바일 페이지
 app.use((req, res, next) => {
   const host = req.headers['x-forwarded-host'] || req.headers['host'] || '';
-  if (host.startsWith('m.') && !req.path.startsWith('/api') && !req.path.startsWith('/proxy') && !req.path.startsWith('/js/') && !req.path.startsWith('/css/') && !req.path.startsWith('/img/')) {
+  if (host.startsWith('m.') && !req.path.startsWith('/api') && !req.path.startsWith('/proxy')) {
     return res.sendFile(path.join(__dirname, 'public', 'm.html'));
   }
   next();
@@ -829,7 +829,6 @@ function authMiddleware(req, res, next) {
     } catch (e) { }
   }
   if (publicApis.some(p => req.path.startsWith(p))) return next();
-  if (req.path.startsWith('/js/') || req.path.startsWith('/css/') || req.path.startsWith('/img/')) return next();
   if (!req.user) return res.status(401).json({ error: '인증이 필요합니다.' });
   next();
 }
@@ -883,34 +882,34 @@ process.on('uncaughtException', (err) => {
   logger.error('UNCAUGHT_EXCEPTION', { error: err.message });
   saveErrorLog({ event_type: 'UNCAUGHT_EXCEPTION', error_message: err.message, stack_trace: err.stack });
 
-// ✅ 에러 로그 자동 정리 (매일 자정 — 30일 이상 된 .jsonl 삭제)
-function cleanOldErrorLogs() {
-  try {
-    if (!fs.existsSync(errorLogDir)) return;
-    const files = fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl'));
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    files.forEach(f => {
-      const dateStr = f.replace('.jsonl', '');
-      const fileDate = new Date(dateStr);
-      if (!isNaN(fileDate) && fileDate < cutoff) {
-        fs.unlinkSync(path.join(errorLogDir, f));
-        logger.info('ERROR_LOG_CLEANED', { file: f });
-      }
-    });
-  } catch (e) {
-    logger.error('ERROR_LOG_CLEAN_FAIL', { error: e.message });
+  // ✅ 에러 로그 자동 정리 (매일 자정 — 30일 이상 된 .jsonl 삭제)
+  function cleanOldErrorLogs() {
+    try {
+      if (!fs.existsSync(errorLogDir)) return;
+      const files = fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl'));
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      files.forEach(f => {
+        const dateStr = f.replace('.jsonl', '');
+        const fileDate = new Date(dateStr);
+        if (!isNaN(fileDate) && fileDate < cutoff) {
+          fs.unlinkSync(path.join(errorLogDir, f));
+          logger.info('ERROR_LOG_CLEANED', { file: f });
+        }
+      });
+    } catch (e) {
+      logger.error('ERROR_LOG_CLEAN_FAIL', { error: e.message });
+    }
   }
-}
 
-// 서버 시작 시 1회 + 매일 자정 실행
-cleanOldErrorLogs();
-const now = new Date();
-const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
-setTimeout(() => {
+  // 서버 시작 시 1회 + 매일 자정 실행
   cleanOldErrorLogs();
-  setInterval(cleanOldErrorLogs, 24 * 60 * 60 * 1000);
-}, msUntilMidnight);
+  const now = new Date();
+  const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+  setTimeout(() => {
+    cleanOldErrorLogs();
+    setInterval(cleanOldErrorLogs, 24 * 60 * 60 * 1000);
+  }, msUntilMidnight);
 });
 
 // ============================================================
@@ -1206,7 +1205,7 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
           })).json();
 
           // [레거시 제거] trade_setting_type2_log SELL → trade_log(type=2)만 사용
-          saveTradeLog({ user_id:userId, trade_type:2, symbol:state.symbol, action:'SELL', qty, price:currentPrice, profit_pct:plPct*100, reason, status:'closed', broker_key_id:keys.id });
+          saveTradeLog({ user_id: userId, trade_type: 2, symbol: state.symbol, action: 'SELL', qty, price: currentPrice, profit_pct: plPct * 100, reason, status: 'closed', broker_key_id: keys.id });
           updateTradeLogStatus(userId, state.symbol, 2);
 
           // 강제청산이면 당일 재매수 완전 차단 (closed_today 상태로 16:00까지 유지)
@@ -1332,7 +1331,7 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
 
       if (order.id) {
         // [레거시 제거] trade_setting_type2_log BUY → trade_log(type=2)만 사용
-        saveTradeLog({ user_id:userId, trade_type:2, symbol:top.symbol, action:'BUY', qty:finalQty, price:top.price, profit_pct:0, reason:`점수 ${top.score}점 TOP1 매수`, status:'active', broker_key_id:keys.id });
+        saveTradeLog({ user_id: userId, trade_type: 2, symbol: top.symbol, action: 'BUY', qty: finalQty, price: top.price, profit_pct: 0, reason: `점수 ${top.score}점 TOP1 매수`, status: 'active', broker_key_id: keys.id });
         db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?')
           .run('holding', top.symbol, finalQty, top.price, order.id, userId, state.broker_key_id || null);
 
@@ -1416,7 +1415,7 @@ async function runAutoTradeForUser(userId, brokerKeyId = null) {
           try {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
             // [레거시 제거] auto_trade_log SELL_PROFIT 제거
-            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_PROFIT', qty:pos.qty, price:pos.current_price, reason:`익절 +${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
+            saveTradeLog({ user_id: userId, trade_type: 4, symbol: pos.symbol, action: 'SELL_PROFIT', qty: pos.qty, price: pos.current_price, reason: `익절 +${(plPct * 100).toFixed(2)}%`, order_id: order.id || '', profit_pct: plPct * 100, status: 'closed', broker_key_id: keys.id });
             updateTradeLogStatus(userId, pos.symbol, 4);
             results.push({ symbol: pos.symbol, action: '익절 매도' });
           } catch (e) { }
@@ -1427,7 +1426,7 @@ async function runAutoTradeForUser(userId, brokerKeyId = null) {
           try {
             const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) })).json();
             // [레거시 제거] auto_trade_log SELL_LOSS 제거
-            saveTradeLog({ user_id:userId, trade_type:4, symbol:pos.symbol, action:'SELL_LOSS', qty:pos.qty, price:pos.current_price, reason:`손절 ${(plPct*100).toFixed(2)}%`, order_id:order.id||'', profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
+            saveTradeLog({ user_id: userId, trade_type: 4, symbol: pos.symbol, action: 'SELL_LOSS', qty: pos.qty, price: pos.current_price, reason: `손절 ${(plPct * 100).toFixed(2)}%`, order_id: order.id || '', profit_pct: plPct * 100, status: 'closed', broker_key_id: keys.id });
             updateTradeLogStatus(userId, pos.symbol, 4);
             results.push({ symbol: pos.symbol, action: '손절 매도' });
           } catch (e) { }
@@ -1500,7 +1499,7 @@ async function runAutoTradeForUser(userId, brokerKeyId = null) {
           if (alreadyHeld) { heldSymbols.add(symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
-            saveTradeLog({ user_id:userId, trade_type:4, symbol, action:'BUY', qty, price:currentPrice, reason, order_id:order.id, profit_pct:0, status:'active', broker_key_id:keys.id });
+            saveTradeLog({ user_id: userId, trade_type: 4, symbol, action: 'BUY', qty, price: currentPrice, reason, order_id: order.id, profit_pct: 0, status: 'active', broker_key_id: keys.id });
             results.push({ symbol, action: '매수', qty, reason });
             boughtCount++;
             remainingBuyPower -= qty * currentPrice;
@@ -1884,7 +1883,7 @@ async function runAutoStrategy(userId, brokerKeyId = null) {
             for (const pos of (Array.isArray(positions) ? positions : []).filter(p => type3ActiveSymbols.has(p.symbol))) {
               if (!poolSymbols.has(pos.symbol)) {
                 await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
-                saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_FACTOR', qty:pos.qty, price:pos.current_price, reason:'퀀트전략:팩터 이탈 매도', status:'closed', broker_key_id:keys.id });
+                saveTradeLog({ user_id: userId, trade_type: 3, symbol: pos.symbol, action: 'SELL_FACTOR', qty: pos.qty, price: pos.current_price, reason: '퀀트전략:팩터 이탈 매도', status: 'closed', broker_key_id: keys.id });
               }
             }
           }
@@ -1921,10 +1920,10 @@ async function runAutoStrategy(userId, brokerKeyId = null) {
         if (!existing2) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
           // [레거시 제거] auto_trade_log SELL_PROFIT2 제거
-          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT2', qty, price:currentPrice, reason:`퀀트전략:2차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
+          saveTradeLog({ user_id: userId, trade_type: 3, symbol: pos.symbol, action: 'SELL_PROFIT2', qty, price: currentPrice, reason: `퀀트전략:2차 익절 +${(plPct * 100).toFixed(2)}%`, profit_pct: plPct * 100, status: 'closed', broker_key_id: keys.id });
           updateTradeLogStatus(userId, pos.symbol, 3);
         }
-      // 1차 익절 (절반 매도) — 2차 미달 시만 실행
+        // 1차 익절 (절반 매도) — 2차 미달 시만 실행
       } else if (plPct >= s.take_profit1) {
         const halfQty = Math.floor(qty / 2);
         if (halfQty >= 1) {
@@ -1932,16 +1931,16 @@ async function runAutoStrategy(userId, brokerKeyId = null) {
           if (!existing1) {
             await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: String(halfQty), side: 'sell', type: 'market', time_in_force: 'day' }) });
             // [레거시 제거] auto_trade_log SELL_PROFIT1 제거
-            saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_PROFIT1', qty:halfQty, price:currentPrice, reason:`퀀트전략:1차 익절 +${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
+            saveTradeLog({ user_id: userId, trade_type: 3, symbol: pos.symbol, action: 'SELL_PROFIT1', qty: halfQty, price: currentPrice, reason: `퀀트전략:1차 익절 +${(plPct * 100).toFixed(2)}%`, profit_pct: plPct * 100, status: 'closed', broker_key_id: keys.id });
           }
         }
-      // 손절 — 익절 조건 미달 시만 실행
+        // 손절 — 익절 조건 미달 시만 실행
       } else if (plPct <= -s.stop_loss) {
         const existingStop = db.prepare("SELECT id FROM trade_log WHERE user_id=? AND symbol=? AND trade_type=3 AND action='SELL_STOP' AND created_at>?").get(userId, pos.symbol, buyTime);
         if (!existingStop) {
           await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: pos.symbol, qty: pos.qty, side: 'sell', type: 'market', time_in_force: 'day' }) });
           // [레거시 제거] auto_trade_log SELL_STOP 제거
-          saveTradeLog({ user_id:userId, trade_type:3, symbol:pos.symbol, action:'SELL_STOP', qty, price:currentPrice, reason:`퀀트전략:손절 ${(plPct*100).toFixed(2)}%`, profit_pct:plPct*100, status:'closed', broker_key_id:keys.id });
+          saveTradeLog({ user_id: userId, trade_type: 3, symbol: pos.symbol, action: 'SELL_STOP', qty, price: currentPrice, reason: `퀀트전략:손절 ${(plPct * 100).toFixed(2)}%`, profit_pct: plPct * 100, status: 'closed', broker_key_id: keys.id });
           updateTradeLogStatus(userId, pos.symbol, 3);
         }
       }
@@ -1994,7 +1993,7 @@ async function runAutoStrategy(userId, brokerKeyId = null) {
           if (alreadyHeld) { heldSymbols.add(row.symbol); continue; }
           const order = await (await fetch(`${baseUrl}/v2/orders`, { method: 'POST', headers, body: JSON.stringify({ symbol: row.symbol, qty: String(qty), side: 'buy', type: 'market', time_in_force: 'day' }) })).json();
           if (order.id) {
-            saveTradeLog({ user_id:userId, trade_type:3, symbol:row.symbol, action:'BUY', qty, price:currentPrice, reason:`퀀트전략:3단계(${reasons.join('+')})`, order_id:order.id, status:'active', broker_key_id:keys.id });
+            saveTradeLog({ user_id: userId, trade_type: 3, symbol: row.symbol, action: 'BUY', qty, price: currentPrice, reason: `퀀트전략:3단계(${reasons.join('+')})`, order_id: order.id, status: 'active', broker_key_id: keys.id });
             heldSymbols.add(row.symbol);
             remainingBuyingPower -= qty * currentPrice;
           } else {
@@ -2193,12 +2192,12 @@ setInterval(async () => {
       const repeatCount = {}, appearCount = {};
       for (let n = 1; n <= 45; n++) { repeatCount[n] = 0; appearCount[n] = 0; }
       for (let i = 1; i < allHist.length; i++) {
-        const prev = allHist[i-1], curSet = new Set(allHist[i]);
+        const prev = allHist[i - 1], curSet = new Set(allHist[i]);
         prev.forEach(n => { appearCount[n]++; if (curSet.has(n)) repeatCount[n]++; });
       }
       const pcts = {};
       for (let n = 1; n <= 45; n++) pcts[n] = appearCount[n] > 0 ? repeatCount[n] / appearCount[n] : 0;
-      const avgPct = Object.values(pcts).reduce((a,b)=>a+b,0) / 45;
+      const avgPct = Object.values(pcts).reduce((a, b) => a + b, 0) / 45;
 
       // 2. 반복출현 확률 → weight 변환 (0.5 ~ 3.0)
       const newWeights = {};
@@ -2220,7 +2219,7 @@ setInterval(async () => {
           .run(newWeights[n], appearCount[n], repeatCount[n], n);
       }
       console.log(`[로또] lotto_weights 자동 업데이트 완료 (${allHist.length}회 이력 기반)`);
-    } catch(e) {
+    } catch (e) {
       console.log('[로또] lotto_weights 업데이트 오류:', e.message);
     }
 
@@ -2250,16 +2249,16 @@ async function sendLottoPredictionOnStartup() {
     const numCarry = {};
     for (let n = 1; n <= 45; n++) numCarry[n] = { appear: 0, carry: 0 };
     for (let i = 1; i < allHistory.length; i++) {
-      const prev = allHistory[i-1], cur = new Set(allHistory[i]);
+      const prev = allHistory[i - 1], cur = new Set(allHistory[i]);
       prev.forEach(n => { numCarry[n].appear++; if (cur.has(n)) numCarry[n].carry++; });
     }
     const carryPct = {};
     for (let n = 1; n <= 45; n++) carryPct[n] = numCarry[n].appear > 0 ? numCarry[n].carry / numCarry[n].appear : 0;
 
-    const getDec = n => n<=9?0:n<=19?1:n<=29?2:n<=39?3:4;
-    const decCarry = Array(5).fill(null).map(()=>({appear:0,carry:0}));
+    const getDec = n => n <= 9 ? 0 : n <= 19 ? 1 : n <= 29 ? 2 : n <= 39 ? 3 : 4;
+    const decCarry = Array(5).fill(null).map(() => ({ appear: 0, carry: 0 }));
     for (let i = 1; i < allHistory.length; i++) {
-      const prev = allHistory[i-1], curDecs = new Set(allHistory[i].map(getDec));
+      const prev = allHistory[i - 1], curDecs = new Set(allHistory[i].map(getDec));
       prev.forEach(n => { const d = getDec(n); decCarry[d].appear++; if (curDecs.has(d)) decCarry[d].carry++; });
     }
     const decPct = decCarry.map(d => d.appear > 0 ? d.carry / d.appear : 0);
@@ -2270,7 +2269,7 @@ async function sendLottoPredictionOnStartup() {
     recent20.forEach((nums, idx) => { const w = (20 - idx) / 20; nums.forEach(n => { recentBonus[n] += w * 0.5; }); });
 
     const dbWeights = {};
-    try { db.prepare('SELECT num, weight FROM lotto_weights').all().forEach(r => { dbWeights[r.num] = r.weight; }); } catch(e) {}
+    try { db.prepare('SELECT num, weight FROM lotto_weights').all().forEach(r => { dbWeights[r.num] = r.weight; }); } catch (e) { }
 
     // ── 연속 반복 패턴 분석 ──────────────────────────────────
     // 각 번호별 현재 연속 반복 횟수 + 최대 연속 횟수 계산
@@ -2278,8 +2277,8 @@ async function sendLottoPredictionOnStartup() {
     const curStreak = {};   // 번호별 현재 연속 횟수 (마지막 회차 기준)
     for (let n = 1; n <= 45; n++) { maxStreak[n] = 0; curStreak[n] = 0; }
     for (let i = 1; i < allHistory.length; i++) {
-      const prev = new Set(allHistory[i-1]);
-      const cur  = new Set(allHistory[i]);
+      const prev = new Set(allHistory[i - 1]);
+      const cur = new Set(allHistory[i]);
       for (let n = 1; n <= 45; n++) {
         if (prev.has(n) && cur.has(n)) {
           curStreak[n]++;
@@ -2323,62 +2322,62 @@ async function sendLottoPredictionOnStartup() {
 
     // ── bias_map DB에서 로드 ──
     let carryBiasMap = {
-      '0':[0.18,0.25,0.22,0.20,0.15],'1':[0.19,0.18,0.23,0.26,0.14],
-      '2':[0.19,0.24,0.20,0.25,0.12],'3':[0.21,0.23,0.23,0.21,0.12],
-      '4':[0.23,0.22,0.22,0.22,0.12],'0+0':[0.18,0.25,0.21,0.25,0.11],
-      '0+1':[0.17,0.24,0.25,0.18,0.15],'0+2':[0.19,0.22,0.23,0.22,0.15],
-      '0+3':[0.22,0.23,0.14,0.19,0.22],'0+4':[0.17,0.31,0.19,0.25,0.08],
-      '1+1':[0.18,0.20,0.23,0.25,0.14],'1+2':[0.20,0.25,0.19,0.19,0.17],
-      '1+3':[0.25,0.18,0.26,0.18,0.12],'1+4':[0.23,0.23,0.18,0.25,0.11],
-      '2+2':[0.20,0.10,0.20,0.35,0.15],'2+3':[0.17,0.23,0.20,0.23,0.17],
-      '2+4':[0.19,0.31,0.22,0.22,0.06],'3+3':[0.21,0.29,0.18,0.18,0.14],
-      '3+4':[0.14,0.38,0.27,0.08,0.14],
+      '0': [0.18, 0.25, 0.22, 0.20, 0.15], '1': [0.19, 0.18, 0.23, 0.26, 0.14],
+      '2': [0.19, 0.24, 0.20, 0.25, 0.12], '3': [0.21, 0.23, 0.23, 0.21, 0.12],
+      '4': [0.23, 0.22, 0.22, 0.22, 0.12], '0+0': [0.18, 0.25, 0.21, 0.25, 0.11],
+      '0+1': [0.17, 0.24, 0.25, 0.18, 0.15], '0+2': [0.19, 0.22, 0.23, 0.22, 0.15],
+      '0+3': [0.22, 0.23, 0.14, 0.19, 0.22], '0+4': [0.17, 0.31, 0.19, 0.25, 0.08],
+      '1+1': [0.18, 0.20, 0.23, 0.25, 0.14], '1+2': [0.20, 0.25, 0.19, 0.19, 0.17],
+      '1+3': [0.25, 0.18, 0.26, 0.18, 0.12], '1+4': [0.23, 0.23, 0.18, 0.25, 0.11],
+      '2+2': [0.20, 0.10, 0.20, 0.35, 0.15], '2+3': [0.17, 0.23, 0.20, 0.23, 0.17],
+      '2+4': [0.19, 0.31, 0.22, 0.22, 0.06], '3+3': [0.21, 0.29, 0.18, 0.18, 0.14],
+      '3+4': [0.14, 0.38, 0.27, 0.08, 0.14],
     };
     try {
       const bmRow = db.prepare('SELECT data FROM lotto_algorithm_config WHERE key=?').get('bias_map');
       if (bmRow) carryBiasMap = JSON.parse(bmRow.data);
-    } catch(e) {}
+    } catch (e) { }
 
     const baseZoneSpecs = [
-      {range:[1,9],   dist:[0.16,0.53,0.25,0.06,0.00]},
-      {range:[10,19], dist:[0.18,0.49,0.22,0.11,0.00]},
-      {range:[20,29], dist:[0.13,0.49,0.29,0.08,0.01]},
-      {range:[30,39], dist:[0.21,0.40,0.27,0.11,0.01]},
-      {range:[40,45], dist:[0.41,0.40,0.18,0.01,0.00]},
+      { range: [1, 9], dist: [0.16, 0.53, 0.25, 0.06, 0.00] },
+      { range: [10, 19], dist: [0.18, 0.49, 0.22, 0.11, 0.00] },
+      { range: [20, 29], dist: [0.13, 0.49, 0.29, 0.08, 0.01] },
+      { range: [30, 39], dist: [0.21, 0.40, 0.27, 0.11, 0.01] },
+      { range: [40, 45], dist: [0.41, 0.40, 0.18, 0.01, 0.00] },
     ];
 
-    function getZoneIdx(n) { if(n<=9)return 0;if(n<=19)return 1;if(n<=29)return 2;if(n<=39)return 3;return 4; }
+    function getZoneIdx(n) { if (n <= 9) return 0; if (n <= 19) return 1; if (n <= 29) return 2; if (n <= 39) return 3; return 4; }
 
     function sampleCount(baseDist, zoneIdx, biasWeights) {
       let dist = [...baseDist];
       if (biasWeights) {
         const bt = Math.round(biasWeights[zoneIdx] * 6);
-        const bl = dist.map((v,i) => v*0.6 + (i===bt?0.4:0));
-        const total = bl.reduce((a,b)=>a+b,0);
-        dist = bl.map(v=>v/total);
+        const bl = dist.map((v, i) => v * 0.6 + (i === bt ? 0.4 : 0));
+        const total = bl.reduce((a, b) => a + b, 0);
+        dist = bl.map(v => v / total);
       }
       let r = Math.random(), c = 0;
-      for (let i=0; i<dist.length; i++) { c+=dist[i]; if(r<c) return i; }
+      for (let i = 0; i < dist.length; i++) { c += dist[i]; if (r < c) return i; }
       return 1;
     }
 
     function weightedSample(items, weights) {
-      const total = weights.reduce((a,b)=>a+b,0);
-      let r = Math.random()*total, c = 0;
-      for (let i=0; i<items.length; i++) { c+=weights[i]; if(c>=r) return items[i]; }
-      return items[items.length-1];
+      const total = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total, c = 0;
+      for (let i = 0; i < items.length; i++) { c += weights[i]; if (c >= r) return items[i]; }
+      return items[items.length - 1];
     }
 
     function predictOne() {
       // 이월 선택 (1217회 통계: 60.2% 확률로 최소 1개)
-      const sortedByCarry = [...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]);
+      const sortedByCarry = [...latestNums].sort((a, b) => carryPct[b] - carryPct[a]);
       const carryPicks = [];
-      const cw = sortedByCarry.map(n=>Math.max(carryPct[n],0.01));
+      const cw = sortedByCarry.map(n => Math.max(carryPct[n], 0.01));
       if (Math.random() < 0.602) {
         carryPicks.push(weightedSample(sortedByCarry, cw));
         if (Math.random() < 0.282) {
-          const rem2 = sortedByCarry.filter(n=>!carryPicks.includes(n));
-          const w2 = rem2.map(n=>Math.max(carryPct[n],0.01));
+          const rem2 = sortedByCarry.filter(n => !carryPicks.includes(n));
+          const w2 = rem2.map(n => Math.max(carryPct[n], 0.01));
           if (rem2.length) carryPicks.push(weightedSample(rem2, w2));
         }
       }
@@ -2386,42 +2385,42 @@ async function sendLottoPredictionOnStartup() {
 
       // bias_map 결정
       let biasWeights = null;
-      if (carryPicks.length===1) biasWeights = carryBiasMap[String(getZoneIdx(carryPicks[0]))] || null;
-      else if (carryPicks.length===2) {
-        const [z1,z2] = [getZoneIdx(carryPicks[0]),getZoneIdx(carryPicks[1])].sort((a,b)=>a-b);
+      if (carryPicks.length === 1) biasWeights = carryBiasMap[String(getZoneIdx(carryPicks[0]))] || null;
+      else if (carryPicks.length === 2) {
+        const [z1, z2] = [getZoneIdx(carryPicks[0]), getZoneIdx(carryPicks[1])].sort((a, b) => a - b);
         biasWeights = carryBiasMap[`${z1}+${z2}`] || null;
       }
 
       // 구간별 선택
-      for (let zi=0; zi<baseZoneSpecs.length; zi++) {
-        if (picks.size>=6) break;
-        const {range:[lo,hi], dist} = baseZoneSpecs[zi];
-        const already = [...picks].filter(n=>n>=lo&&n<=hi).length;
+      for (let zi = 0; zi < baseZoneSpecs.length; zi++) {
+        if (picks.size >= 6) break;
+        const { range: [lo, hi], dist } = baseZoneSpecs[zi];
+        const already = [...picks].filter(n => n >= lo && n <= hi).length;
         const need = Math.max(0, sampleCount(dist, zi, biasWeights) - already);
-        const candidates = Array.from({length:hi-lo+1},(_,i)=>lo+i)
-          .filter(n=>!picks.has(n)).sort((a,b)=>scores[b]-scores[a]);
-        for (let k=0; k<need&&k<candidates.length&&picks.size<6; k++) picks.add(candidates[k]);
+        const candidates = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i)
+          .filter(n => !picks.has(n)).sort((a, b) => scores[b] - scores[a]);
+        for (let k = 0; k < need && k < candidates.length && picks.size < 6; k++) picks.add(candidates[k]);
       }
 
       // 상위 15위 랜덤으로 채우기
-      const rem = Array.from({length:45},(_,i)=>i+1).filter(n=>!picks.has(n)).sort((a,b)=>scores[b]-scores[a]);
-      const top15 = rem.slice(0,15);
-      while (picks.size<6 && top15.length) {
-        const idx = Math.floor(Math.random()*top15.length);
-        picks.add(top15.splice(idx,1)[0]);
+      const rem = Array.from({ length: 45 }, (_, i) => i + 1).filter(n => !picks.has(n)).sort((a, b) => scores[b] - scores[a]);
+      const top15 = rem.slice(0, 15);
+      while (picks.size < 6 && top15.length) {
+        const idx = Math.floor(Math.random() * top15.length);
+        picks.add(top15.splice(idx, 1)[0]);
       }
-      return [...picks].sort((a,b)=>a-b);
+      return [...picks].sort((a, b) => a - b);
     }
 
     const games = [];
-    for (let g=0; g<10; g++) games.push(predictOne());
+    for (let g = 0; g < 10; g++) games.push(predictOne());
 
     // lotto_auto_send=1 인 유저만 발송
     const tgUsers = db.prepare('SELECT ut.* FROM user_telegram ut JOIN users u ON ut.user_id=u.id WHERE u.lotto_auto_send=1').all();
     for (const tg of tgUsers) {
       const token = tg.bot_token || process.env.TG_BOT_TOKEN;
       if (!token || !tg.chat_id) continue;
-      const lines = games.map((g, i) => `${String.fromCharCode(65+i)}게임: ${g.map(n=>`*${n}*`).join(' ')}`).join('\n');
+      const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
       const msg = `🎯 *이월 패턴 예측 번호* (${latest.drw_no}회 기반)\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합`;
       await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2431,10 +2430,10 @@ async function sendLottoPredictionOnStartup() {
 
     db.prepare('INSERT OR IGNORE INTO lotto_auto_send_log (week_key, round_no, picks) VALUES (?,?,?)').run(weekKey, latest.drw_no, JSON.stringify(games));
     games.forEach(picks => {
-      try { db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)').run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)); } catch(e) {}
+      try { db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)').run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)); } catch (e) { }
     });
     console.log(`  🍀 로또 예측 발송 완료: ${latest.drw_no}회 기반 10게임 → ${tgUsers.length}명 발송`);
-  } catch(e) { console.log('  🍀 로또 예측 오류:', e.message); }
+  } catch (e) { console.log('  🍀 로또 예측 오류:', e.message); }
 }
 
 // ============================================================

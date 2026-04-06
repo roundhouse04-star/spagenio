@@ -793,27 +793,15 @@
 
       <!-- ── 자동매매 탭 ── -->
       <div class="m-tab" id="m-tab-trade">
-        <!-- 거래 계좌 선택 -->
-        <div class="m-card" style="margin-bottom:8px;padding:10px 14px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--muted);white-space:nowrap;">🔑 거래 계좌</span>
-            <select id="accountSelectAuto" onchange="window.setSelectedAccount(this.value)"
-              style="flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;">
-              <option value="">계좌 로딩 중...</option>
-            </select>
-          </div>
-        </div>
         <!-- 서브탭 -->
         <div class="m-subtab-bar" style="display:flex;flex-wrap:wrap;gap:4px;">
           <button class="m-subtab-btn active" onclick="mSwitchTrade('simple')" style="flex:1;min-width:60px;">⚡
             단순</button>
-          <button class="m-subtab-btn" onclick="mSwitchTrade('full')" style="flex:1;min-width:60px;">🤖 완전자동</button>
-          <button class="m-subtab-btn" onclick="mSwitchTrade('auto')" style="flex:1;min-width:60px;">📊 현황</button>
+          <button class="m-subtab-btn" onclick="mSwitchTrade('auto')" style="flex:1;min-width:60px;">🤖 자동</button>
           <button class="m-subtab-btn" onclick="mSwitchTrade('picks')" style="flex:1;min-width:60px;">🏆 추천</button>
           <button class="m-subtab-btn" onclick="mSwitchTrade('perf')" style="flex:1;min-width:60px;">💹 성과</button>
           <button class="m-subtab-btn" onclick="mSwitchTrade('backtest')" style="flex:1;min-width:60px;">🔬
             백테스트</button>
-          <button class="m-subtab-btn" onclick="mSwitchTrade('surge')" style="flex:1;min-width:60px;">📊 급등/신호</button>
         </div>
 
         <!-- 단순 자동매매 -->
@@ -845,57 +833,6 @@
             <div id="m-simple-log">
               <div class="m-empty">이력 없음</div>
             </div>
-          </div>
-        </div>
-
-        <!-- 완전자동매매 -->
-        <div id="m-trade-full" style="display:none;">
-          <div class="m-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-              <div>
-                <div style="font-weight:800;font-size:0.95rem;">🤖 완전자동매매</div>
-                <div style="font-size:0.75rem;color:var(--muted);">팩터 스크리닝 → 타이밍 필터 → 리스크 관리</div>
-              </div>
-              <div id="m-as-toggle" onclick="toggleAutoStrategy()"
-                style="width:48px;height:26px;border-radius:999px;background:#d1d5db;position:relative;cursor:pointer;" data-active="0">
-                <div id="m-as-knob" style="width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
-              </div>
-            </div>
-            <div id="m-as-status" style="font-size:0.82rem;color:var(--muted);text-align:center;padding:8px;">⏹ 비활성</div>
-          </div>
-          <div class="m-card">
-            <div class="m-card-title">⚙️ 전략 설정</div>
-            <div style="margin-bottom:8px;">
-              <label class="m-label">대상 시장</label>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;">
-                <button id="m-asBtnNasdaq" onclick="setAutoMarket('nasdaq')" style="padding:6px 2px;border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">나스닥</button>
-                <button id="m-asBtnDow" onclick="setAutoMarket('dow')" style="padding:6px 2px;border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);">다우</button>
-                <button id="m-asBtnSp500" onclick="setAutoMarket('sp500')" style="padding:6px 2px;border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);">S&P500</button>
-                <button id="m-asBtnRussell" onclick="setAutoMarket('russell1000')" style="padding:6px 2px;border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);">Russell</button>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-              <div>
-                <label class="m-label">매수 비율(%)</label>
-                <input class="m-input" id="m-asBalanceRatio" type="number" value="30" />
-              </div>
-              <div>
-                <label class="m-label">최대 포지션</label>
-                <input class="m-input" id="m-asMaxPositions" type="number" value="5" />
-              </div>
-              <div>
-                <label class="m-label">익절1(%)</label>
-                <input class="m-input" id="m-asTakeProfit1" type="number" value="15" />
-              </div>
-              <div>
-                <label class="m-label">손절(%)</label>
-                <input class="m-input" id="m-asStopLoss" type="number" value="8" />
-              </div>
-            </div>
-            <button class="m-btn m-btn-primary m-btn-full" onclick="mSaveAutoSettings()">💾 설정 저장</button>
-          </div>
-          <div class="m-card" style="padding:4px 14px;">
-            <div id="m-as-positions"><div class="m-empty">포지션 없음</div></div>
           </div>
         </div>
 
@@ -934,54 +871,6 @@
             <button class="m-btn m-btn-primary m-btn-full" onclick="mLoadDayPicks()">🔍 분석 시작</button>
           </div>
           <div id="m-top-picks-list"></div>
-        </div>
-
-        <!-- 거래량 급등 감지 -->
-        <div id="m-trade-surge" style="display:none;">
-          <div class="m-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div class="m-card-title" style="margin:0;">📊 거래량 급등 감지</div>
-              <button class="m-btn m-btn-secondary" style="padding:6px 12px;font-size:0.78rem;" onclick="loadVolumeSurge()">🔄 조회</button>
-            </div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">평소 대비 1.5배 이상 거래량 급증 종목</div>
-            <div id="m-volume-surge-list"><div class="m-empty">조회 버튼을 눌러주세요</div></div>
-          </div>
-          <div class="m-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div class="m-card-title" style="margin:0;">📰 뉴스 촉매 탐지</div>
-              <button class="m-btn m-btn-secondary" style="padding:6px 12px;font-size:0.78rem;" onclick="loadNewsCatalyst()">🔄 조회</button>
-            </div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">RSS 뉴스에서 관심 종목 언급 탐지</div>
-            <div id="m-news-catalyst-list"><div class="m-empty">조회 버튼을 눌러주세요</div></div>
-          </div>
-          <div class="m-card">
-            <div class="m-card-title">🛡️ 리스크 관리 계산기</div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">계좌 잔고의 1~2% 리스크 룰로 적정 매수 수량 계산</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-              <div>
-                <label class="m-label">종목</label>
-                <input class="m-input" id="m-riskSymbol" placeholder="AAPL" style="text-transform:uppercase;" />
-              </div>
-              <div>
-                <label class="m-label">손절(%)</label>
-                <input class="m-input" id="m-riskStopLoss" type="number" value="5" />
-              </div>
-              <div>
-                <label class="m-label">리스크(%)</label>
-                <input class="m-input" id="m-riskRatio" type="number" value="2" />
-              </div>
-            </div>
-            <button class="m-btn m-btn-primary m-btn-full" onclick="mCalcRisk()">계산</button>
-            <div id="m-risk-result" style="margin-top:10px;font-size:0.82rem;"></div>
-          </div>
-          <div class="m-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div class="m-card-title" style="margin:0;">🎯 통합 매매 신호</div>
-              <button class="m-btn m-btn-secondary" style="padding:6px 12px;font-size:0.78rem;" onclick="loadCombinedSignal()">🔄 분석</button>
-            </div>
-            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">거래량 급등 + 뉴스 + 기술적 신호가 겹치는 종목</div>
-            <div id="m-combined-signal-list"><div class="m-empty">분석 버튼을 눌러주세요</div></div>
-          </div>
         </div>
 
         <!-- 성과 (자동매매 탭 내) -->
@@ -1419,74 +1308,15 @@
 
     // ── 자동매매 서브탭 ──
     function mSwitchTrade(sub) {
-      const tabs = ['simple', 'full', 'auto', 'picks', 'perf', 'backtest', 'surge'];
-      tabs.forEach(s => {
+      ['simple', 'auto', 'picks', 'perf', 'backtest'].forEach(s => {
         const el = document.getElementById('m-trade-' + s);
         if (el) el.style.display = s === sub ? 'block' : 'none';
       });
       document.querySelectorAll('.m-subtab-btn').forEach((b, i) => {
-        b.classList.toggle('active', tabs[i] === sub);
+        b.classList.toggle('active', ['simple', 'auto', 'picks', 'perf', 'backtest'][i] === sub);
       });
       if (sub === 'auto') { mLoadAutoPositions(); mLoadAutoLog(); }
       if (sub === 'perf') { mLoadPerf(); }
-      if (sub === 'full') { mLoadAutoStrategyStatus(); }
-    }
-
-    // 완전자동매매 상태 로드
-    async function mLoadAutoStrategyStatus() {
-      try {
-        const res = await fetch('/api/trade4/settings');
-        const d = await res.json();
-        const active = d.enabled;
-        const toggle = document.getElementById('m-as-toggle');
-        const knob = document.getElementById('m-as-knob');
-        const status = document.getElementById('m-as-status');
-        if (toggle) { toggle.dataset.active = active ? '1' : '0'; toggle.style.background = active ? '#6366f1' : '#d1d5db'; }
-        if (knob) knob.style.left = active ? '24px' : '2px';
-        if (status) status.textContent = active ? '✅ 활성' : '⏹ 비활성';
-      } catch(e) {}
-    }
-
-    // 완전자동매매 설정 저장
-    async function mSaveAutoSettings() {
-      try {
-        const balance_ratio = parseFloat(document.getElementById('m-asBalanceRatio')?.value || 30) / 100;
-        const max_positions = parseInt(document.getElementById('m-asMaxPositions')?.value || 5);
-        const take_profit1 = parseFloat(document.getElementById('m-asTakeProfit1')?.value || 15) / 100;
-        const stop_loss = parseFloat(document.getElementById('m-asStopLoss')?.value || 8) / 100;
-        await fetch('/api/trade4/settings_save', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ balance_ratio, max_positions, take_profit1, stop_loss })
-        });
-        alert('설정이 저장됐습니다.');
-      } catch(e) { alert('저장 실패: ' + e.message); }
-    }
-
-    // 리스크 계산기
-    async function mCalcRisk() {
-      const symbol = document.getElementById('m-riskSymbol')?.value?.trim().toUpperCase();
-      const stopLoss = parseFloat(document.getElementById('m-riskStopLoss')?.value || 5) / 100;
-      const riskRatio = parseFloat(document.getElementById('m-riskRatio')?.value || 2) / 100;
-      const el = document.getElementById('m-risk-result');
-      if (!symbol) { el.textContent = '종목을 입력해주세요.'; return; }
-      try {
-        const res = await fetch('/api/trade4/risk_calc', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ symbol, stop_loss_pct: stopLoss, risk_ratio: riskRatio })
-        });
-        const d = await res.json();
-        if (d.ok) {
-          el.innerHTML = `<div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;">
-            <div style="font-weight:700;margin-bottom:6px;">${symbol} 리스크 계산 결과</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;">
-              <div>현재가: <b>$${d.price?.toFixed(2)}</b></div>
-              <div>매수 수량: <b>${d.qty}주</b></div>
-              <div>총 투자금: <b>$${d.total_cost?.toFixed(0)}</b></div>
-              <div>리스크금액: <b>$${d.risk_amount?.toFixed(0)}</b></div>
-            </div>
-          </div>`;
-        } else { el.textContent = d.error || '계산 실패'; }
-      } catch(e) { el.textContent = '오류: ' + e.message; }
     }
 
     // ── 단순 자동매매 ──

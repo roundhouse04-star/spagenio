@@ -1761,7 +1761,6 @@ window.loadTopPicks = async function () {
   el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">⏳ 분석 중... (10~20초 소요)</div>';
   try {
 
-    alert(window._topPicksMarket);
     const market = window._topPicksMarket || 'nasdaq';
     const res = await fetch(`/api/trade4/top_picks?market=${market}`);
     const d = await res.json();
