@@ -968,9 +968,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   // ✅ 오늘의 추천 종목 (거래량 + 뉴스 + 기술적 신호 종합)
   router.get('/api/trade4/top_picks', async (req, res) => {
+    alert(req.query.market);
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     if (req.query.market === 'kr') return res.redirect('/api/trade4/kr_top_picks');
-    alert(req.query.market);
     try {
       const userId = req.user.user_id || req.user.id;
       const keys = getUserAlpacaKeys(userId, null);
