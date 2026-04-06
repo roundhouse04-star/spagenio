@@ -17,8 +17,9 @@ async function detectVolumeSurge(symbols, alpacaKeys = null) {
       if (bars.length < 10) return;
       const volumes = bars.map(b => b.volume || b.v || 0).filter(v => v > 0);
       if (volumes.length < 5) return;
-      const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
-      const todayVolume = volumes[volumes.length - 1];
+      const recentVolume = volumes[volumes.length - 2] || volumes[volumes.length - 1];
+      const avgVolume = volumes.slice(0, -2).reduce((a, b) => a + b, 0) / Math.max(volumes.length - 2, 1);
+      const todayVolume = recentVolume;
       const ratio = avgVolume > 0 ? todayVolume / avgVolume : 0;
       const closes = bars.map(b => b.close || b.c || 0).filter(v => v > 0);
       const price = closes[closes.length - 1] || 0;
@@ -1049,7 +1050,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
             else if (rsi && rsi < 40) { score += 2; signals.push(`RSI ${rsi.toFixed(0)} 과매도`); }
             else if (rsi && rsi < 50) { score += 1; signals.push(`RSI ${rsi.toFixed(0)}`); }
 
-            if (score > 0) {
+            if (score > 0 || (rsi && rsi < 60)) {
+              if (score === 0) { score = 1; signals.push('RSI ' + rsi?.toFixed(0)); }
               const change_pct = surge?.change_pct || ((closes[closes.length-1] - closes[closes.length-2]) / closes[closes.length-2] * 100);
               scored.push({ symbol, score, price, change_pct: parseFloat(change_pct.toFixed(2)), signals, rsi: rsi ? parseFloat(rsi.toFixed(1)) : null, macd_cross: macd?.goldenCross || false, has_news: !!news, has_surge: !!surge });
             }
