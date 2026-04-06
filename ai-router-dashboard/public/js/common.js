@@ -1,3 +1,4 @@
+const originalFetch = window.fetch.bind(window);
 // ✅ 자동 로그아웃 (30분 비활동)
 (function autoLogout() {
   const TIMEOUT = 30 * 60 * 1000; // 30분
