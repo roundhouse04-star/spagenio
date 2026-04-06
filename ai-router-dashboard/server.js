@@ -774,7 +774,7 @@ app.set('trust proxy', 1);
 // m.spagenio.com → 모바일 페이지
 app.use((req, res, next) => {
   const host = req.headers['x-forwarded-host'] || req.headers['host'] || '';
-  if (host.startsWith('m.') && !req.path.startsWith('/api') && !req.path.startsWith('/proxy')) {
+  if (host.startsWith('m.') && !req.path.startsWith('/api') && !req.path.startsWith('/proxy') && !req.path.startsWith('/js/') && !req.path.startsWith('/css/') && !req.path.startsWith('/img/')) {
     return res.sendFile(path.join(__dirname, 'public', 'm.html'));
   }
   next();
