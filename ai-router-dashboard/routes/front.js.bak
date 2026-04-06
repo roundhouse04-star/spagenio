@@ -102,6 +102,15 @@ async function fetchJson(url, options = {}) {
 
 export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname }) {
 
+  // ── portfolio_performance 마이그레이션: broker_key_id 컬럼 추가 ──
+  try {
+    const cols = db.prepare(`PRAGMA table_info(portfolio_performance)`).all();
+    if (cols.length && !cols.find(c => c.name === 'broker_key_id')) {
+      db.prepare(`ALTER TABLE portfolio_performance ADD COLUMN broker_key_id INTEGER`).run();
+      console.log('[migration] portfolio_performance.broker_key_id 컬럼 추가 완료');
+    }
+  } catch(e) { console.error('[migration] portfolio_performance 마이그레이션 실패:', e.message); }
+
   // ✅ 페이지 라우트
   router.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
   router.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
@@ -1396,6 +1405,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       async function saveSnapshot(accountType, keysOverride = null) {
         const keys = keysOverride || getUserAlpacaKeys(req.user.id, null, accountType || null);
         if (!keys) return null;
+        const brokerKeyId = keys.id || null;
         const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
         const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
 
@@ -1427,9 +1437,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         const peakEquity = Math.max(yesterday?.peak_equity || equity, equity);
 
         db.prepare(`INSERT OR REPLACE INTO portfolio_performance
-          (user_id, snapshot_date, account_type, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-          .run(req.user.id, today, accountType, equity||0, cash||0, portfolioValue||0, dailyPnl||0, dailyPnlPct||0, totalPnl||0, totalPnlPct||0, winCount||0, lossCount||0, maxDrawdown||0, peakEquity||equity||0);
+          (user_id, snapshot_date, account_type, broker_key_id, total_equity, cash, portfolio_value, daily_pnl, daily_pnl_pct, total_pnl, total_pnl_pct, win_count, loss_count, max_drawdown, peak_equity)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .run(req.user.id, today, accountType, brokerKeyId, equity||0, cash||0, portfolioValue||0, dailyPnl||0, dailyPnlPct||0, totalPnl||0, totalPnlPct||0, winCount||0, lossCount||0, maxDrawdown||0, peakEquity||equity||0);
 
         return { equity, cash, portfolioValue, dailyPnl, dailyPnlPct, totalPnl, totalPnlPct, winCount, lossCount, maxDrawdown };
       }
@@ -1455,7 +1465,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const days = parseInt(req.query.days || 30);
     const accountType = parseInt(req.query.account_type ?? 0);
-    const rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, accountType, days);
+    const accountId = req.query.account_id ? parseInt(req.query.account_id) : null;
+    let rows;
+    if (accountId) {
+      rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND broker_key_id=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, accountId, days);
+    } else {
+      rows = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT ?`).all(req.user.id, accountType, days);
+    }
     res.json({ ok: true, history: rows.reverse() });
   });
 
@@ -1463,10 +1479,19 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/performance/summary', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const accountType = parseInt(req.query.account_type ?? 0);
-    const latest = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountType);
-    const weekAgo = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id, accountType);
-    const monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND account_type=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id, accountType);
-    const maxMdd = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=? AND account_type=?`).get(req.user.id, accountType);
+    const accountId = req.query.account_id ? parseInt(req.query.account_id) : null;
+    let latest, weekAgo, monthPnl, maxMdd;
+    if (accountId) {
+      latest   = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND broker_key_id=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountId);
+      weekAgo  = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND broker_key_id=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id, accountId);
+      monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND broker_key_id=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id, accountId);
+      maxMdd   = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=? AND broker_key_id=?`).get(req.user.id, accountId);
+    } else {
+      latest   = db.prepare(`SELECT * FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 1`).get(req.user.id, accountType);
+      weekAgo  = db.prepare(`SELECT total_equity FROM portfolio_performance WHERE user_id=? AND account_type=? ORDER BY snapshot_date DESC LIMIT 7`).all(req.user.id, accountType);
+      monthPnl = db.prepare(`SELECT SUM(daily_pnl) as pnl FROM portfolio_performance WHERE user_id=? AND account_type=? AND snapshot_date >= date('now','-30 days')`).get(req.user.id, accountType);
+      maxMdd   = db.prepare(`SELECT MAX(max_drawdown) as mdd FROM portfolio_performance WHERE user_id=? AND account_type=?`).get(req.user.id, accountType);
+    }
     const winRate = latest ? (latest.win_count + latest.loss_count > 0 ? (latest.win_count / (latest.win_count + latest.loss_count) * 100) : 0) : 0;
     res.json({ ok: true, latest, weekHistory: weekAgo.reverse(), monthPnl: monthPnl?.pnl || 0, maxMdd: maxMdd?.mdd || 0, winRate });
   });

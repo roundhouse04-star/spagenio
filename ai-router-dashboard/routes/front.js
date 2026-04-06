@@ -1037,9 +1037,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
           const STOCK_API2 = process.env.STOCK_API_URL || 'http://localhost:5001';
       const resp = await fetch(`${STOCK_API2}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=3mo&interval=1d`);
           const json = await resp.json();
-          const bars = json.bars || [];
+          const bars = json.data || json.bars || [];
           if (bars.length >= 35) {
-            const closes = bars.map(b => b.c);
+            const closes = bars.map(b => b.close || b.c);
             const price = closes[closes.length - 1];
             const macd = calcMACD(closes);
             const rsi = calcRSI(closes);
