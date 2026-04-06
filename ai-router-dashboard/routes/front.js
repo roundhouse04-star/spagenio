@@ -972,9 +972,17 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const userId = req.user.user_id || req.user.id;
       const keys = getUserAlpacaKeys(userId, null);
       const settings = db.prepare('SELECT candidate_symbols FROM trade_setting_type4 WHERE user_id=?').get(userId);
+      const market = req.query.market || 'nasdaq';
+      const marketSymbols = {
+        nasdaq: ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','NFLX','PYPL','INTC','CRM','ADBE','COST'],
+        sp500:  ['SPY','AAPL','MSFT','AMZN','NVDA','GOOGL','META','BRK','LLY','JPM','V','UNH','XOM','MA','PG'],
+        dow:    ['AAPL','MSFT','JPM','V','UNH','HD','PG','JNJ','WMT','CVX','MCD','CAT','BA','GS','AXP'],
+        russell1000: ['IWB','IWF','IWD','AAPL','MSFT','AMZN','NVDA','GOOGL','META','TSLA','BRK','JPM','V','UNH','XOM']
+      };
+      const defaultSymbols = marketSymbols[market] || marketSymbols.nasdaq;
       const symbols = settings?.candidate_symbols
         ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
-        : ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','SPY','NFLX','PYPL','INTC','AMD','CRM'];
+        : defaultSymbols;
 
       const alpacaHeaders = keys
         ? { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key }
