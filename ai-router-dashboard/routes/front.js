@@ -975,14 +975,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const market = req.query.market || 'nasdaq';
       const marketSymbols = {
         nasdaq: ['AAPL','NVDA','MSFT','GOOGL','AMZN','TSLA','META','AMD','QQQ','NFLX','PYPL','INTC','CRM','ADBE','COST'],
-        sp500:  ['SPY','AAPL','MSFT','AMZN','NVDA','GOOGL','META','BRK','LLY','JPM','V','UNH','XOM','MA','PG'],
+        sp500:  ['SPY','AAPL','MSFT','AMZN','NVDA','GOOGL','META','LLY','JPM','V','UNH','XOM','MA','PG','HD'],
         dow:    ['AAPL','MSFT','JPM','V','UNH','HD','PG','JNJ','WMT','CVX','MCD','CAT','BA','GS','AXP'],
-        russell1000: ['IWB','IWF','IWD','AAPL','MSFT','AMZN','NVDA','GOOGL','META','TSLA','BRK','JPM','V','UNH','XOM']
+        russell1000: ['IWB','IWF','IWD','AAPL','MSFT','AMZN','NVDA','GOOGL','META','TSLA','JPM','V','UNH','XOM','PG']
       };
-      const defaultSymbols = marketSymbols[market] || marketSymbols.nasdaq;
-      const symbols = settings?.candidate_symbols
-        ? settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean)
-        : defaultSymbols;
+      // market이 명시적으로 지정된 경우 market별 종목 사용, nasdaq(기본)일 때만 DB 설정 반영
+      const symbols = (market !== 'nasdaq' || !settings?.candidate_symbols)
+        ? (marketSymbols[market] || marketSymbols.nasdaq)
+        : settings.candidate_symbols.split(',').map(s => s.trim()).filter(Boolean);
 
       const alpacaHeaders = keys
         ? { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key }
