@@ -3729,10 +3729,10 @@
 
         <!-- 계좌 선택 탭 -->
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
-          <button onclick="setPerfAccountType(0)" id="perfAccBtn0"
+          <!--<button onclick="setPerfAccountType(0)" id="perfAccBtn0"
             style="padding:6px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #6366f1;background:#6366f1;color:#fff;">
             📊 전체
-          </button>
+          </button>-->
           <button onclick="setPerfAccountType(1)" id="perfAccBtn1"
             style="padding:6px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:2px solid #2A2A2A;background:transparent;color:#9CA3AF;">
             ✋ 수동
@@ -3746,7 +3746,7 @@
         <!-- 계좌 선택 콤보박스 -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
           <span style="font-size:0.78rem;color:#9CA3AF;font-weight:600;white-space:nowrap;">🏦 계좌 선택</span>
-          <select id="accountSelectPerf" onchange="setPerfAccount(this.value)"
+          <select id="accountSelectPerf" onchange="window.setSelectedAccount(this.value)"
             style="flex:1;max-width:340px;background:#1E242C;color:#E5E7EB;border:1px solid #2A2A2A;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;outline:none;">
           </select>
           <span id="accountSelectPerfBadge"
@@ -4398,11 +4398,11 @@
   </footer>
   </div><!-- /.sp-main -->
 
+  <script src="/js/chart.js?v=20260331c"></script>
+  <script src="/js/stock.js?v=20260402a"></script>
   <script src="/js/common.js?v=20260402a"></script>
   <script src="/js/ai-router.js?v=20260331c"></script>
-  <script src="/js/stock.js?v=20260402a"></script>
   <script src="/js/news.js?v=20260331c"></script>
-  <script src="/js/chart.js?v=20260331c"></script>
   <script src="/js/lotto.js?v=20260331c"></script>
 
 </body>

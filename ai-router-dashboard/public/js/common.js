@@ -54,11 +54,6 @@
   resetTimer();
 })();
 
-// 뒤로가기 금지는 login.html에서만 처리
-
-// ✅ API 요청에 토큰 자동 포함 (checkAuth보다 먼저 선언)
-const originalFetch = window.fetch;
-
 // 클라이언트 에러 서버 전송 함수
 function sendClientError({ event_type, error_message, stack_trace = '', extra = {} }) {
   try {
@@ -461,7 +456,7 @@ async function checkAuth() {
     return false;
   }
   try {
-    const res = await originalFetch('/api/auth/verify', {
+    res = await originalFetch('/api/auth/verify', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.status === 401) {
@@ -717,8 +712,8 @@ function renderDefaultSidebar() {
 
 
 function setSelectedAccount(accountId) {
-  //alert(accountId)
 
+  window._perfAccountId = accountId || '';
   const normalized = accountId != null && accountId !== '' ? String(accountId) : '';
   window.selectedAccountId = normalized;
   if (normalized) {
@@ -727,13 +722,14 @@ function setSelectedAccount(accountId) {
     localStorage.removeItem('selectedAccountId');
   }
 
-  ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'].forEach(id => {
+  const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value !== normalized) el.value = normalized;
   });
 
   const tab = window._currentTab || '';
-  if (tab === 'stock') {
+
+  if (tab === 'stock' || tab === '') {
     if (typeof loadAccount === 'function') loadAccount();
     if (typeof loadPositions === 'function') loadPositions();
     if (typeof loadOrders === 'function') loadOrders();
@@ -742,10 +738,12 @@ function setSelectedAccount(accountId) {
     if (typeof loadAutoTradeSettings === 'function') loadAutoTradeSettings();
     if (typeof loadAutoPositions === 'function') loadAutoPositions();
   } else if (tab === 'performance') {
+
     if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
     if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
     if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
     if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+    if (typeof loadTradeHistory === 'function') loadTradeHistory();
   }
 
   return normalized;
@@ -795,7 +793,7 @@ async function loadAccountSelects() {
     const data = await res.json();
     const accounts = data.accounts || data.keys || [];
     if (!Array.isArray(accounts) || !accounts.length) return;
-    const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock'];
+    const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'];
     selects.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -813,22 +811,6 @@ async function loadAccountSelects() {
         }
       };
     });
-    // 성과 탭 계좌 선택 콤보박스 (전체 옵션 포함)
-    const perfSel = document.getElementById('accountSelectPerf');
-    if (perfSel) {
-      perfSel.innerHTML = '<option value="">— 전체 계좌 합산 —</option>' + accounts.map(a => {
-        const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
-        const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
-        const activeLabel = a.is_active ? ' ✓' : '';
-        return `<option value="${a.id}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${paperLabel}·${typeLabel}${activeLabel})</option>`;
-      }).join('');
-
-      perfSel.onchange = function () {
-        if (this.value && typeof window.setSelectedAccount === 'function') {
-          window.setSelectedAccount(this.value);
-        }
-      };
-    }
     // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
     const cached = localStorage.getItem('selectedAccountId');
     const cachedValid = cached && accounts.find(a => String(a.id) === cached);

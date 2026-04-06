@@ -387,9 +387,8 @@ import sqlite3
 import schedule
 import threading
 import time as time_module
-import time
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'stock.db')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'news.db')
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)

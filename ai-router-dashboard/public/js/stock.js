@@ -1,6 +1,12 @@
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const STOCK_API = isLocal ? 'http://localhost:5001' : '/proxy/stock';
 
+
+// 뒤로가기 금지는 login.html에서만 처리
+
+// ✅ API 요청에 토큰 자동 포함 (checkAuth보다 먼저 선언)
+const originalFetch = window.fetch;
+
 // ===== 가격 입력 원/달러 토글 =====
 let _tradeCurrency = 'USD'; // 'USD' or 'KRW'
 window.toggleTradeCurrency = function () {
@@ -2992,6 +2998,78 @@ function toggleSubMenu(menuId) {
     if (firstChild) firstChild.click();
   }
 }
+function activateMenu(tabKey, subKey, menuId) {
+  const allTabs = document.querySelectorAll('.tab-content');
+  allTabs.forEach(t => { t.style.display = 'none'; t.classList.remove('active-tab'); });
+  const targetTab = document.getElementById(`tab-${tabKey}`);
+  if (targetTab) { targetTab.style.display = 'block'; targetTab.classList.add('active-tab'); }
+  // 버튼 활성화 상태
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sp-sub-btn').forEach(b => b.classList.remove('active'));
+  const parentBtn = document.querySelector(`.sp-parent-btn[data-tab="${tabKey}"]`);
+  if (parentBtn) parentBtn.classList.add('active');
+  const subBtn = document.getElementById(`sub-btn-${menuId}`);
+  if (subBtn) subBtn.classList.add('active');
+  const directBtn = document.getElementById(`tab-btn-${tabKey}-${menuId}`);
+  if (directBtn) directBtn.classList.add('active');
+  // 서브메뉴 열기
+  if (subKey) {
+    const parentId = _menuData.find(m => m.tab_key === tabKey && !m.parent_id)?.id;
+    if (parentId) {
+      const subMenu = document.getElementById(`sub-menu-${parentId}`);
+      const parentBtnEl = document.querySelector(`[data-id="${parentId}"]`);
+      if (subMenu) subMenu.classList.add('open');
+      if (parentBtnEl) parentBtnEl.classList.add('open');
+    }
+    // switchQuantTab 호출 (자동매매 탭)
+    if (tabKey === 'quant' && typeof switchQuantTab === 'function') switchQuantTab(subKey);
+    // datacollect 탭 서브메뉴 처리
+    if (tabKey === 'datacollect') {
+      const tabEl = document.getElementById('tab-datacollect');
+      if (tabEl) tabEl.style.display = 'block';
+      if (typeof switchDcTab === 'function') switchDcTab(subKey || 'stock');
+      return;
+    }
+  }
+  // ── stock 탭 직접 처리 ──
+  if (tabKey === 'stock' && !subKey) {
+    window._currentTab = 'stock';
+    setTimeout(() => {
+      if (typeof loadAccount === 'function') loadAccount();
+      if (typeof loadPositions === 'function') loadPositions();
+      if (typeof loadOrders === 'function') loadOrders();
+      if (typeof loadTradeLog === 'function') loadTradeLog();
+    }, 300);
+    return;
+  }
+  // ── performance 탭은 switchTab 이전에 먼저 처리 ──
+  if (tabKey === 'performance') {
+    // 즉시 실행 + 딜레이 후 재실행 (데이터 보장)
+    if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+    if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
+    setTimeout(() => {
+      if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
+      if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+      if (typeof loadTradeHistory === 'function') loadTradeHistory();
+      if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
+      if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
+      if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
+    }, 300);
+    return;
+  }
+  // 탭별 초기화 - switchTab 호출로 기존 로직 재활용
+  if (typeof switchTab === 'function' && !subKey) {
+    switchTab(tabKey);
+    return; // switchTab이 탭 표시까지 처리
+  }
+  if (tabKey === 'quant' && !subKey) {
+    setTimeout(() => { if (typeof checkInvestorProfile === 'function') checkInvestorProfile(); }, 50);
+  }
+  if (tabKey === 'analysis') {
+    const analysisTab = document.getElementById('tab-analysis');
+    if (analysisTab) analysisTab.style.display = 'block';
+  }
+}
 function renderDefaultSidebar() {
   const nav = document.getElementById('sidebarNav');
   if (!nav) return;
@@ -3323,78 +3401,14 @@ window.loadTelegramAlertLog = loadTelegramAlertLog;
 // _lastBtResult, runBacktest, _captureBtResult → chart.js에서 처리
 // ── saveAutoTradeSettings 오버라이드 ─────────────────────────────
 // 버그 수정: _origSave 선언 순서 수정 + API 이중 호출 제거
-const _origSave = typeof window.saveAutoTradeSettings === 'function'
-  ? window.saveAutoTradeSettings : null;
-const _origLoad = typeof window.loadAutoTradeSettings === 'function'
-  ? window.loadAutoTradeSettings : null;
+const _origSave = typeof window.saveAutoTradeSettings === 'function' ? window.saveAutoTradeSettings : null;
+const _origLoad = typeof window.loadAutoTradeSettings === 'function' ? window.loadAutoTradeSettings : null;
 let _simpleTradePoller = null;
-const _origToggleSimple = typeof window.toggleSimpleAutoTrade === 'function'
-  ? window.toggleSimpleAutoTrade : null;
+const _origToggleSimple = typeof window.toggleSimpleAutoTrade === 'function' ? window.toggleSimpleAutoTrade : null;
 let _topPicksCache = null;
 let _topPicksCacheTime = 0;
 let _topPicksCacheMarket = 'nasdaq';
-const _origLoadTopPicks = typeof window.loadTopPicks === 'function'
-  ? window.loadTopPicks : null;
-window.loadTopPicks = async function () {
-  const el = document.getElementById('topPicksList');
-  if (!el) return;
-  const now = Date.now();
-  const market = window._topPicksMarket || 'nasdaq';
-  // 캐시 유효하면 사용
-  if (_topPicksCache && (now - _topPicksCacheTime) < 5 * 60 * 1000 && _topPicksCacheMarket === market) {
-    el.innerHTML = _topPicksCache;
-    return;
-  }
-  // ── 한국 TOP5 ──
-  if (market === 'kr') {
-    el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">⏳ 한국 종목 분석 중... (약 10~20초 소요)</div>';
-    try {
-      const res = await fetch('/api/trade4/kr_top_picks');
-      const d = await res.json();
-      if (!d.ok || !d.picks?.length) {
-        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;font-size:0.85rem;">현재 조건에 맞는 추천 종목이 없습니다</div>';
-        return;
-      }
-      const rankLabels = ['🥇', '🥈', '🥉', '4위', '5위'];
-      const rows = d.picks.slice(0, 5).map((p, i) => `
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #2A2A2A;border-radius:10px;margin-bottom:8px;background:#111;">
-          <div style="font-size:1.4rem;width:32px;text-align:center;">${rankLabels[i]}</div>
-          <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${p.symbol}</span>
-              <span style="font-size:0.75rem;color:#9CA3AF;">${p.name || ''}</span>
-              ${p.score ? `<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:#16a34a22;color:#16a34a;font-weight:700;">점수 ${p.score}</span>` : ''}
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${p.volume_ratio ? `<span style="font-size:0.72rem;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:700;">📊 ${p.volume_ratio}x</span>` : ''}
-              ${p.has_news ? '<span style="font-size:0.72rem;padding:2px 6px;border-radius:4px;background:#f0fdf4;color:#15803d;font-weight:700;">📰 뉴스</span>' : ''}
-            </div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:1rem;font-weight:800;color:#E5E7EB;">₩${(p.price || 0).toLocaleString()}</div>
-            ${p.change_pct != null ? `<div style="font-size:0.78rem;font-weight:700;color:${p.change_pct >= 0 ? '#ef4444' : '#3b82f6'};">${p.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(p.change_pct)}%</div>` : ''}
-          </div>
-        </div>`).join('');
-      el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">🇰🇷 한국 종목 TOP5 · ${new Date().toLocaleTimeString('ko-KR')}</div>${rows}`;
-      _topPicksCache = el.innerHTML;
-      _topPicksCacheTime = Date.now();
-      _topPicksCacheMarket = 'kr';
-    } catch (e) {
-      el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
-    }
-    return;
-  }
-  // ── 미국 TOP5 (기존 로직) ──
-  if (typeof _origLoadTopPicks === 'function') {
-    window._currentTopPicksMarket = market;
-    await _origLoadTopPicks.apply(this, args);
-    if (el && el.innerHTML && !el.innerHTML.includes('분석 버튼') && !el.innerHTML.includes('조건에 맞는')) {
-      _topPicksCache = el.innerHTML;
-      _topPicksCacheTime = Date.now();
-      _topPicksCacheMarket = market;
-    }
-  }
-};
+const _origLoadTopPicks = typeof window.loadTopPicks === 'function' ? window.loadTopPicks : null;
 
 window._baseSelectStock = function (symbol, name) {
   // _stockSearchTarget 없으면 _searchTargetId로 폴백

@@ -54,11 +54,6 @@
   resetTimer();
 })();
 
-// 뒤로가기 금지는 login.html에서만 처리
-
-// ✅ API 요청에 토큰 자동 포함 (checkAuth보다 먼저 선언)
-const originalFetch = window.fetch;
-
 // 클라이언트 에러 서버 전송 함수
 function sendClientError({ event_type, error_message, stack_trace = '', extra = {} }) {
   try {
@@ -68,8 +63,8 @@ function sendClientError({ event_type, error_message, stack_trace = '', extra = 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_type, error_message, stack_trace, meta })
-    }).catch(() => {});
-  } catch (e) {}
+    }).catch(() => { });
+  } catch (e) { }
 }
 
 window.fetch = function (url, options = {}) {
@@ -312,7 +307,7 @@ async function changeAccountType(id, currentType) {
     } else {
       await spAlert('❌', '오류', data.error || '변경 실패');
     }
-  } catch(e) {
+  } catch (e) {
     await spAlert('❌', '오류', '서버 오류: ' + e.message);
   }
 }
@@ -461,7 +456,7 @@ async function checkAuth() {
     return false;
   }
   try {
-    const res = await originalFetch('/api/auth/verify', {
+    res = await originalFetch('/api/auth/verify', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.status === 401) {
@@ -512,7 +507,7 @@ loadUserInfo();
 
 
 // ===== 사이드바 메뉴 시스템 (index.html에서 이동) =====
-let _currentTab = window._currentTab || 'ai';
+let _currentTab = window._currentTab || '';
 let _currentSubTab = window._currentSubTab || null;
 let _menuData = window._menuData || [];
 window._currentTab = _currentTab;
@@ -575,14 +570,14 @@ function renderSidebar(menus) {
         </button>
         <div class="sp-sub-menu" id="sub-menu-${menu.id}">
           ${menu.children.map(child => {
-            const childIcon = child.icon || '•';
-            const childName = child.name || child.menu_name || child.sub_key || '서브메뉴';
-            return `
+        const childIcon = child.icon || '•';
+        const childName = child.name || child.menu_name || child.sub_key || '서브메뉴';
+        return `
               <button class="sp-sub-btn" id="sub-btn-${child.id}" data-tab="${child.tab_key}" data-sub="${child.sub_key || ''}" data-id="${child.id}"
                 onclick="activateMenu('${child.tab_key}', '${child.sub_key || ''}', ${child.id})">
                 <span>${childIcon}</span> ${childName}
               </button>`;
-          }).join('')}
+      }).join('')}
         </div>`;
     } else {
       html += `
@@ -674,16 +669,22 @@ function activateMenu(tabKey, subKey, menuId) {
     return;
   }
 
-  if (typeof switchTab === 'function' && !subKey) {
-    switchTab(tabKey);
+  if (tabKey === 'stock' && !subKey) {
+    if (typeof switchTab === 'function') {
+      switchTab(tabKey);
+    }
+
+    setTimeout(() => {
+      if (typeof loadAccount === 'function') loadAccount();
+      if (typeof loadPositions === 'function') loadPositions();
+      if (typeof loadOrders === 'function') loadOrders();
+      if (typeof loadTradeLog === 'function') loadTradeLog();
+    }, 300);
     return;
   }
 
-  if (tabKey === 'stock' && !subKey) {
-    setTimeout(() => {
-      if (typeof loadAccount === 'function') loadAccount();
-      if (typeof loadTradeLog === 'function') loadTradeLog();
-    }, 300);
+  if (typeof switchTab === 'function' && !subKey) {
+    switchTab(tabKey);
     return;
   }
 
@@ -711,6 +712,8 @@ function renderDefaultSidebar() {
 
 
 function setSelectedAccount(accountId) {
+
+  window._perfAccountId = accountId || '';
   const normalized = accountId != null && accountId !== '' ? String(accountId) : '';
   window.selectedAccountId = normalized;
   if (normalized) {
@@ -719,10 +722,29 @@ function setSelectedAccount(accountId) {
     localStorage.removeItem('selectedAccountId');
   }
 
-  ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'].forEach(id => {
+  const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'].forEach(id => {
     const el = document.getElementById(id);
     if (el && el.value !== normalized) el.value = normalized;
   });
+
+  const tab = window._currentTab || '';
+
+  if (tab === 'stock') {
+    if (typeof loadAccount === 'function') loadAccount();
+    if (typeof loadPositions === 'function') loadPositions();
+    if (typeof loadOrders === 'function') loadOrders();
+    if (typeof loadTradeLog === 'function') loadTradeLog();
+  } else if (tab === 'quant' || tab === 'datacollect') {
+    if (typeof loadAutoTradeSettings === 'function') loadAutoTradeSettings();
+    if (typeof loadAutoPositions === 'function') loadAutoPositions();
+  } else if (tab === 'performance') {
+
+    if (typeof loadPerformanceSummary === 'function') loadPerformanceSummary();
+    if (typeof loadPerformanceHistory === 'function') loadPerformanceHistory();
+    if (typeof loadAssetPieChart === 'function') loadAssetPieChart();
+    if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
+    if (typeof loadTradeHistory === 'function') loadTradeHistory();
+  }
 
   return normalized;
 }
@@ -771,7 +793,7 @@ async function loadAccountSelects() {
     const data = await res.json();
     const accounts = data.accounts || data.keys || [];
     if (!Array.isArray(accounts) || !accounts.length) return;
-     const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock'];
+    const selects = ['accountSelectUs', 'accountSelectAuto', 'accountSelectDay', 'accountSelectStock', 'accountSelectPerf'];
     selects.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -782,31 +804,26 @@ async function loadAccountSelects() {
         const label = `${paperLabel}·${typeLabel}${activeLabel}`;
         return `<option value="${a.id}" data-label="${label}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${label})</option>`;
       }).join('');
+
+      el.onchange = function () {
+        if (typeof window.setSelectedAccount === 'function') {
+          window.setSelectedAccount(this.value);
+        }
+      };
     });
-     // 성과 탭 계좌 선택 콤보박스 (전체 옵션 포함)
-    const perfSel = document.getElementById('accountSelectPerf');
-    if (perfSel) {
-      perfSel.innerHTML = '<option value="">— 전체 계좌 합산 —</option>' + accounts.map(a => {
-        const typeLabel = a.account_type === 1 ? '수동' : a.account_type === 2 ? '자동' : '';
-        const paperLabel = a.alpaca_paper ? '페이퍼' : '실계좌';
-        const activeLabel = a.is_active ? ' ✓' : '';
-        return `<option value="${a.id}">${a.account_name || '계좌 ' + a.id} · ${a.key_preview || ''} (${paperLabel}·${typeLabel}${activeLabel})</option>`;
-      }).join('');
-    }
-     // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
+    // 캐시된 계좌가 실제 목록에 있으면 사용, 없으면 첫 번째 계좌로 폴백
     const cached = localStorage.getItem('selectedAccountId');
     const cachedValid = cached && accounts.find(a => String(a.id) === cached);
     const active = cachedValid ? accounts.find(a => String(a.id) === cached) : (accounts.find(a => a.is_active) || accounts[0]);
     if (active) window.setSelectedAccount(String(active.id));
   } catch (e) { console.error('계좌 로드 실패', e); }
 }
- // alpaca-keys.js의 fetch 오버라이드가 x-account-id를 자동으로 붙여주므로
+// alpaca-keys.js의 fetch 오버라이드가 x-account-id를 자동으로 붙여주므로
 // selectedAccountId만 activeAccountId와 동기화
 Object.defineProperty(window, 'activeAccountId', {
   get() { return window.selectedAccountId; },
   set(v) { window.selectedAccountId = v; },
   configurable: true
 });
- if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
+if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadAccountSelects); } else { loadAccountSelects(); }
 if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", loadSidebarMenus); } else { loadSidebarMenus(); }
-  

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -24,24 +25,30 @@
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     body {
+      background: var(--bg);
+      color: var(--text);
       max-width: 430px;
       margin: 0 auto;
       font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-      background: var(--bg);
-      color: var(--text);
       min-height: 100dvh;
-      overflow-x: hidden;
     }
 
     /* ── 헤더 ── */
     .m-header {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       height: var(--header-h);
-      background: rgba(10,15,26,0.92);
+      background: rgba(10, 15, 26, 0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
@@ -50,15 +57,18 @@
       justify-content: space-between;
       padding: 0 16px;
       z-index: 100;
+      max-width: 430px;
+      margin: 0 auto;
     }
+
     .m-header-logo {
       font-size: 1.1rem;
       font-weight: 800;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
     }
+
     .m-header-user {
       font-size: 0.78rem;
       color: var(--muted);
@@ -66,10 +76,11 @@
       align-items: center;
       gap: 8px;
     }
+
     .m-logout-btn {
       padding: 5px 10px;
-      background: rgba(239,68,68,0.12);
-      border: 1px solid rgba(239,68,68,0.3);
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
       border-radius: 8px;
       color: var(--danger);
       font-size: 0.72rem;
@@ -77,31 +88,57 @@
       cursor: pointer;
     }
 
-    /* ── 메인 콘텐츠 ── */
+    /* ── 메인 ── */
     .m-main {
       padding-top: var(--header-h);
       padding-bottom: calc(var(--tab-h) + var(--safe-bottom) + 8px);
       min-height: 100dvh;
     }
 
-    /* ── 탭 콘텐츠 ── */
-    .m-tab { display: none; padding: 16px; }
-    .m-tab.active { display: block; }
+    .m-tab {
+      display: none;
+      padding: 16px;
+    }
+
+    .m-tab.active {
+      display: block;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .m-tab.active {
+      animation: fadeUp 0.2s ease;
+    }
 
     /* ── 하단 탭바 ── */
     .m-tabbar {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       height: calc(var(--tab-h) + var(--safe-bottom));
       padding-bottom: var(--safe-bottom);
-      background: rgba(10,15,26,0.96);
+      background: rgba(10, 15, 26, 0.96);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
       display: flex;
       align-items: flex-start;
       z-index: 100;
+      max-width: 430px;
+      margin: 0 auto;
     }
+
     .m-tab-btn {
       flex: 1;
       display: flex;
@@ -118,15 +155,30 @@
       transition: color 0.2s;
       position: relative;
     }
-    .m-tab-btn.active { color: var(--accent); }
-    .m-tab-btn .m-tab-icon { font-size: 1.3rem; line-height: 1; }
-    .m-tab-btn .m-tab-label { font-size: 0.65rem; font-weight: 600; letter-spacing: -0.2px; }
+
+    .m-tab-btn.active {
+      color: var(--accent);
+    }
+
+    .m-tab-btn .m-tab-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .m-tab-btn .m-tab-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
     .m-tab-btn.active::before {
       content: '';
       position: absolute;
-      top: 0; left: 50%;
+      top: 0;
+      left: 50%;
       transform: translateX(-50%);
-      width: 32px; height: 2px;
+      width: 32px;
+      height: 2px;
       background: var(--accent);
       border-radius: 0 0 4px 4px;
     }
@@ -139,18 +191,18 @@
       padding: 14px;
       margin-bottom: 12px;
     }
+
     .m-card-title {
       font-size: 0.88rem;
       font-weight: 700;
-      color: var(--text);
       margin-bottom: 10px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
+
     .m-section-label {
       font-size: 0.72rem;
-      font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.8px;
@@ -162,7 +214,6 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
       padding: 10px 16px;
       border-radius: 10px;
       border: none;
@@ -170,13 +221,51 @@
       font-weight: 700;
       cursor: pointer;
       transition: opacity 0.15s, transform 0.1s;
+      gap: 6px;
     }
-    .m-btn:active { transform: scale(0.97); opacity: 0.85; }
-    .m-btn-primary { background: var(--accent); color: #fff; }
-    .m-btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-    .m-btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
-    .m-btn-success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
-    .m-btn-full { width: 100%; }
+
+    .m-btn:active {
+      transform: scale(0.97);
+      opacity: 0.85;
+    }
+
+    .m-btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .m-btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .m-btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .m-btn-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .m-btn-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warn);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .m-btn-full {
+      width: 100%;
+    }
+
+    .m-btn-sm {
+      padding: 6px 12px;
+      font-size: 0.78rem;
+    }
 
     /* ── 배지 ── */
     .m-badge {
@@ -186,15 +275,36 @@
       font-size: 0.7rem;
       font-weight: 700;
     }
-    .m-badge-green { background: rgba(16,185,129,0.15); color: var(--success); }
-    .m-badge-red { background: rgba(239,68,68,0.15); color: var(--danger); }
-    .m-badge-blue { background: rgba(99,102,241,0.15); color: var(--accent2); }
-    .m-badge-yellow { background: rgba(245,158,11,0.15); color: var(--warn); }
+
+    .m-badge-green {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+    }
+
+    .m-badge-red {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .m-badge-blue {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent2);
+    }
+
+    .m-badge-yellow {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warn);
+    }
+
+    .m-badge-gray {
+      background: var(--surface2);
+      color: var(--muted);
+    }
 
     /* ── 입력 ── */
     .m-input {
       width: 100%;
-      padding: 11px 14px;
+      padding: 10px 14px;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -203,24 +313,94 @@
       outline: none;
       transition: border-color 0.2s;
     }
-    .m-input:focus { border-color: var(--accent); }
-    .m-input::placeholder { color: var(--muted); }
-    .m-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; display: block; }
 
-    /* ── 로딩 ── */
-    .m-loading { text-align: center; color: var(--muted); padding: 24px; font-size: 0.85rem; }
-    .m-empty { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 0.85rem; }
+    .m-input:focus {
+      border-color: var(--accent);
+    }
 
-    /* ── 뉴스 ── */
-    .m-news-item {
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
+    .m-input::placeholder {
+      color: var(--muted);
+    }
+
+    .m-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    .m-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* ── 로딩/빈상태 ── */
+    .m-loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+      font-size: 0.85rem;
+    }
+
+    .m-empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 32px 16px;
+      font-size: 0.85rem;
+    }
+
+    /* ── 구분선 ── */
+    .m-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0;
+    }
+
+    /* ── 스위치 토글 ── */
+    .m-toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      display: inline-block;
+    }
+
+    .m-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .m-toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 24px;
+      transition: 0.2s;
       cursor: pointer;
     }
-    .m-news-item:last-child { border-bottom: none; }
-    .m-news-cat { font-size: 0.68rem; color: var(--accent2); font-weight: 700; margin-bottom: 4px; }
-    .m-news-title { font-size: 0.88rem; font-weight: 600; line-height: 1.4; color: var(--text); margin-bottom: 4px; }
-    .m-news-time { font-size: 0.72rem; color: var(--muted); }
+
+    .m-toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .m-toggle input:checked+.m-toggle-slider {
+      background: var(--accent);
+    }
+
+    .m-toggle input:checked+.m-toggle-slider:before {
+      transform: translateX(20px);
+    }
 
     /* ── 시장 지표 스크롤 ── */
     .m-market-scroll {
@@ -231,7 +411,11 @@
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
-    .m-market-scroll::-webkit-scrollbar { display: none; }
+
+    .m-market-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
     .m-market-chip {
       flex-shrink: 0;
       padding: 8px 12px;
@@ -240,52 +424,123 @@
       border-radius: 10px;
       min-width: 80px;
     }
-    .m-market-chip-label { font-size: 0.65rem; color: var(--muted); font-weight: 600; }
-    .m-market-chip-price { font-size: 0.88rem; font-weight: 800; margin: 2px 0; }
-    .m-market-chip-change { font-size: 0.7rem; font-weight: 700; }
 
-    /* ── 로또 번호 ── */
-    .m-lotto-ball {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
+    .m-market-chip-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .m-market-chip-price {
+      font-size: 0.88rem;
       font-weight: 800;
+      margin: 2px 0;
+    }
+
+    .m-market-chip-change {
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    /* ── 뉴스 ── */
+    .m-news-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .m-news-item:last-child {
+      border-bottom: none;
+    }
+
+    .m-news-cat {
+      font-size: 0.68rem;
+      color: var(--accent2);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .m-news-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .m-news-time {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .m-news-filter {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+
+    .m-news-filter::-webkit-scrollbar {
+      display: none;
+    }
+
+    .m-news-filter-btn {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .m-news-filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
       color: #fff;
     }
-    .lb1 { background: #fbbf24; }
-    .lb2 { background: #60a5fa; }
-    .lb3 { background: #f87171; }
-    .lb4 { background: #9ca3af; }
-    .lb5 { background: #34d399; }
 
-    /* ── 주식 가격 ── */
+    /* ── 주식 행 ── */
     .m-stock-row {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid var(--border);
     }
-    .m-stock-row:last-child { border-bottom: none; }
 
-    /* ── 성과 지표 그리드 ── */
+    .m-stock-row:last-child {
+      border-bottom: none;
+    }
+
+    /* ── 성과 그리드 ── */
     .m-stat-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+
     .m-stat-item {
       background: var(--surface2);
       border-radius: 10px;
       padding: 10px 12px;
     }
-    .m-stat-label { font-size: 0.68rem; color: var(--muted); margin-bottom: 4px; }
-    .m-stat-value { font-size: 1rem; font-weight: 800; }
 
-    /* ── 스와이프 탭 (자동매매 서브탭) ── */
+    .m-stat-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .m-stat-value {
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    /* ── 서브탭 바 ── */
     .m-subtab-bar {
       display: flex;
       gap: 0;
@@ -294,32 +549,71 @@
       padding: 3px;
       margin-bottom: 12px;
     }
+
     .m-subtab-btn {
       flex: 1;
       padding: 7px;
       border: none;
       background: transparent;
       color: var(--muted);
-      font-size: 0.75rem;
-      font-weight: 700;
       border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
     }
-    .m-subtab-btn.active { background: var(--accent); color: #fff; }
+
+    .m-subtab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ── 로또 볼 ── */
+    .m-lotto-ball {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .lb1 {
+      background: #fbbf24;
+    }
+
+    .lb2 {
+      background: #60a5fa;
+    }
+
+    .lb3 {
+      background: #f87171;
+    }
+
+    .lb4 {
+      background: #9ca3af;
+    }
+
+    .lb5 {
+      background: #34d399;
+    }
 
     /* ── 로그인 화면 ── */
     #m-login-screen {
       position: fixed;
       inset: 0;
       background: var(--bg);
+      z-index: 999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px;
-      z-index: 999;
     }
+
     .m-login-logo {
       font-size: 2rem;
       font-weight: 900;
@@ -328,8 +622,18 @@
       -webkit-text-fill-color: transparent;
       margin-bottom: 8px;
     }
-    .m-login-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 32px; }
-    .m-login-form { width: 100%; max-width: 340px; }
+
+    .m-login-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    .m-login-form {
+      width: 100%;
+      max-width: 340px;
+    }
+
     .m-login-input {
       width: 100%;
       padding: 14px 16px;
@@ -337,11 +641,15 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       color: var(--text);
-      font-size: 1rem;
-      margin-bottom: 10px;
+      font-size: 0.95rem;
       outline: none;
+      margin-bottom: 10px;
     }
-    .m-login-input:focus { border-color: var(--accent); }
+
+    .m-login-input:focus {
+      border-color: var(--accent);
+    }
+
     .m-login-btn {
       width: 100%;
       padding: 14px;
@@ -354,7 +662,13 @@
       cursor: pointer;
       margin-top: 4px;
     }
-    .m-login-err { color: var(--danger); font-size: 0.82rem; text-align: center; margin-top: 10px; }
+
+    .m-login-err {
+      color: var(--danger);
+      font-size: 0.82rem;
+      text-align: center;
+      margin-top: 10px;
+    }
 
     /* ── 풀스크린 모달 ── */
     .m-modal {
@@ -365,7 +679,11 @@
       display: none;
       flex-direction: column;
     }
-    .m-modal.open { display: flex; }
+
+    .m-modal.open {
+      display: flex;
+    }
+
     .m-modal-header {
       display: flex;
       align-items: center;
@@ -374,8 +692,10 @@
       border-bottom: 1px solid var(--border);
       padding-top: calc(16px + env(safe-area-inset-top, 0px));
     }
+
     .m-modal-back {
-      width: 36px; height: 36px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: var(--surface2);
       border: none;
@@ -386,1073 +706,1883 @@
       align-items: center;
       justify-content: center;
     }
-    .m-modal-title { font-size: 1rem; font-weight: 700; }
-    .m-modal-body { flex: 1; overflow-y: auto; padding: 16px; }
 
-    /* 애니메이션 */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .m-modal-title {
+      font-size: 1rem;
+      font-weight: 700;
     }
-    .m-tab.active { animation: fadeUp 0.2s ease; }
 
-    /* 구분선 */
-    .m-divider { height: 1px; background: var(--border); margin: 12px 0; }
-
-    /* 스위치 토글 */
-    .m-toggle {
-      position: relative;
-      width: 44px; height: 24px;
-      display: inline-block;
+    .m-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
     }
-    .m-toggle input { opacity: 0; width: 0; height: 0; }
-    .m-toggle-slider {
-      position: absolute;
-      inset: 0;
-      background: var(--border);
-      border-radius: 24px;
-      transition: 0.2s;
+
+    /* ── 포트폴리오 미니 카드 ── */
+    .m-portfolio-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .m-portfolio-mini-item {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    /* ── 퀀트 설정 폼 ── */
+    .m-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .m-form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .m-market-btn {
+      padding: 8px 6px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
       cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      transition: all 0.15s;
     }
-    .m-toggle-slider:before {
-      content: '';
-      position: absolute;
-      width: 18px; height: 18px;
-      left: 3px; top: 3px;
-      background: white;
-      border-radius: 50%;
-      transition: 0.2s;
+
+    .m-market-btn.active {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent2);
     }
-    .m-toggle input:checked + .m-toggle-slider { background: var(--accent); }
-    .m-toggle input:checked + .m-toggle-slider:before { transform: translateX(20px); }
+
+    .m-factor-btn {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .m-factor-btn.active {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent2);
+    }
+
+    /* ── 투자성향 옵션 ── */
+    .m-profile-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      background: var(--surface2);
+    }
+
+    .m-profile-option:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .m-profile-option input {
+      accent-color: var(--accent);
+    }
   </style>
 </head>
+
 <body>
 
-<!-- ── 로그인 화면 ── -->
-<div id="m-login-screen">
-  <div class="m-login-logo">spagenio</div>
-  <div class="m-login-sub">AI 투자 대시보드</div>
-  <div class="m-login-form">
-    <input class="m-login-input" type="text" id="m-username" placeholder="아이디" autocomplete="username" />
-    <input class="m-login-input" type="password" id="m-password" placeholder="비밀번호" autocomplete="current-password" />
-    <button class="m-login-btn" onclick="mLogin()">로그인</button>
-    <div class="m-login-err" id="m-login-err"></div>
+  <!-- ── 로그인 ── -->
+  <div id="m-login-screen">
+    <div class="m-login-logo">spagenio</div>
+    <div class="m-login-sub">AI 투자 대시보드</div>
+    <div class="m-login-form">
+      <input class="m-login-input" type="text" id="m-un" placeholder="아이디" autocomplete="username" />
+      <input class="m-login-input" type="password" id="m-pw" placeholder="비밀번호" autocomplete="current-password" />
+      <button class="m-login-btn" onclick="mLogin()">로그인</button>
+      <div class="m-login-err" id="m-login-err"></div>
+    </div>
   </div>
-</div>
 
-<!-- ── 앱 본체 ── -->
-<div id="m-app" style="display:none;">
+  <!-- ── 앱 본체 ── -->
+  <div id="m-app" style="display:none;">
 
-  <!-- 헤더 -->
-  <header class="m-header">
-    <div class="m-header-logo">spagenio</div>
-    <div class="m-header-user">
-      <span id="m-username-display"></span>
-      <button class="m-logout-btn" onclick="mLogout()">로그아웃</button>
-    </div>
-  </header>
-
-  <!-- 메인 -->
-  <main class="m-main">
-
-    <!-- ── 뉴스 탭 ── -->
-    <div class="m-tab active" id="m-tab-news">
-      <!-- 시장 지표 -->
-      <div class="m-section-label">시장 지표</div>
-      <div class="m-market-scroll" id="m-market-chips">
-        <div class="m-loading">로딩 중...</div>
+    <!-- 헤더 -->
+    <header class="m-header">
+      <div class="m-header-logo">spagenio</div>
+      <div class="m-header-user">
+        <span id="m-uname"></span>
+        <button class="m-logout-btn" onclick="mLogout()">로그아웃</button>
       </div>
+    </header>
 
-      <!-- 뉴스 -->
-      <div class="m-section-label" style="margin-top:16px;">최신 뉴스</div>
-      <div class="m-card" style="padding:4px 14px;">
-        <div id="m-news-list"><div class="m-loading">로딩 중...</div></div>
-      </div>
-    </div>
+    <!-- 메인 -->
+    <main class="m-main">
 
-    <!-- ── 주식 탭 ── -->
-    <div class="m-tab" id="m-tab-stock">
-      <!-- 계좌 정보 -->
-      <div class="m-section-label">계좌 정보</div>
-      <div id="m-account-card" class="m-card">
-        <div class="m-loading">로딩 중...</div>
-      </div>
-
-      <!-- 보유 종목 -->
-      <div class="m-section-label">보유 종목</div>
-      <div class="m-card" style="padding:4px 14px;">
-        <div id="m-positions-list"><div class="m-loading">로딩 중...</div></div>
-      </div>
-
-      <!-- 종목 검색 -->
-      <div class="m-section-label">종목 검색</div>
-      <div class="m-card">
-        <div style="display:flex;gap:8px;">
-          <input class="m-input" id="m-stock-input" placeholder="예: AAPL" style="flex:1;" />
-          <button class="m-btn m-btn-primary" onclick="mSearchStock()">검색</button>
-        </div>
-        <div id="m-stock-result" style="margin-top:10px;"></div>
-      </div>
-
-      <!-- 매수/매도 -->
-      <div class="m-section-label">매매</div>
-      <div class="m-card">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-          <div>
-            <label class="m-label">종목</label>
-            <input class="m-input" id="m-trade-symbol" placeholder="AAPL" />
-          </div>
-          <div>
-            <label class="m-label">수량</label>
-            <input class="m-input" id="m-trade-qty" type="number" value="1" min="1" />
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="m-btn m-btn-success m-btn-full" onclick="mTrade('buy')">🟢 매수</button>
-          <button class="m-btn m-btn-danger m-btn-full" onclick="mTrade('sell')">🔴 매도</button>
-        </div>
-        <div id="m-trade-result" style="margin-top:10px;font-size:0.82rem;color:var(--muted);"></div>
-      </div>
-    </div>
-
-    <!-- ── 로또 탭 ── -->
-    <div class="m-tab" id="m-tab-lotto">
-      <!-- 번호 추천 -->
-      <div class="m-section-label">번호 추천</div>
-      <div class="m-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <select id="m-lotto-count" class="m-input" style="width:auto;padding:8px 12px;">
-            <option value="1">1게임</option>
-            <option value="3">3게임</option>
-            <option value="5" selected>5게임</option>
+      <!-- ══════════════════════════════
+         📰 뉴스 탭
+    ══════════════════════════════ -->
+      <div class="m-tab active" id="m-tab-news">
+        <!-- hidden: JS 호환용 -->
+        <div style="display:none;">
+          <select id="preferredModel"></select>
+          <select id="taskType">
+            <option value="news" selected></option>
           </select>
-          <button class="m-btn m-btn-primary" onclick="mLottoPick()">🎱 추천받기</button>
-        </div>
-        <div id="m-lotto-picks"><div class="m-empty">추천 버튼을 눌러주세요</div></div>
-        <div id="m-lotto-save-btn" style="display:none;margin-top:12px;">
-          <button class="m-btn m-btn-secondary m-btn-full" onclick="mLottoSave()">💾 저장</button>
-        </div>
-      </div>
-
-      <!-- 추천 이력 -->
-      <div class="m-section-label">추천 이력</div>
-      <div class="m-card" style="padding:4px 14px;">
-        <div id="m-lotto-history"><div class="m-loading">로딩 중...</div></div>
-      </div>
-    </div>
-
-    <!-- ── 자동매매 탭 ── -->
-    <div class="m-tab" id="m-tab-trade">
-      <!-- 서브탭 -->
-      <div class="m-subtab-bar" style="display:flex;flex-wrap:wrap;gap:4px;">
-        <button class="m-subtab-btn active" onclick="mSwitchTrade('simple')" style="flex:1;min-width:60px;">⚡ 단순</button>
-        <button class="m-subtab-btn" onclick="mSwitchTrade('auto')" style="flex:1;min-width:60px;">🤖 자동</button>
-        <button class="m-subtab-btn" onclick="mSwitchTrade('picks')" style="flex:1;min-width:60px;">🏆 추천</button>
-        <button class="m-subtab-btn" onclick="mSwitchTrade('perf')" style="flex:1;min-width:60px;">💹 성과</button>
-        <button class="m-subtab-btn" onclick="mSwitchTrade('backtest')" style="flex:1;min-width:60px;">🔬 백테스트</button>
-      </div>
-
-      <!-- 단순 자동매매 -->
-      <div id="m-trade-simple">
-        <div id="m-simple-trade-card" class="m-card">
-          <div class="m-loading">로딩 중...</div>
-        </div>
-        <div class="m-card">
-          <div class="m-card-title">⚙️ 설정</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-            <div>
-              <label class="m-label">매수비율(%)</label>
-              <input class="m-input" id="m-simple-ratio" type="number" value="30" />
-            </div>
-            <div>
-              <label class="m-label">익절(%)</label>
-              <input class="m-input" id="m-simple-tp" type="number" value="5" />
-            </div>
-            <div>
-              <label class="m-label">손절(%)</label>
-              <input class="m-input" id="m-simple-sl" type="number" value="5" />
-            </div>
+          <select id="taskComplexity">
+            <option value="medium" selected></option>
+          </select>
+          <select id="preferredEngine">
+            <option value="hybrid" selected></option>
+          </select>
+          <select id="newsDateFilter"></select>
+          <select id="newsTypeFilter"></select>
+          <input type="checkbox" id="claudeAnalysisToggle" />
+          <span id="claudeAnalysisStatus"></span>
+          <div id="marketDetail"></div>
+          <div id="marketChartCard" style="display:none;"><canvas id="marketMiniChart"></canvas>
+            <div id="chartSymbolLabel"></div>
+            <div id="chartSymbolSub"></div>
+            <div id="chartPriceBadge"></div>
+            <div id="chartChangeBadge"></div>
           </div>
-          <button class="m-btn m-btn-primary m-btn-full" id="m-simple-toggle-btn" onclick="mToggleSimpleTrade()">▶ 시작</button>
         </div>
-        <div class="m-section-label">매매 이력</div>
+
+        <!-- 포트폴리오 요약 -->
+        <div id="m-portfolio-wrap" style="display:none;" class="m-portfolio-mini">
+          <div class="m-portfolio-mini-item">
+            <div class="m-stat-label">총 자산</div>
+            <div id="homeEquity" class="m-stat-value">-</div>
+          </div>
+          <div class="m-portfolio-mini-item">
+            <div class="m-stat-label">오늘 손익</div>
+            <div id="homeDailyPnl" class="m-stat-value">-</div>
+          </div>
+          <div class="m-portfolio-mini-item">
+            <div class="m-stat-label">누적 수익률</div>
+            <div id="homeTotalPnl" class="m-stat-value">-</div>
+          </div>
+          <div class="m-portfolio-mini-item">
+            <div class="m-stat-label">승률/MDD</div>
+            <div id="homeWinRate" class="m-stat-value">-</div>
+          </div>
+        </div>
+        <!-- homePortfolioWrap alias for JS -->
+        <div id="homePortfolioWrap" style="display:none;"></div>
+
+        <!-- 시장 지표 -->
+        <div class="m-section-label">시장 지표</div>
+        <div class="m-market-scroll" id="marketIndicators">
+          <span style="color:var(--muted);font-size:0.82rem;padding:8px;">⏳ 로딩 중...</span>
+        </div>
+
+        <!-- 뉴스 -->
+        <div class="m-section-label" style="margin-top:16px;">
+          <span>최신 뉴스</span>
+          <span id="newsCount" style="font-size:0.72rem;color:var(--muted);margin-left:6px;"></span>
+        </div>
+        <div class="m-news-filter">
+          <button class="m-news-filter-btn active news-tab-btn" onclick="filterNewsByCategory('all',this)">All</button>
+          <button class="m-news-filter-btn news-tab-btn" onclick="filterNewsByCategory('global',this)">🌍 글로벌</button>
+          <button class="m-news-filter-btn news-tab-btn" onclick="filterNewsByCategory('korea',this)">🇰🇷 한국</button>
+          <button class="m-news-filter-btn news-tab-btn" onclick="filterNewsByCategory('it',this)">💻 IT</button>
+          <button class="m-news-filter-btn news-tab-btn" onclick="filterNewsByCategory('economy',this)">💰 경제</button>
+          <button class="m-news-filter-btn" onclick="loadNews()" style="margin-left:4px;">🔄</button>
+        </div>
         <div class="m-card" style="padding:4px 14px;">
-          <div id="m-simple-log"><div class="m-empty">이력 없음</div></div>
-        </div>
-      </div>
-
-      <!-- 자동매매 현황 -->
-      <div id="m-trade-auto" style="display:none;">
-        <div id="m-auto-positions" class="m-card">
-          <div class="m-loading">로딩 중...</div>
-        </div>
-        <div class="m-card">
-          <button class="m-btn m-btn-danger m-btn-full" onclick="mStopAllTrade()">⏹ 전체 청산</button>
-        </div>
-        <div class="m-section-label">자동매매 이력</div>
-        <div class="m-card" style="padding:4px 14px;">
-          <div id="m-auto-log"><div class="m-empty">이력 없음</div></div>
-        </div>
-      </div>
-
-      <!-- TOP5 추천 -->
-      <div id="m-trade-picks" style="display:none;">
-        <div class="m-card">
-          <!-- 미국/한국 토글 -->
-          <div style="display:flex;gap:6px;margin-bottom:10px;">
-            <button id="mDayPicksUsBtn" onclick="mSwitchPicksMarket('us')"
-              style="flex:1;padding:8px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;">
-              🇺🇸 미국
-            </button>
-            <button id="mDayPicksKrBtn" onclick="mSwitchPicksMarket('kr')"
-              style="flex:1;padding:8px;border:none;border-radius:8px;background:var(--surface2);color:var(--muted);font-size:0.8rem;font-weight:700;cursor:pointer;">
-              🇰🇷 한국
-            </button>
+          <div id="newsContent">
+            <div class="m-loading">뉴스를 불러오는 중...</div>
           </div>
-          <p id="mPicksLabel" style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">거래량·뉴스·기술적 신호 종합 분석 (미국)</p>
-          <button class="m-btn m-btn-primary m-btn-full" onclick="mLoadDayPicks()">🔍 분석 시작</button>
-        </div>
-        <div id="m-top-picks-list"></div>
-      </div>
-
-      <!-- 성과 (자동매매 탭 내) -->
-      <div id="m-trade-perf" style="display:none;">
-        <div class="m-section-label">성과 요약</div>
-        <div id="m-perf-summary" class="m-card">
-          <div class="m-loading">로딩 중...</div>
-        </div>
-        <div class="m-section-label">자동매매 이력</div>
-        <div class="m-card" style="padding:4px 14px;">
-          <div id="m-perf-trades"><div class="m-loading">로딩 중...</div></div>
         </div>
       </div>
 
-      <!-- 백테스트 (자동매매 탭 내) -->
-      <div id="m-trade-backtest" style="display:none;">
-        <div class="m-section-label">백테스팅</div>
-        <div class="m-card">
-          <div style="margin-bottom:10px;">
-            <label class="m-label">종목</label>
-            <input class="m-input" id="m-bt-symbol" placeholder="예: AAPL" />
+      <!-- ══════════════════════════════
+         📈 주식 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-stock">
+
+        <!-- 서브탭 -->
+        <div class="m-subtab-bar">
+          <button class="m-subtab-btn active" onclick="mStockSub('trade')">매매</button>
+          <button class="m-subtab-btn" onclick="mStockSub('account')">계좌</button>
+          <button class="m-subtab-btn" onclick="mStockSub('price')">시세</button>
+          <button class="m-subtab-btn" onclick="mStockSub('orders')">이력</button>
+        </div>
+
+        <!-- 매매 패널 -->
+        <div id="m-stock-trade">
+          <div class="m-section-label">계좌 정보</div>
+          <div id="m-account-card" class="m-card">
+            <div class="m-loading">로딩 중...</div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-            <div>
-              <label class="m-label">시작일</label>
-              <input class="m-input" id="m-bt-start" type="date" />
-            </div>
-            <div>
-              <label class="m-label">종료일</label>
-              <input class="m-input" id="m-bt-end" type="date" />
+
+          <div class="m-section-label">보유 종목</div>
+          <div class="m-card" style="padding:4px 14px;">
+            <div id="positionsTable">
+              <div class="m-loading">로딩 중...</div>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-            <div>
-              <label class="m-label">익절(%)</label>
-              <input class="m-input" id="m-bt-tp" type="number" value="5" />
-            </div>
-            <div>
-              <label class="m-label">손절(%)</label>
-              <input class="m-input" id="m-bt-sl" type="number" value="5" />
-            </div>
-          </div>
-          <button class="m-btn m-btn-primary m-btn-full" onclick="mRunBacktest()">▶ 백테스트 실행</button>
-        </div>
-        <div id="m-bt-result"></div>
-      </div>
-    </div>
 
-    <!-- ── 관리 탭 ── -->
-    <div class="m-tab" id="m-tab-manage">
-      <!-- 스케줄러 -->
-      <div class="m-section-label">스케줄러</div>
-      <div class="m-card" id="m-scheduler-card">
-        <div class="m-loading">로딩 중...</div>
-      </div>
-
-      <!-- DB 관리 -->
-      <div class="m-section-label">DB 관리</div>
-      <div class="m-card">
-        <div class="m-card-title">🗄️ 데이터베이스</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('news')">📰 뉴스 DB 초기화</button>
-          <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('lotto')">🍀 로또 DB 초기화</button>
-          <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('trade')">🤖 매매이력 DB 초기화</button>
-          <button class="m-btn m-btn-danger m-btn-full" onclick="mDbAction('all')">⚠️ 전체 초기화</button>
-        </div>
-        <div id="m-db-result" style="margin-top:10px;font-size:0.82rem;color:var(--muted);"></div>
-      </div>
-
-      <!-- 비밀번호 변경 -->
-      <div class="m-section-label">계정</div>
-      <div class="m-card">
-        <div class="m-card-title">🔒 비밀번호 변경</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <input class="m-input" id="m-pw-current" type="password" placeholder="현재 비밀번호" />
-          <input class="m-input" id="m-pw-new" type="password" placeholder="새 비밀번호" />
-          <input class="m-input" id="m-pw-confirm" type="password" placeholder="새 비밀번호 확인" />
-          <button class="m-btn m-btn-primary m-btn-full" onclick="mChangePw()">변경</button>
-        </div>
-        <div id="m-pw-result" style="margin-top:8px;font-size:0.82rem;"></div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- 하단 탭바 -->
-  <nav class="m-tabbar">
-    <button class="m-tab-btn active" data-tab="news" onclick="mTab('news')">
-      <span class="m-tab-icon">📰</span>
-      <span class="m-tab-label">뉴스</span>
-    </button>
-    <button class="m-tab-btn" data-tab="stock" onclick="mTab('stock')">
-      <span class="m-tab-icon">📈</span>
-      <span class="m-tab-label">주식</span>
-    </button>
-    <button class="m-tab-btn" data-tab="trade" onclick="mTab('trade')">
-      <span class="m-tab-icon">🤖</span>
-      <span class="m-tab-label">자동매매</span>
-    </button>
-    <button class="m-tab-btn" data-tab="lotto" onclick="mTab('lotto')">
-      <span class="m-tab-icon">🍀</span>
-      <span class="m-tab-label">로또</span>
-    </button>
-    <button class="m-tab-btn" data-tab="manage" onclick="mTab('manage')">
-      <span class="m-tab-icon">⚙️</span>
-      <span class="m-tab-label">관리</span>
-    </button>
-  </nav>
-
-</div>
-
-<script>
-// ── 공통 fetch (토큰 자동 첨부) ──
-const _origFetch = window.fetch;
-window.fetch = function(url, opts = {}) {
-  const token = sessionStorage.getItem('auth_token');
-  if (token && typeof url === 'string' && url.startsWith('/')) {
-    opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token };
-  }
-  return _origFetch(url, opts).then(res => {
-    if (res.status === 401 && !url.includes('/api/auth/')) {
-      sessionStorage.removeItem('auth_token');
-      showLogin();
-    }
-    return res;
-  });
-};
-
-// ── 로그인 ──
-async function mLogin() {
-  const username = document.getElementById('m-username').value.trim();
-  const password = document.getElementById('m-password').value;
-  const errEl = document.getElementById('m-login-err');
-  if (!username || !password) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-  try {
-    const res = await _origFetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const d = await res.json();
-    if (res.ok && d.token) {
-      sessionStorage.setItem('auth_token', d.token);
-      document.getElementById('m-username-display').textContent = d.username;
-      showApp();
-    } else {
-      errEl.textContent = d.error || '로그인 실패';
-    }
-  } catch(e) { errEl.textContent = '연결 실패: ' + e.message; }
-}
-
-document.getElementById('m-password').addEventListener('keydown', e => { if (e.key === 'Enter') mLogin(); });
-
-function mLogout() {
-  sessionStorage.removeItem('auth_token');
-  showLogin();
-}
-
-function showLogin() {
-  document.getElementById('m-login-screen').style.display = 'flex';
-  document.getElementById('m-app').style.display = 'none';
-}
-
-function showApp() {
-  document.getElementById('m-login-screen').style.display = 'none';
-  document.getElementById('m-app').style.display = 'block';
-  initApp();
-}
-
-// ── 탭 전환 ──
-let _currentTab = 'news';
-function mTab(tab) {
-  document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.m-tab-btn').forEach(b => b.classList.remove('active'));
-  const tabEl = document.getElementById('m-tab-' + tab);
-  if (tabEl) tabEl.classList.add('active');
-  const btnEl = document.querySelector(`.m-tab-btn[data-tab="${tab}"]`);
-  if (btnEl) btnEl.classList.add('active');
-  _currentTab = tab;
-  if (tab === 'news') { mLoadNews(); mLoadMarket(); }
-  if (tab === 'stock') { mLoadAccount(); mLoadPositions(); }
-  if (tab === 'lotto') { mLoadLottoHistory(); }
-  if (tab === 'trade') { mLoadSimpleTrade(); }
-  if (tab === 'manage') { mLoadScheduler(); }
-}
-
-// ── 앱 초기화 ──
-function initApp() {
-  // 백테스트 날짜 기본값
-  const today = new Date().toISOString().split('T')[0];
-  const sixM = new Date(Date.now() - 180*24*60*60*1000).toISOString().split('T')[0];
-  const btStart = document.getElementById('m-bt-start');
-  const btEnd = document.getElementById('m-bt-end');
-  if (btStart) btStart.value = sixM;
-  if (btEnd) btEnd.value = today;
-
-  mLoadNews();
-  mLoadMarket();
-}
-
-// ── 뉴스 ──
-async function mLoadNews() {
-  const el = document.getElementById('m-news-list');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/news/fetch?category=all');
-    const d = await res.json();
-    const news = d.news || [];
-    if (!news.length) { el.innerHTML = '<div class="m-empty">뉴스 없음</div>'; return; }
-    const catLabel = { global:'🌍', korea:'🇰🇷', it:'💻', economy:'💰' };
-    el.innerHTML = news.slice(0, 20).map(n => {
-      const time = n.publishedAt ? new Date(n.publishedAt).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-      return `<div class="m-news-item" onclick="window.open('${(n.url||'').replace(/'/g,"'")}','_blank')">
-        <div class="m-news-cat">${catLabel[n.category]||'📰'} ${n.source}</div>
-        <div class="m-news-title">${n.title||''}</div>
-        <div class="m-news-time">${time}</div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
-
-// ── 시장 지표 ──
-async function mLoadMarket() {
-  const el = document.getElementById('m-market-chips');
-  if (!el) return;
-  try {
-    const res = await fetch('/proxy/stock/api/market/indicators');
-    const d = await res.json();
-    const indicators = d.indicators || [];
-    el.innerHTML = indicators.filter(i => !i.error).map(i => {
-      const up = i.change_pct >= 0;
-      const color = i.type === 'vix' ? (up ? '#ef4444' : '#10b981') : (up ? '#10b981' : '#ef4444');
-      return `<div class="m-market-chip">
-        <div class="m-market-chip-label">${i.label}</div>
-        <div class="m-market-chip-price" style="color:${color};">${i.price.toLocaleString()}</div>
-        <div class="m-market-chip-change" style="color:${color};">${up?'▲':'▼'} ${Math.abs(i.change_pct)}%</div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:8px;">지표 로드 실패</div>'; }
-}
-
-// ── 주식: 계좌 ──
-async function mLoadAccount() {
-  const el = document.getElementById('m-account-card');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/alpaca-user/v2/account');
-    const d = await res.json();
-    if (d.no_account) { el.innerHTML = '<div class="m-empty">🔑 Alpaca 계좌를 등록해주세요</div>'; return; }
-    if (!d.equity) { el.innerHTML = '<div class="m-empty">계좌 정보 없음</div>'; return; }
-    el.innerHTML = `<div class="m-stat-grid">
-      <div class="m-stat-item"><div class="m-stat-label">현금</div><div class="m-stat-value">$${parseFloat(d.cash).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-      <div class="m-stat-item"><div class="m-stat-label">포트폴리오</div><div class="m-stat-value">$${parseFloat(d.portfolio_value).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-      <div class="m-stat-item"><div class="m-stat-label">매수 가능</div><div class="m-stat-value">$${parseFloat(d.buying_power).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-      <div class="m-stat-item"><div class="m-stat-label">총 자산</div><div class="m-stat-value">$${parseFloat(d.equity).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-    </div>`;
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
-
-// ── 주식: 보유 종목 ──
-async function mLoadPositions() {
-  const el = document.getElementById('m-positions-list');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/alpaca-user/v2/positions');
-    const d = await res.json();
-    if (d.no_account) { el.innerHTML = '<div class="m-empty">계좌 미등록</div>'; return; }
-    const positions = Array.isArray(d) ? d : (d.positions || []);
-    if (!positions.length) { el.innerHTML = '<div class="m-empty">보유 종목 없음</div>'; return; }
-    el.innerHTML = positions.map(p => {
-      const pl = parseFloat(p.unrealized_pl) || 0;
-      const plPct = (parseFloat(p.unrealized_plpc) || 0) * 100;
-      const color = pl >= 0 ? 'var(--success)' : 'var(--danger)';
-      return `<div class="m-stock-row">
-        <div>
-          <div style="font-weight:700;">${p.symbol}</div>
-          <div style="font-size:0.75rem;color:var(--muted);">${p.qty}주 · $${parseFloat(p.avg_entry_price).toFixed(2)}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-weight:700;color:${color};">${pl>=0?'+':''}$${pl.toFixed(2)}</div>
-          <div style="font-size:0.75rem;color:${color};">${plPct>=0?'+':''}${plPct.toFixed(2)}%</div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
-
-// ── 주식: 검색 ──
-async function mSearchStock() {
-  const symbol = document.getElementById('m-stock-input').value.trim().toUpperCase();
-  const el = document.getElementById('m-stock-result');
-  if (!symbol) return;
-  el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">조회 중...</div>';
-  try {
-    const res = await fetch(`/proxy/stock/api/stock/prices?symbols=${symbol}`);
-    const d = await res.json();
-    const stocks = d.stocks || [];
-    if (!stocks.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;">결과 없음</div>'; return; }
-    el.innerHTML = stocks.map(s => {
-      const up = s.change >= 0;
-      const color = up ? 'var(--success)' : 'var(--danger)';
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;cursor:pointer;"
-        onclick="document.getElementById('m-trade-symbol').value='${s.symbol}';document.getElementById('m-trade-result').textContent='${s.symbol} 선택됨';">
-        <div>
-          <span style="font-weight:700;">${s.symbol}</span>
-          <span style="font-size:0.72rem;color:var(--muted);margin-left:6px;">탭하면 매매창에 입력</span>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-weight:700;">$${s.price}</div>
-          <div style="font-size:0.75rem;color:${color};">${up?'▲':'▼'} ${Math.abs(s.change)} (${(s.change_pct||0).toFixed(2)}%)</div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div style="color:var(--danger);font-size:0.8rem;">조회 실패</div>'; }
-}
-
-// ── 주식: 매매 ──
-async function mTrade(side) {
-  const symbol = document.getElementById('m-trade-symbol').value.trim().toUpperCase();
-  const qtyRaw = document.getElementById('m-trade-qty').value;
-  const el = document.getElementById('m-trade-result');
-
-  // 수정2: 입력값 검증
-  if (!symbol) { el.style.color = 'var(--danger)'; el.textContent = '❌ 종목을 입력하세요.'; return; }
-  const qty = parseInt(qtyRaw);
-  if (!qty || qty < 1 || isNaN(qty)) { el.style.color = 'var(--danger)'; el.textContent = '❌ 수량은 1 이상 정수로 입력하세요.'; return; }
-
-  // 수정3: 장 시간 체크 (EST 기준)
-  const now = new Date();
-  const estHour = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(now));
-  const estMin = parseInt(new Intl.DateTimeFormat('en-US', { minute: 'numeric', timeZone: 'America/New_York' }).format(now));
-  const estTime = estHour * 60 + estMin;
-  const isMarketHours = estTime >= 9 * 60 + 30 && estTime < 16 * 60;
-  if (!isMarketHours) {
-    const openAt = new Date(now);
-    el.style.color = 'var(--warn)';
-    el.textContent = `⚠️ 현재 미국 장외 시간입니다 (EST ${String(estHour).padStart(2,'0')}:${String(estMin).padStart(2,'0')}). 장 시간: 09:30~16:00 EST`;
-    return;
-  }
-
-  el.style.color = 'var(--muted)';
-  el.textContent = '주문 중...';
-  try {
-    // 수정4: time_in_force 'gtc' → 'day' (당일 미체결 시 자동 취소)
-    const res = await fetch('/api/alpaca-user/v2/orders', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, qty, side, type: 'market', time_in_force: 'day' })
-    });
-    const d = await res.json();
-    if (res.ok && d.id) {
-      el.textContent = `✅ ${side === 'buy' ? '매수' : '매도'} 주문 완료 · ${symbol} ${qty}주`;
-      el.style.color = side === 'buy' ? 'var(--success)' : 'var(--danger)';
-      // 주문 후 포지션 새로고침
-      setTimeout(() => mLoadPositions(), 2000);
-    } else {
-      el.textContent = '❌ ' + (d.message || d.error || '주문 실패');
-      el.style.color = 'var(--danger)';
-    }
-  } catch(e) { el.style.color = 'var(--danger)'; el.textContent = '오류: ' + e.message; }
-}
-
-// ── 로또 ──
-let _lottoGames = [];
-function getLottoBallColor(n) {
-  if (n <= 10) return 'lb1';
-  if (n <= 20) return 'lb2';
-  if (n <= 30) return 'lb3';
-  if (n <= 40) return 'lb4';
-  return 'lb5';
-}
-
-async function mLottoPick() {
-  const gameCount = parseInt(document.getElementById('m-lotto-count').value);
-  const el = document.getElementById('m-lotto-picks');
-  el.innerHTML = '<div class="m-loading">추천 중...</div>';
-  try {
-    const res = await fetch('/api/lotto/recommend', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gameCount })
-    });
-    const d = await res.json();
-    const games = d.games || [];
-    _lottoGames = games;
-    if (!games.length) { el.innerHTML = '<div class="m-empty">추천 실패</div>'; return; }
-    el.innerHTML = games.map((g, i) => `
-      <div style="margin-bottom:12px;">
-        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">${i+1}번 게임</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${g.numbers.map(n => `<span class="m-lotto-ball ${getLottoBallColor(n)}">${n}</span>`).join('')}
-        </div>
-      </div>`).join('');
-    document.getElementById('m-lotto-save-btn').style.display = 'block';
-  } catch(e) { el.innerHTML = '<div class="m-empty" style="color:var(--danger);">오류: ' + e.message + '</div>'; }
-}
-
-async function mLottoSave() {
-  if (!_lottoGames.length) return;
-  const today = new Date().toISOString().split('T')[0];
-  try {
-    const res = await fetch('/api/lotto/picks', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pick_date: today, games: _lottoGames.map(g => g.numbers) })
-    });
-    const d = await res.json();
-    if (d.ok) {
-      alert('저장 완료!');
-      document.getElementById('m-lotto-save-btn').style.display = 'none';
-      mLoadLottoHistory();
-    }
-  } catch(e) { alert('저장 실패: ' + e.message); }
-}
-
-async function mLoadLottoHistory() {
-  const el = document.getElementById('m-lotto-history');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/lotto/picks?limit=5&page=1');
-    const d = await res.json();
-    const picks = d.picks || [];
-    if (!picks.length) { el.innerHTML = '<div class="m-empty">추천 이력 없음</div>'; return; }
-    el.innerHTML = picks.map(p => {
-      const rank = p.best_rank ? `<span class="m-badge m-badge-yellow">${p.best_rank}등</span>` : `<span class="m-badge" style="background:var(--surface2);color:var(--muted);">미확인</span>`;
-      return `<div class="m-stock-row">
-        <div>
-          <div style="font-weight:700;">${p.pick_date}</div>
-          <div style="font-size:0.75rem;color:var(--muted);">${p.game_count}게임 · ${p.drw_no ? p.drw_no+'회' : '미확인'}</div>
-        </div>
-        <div>${rank}</div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
-
-// ── 자동매매 서브탭 ──
-function mSwitchTrade(sub) {
-  ['simple','auto','picks','perf','backtest'].forEach(s => {
-    const el = document.getElementById('m-trade-' + s);
-    if (el) el.style.display = s === sub ? 'block' : 'none';
-  });
-  document.querySelectorAll('.m-subtab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['simple','auto','picks','perf','backtest'][i] === sub);
-  });
-  if (sub === 'auto') { mLoadAutoPositions(); mLoadAutoLog(); }
-  if (sub === 'perf') { mLoadPerf(); }
-}
-
-// ── 단순 자동매매 ──
-let _simpleEnabled = false;
-async function mLoadSimpleTrade() {
-  const el = document.getElementById('m-simple-trade-card');
-  try {
-    const res = await fetch('/api/simple-auto-trade/state');
-    const d = await res.json();
-    const state = d.state;
-    _simpleEnabled = !!(state?.enabled);
-
-    const btn = document.getElementById('m-simple-toggle-btn');
-    if (btn) {
-      btn.textContent = _simpleEnabled ? '⏹ 중지' : '▶ 시작';
-      btn.style.background = _simpleEnabled ? 'var(--danger)' : 'var(--accent)';
-    }
-
-    if (el) {
-      if (!state?.enabled) {
-        el.innerHTML = `<div class="m-empty">자동매매 비활성 상태</div>`;
-      } else if (state.status === 'holding' && state.symbol) {
-        el.innerHTML = `<div>
-          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">보유 중</div>
-          <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${state.symbol}</div>
-          <div style="font-size:0.82rem;color:var(--muted);">${state.qty}주 · 매수가 $${parseFloat(state.buy_price).toFixed(2)}</div>
-          <div style="margin-top:8px;display:flex;gap:8px;">
-            <span class="m-badge m-badge-green">익절 +${Math.round((state.take_profit||0.05)*100)}%</span>
-            <span class="m-badge m-badge-red">손절 -${Math.round((state.stop_loss||0.05)*100)}%</span>
-            <span class="m-badge m-badge-blue">15:55 강제청산</span>
-          </div>
-        </div>`;
-      } else {
-        el.innerHTML = `<div class="m-empty">🔍 매수 기회 탐색 중...</div>`;
-      }
-
-      if (state) {
-        const r = document.getElementById('m-simple-ratio');
-        const tp = document.getElementById('m-simple-tp');
-        const sl = document.getElementById('m-simple-sl');
-        if (r) r.value = Math.round((state.balance_ratio||0.3)*100);
-        if (tp) tp.value = Math.round((state.take_profit||0.05)*100);
-        if (sl) sl.value = Math.round((state.stop_loss||0.05)*100);
-      }
-    }
-
-    // 이력
-    const logEl = document.getElementById('m-simple-log');
-    if (logEl && d.logs?.length) {
-      logEl.innerHTML = d.logs.slice(0,10).map(l => {
-        const isBuy = l.action === 'BUY';
-        const color = isBuy ? 'var(--success)' : (l.profit_pct >= 0 ? 'var(--accent2)' : 'var(--danger)');
-        const icon = isBuy ? '🟢' : (l.profit_pct >= 0 ? '✅' : '🔴');
-        return `<div class="m-stock-row">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span>${icon}</span>
-            <div>
-              <div style="font-weight:700;color:${color};">${l.symbol}</div>
-              <div style="font-size:0.72rem;color:var(--muted);">${l.qty}주 @ $${parseFloat(l.price).toFixed(2)}</div>
-            </div>
-          </div>
-          <div style="text-align:right;">
-            ${!isBuy ? `<div style="font-size:0.85rem;font-weight:700;color:${color};">${l.profit_pct>=0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%</div>` : ''}
-          </div>
-        </div>`;
-      }).join('');
-    }
-  } catch(e) {}
-}
-
-async function mToggleSimpleTrade() {
-  _simpleEnabled = !_simpleEnabled;
-  const balance_ratio = parseFloat(document.getElementById('m-simple-ratio').value||30) / 100;
-  const take_profit = parseFloat(document.getElementById('m-simple-tp').value||5) / 100;
-  const stop_loss = parseFloat(document.getElementById('m-simple-sl').value||5) / 100;
-  await fetch('/api/simple-auto-trade/settings', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ balance_ratio, take_profit, stop_loss })
-  });
-  await fetch('/api/simple-auto-trade/toggle', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ enabled: _simpleEnabled })
-  });
-  mLoadSimpleTrade();
-}
-
-// ── 자동매매 현황 ──
-async function mLoadAutoPositions() {
-  const el = document.getElementById('m-auto-positions');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/auto-trade/positions');
-    const d = await res.json();
-    const positions = d.positions || [];
-    if (!positions.length) { el.innerHTML = '<div class="m-empty">보유 중인 자동매매 종목 없음</div>'; return; }
-    el.innerHTML = `<div class="m-card-title">📊 자동매매 보유 (${positions.length}종목)</div>` +
-      positions.map(p => {
-        const pl = parseFloat(p.unrealized_pl) || 0;
-        const plPct = (parseFloat(p.unrealized_plpc) || 0) * 100;
-        const color = pl >= 0 ? 'var(--success)' : 'var(--danger)';
-        return `<div class="m-stock-row">
-          <div>
-            <div style="font-weight:700;">${p.symbol}</div>
-            <div style="font-size:0.75rem;color:var(--muted);">${p.qty}주 · $${parseFloat(p.current_price).toFixed(2)}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-weight:700;color:${color};">${pl>=0?'+':''}$${pl.toFixed(2)}</div>
-            <div style="font-size:0.75rem;color:${color};">${plPct>=0?'+':''}${plPct.toFixed(2)}%</div>
-          </div>
-        </div>`;
-      }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
-
-async function mLoadAutoLog() {
-  const el = document.getElementById('m-auto-log');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/auto-trade/log');
-    const d = await res.json();
-    const logs = d.logs || [];
-    if (!logs.length) { el.innerHTML = '<div class="m-empty">이력 없음</div>'; return; }
-    el.innerHTML = logs.slice(0,10).map(l => {
-      const isBuy = l.action === 'BUY';
-      const color = isBuy ? 'var(--success)' : (l.profit_pct >= 0 ? 'var(--accent2)' : 'var(--danger)');
-      return `<div class="m-stock-row">
-        <div>
-          <div style="font-weight:700;">${l.symbol} <span style="font-size:0.72rem;color:${color};">${l.action}</span></div>
-          <div style="font-size:0.72rem;color:var(--muted);">${l.reason || ''}</div>
-        </div>
-        ${l.profit_pct ? `<div style="font-weight:700;color:${color};">${l.profit_pct>=0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%</div>` : ''}
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-async function mStopAllTrade() {
-  if (!confirm('모든 포지션을 청산할까요?')) return;
-  try {
-    const res = await fetch('/api/auto-trade/stop-all', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    const d = await res.json();
-    alert(d.ok ? '청산 완료!' : '실패: ' + d.error);
-    mLoadAutoPositions();
-  } catch(e) { alert('오류: ' + e.message); }
-}
-
-// ── TOP5 추천 ──
-let _mPicksMarket = 'us';
-let _mPicksCacheUs = null, _mPicksCacheKr = null;
-let _mPicksCacheTimeUs = 0, _mPicksCacheTimeKr = 0;
-
-function mSwitchPicksMarket(market) {
-  _mPicksMarket = market;
-  const usBtn = document.getElementById('mDayPicksUsBtn');
-  const krBtn = document.getElementById('mDayPicksKrBtn');
-  const label = document.getElementById('mPicksLabel');
-  if (usBtn) { usBtn.style.background = market === 'us' ? 'var(--accent)' : 'var(--surface2)'; usBtn.style.color = market === 'us' ? '#fff' : 'var(--muted)'; }
-  if (krBtn) { krBtn.style.background = market === 'kr' ? '#22c55e' : 'var(--surface2)'; krBtn.style.color = market === 'kr' ? '#fff' : 'var(--muted)'; }
-  if (label) label.textContent = market === 'us' ? '거래량·뉴스·기술적 신호 종합 분석 (미국)' : '거래량 + RSI 복합 점수 기반 (KOSPI/KOSDAQ)';
-  // 캐시 있으면 즉시 표시
-  const now = Date.now();
-  const cache = market === 'us' ? _mPicksCacheUs : _mPicksCacheKr;
-  const cacheTime = market === 'us' ? _mPicksCacheTimeUs : _mPicksCacheTimeKr;
-  const el = document.getElementById('m-top-picks-list');
-  if (cache && (now - cacheTime) < 5 * 60 * 1000) { if (el) el.innerHTML = cache; }
-  else { if (el) el.innerHTML = ''; }
-}
-
-async function mLoadDayPicks() {
-  const el = document.getElementById('m-top-picks-list');
-  if (!el) return;
-  const now = Date.now();
-  const cache = _mPicksMarket === 'us' ? _mPicksCacheUs : _mPicksCacheKr;
-  const cacheTime = _mPicksMarket === 'us' ? _mPicksCacheTimeUs : _mPicksCacheTimeKr;
-  if (cache && (now - cacheTime) < 5 * 60 * 1000) { el.innerHTML = cache; return; }
-
-  if (_mPicksMarket === 'us') {
-    await mLoadTopPicks();
-    const html = el.innerHTML;
-    if (html && !html.includes('분석 중')) { _mPicksCacheUs = html; _mPicksCacheTimeUs = Date.now(); }
-  } else {
-    el.innerHTML = '<div class="m-loading">한국 시장 분석 중...</div>';
-    try {
-      const res = await fetch('/api/auto-trade/kr-top-picks');
-      const d = await res.json();
-      if (!d.ok || !d.picks?.length) { el.innerHTML = '<div class="m-empty">추천 종목 없음</div>'; return; }
-      const rankIcons = ['🥇','🥈','🥉','4위','5위'];
-      const html = d.picks.map((p, i) => `
-        <div class="m-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:1.3rem;">${rankIcons[i]}</span>
+          <div class="m-section-label">매수 / 매도</div>
+          <div class="m-card">
+            <div class="m-form-row">
               <div>
-                <div style="font-weight:800;font-size:1rem;">${p.symbol} <span style="font-size:0.65rem;background:var(--surface2);color:var(--muted);padding:1px 5px;border-radius:4px;">${p.market||'KOSPI'}</span></div>
-                <div style="font-size:0.72rem;color:var(--muted);">${p.name||''}</div>
-                <div style="font-size:0.7rem;color:var(--muted);">${p.signals.slice(0,2).join(' · ')}</div>
+                <label class="m-label">종목</label>
+                <input class="m-input" id="tradeSymbol" placeholder="AAPL"
+                  oninput="clearTimeout(window._obTimer);window._obTimer=setTimeout(()=>loadOrderBook(),700)" />
+              </div>
+              <div>
+                <label class="m-label">수량</label>
+                <input class="m-input" id="tradeQty" type="number" value="1" min="1" />
               </div>
             </div>
-            <div style="text-align:right;">
-              <div style="font-weight:700;">₩${(p.price||0).toLocaleString()}</div>
-              <div style="font-size:0.75rem;font-weight:700;color:${(p.change_pct||0)>=0?'var(--success)':'var(--danger)'};">${(p.change_pct||0)>=0?'▲':'▼'} ${Math.abs(p.change_pct||0).toFixed(2)}%</div>
-              <div style="font-size:0.7rem;color:var(--accent2);">점수 ${p.score}</div>
+            <div style="margin-bottom:10px;">
+              <label class="m-label">가격 <span style="color:var(--muted);font-weight:400;">(비워두면 시장가)</span></label>
+              <div style="display:flex;gap:6px;">
+                <input class="m-input" id="tradePrice" placeholder="가격 (선택)" style="flex:1;" />
+                <button id="tradeCurrencyBtn" onclick="window.toggleTradeCurrency && window.toggleTradeCurrency()"
+                  style="padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">USD</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <button class="m-btn m-btn-full" onclick="buyStock()"
+                style="background:#ef4444;color:#fff;height:48px;font-size:0.95rem;">📈 매수</button>
+              <button class="m-btn m-btn-full" onclick="sellStock()"
+                style="background:#3b82f6;color:#fff;height:48px;font-size:0.95rem;">📉 매도</button>
+            </div>
+            <label class="m-label">거래 결과</label>
+            <pre id="tradeResult"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:0.78rem;min-height:60px;white-space:pre-wrap;color:var(--muted);">대기 중...</pre>
+          </div>
+
+          <div class="m-section-label">현재가 / 호가</div>
+          <div class="m-card">
+            <div id="obPriceCard">
+              <div class="m-empty">종목을 입력하세요</div>
+            </div>
+            <div class="m-divider"></div>
+            <div class="m-card-title">📋 호가창 <span id="obStatus"
+                style="font-size:0.7rem;color:var(--muted);font-weight:400;"></span></div>
+            <div id="obTable">
+              <div class="m-empty">종목을 입력하세요</div>
             </div>
           </div>
-        </div>`).join('');
-      el.innerHTML = html;
-      _mPicksCacheKr = html; _mPicksCacheTimeKr = Date.now();
-    } catch(e) { el.innerHTML = `<div class="m-empty" style="color:var(--danger);">오류: ${e.message}</div>`; }
-  }
-}
 
-async function mLoadTopPicks() {
-  const el = document.getElementById('m-top-picks-list');
-  el.innerHTML = '<div class="m-loading">분석 중... (10~20초)</div>';
-  try {
-    const res = await fetch('/api/auto-trade/top-picks');
-    const d = await res.json();
-    if (!d.picks?.length) { el.innerHTML = '<div class="m-empty">추천 종목 없음</div>'; return; }
-    const rankIcons = ['🥇','🥈','🥉','4위','5위'];
-    el.innerHTML = d.picks.map((p, i) => {
-      const color = p.change_pct >= 0 ? 'var(--success)' : 'var(--danger)';
-      return `<div class="m-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="m-section-label">거래 로그</div>
+          <div class="m-card" style="padding:4px 14px;">
+            <div id="quantTradeLog">
+              <div class="m-loading">로딩 중...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 계좌 패널 -->
+        <div id="m-stock-account" style="display:none;">
+          <div class="m-section-label">Alpaca 계좌</div>
+          <div class="m-card" id="alpacaKeyCard">
+            <div class="m-card-title">🔑 Alpaca Account</div>
+            <div id="alpacaAccountList">
+              <div class="m-loading">로딩 중...</div>
+            </div>
+            <button onclick="toggleAlpacaKeyForm()" id="alpacaKeyToggleBtn" class="m-btn m-btn-primary m-btn-full"
+              style="margin-top:10px;">+ 계좌 추가</button>
+            <div id="alpacaKeyForm"
+              style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+              <div style="font-weight:700;font-size:0.9rem;margin-bottom:12px;">새 계좌 등록</div>
+              <label class="m-label">계좌 이름</label>
+              <input type="text" id="inputAccountName" placeholder="예: 수동 거래 계좌" class="m-input"
+                style="margin-bottom:8px;" />
+              <label class="m-label">계좌 타입</label>
+              <select id="inputAccountType" class="m-input m-select" style="margin-bottom:8px;">
+                <option value="0">미설정 (일반)</option>
+                <option value="1">✋ 수동전용</option>
+                <option value="2">🤖 자동전용</option>
+              </select>
+              <label
+                style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--muted);margin-bottom:10px;cursor:pointer;">
+                <input type="checkbox" id="inputAlpacaPaper" checked
+                  style="accent-color:var(--accent);width:16px;height:16px;" />
+                페이퍼 트레이딩 (테스트 모드)
+              </label>
+              <label class="m-label">API Key</label>
+              <input type="text" id="inputAlpacaKey" placeholder="PK..." class="m-input"
+                style="margin-bottom:8px;font-size:0.78rem;" />
+              <label class="m-label">Secret Key</label>
+              <input type="password" id="inputAlpacaSecret" placeholder="Secret Key..." class="m-input"
+                style="margin-bottom:12px;font-size:0.78rem;" />
+              <div style="display:flex;gap:8px;">
+                <button onclick="saveAlpacaKeys()" class="m-btn m-btn-primary" style="flex:1;">저장</button>
+                <button onclick="toggleAlpacaKeyForm()" class="m-btn m-btn-secondary">취소</button>
+              </div>
+              <div id="alpacaKeyMsg"
+                style="font-size:0.85rem;display:none;margin-top:10px;padding:10px;border-radius:8px;"></div>
+            </div>
+          </div>
+          <!-- 계좌 선택 (JS 호환용) -->
+          <div style="display:none;">
+            <select id="accountSelectStock"
+              onchange="window.setSelectedAccount && window.setSelectedAccount(this.value)"></select>
+            <span id="accountSelectStockBadge"></span>
+            <div id="accountCards"></div>
+          </div>
+        </div>
+
+        <!-- 시세 패널 -->
+        <div id="m-stock-price" style="display:none;">
+          <div class="m-section-label">종목 검색</div>
+          <div class="m-card">
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <input class="m-input" id="stockSymbols" placeholder="AAPL, NVDA (최대 5종목)" style="flex:1;" />
+              <button class="m-btn m-btn-primary" onclick="loadPrices()">🔍</button>
+            </div>
+            <div id="priceCards">
+              <div class="m-empty">종목을 검색하세요</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 이력 패널 -->
+        <div id="m-stock-orders" style="display:none;">
+          <div class="m-section-label">매수/매도 이력</div>
+          <div class="m-card" style="padding:4px 14px;">
+            <div id="ordersTable">
+              <div class="m-loading">로딩 중...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+         🤖 자동매매 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-quant">
+
+        <!-- 투자성향 페이지 (미등록 시) -->
+        <div id="quantProfilePage" style="display:none;">
+          <div class="m-card" style="text-align:center;padding:24px;margin-bottom:16px;">
+            <div style="font-size:2.5rem;margin-bottom:12px;">🎯</div>
+            <div style="font-size:1.1rem;font-weight:800;margin-bottom:8px;">투자 성향 등록이 필요해요</div>
+            <div style="font-size:0.82rem;color:var(--muted);line-height:1.6;">5가지 질문으로 나에게 맞는 팩터 가중치를 설정해드릴게요.</div>
+          </div>
+          <div class="m-card">
+            <div
+              style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;padding:10px;background:var(--surface2);border-radius:8px;">
+              📊 설문 결과는 팩터 가중치 및 익절/손절 비율에 자동 반영돼요</div>
+
+            <!-- Q1 -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:0.88rem;font-weight:700;margin-bottom:8px;"><span
+                  style="display:inline-block;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:0.72rem;margin-right:6px;">1</span>투자
+                기간?</div>
+              <label class="m-profile-option"><input type="radio" name="q_period" value="1"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">⚡ 단기 (3개월 이하)</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">빠른 수익 실현 선호</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_period" value="2" checked
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">📅 중기 (3~12개월)</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">안정적 수익 추구</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_period" value="3"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🌳 장기 (1년 이상)</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">복리 효과 극대화</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Q2 -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:0.88rem;font-weight:700;margin-bottom:8px;"><span
+                  style="display:inline-block;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:0.72rem;margin-right:6px;">2</span>손실
+                허용 범위?</div>
+              <label class="m-profile-option"><input type="radio" name="q_loss" value="1"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🛡️ -5%도 불안하다</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">원금 보존 최우선</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_loss" value="2" checked
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">⚖️ -10% 정도는 괜찮다</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">적정 리스크 감수</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_loss" value="3"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🚀 -20%도 버틸 수 있다</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">고수익 위한 고위험</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Q3 -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:0.88rem;font-weight:700;margin-bottom:8px;"><span
+                  style="display:inline-block;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:0.72rem;margin-right:6px;">3</span>목표
+                수익률?</div>
+              <label class="m-profile-option"><input type="radio" name="q_return" value="1"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">💰 연 10% 이하</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">예금보다 조금 더</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_return" value="2" checked
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">📈 연 20% 정도</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">시장 평균 초과</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_return" value="3"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🔥 연 30% 이상</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">공격적 고수익</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Q4 -->
+            <div style="margin-bottom:16px;">
+              <div style="font-size:0.88rem;font-weight:700;margin-bottom:8px;"><span
+                  style="display:inline-block;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:0.72rem;margin-right:6px;">4</span>선호
+                종목?</div>
+              <label class="m-profile-option"><input type="radio" name="q_style" value="1"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🏛 대형 우량주</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">삼성, 애플 같은 대기업</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_style" value="2" checked
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🎯 혼합 전략</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">우량주 + 성장주 균형</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_style" value="3"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">⚡ 성장주</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">NVDA, 테슬라 등</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Q5 -->
+            <div style="margin-bottom:20px;">
+              <div style="font-size:0.88rem;font-weight:700;margin-bottom:8px;"><span
+                  style="display:inline-block;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:22px;font-size:0.72rem;margin-right:6px;">5</span>투자
+                경험?</div>
+              <label class="m-profile-option"><input type="radio" name="q_experience" value="1"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🌱 초보 (1년 미만)</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">안전 중심 전략</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_experience" value="2" checked
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">📈 중급 (1~3년)</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">균형잡힌 전략</div>
+                </div>
+              </label>
+              <label class="m-profile-option"><input type="radio" name="q_experience" value="3"
+                  style="accent-color:var(--accent);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;">🏆 고급 (3년 이상)</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">고급 전략 옵션</div>
+                </div>
+              </label>
+            </div>
+
+            <button onclick="submitInvestorProfile()" class="m-btn m-btn-primary m-btn-full"
+              style="padding:14px;font-size:0.95rem;">🎯 내 투자 성향 분석하기 →</button>
+            <button onclick="goToNewsTab()"
+              style="width:100%;margin-top:10px;padding:12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:0.85rem;">나중에
+              할게요</button>
+          </div>
+        </div>
+
+        <!-- 투자성향 카드 -->
+        <div id="investorProfileCard" style="display:none;margin-bottom:12px;"></div>
+
+        <!-- 자동매매 서브탭 -->
+        <div id="quantTabBar" style="display:none;">
+          <div class="m-subtab-bar" style="flex-wrap:wrap;gap:4px;">
+            <button id="quantTabUs" class="m-subtab-btn active" onclick="switchQuantTab('us')"
+              style="flex:1;min-width:60px;">🇺🇸 미국</button>
+            <button id="quantTabKr" class="m-subtab-btn" onclick="switchQuantTab('kr')"
+              style="flex:1;min-width:60px;">🇰🇷 한국</button>
+            <button id="quantTabAuto" class="m-subtab-btn" onclick="switchQuantTab('auto')"
+              style="flex:1;min-width:60px;">🤖 완전자동</button>
+            <button id="quantTabDay" class="m-subtab-btn" onclick="switchQuantTab('day')"
+              style="flex:1;min-width:60px;">⚡ 일반</button>
+            <button id="quantTabLog" class="m-subtab-btn" onclick="switchQuantTab('log')"
+              style="flex:1;min-width:60px;">📋 이력</button>
+          </div>
+
+          <!-- ── 🇺🇸 미국 자동매매 ── -->
+          <div id="quantPanelUs">
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:1.4rem;">🤖</span>
+                  <div>
+                    <div style="font-size:0.95rem;font-weight:800;">미국 자동매매</div>
+                    <div style="font-size:0.72rem;color:var(--muted);">MACD+RSI · EST 9:30~16:00</div>
+                  </div>
+                </div>
+                <span id="autoTradeStatusBadge" class="m-badge m-badge-gray">⏹ 비활성</span>
+              </div>
+            </div>
+
+            <!-- 계좌 선택 (JS 호환) -->
+            <div class="m-card" style="padding:10px 14px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:0.82rem;color:var(--muted);white-space:nowrap;">🔑 계좌</span>
+                <select id="accountSelectUs"
+                  onchange="window.setSelectedAccount && window.setSelectedAccount(this.value)" class="m-input m-select"
+                  style="flex:1;padding:6px 10px;">
+                  <option value="">로딩 중...</option>
+                </select>
+                <span id="accountSelectUsBadge" class="m-badge m-badge-gray"></span>
+              </div>
+            </div>
+
+            <!-- 자동매매 설정 -->
+            <div class="m-card">
+              <div class="m-card-title">⚙️ 자동매매 설정</div>
+              <div class="m-form-row">
+                <div>
+                  <label class="m-label">매수 비율 (%)</label>
+                  <input type="number" id="atBalanceRatio" value="10" min="1" max="50" class="m-input" />
+                </div>
+                <div>
+                  <label class="m-label">신호 방식</label>
+                  <select id="atSignalMode" class="m-input m-select">
+                    <option value="macd">MACD</option>
+                    <option value="rsi">RSI</option>
+                    <option value="combined" selected>Combined</option>
+                  </select>
+                </div>
+              </div>
+              <label class="m-label">분석 시장</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                <button id="marketBtnNasdaq" onclick="setMarket('nasdaq')" class="m-market-btn active">📊
+                  나스닥100</button>
+                <button id="marketBtnDow" onclick="setMarket('dow')" class="m-market-btn">🏦 다우존스30</button>
+                <button id="marketBtnSp500" onclick="setMarket('sp500')" class="m-market-btn">🇺🇸 S&P500</button>
+                <button id="marketBtnRussell" onclick="setMarket('russell1000')" class="m-market-btn">📈
+                  Russell1000</button>
+              </div>
+              <label class="m-label">팩터 전략</label>
+              <select id="atFactorStrategy" class="m-input m-select" style="margin-bottom:10px;">
+                <option value="value_quality">⭐ 저평가+퀄리티 (추천)</option>
+                <option value="value">💰 가치주</option>
+                <option value="quality">🏆 퀄리티</option>
+                <option value="growth">🚀 성장주</option>
+                <option value="momentum">⚡ 모멘텀</option>
+                <option value="momentum_ma">📈 모멘텀+200일선</option>
+              </select>
+              <div class="m-form-row">
+                <div>
+                  <label class="m-label" style="color:#065f46;">✅ 익절 (%)</label>
+                  <input type="number" id="atTakeProfit" value="5" class="m-input"
+                    style="border-color:var(--success);" />
+                </div>
+                <div>
+                  <label class="m-label" style="color:#991b1b;">❌ 손절 (%)</label>
+                  <input type="number" id="atStopLoss" value="5" class="m-input" style="border-color:var(--danger);" />
+                </div>
+              </div>
+              <div class="m-form-row">
+                <div>
+                  <label class="m-label">후보 종목 수</label>
+                  <select id="atTopN" class="m-input m-select">
+                    <option value="10">상위 10개</option>
+                    <option value="20">상위 20개</option>
+                    <option value="30">상위 30개</option>
+                    <option value="50">상위 50개</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="m-label">최종 결과</label>
+                  <select id="atFinalN" class="m-input m-select">
+                    <option value="3">TOP 3</option>
+                    <option value="5">TOP 5</option>
+                    <option value="10">TOP 10</option>
+                  </select>
+                </div>
+              </div>
+              <div class="m-form-row">
+                <div>
+                  <label class="m-label">신호 필터</label>
+                  <select id="atSignalFilter" class="m-input m-select">
+                    <option value="all">BUY + WATCH</option>
+                    <option value="buy">BUY만</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="m-label">점수 방식</label>
+                  <select id="atScoreMode" class="m-input m-select">
+                    <option value="combined">복합</option>
+                    <option value="factor">팩터만</option>
+                    <option value="technical">기술적만</option>
+                  </select>
+                </div>
+              </div>
+              <input type="hidden" id="atSymbols" value="" />
+              <div id="at-symbol-badge" style="display:none;"></div>
+              <span id="at-symbol-placeholder" style="display:none;"></span>
+              <button onclick="runFactorScreen('us')" class="m-btn m-btn-primary m-btn-full">🔍 스크리닝</button>
+            </div>
+
+            <!-- 저장된 종목 / 포지션 -->
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📋 저장된 종목</div>
+                <button onclick="renderAtSavedSettings()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+              </div>
+              <div id="atSavedSettings">
+                <div class="m-loading">로딩 중...</div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📊 현재 포지션 <span id="autoPositionCount"
+                    style="font-size:0.72rem;color:var(--muted);"></span></div>
+                <div style="display:flex;gap:6px;">
+                  <button onclick="loadAutoPositions()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+                  <button onclick="stopAllAutoTrade()" class="m-btn m-btn-danger m-btn-sm">⏹</button>
+                </div>
+              </div>
+              <div id="autoPositionsList">
+                <div class="m-loading">로딩 중...</div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div class="m-card-title">📊 스크리닝 결과</div>
+              <div id="autoTradeResult">
+                <div class="m-empty">🔍 스크리닝 버튼을 눌러주세요</div>
+              </div>
+            </div>
+          </div><!-- /quantPanelUs -->
+
+          <!-- ── 🇰🇷 한국 ── -->
+          <div id="quantPanelKr" style="display:none;">
+            <div class="m-card">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.4rem;">🇰🇷</span>
+                <div>
+                  <div style="font-weight:800;">한국 종목 팩터 분석</div>
+                  <div style="font-size:0.72rem;color:var(--muted);">yfinance · KOSPI200/KOSDAQ150</div>
+                </div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div class="m-card-title">⚙️ 분석 설정</div>
+              <label class="m-label">분석 시장</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                <button id="krMarketBtnKospi" onclick="setKrMarket('kospi')" class="m-market-btn active">🏛
+                  코스피200</button>
+                <button id="krMarketBtnKosdaq" onclick="setKrMarket('kosdaq')" class="m-market-btn">📈 코스닥150</button>
+              </div>
+              <label class="m-label">팩터 전략</label>
+              <select id="krFactorStrategy" class="m-input m-select" style="margin-bottom:10px;">
+                <option value="value_quality">⭐ 저평가+퀄리티 (추천)</option>
+                <option value="value">💰 가치주</option>
+                <option value="quality">🏆 퀄리티</option>
+                <option value="growth">🚀 성장주</option>
+                <option value="momentum">⚡ 모멘텀</option>
+                <option value="momentum_ma">📈 모멘텀+200일선</option>
+              </select>
+              <div style="display:none;">
+                <input type="number" id="krBalanceRatio" value="10" /><select id="krSignalMode">
+                  <option value="combined" selected></option>
+                </select>
+                <input type="number" id="krTakeProfit" value="5" /><input type="number" id="krStopLoss" value="5" />
+              </div>
+              <button onclick="runFactorScreen('kr')" class="m-btn m-btn-primary m-btn-full">🔍 스크리닝 (1~2분)</button>
+            </div>
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📋 저장된 종목</div>
+                <button onclick="renderKrSavedSettings()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+              </div>
+              <div id="krSavedSettings">
+                <div class="m-loading">로딩 중...</div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div class="m-card-title">📊 스크리닝 결과</div>
+              <div id="krTradeResult">
+                <div class="m-empty">🔍 스크리닝 버튼을 눌러주세요</div>
+              </div>
+            </div>
+          </div><!-- /quantPanelKr -->
+
+          <!-- ── 🤖 완전자동매매 ── -->
+          <div id="quantPanelAuto" style="display:none;">
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:1.4rem;">🤖</span>
+                  <div>
+                    <div style="font-weight:800;">완전자동매매</div>
+                    <div style="font-size:0.72rem;color:var(--muted);">팩터→타이밍→리스크 3단계</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span id="autoStrategyStatus" class="m-badge m-badge-gray">⏹ 비활성</span>
+                  <div id="asToggleBtn" onclick="toggleAutoStrategy()"
+                    style="width:44px;height:24px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;transition:background 0.2s;"
+                    data-active="0">
+                    <div id="asToggleKnob"
+                      style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 계좌 선택 -->
+            <div class="m-card" style="padding:10px 14px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:0.82rem;color:var(--muted);white-space:nowrap;">🔑 계좌</span>
+                <select id="accountSelectAuto"
+                  onchange="window.setSelectedAccount && window.setSelectedAccount(this.value)" class="m-input m-select"
+                  style="flex:1;padding:6px 10px;">
+                  <option value="">로딩 중...</option>
+                </select>
+                <span id="accountSelectAutoBadge" class="m-badge m-badge-gray"></span>
+              </div>
+            </div>
+
+            <!-- 1단계: 팩터 -->
+            <div class="m-card">
+              <div class="m-card-title">📊 1단계 — 팩터 조건 <span
+                  style="font-size:0.7rem;color:var(--muted);font-weight:400;">월 1회 리밸런싱</span></div>
+              <label class="m-label">대상 시장</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                <button id="asBtnNasdaq" onclick="setAutoMarket('nasdaq')" class="m-market-btn active">📊
+                  나스닥100</button>
+                <button id="asBtnDow" onclick="setAutoMarket('dow')" class="m-market-btn">🏦 다우존스30</button>
+                <button id="asBtnSp500" onclick="setAutoMarket('sp500')" class="m-market-btn">🇺🇸 S&P500</button>
+                <button id="asBtnRussell" onclick="setAutoMarket('russell1000')" class="m-market-btn">📈
+                  Russell1000</button>
+              </div>
+              <div class="m-form-row">
+                <div><label class="m-label">ROE 최소 (%)</label><input type="number" id="asRoeMin" value="15"
+                    class="m-input" /></div>
+                <div><label class="m-label">부채비율 최대 (%)</label><input type="number" id="asDebtMax" value="100"
+                    class="m-input" /></div>
+              </div>
+              <div class="m-form-row">
+                <div><label class="m-label">매출성장률 최소 (%)</label><input type="number" id="asRevenueMin" value="10"
+                    class="m-input" /></div>
+                <div><label class="m-label">모멘텀 상위 (%)</label><input type="number" id="asMomentumTop" value="30"
+                    class="m-input" /></div>
+              </div>
+              <label
+                style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--success);cursor:pointer;">
+                <input type="checkbox" id="asSma200Filter" checked style="accent-color:var(--accent);" />
+                ▲ 200일선 위 종목만 (하락장 필터)
+              </label>
+            </div>
+
+            <!-- 2단계: 타이밍 -->
+            <div class="m-card">
+              <div class="m-card-title">⏱ 2단계 — 타이밍 <span
+                  style="font-size:0.7rem;color:var(--muted);font-weight:400;">3가지 중 2개 충족 시 매수</span></div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--surface2);border-radius:8px;">
+                  <div>
+                    <div style="font-size:0.82rem;font-weight:700;">🟢 MACD 골든크로스</div>
+                    <div style="font-size:0.7rem;color:var(--muted);">단기 이평 상향 돌파</div>
+                  </div>
+                  <input type="checkbox" id="asUseMacd" checked
+                    style="accent-color:var(--accent);width:18px;height:18px;" />
+                </div>
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--surface2);border-radius:8px;">
+                  <div>
+                    <div style="font-size:0.82rem;font-weight:700;">🟡 RSI 과매도</div>
+                    <div style="font-size:0.7rem;color:var(--muted);">RSI &lt; <input type="number" id="asRsiThreshold"
+                        value="35" min="20" max="50"
+                        style="width:38px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;font-size:0.72rem;background:var(--surface);color:var(--text);" />
+                      구간</div>
+                  </div>
+                  <input type="checkbox" id="asUseRsi" checked
+                    style="accent-color:var(--accent);width:18px;height:18px;" />
+                </div>
+                <div
+                  style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--surface2);border-radius:8px;">
+                  <div>
+                    <div style="font-size:0.82rem;font-weight:700;">🔵 볼린저밴드 반등</div>
+                    <div style="font-size:0.7rem;color:var(--muted);">하단밴드 터치 후 반등</div>
+                  </div>
+                  <input type="checkbox" id="asUseBb" checked
+                    style="accent-color:var(--accent);width:18px;height:18px;" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 3단계: 리스크 -->
+            <div class="m-card">
+              <div class="m-card-title">🛡️ 3단계 — 리스크 관리</div>
+              <div class="m-form-row">
+                <div><label class="m-label">종목당 비율 (%)</label><input type="number" id="asBalanceRatio" value="20"
+                    class="m-input" /></div>
+                <div><label class="m-label">최대 동시 보유</label><input type="number" id="asMaxPositions" value="5"
+                    class="m-input" /></div>
+              </div>
+              <div class="m-form-row">
+                <div><label class="m-label" style="color:#065f46;">✅ 1차 익절 (%)</label><input type="number"
+                    id="asTakeProfit1" value="10" class="m-input" style="border-color:var(--success);" /></div>
+                <div><label class="m-label" style="color:#065f46;">✅ 2차 익절 (%)</label><input type="number"
+                    id="asTakeProfit2" value="20" class="m-input" style="border-color:var(--success);" /></div>
+              </div>
+              <div
+                style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(239,68,68,0.08);border-radius:8px;margin-bottom:10px;">
+                <div style="font-size:0.8rem;color:var(--danger);font-weight:600;">❌ 손절</div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <input type="number" id="asStopLoss" value="5" min="1" max="20"
+                    style="width:50px;border:1px solid rgba(239,68,68,0.4);border-radius:6px;padding:4px;font-size:0.82rem;text-align:center;background:var(--surface);color:var(--text);" />
+                  <span style="font-size:0.78rem;color:var(--danger);">% 하락 시 전량 매도</span>
+                </div>
+              </div>
+              <div class="m-form-row">
+                <div>
+                  <label class="m-label">후보 종목 수</label>
+                  <select id="asTopN" class="m-input m-select">
+                    <option value="10">상위 10개</option>
+                    <option value="20">상위 20개</option>
+                    <option value="30">상위 30개</option>
+                    <option value="50">상위 50개</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="m-label">최종 결과</label>
+                  <select id="asFinalN" class="m-input m-select">
+                    <option value="3">TOP 3</option>
+                    <option value="5">TOP 5</option>
+                    <option value="10">TOP 10</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:none;">
+                <input type="checkbox" id="asFactorExit" checked />
+                <input type="checkbox" id="asSma200Exit" checked />
+                <select id="asSignalFilter">
+                  <option value="all">BUY + WATCH</option>
+                </select>
+                <select id="asScoreMode">
+                  <option value="combined">복합</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button onclick="saveAutoStrategy()" class="m-btn m-btn-success" style="flex:1;">💾 전략 저장</button>
+                <button onclick="runAutoStrategyScreen()" class="m-btn m-btn-primary" style="flex:1;">🔍 스크리닝</button>
+              </div>
+            </div>
+
+            <div class="m-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📋 저장된 종목</div>
+                <button onclick="renderAutoSavedSymbols()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+              </div>
+              <div id="autoSavedSymbols">
+                <div class="m-loading">로딩 중...</div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">🎯 스크리닝 결과 <span id="asScreenedCount"
+                    style="font-size:0.72rem;color:var(--muted);font-weight:400;"></span></div>
+              </div>
+              <div id="asScreenResult">
+                <div class="m-empty">🔍 스크리닝 버튼을 눌러주세요</div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📊 현재 포지션</div>
+                <button onclick="loadAutoStrategyPositions()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+              </div>
+              <div id="asPositions">
+                <div class="m-loading">로딩 중...</div>
+              </div>
+            </div>
+          </div><!-- /quantPanelAuto -->
+
+          <!-- ── ⚡ 일반 자동매매 ── -->
+          <div id="quantPanelDay" style="display:none;">
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:1.4rem;">⚡</span>
+                  <div>
+                    <div style="font-weight:800;">일반 자동매매</div>
+                    <div style="font-size:0.72rem;color:var(--muted);">거래량 급등 · 뉴스 촉매 · 리스크 관리</div>
+                  </div>
+                </div>
+                <span id="simpleTradeStatusBadge2" class="m-badge m-badge-gray">비활성</span>
+              </div>
+            </div>
+            <!-- 계좌 선택 -->
+            <div class="m-card" style="padding:10px 14px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:0.82rem;color:var(--muted);white-space:nowrap;">🔑 계좌</span>
+                <select id="accountSelectDay"
+                  onchange="window.setSelectedAccount && window.setSelectedAccount(this.value)" class="m-input m-select"
+                  style="flex:1;padding:6px 10px;">
+                  <option value="">로딩 중...</option>
+                </select>
+                <span id="accountSelectDayBadge" class="m-badge m-badge-gray"></span>
+              </div>
+            </div>
+
+            <!-- 단순 자동매매 -->
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div>
+                  <div class="m-card-title" style="margin:0;">⚡ 단순 자동매매</div>
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">TOP1 · 30% · +5%/-5% · 15:55 청산
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <span id="simpleTradeStatusBadge" class="m-badge m-badge-gray">비활성</span>
+                  <button onclick="toggleSimpleAutoTrade()" id="simpleTradeToggleBtn"
+                    class="m-btn m-btn-primary m-btn-sm">▶ 시작</button>
+                </div>
+              </div>
+              <div class="m-form-row-3">
+                <div><label class="m-label">매수비율(%)</label><input type="number" id="simpleBalanceRatio" value="30"
+                    class="m-input" /></div>
+                <div><label class="m-label">익절(%)</label><input type="number" id="simpleTakeProfit" value="5"
+                    class="m-input" /></div>
+                <div><label class="m-label">손절(%)</label><input type="number" id="simpleStopLoss" value="5"
+                    class="m-input" /></div>
+              </div>
+              <div id="simpleTradeState"
+                style="background:var(--surface2);border-radius:10px;padding:12px;min-height:60px;">
+                <div class="m-empty" style="padding:12px 0;">자동매매 비활성 상태</div>
+              </div>
+            </div>
+
+            <!-- TOP5 추천 -->
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">🏆 오늘의 추천 TOP5</div>
+                <div style="display:flex;gap:6px;">
+                  <button id="dayMarketBtnUs" onclick="setDayMarket('us')"
+                    class="m-btn m-btn-success m-btn-sm">🇺🇸</button>
+                  <button id="dayMarketBtnKr" onclick="setDayMarket('kr')"
+                    class="m-btn m-btn-secondary m-btn-sm">🇰🇷</button>
+                  <button onclick="loadTopPicks()" class="m-btn m-btn-primary m-btn-sm">🔍</button>
+                </div>
+              </div>
+              <div id="topPicksUsMarket" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                <button id="topPicksBtnNasdaq" onclick="setTopPicksMarket('nasdaq')" class="m-market-btn active"
+                  style="flex:1;">나스닥100</button>
+                <button id="topPicksBtnDow" onclick="setTopPicksMarket('dow')" class="m-market-btn"
+                  style="flex:1;">다우존스</button>
+                <button id="topPicksBtnSp500" onclick="setTopPicksMarket('sp500')" class="m-market-btn"
+                  style="flex:1;">S&P500</button>
+                <button id="topPicksBtnRussell" onclick="setTopPicksMarket('russell1000')" class="m-market-btn"
+                  style="flex:1;">Russell</button>
+              </div>
+              <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">거래량·뉴스·기술적 신호 종합 추천</div>
+              <div id="topPicksList">
+                <div class="m-empty">분석 버튼을 눌러주세요 (10~20초)</div>
+              </div>
+            </div>
+
+            <!-- 거래량 급등 / 뉴스 촉매 -->
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📊 거래량 급등 감지</div>
+                <button onclick="loadVolumeSurge()" class="m-btn m-btn-secondary m-btn-sm">🔄 조회</button>
+              </div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;">평소 대비 1.5배 이상 급증</div>
+              <div id="volumeSurgeList">
+                <div class="m-empty">조회 버튼을 눌러주세요</div>
+              </div>
+            </div>
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📰 뉴스 촉매 탐지</div>
+                <button onclick="loadNewsCatalyst()" class="m-btn m-btn-secondary m-btn-sm">🔄 조회</button>
+              </div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;">RSS 뉴스에서 관심 종목 언급 탐지</div>
+              <div id="newsCatalystList">
+                <div class="m-empty">조회 버튼을 눌러주세요</div>
+              </div>
+            </div>
+
+            <!-- 리스크 계산기 -->
+            <div class="m-card">
+              <div class="m-card-title">🛡️ 리스크 관리 계산기</div>
+              <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">계좌 잔고의 1~2% 리스크 룰로 적정 수량 계산</div>
+              <div class="m-form-row-3">
+                <div><label class="m-label">종목</label><input type="text" id="riskSymbol" placeholder="AAPL"
+                    class="m-input" style="text-transform:uppercase;" /></div>
+                <div><label class="m-label">손절(%)</label><input type="number" id="riskStopLoss" value="5"
+                    class="m-input" /></div>
+                <div><label class="m-label">리스크(%)</label><input type="number" id="riskRatio" value="2" step="0.5"
+                    class="m-input" /></div>
+              </div>
+              <button onclick="calcRisk()" class="m-btn m-btn-primary m-btn-full"
+                style="margin-bottom:10px;">계산</button>
+              <div id="riskResult">
+                <div class="m-empty" style="padding:12px 0;">종목을 입력하고 계산하세요</div>
+              </div>
+            </div>
+
+            <!-- 통합 매매 신호 -->
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">🎯 통합 매매 신호</div>
+                <button onclick="loadCombinedSignal()" class="m-btn m-btn-secondary m-btn-sm">🔄 분석</button>
+              </div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;">거래량+뉴스+기술적 신호 겹치는 종목</div>
+              <div id="combinedSignalList">
+                <div class="m-empty">분석 버튼을 눌러주세요</div>
+              </div>
+            </div>
+          </div><!-- /quantPanelDay -->
+
+          <!-- ── 📋 거래내역 ── -->
+          <div id="quantPanelLog" style="display:none;">
+            <div class="m-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="m-card-title" style="margin:0;">📋 자동매매 거래내역</div>
+                <button onclick="loadUnifiedTradeLog()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                <button onclick="setUnifiedLogFilter('all')" id="unifiedLogBtn-all" class="m-badge m-badge-blue"
+                  style="cursor:pointer;padding:4px 10px;">전체</button>
+                <button onclick="setUnifiedLogFilter('2')" id="unifiedLogBtn-2" class="m-badge m-badge-gray"
+                  style="cursor:pointer;padding:4px 10px;">단순자동</button>
+                <button onclick="setUnifiedLogFilter('3')" id="unifiedLogBtn-3" class="m-badge m-badge-gray"
+                  style="cursor:pointer;padding:4px 10px;">완전자동</button>
+                <button onclick="setUnifiedLogFilter('4')" id="unifiedLogBtn-4" class="m-badge m-badge-gray"
+                  style="cursor:pointer;padding:4px 10px;">일반자동</button>
+                <span id="unifiedLogCount" style="font-size:0.72rem;color:var(--muted);margin-left:auto;"></span>
+              </div>
+              <div id="unifiedTradeLogTable">
+                <div class="m-loading">로딩 중...</div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /quantTabBar -->
+      </div>
+
+      <!-- ══════════════════════════════
+         🔬 백테스트 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-backtest">
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="m-card-title" style="margin:0;">🔬 백테스팅 설정</div>
+            <button onclick="runBacktest()" class="m-btn m-btn-primary" id="bt-run-btn">▶ 실행</button>
+          </div>
+          <label class="m-label">종목</label>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div id="bt-symbol-display" onclick="openStockSearch && openStockSearch('bt-symbol', false)"
+              style="flex:1;height:42px;border:1px solid var(--border);border-radius:10px;padding:0 14px;background:var(--surface2);display:flex;align-items:center;cursor:pointer;">
+              <span id="bt-symbol-placeholder" style="color:var(--muted);font-size:0.85rem;">종목 검색 (영문 입력)</span>
+            </div>
+            <input type="hidden" id="bt-symbol" value="" />
+            <button onclick="openStockSearch && openStockSearch('bt-symbol', false)"
+              class="m-btn m-btn-secondary">🔍</button>
+          </div>
+          <label class="m-label">전략</label>
+          <select id="bt-strategy" class="m-input m-select" style="margin-bottom:8px;">
+            <option value="combined">Combined (MACD+RSI)</option>
+            <option value="macd">MACD만</option>
+            <option value="rsi">RSI만</option>
+          </select>
+          <div class="m-form-row">
+            <div><label class="m-label">시작일</label><input type="date" id="bt-start" class="m-input" /></div>
+            <div><label class="m-label">종료일</label><input type="date" id="bt-end" class="m-input" /></div>
+          </div>
+          <div class="m-form-row">
+            <div><label class="m-label">초기 자금 ($)</label><input type="number" id="bt-cash" value="10000"
+                class="m-input" /></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div><label class="m-label">익절(%)</label><input type="number" id="bt-tp" value="5" class="m-input" />
+              </div>
+              <div><label class="m-label">손절(%)</label><input type="number" id="bt-sl" value="5" class="m-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="bt-loading" style="display:none;" class="m-loading">🔍 백테스팅 실행 중...</div>
+        <div id="bt-error"
+          style="display:none;padding:14px;color:var(--danger);background:rgba(239,68,68,0.1);border-radius:10px;margin-bottom:12px;">
+        </div>
+
+        <!-- 백테스트 결과 -->
+        <div id="bt-performance" style="display:none;">
+          <div class="m-stat-grid" style="margin-bottom:10px;">
+            <div class="m-stat-item" style="text-align:center;">
+              <div class="m-stat-label">총 수익률</div>
+              <div id="bt-total-return" class="m-stat-value">-</div>
+            </div>
+            <div class="m-stat-item" style="text-align:center;">
+              <div class="m-stat-label">MDD</div>
+              <div id="bt-mdd" class="m-stat-value" style="color:var(--danger);">-</div>
+            </div>
+            <div class="m-stat-item" style="text-align:center;">
+              <div class="m-stat-label">샤프 비율</div>
+              <div id="bt-sharpe" class="m-stat-value" style="color:var(--accent2);">-</div>
+            </div>
+            <div class="m-stat-item" style="text-align:center;">
+              <div class="m-stat-label">승률</div>
+              <div id="bt-winrate" class="m-stat-value" style="color:var(--success);">-</div>
+            </div>
+          </div>
+          <div class="m-stat-grid" style="margin-bottom:10px;">
+            <div class="m-stat-item" style="text-align:center;">
+              <div class="m-stat-label">최종 자산</div>
+              <div id="bt-final" class="m-stat-value">-</div>
+            </div>
+            <div class="m-stat-item" style="text-align:center;">
+              <div class="m-stat-label">총 거래</div>
+              <div id="bt-trades" class="m-stat-value">-</div>
+            </div>
+            <div class="m-stat-item" style="grid-column:span 2;text-align:center;">
+              <div class="m-stat-label">Buy&Hold 수익률</div>
+              <div id="bt-buyhold" class="m-stat-value">-</div>
+            </div>
+          </div>
+          <div class="m-card">
+            <div class="m-card-title">📋 매매 이력</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                <thead>
+                  <tr style="background:var(--surface2);">
+                    <th style="padding:8px;text-align:left;color:var(--muted);">날짜</th>
+                    <th style="padding:8px;text-align:left;color:var(--muted);">구분</th>
+                    <th style="padding:8px;text-align:right;color:var(--muted);">가격</th>
+                    <th style="padding:8px;text-align:right;color:var(--muted);">손익</th>
+                  </tr>
+                </thead>
+                <tbody id="bt-trades-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="bt-save-wrap" style="display:none;text-align:right;margin-top:8px;">
+            <button onclick="saveBtResultToDb()" class="m-btn m-btn-primary">💾 결과 저장</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+         💹 성과 대시보드 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-performance">
+        <!-- 계좌 타입 선택 -->
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+          <button onclick="setPerfAccountType(1)" id="perfAccBtn1" class="m-badge m-badge-gray"
+            style="cursor:pointer;padding:5px 14px;font-size:0.78rem;">✋ 수동</button>
+          <button onclick="setPerfAccountType(2)" id="perfAccBtn2" class="m-badge m-badge-gray"
+            style="cursor:pointer;padding:5px 14px;font-size:0.78rem;">🤖 자동</button>
+          <span id="perfAccLabel" style="font-size:0.72rem;color:var(--muted);">전체 계좌 기준</span>
+        </div>
+        <!-- 계좌 선택 -->
+        <div class="m-card" style="padding:10px 14px;margin-bottom:8px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:1.3rem;">${rankIcons[i]}</span>
-            <div>
-              <div style="font-weight:800;font-size:1rem;">${p.symbol}</div>
-              <div style="font-size:0.72rem;color:var(--muted);">${p.signals.slice(0,2).join(' · ')}</div>
+            <span style="font-size:0.82rem;color:var(--muted);white-space:nowrap;">🏦 계좌</span>
+            <select id="accountSelectPerf" onchange="window.setSelectedAccount && window.setSelectedAccount(this.value)"
+              class="m-input m-select" style="flex:1;padding:6px 10px;"></select>
+            <span id="accountSelectPerfBadge" class="m-badge m-badge-gray"></span>
+          </div>
+        </div>
+
+        <!-- 요약 카드 -->
+        <div class="m-stat-grid" style="margin-bottom:10px;">
+          <div class="m-stat-item" style="text-align:center;">
+            <div class="m-stat-label">총 자산</div>
+            <div id="perf-equity" class="m-stat-value">-</div>
+            <div id="perf-equity-sub" style="font-size:0.7rem;color:var(--muted);margin-top:2px;"></div>
+          </div>
+          <div class="m-stat-item" style="text-align:center;">
+            <div class="m-stat-label">오늘 손익</div>
+            <div id="perf-daily-pnl" class="m-stat-value">-</div>
+            <div id="perf-daily-pct" style="font-size:0.7rem;color:var(--muted);margin-top:2px;"></div>
+          </div>
+          <div class="m-stat-item" style="text-align:center;">
+            <div class="m-stat-label">누적 수익률</div>
+            <div id="perf-total-pnl" class="m-stat-value">-</div>
+            <div id="perf-total-pct" style="font-size:0.7rem;color:var(--muted);margin-top:2px;"></div>
+          </div>
+          <div class="m-stat-item" style="text-align:center;">
+            <div class="m-stat-label">승률 / MDD</div>
+            <div id="perf-winrate" class="m-stat-value">-</div>
+            <div id="perf-mdd" style="font-size:0.7rem;color:var(--muted);margin-top:2px;"></div>
+          </div>
+        </div>
+
+        <!-- 자산 변화 차트 -->
+        <div class="m-card" style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">📈 자산 변화 (최근 30일)</div>
+            <button onclick="loadPerformanceHistory()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+          </div>
+          <canvas id="perfEquityChart" height="120"></canvas>
+          <div id="perfChartEmpty" style="text-align:center;padding:24px;color:var(--muted);font-size:0.85rem;">
+            📊 스냅샷을 저장하면 차트가 표시돼요<br>
+            <button onclick="savePerformanceSnapshot()" class="m-btn m-btn-primary m-btn-sm" style="margin-top:10px;">📸
+              지금 저장</button>
+          </div>
+        </div>
+
+        <!-- 텔레그램 -->
+        <div class="m-card">
+          <div class="m-card-title">📱 텔레그램 알림</div>
+          <div>
+            <label class="m-label">Bot Token</label>
+            <input type="text" id="tgBotToken" placeholder="bot1234567890:ABC..." class="m-input"
+              style="margin-bottom:8px;" />
+            <label class="m-label">Chat ID</label>
+            <input type="text" id="tgChatId" placeholder="123456789" class="m-input" style="margin-bottom:10px;" />
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <button onclick="saveTelegramSettings()" class="m-btn m-btn-primary" style="flex:1;">💾 저장</button>
+              <button onclick="testTelegramAlert()" class="m-btn m-btn-secondary">🔔 테스트</button>
+            </div>
+            <div id="tgSettingMsg" style="font-size:0.82rem;display:none;padding:8px 10px;border-radius:8px;"></div>
+            <div style="font-size:0.72rem;color:var(--muted);line-height:1.6;margin-top:8px;">
+              💡 Bot Token: @BotFather → /newbot<br>
+              💡 Chat ID: @userinfobot 에 메시지 전송
+            </div>
+            <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+              <div style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:6px;">최근 알림</div>
+              <div id="tgAlertLog" style="font-size:0.78rem;color:var(--muted);max-height:100px;overflow-y:auto;">
+                <div class="m-empty" style="padding:8px 0;">알림 없음</div>
+              </div>
             </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-weight:700;">$${p.price?.toFixed(2)}</div>
-            <div style="font-size:0.75rem;font-weight:700;color:${color};">${p.change_pct>=0?'▲':'▼'} ${Math.abs(p.change_pct)}%</div>
-            <div style="font-size:0.7rem;color:var(--accent2);">점수 ${p.score}</div>
+        </div>
+
+        <!-- 매매 이력 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">📋 매매 이력 (최근 20건)</div>
+            <button onclick="loadTradeHistory()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+          </div>
+          <div id="perfTradeHistory">
+            <div class="m-empty">매매 이력 없음</div>
           </div>
         </div>
-      </div>`;
-    }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty" style="color:var(--danger);">오류: ' + e.message + '</div>'; }
-}
 
-// ── 성과 ──
-async function mLoadPerf() {
-  const el = document.getElementById('m-perf-summary');
-  try {
-    const res = await fetch('/api/performance/summary');
-    const d = await res.json();
-    if (!d.ok || !d.latest) { el.innerHTML = '<div class="m-empty">성과 데이터 없음</div>'; return; }
-    const l = d.latest;
-    const total = parseFloat(l.total_value) || 0;
-    const prev = d.previous ? parseFloat(d.previous.total_value) : total;
-    const change = total - prev;
-    const changePct = prev ? (change/prev*100).toFixed(2) : '0.00';
-    const color = change >= 0 ? 'var(--success)' : 'var(--danger)';
-    el.innerHTML = `<div class="m-stat-grid">
-      <div class="m-stat-item"><div class="m-stat-label">총 자산</div><div class="m-stat-value">$${total.toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-      <div class="m-stat-item"><div class="m-stat-label">변동</div><div class="m-stat-value" style="color:${color};">${change>=0?'+':''}$${Math.abs(change).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-      <div class="m-stat-item"><div class="m-stat-label">현금</div><div class="m-stat-value">$${parseFloat(l.cash||0).toLocaleString('en',{maximumFractionDigits:0})}</div></div>
-      <div class="m-stat-item"><div class="m-stat-label">수익률</div><div class="m-stat-value" style="color:${color};">${change>=0?'+':''}${changePct}%</div></div>
-    </div>`;
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-
-  // 자동매매 이력
-  const logEl = document.getElementById('m-perf-trades');
-  try {
-    const res = await fetch('/api/auto-trade/log');
-    const d = await res.json();
-    const logs = (d.logs || []).filter(l => l.action.includes('SELL')).slice(0,10);
-    if (!logs.length) { logEl.innerHTML = '<div class="m-empty">매매 이력 없음</div>'; return; }
-    logEl.innerHTML = logs.map(l => {
-      const color = l.profit_pct >= 0 ? 'var(--success)' : 'var(--danger)';
-      return `<div class="m-stock-row">
-        <div>
-          <div style="font-weight:700;">${l.symbol}</div>
-          <div style="font-size:0.72rem;color:var(--muted);">${new Date(l.created_at).toLocaleDateString('ko-KR')}</div>
-        </div>
-        <div style="font-weight:700;color:${color};">${l.profit_pct>=0?'+':''}${parseFloat(l.profit_pct).toFixed(2)}%</div>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-// ── 백테스트 ──
-async function mRunBacktest() {
-  const symbol = document.getElementById('m-bt-symbol').value.trim().toUpperCase();
-  const start = document.getElementById('m-bt-start').value;
-  const end = document.getElementById('m-bt-end').value;
-  const take_profit = parseFloat(document.getElementById('m-bt-tp').value||5) / 100;
-  const stop_loss = parseFloat(document.getElementById('m-bt-sl').value||5) / 100;
-  const el = document.getElementById('m-bt-result');
-  if (!symbol) { alert('종목을 입력하세요.'); return; }
-  el.innerHTML = '<div class="m-loading">백테스트 실행 중...</div>';
-  try {
-    const res = await fetch('/api/backtest/run', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbol, start_date: start, end_date: end, take_profit, stop_loss, strategy: 'macd' })
-    });
-    const d = await res.json();
-    if (!d.ok) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">${d.error || '실패'}</div></div>`; return; }
-    const r = d.result;
-    const color = r.total_return >= 0 ? 'var(--success)' : 'var(--danger)';
-    el.innerHTML = `<div class="m-section-label">백테스트 결과</div>
-      <div class="m-card">
-        <div class="m-stat-grid">
-          <div class="m-stat-item"><div class="m-stat-label">총 수익률</div><div class="m-stat-value" style="color:${color};">${r.total_return>=0?'+':''}${(r.total_return*100).toFixed(2)}%</div></div>
-          <div class="m-stat-item"><div class="m-stat-label">총 거래</div><div class="m-stat-value">${r.total_trades}회</div></div>
-          <div class="m-stat-item"><div class="m-stat-label">승률</div><div class="m-stat-value">${(r.win_rate*100).toFixed(1)}%</div></div>
-          <div class="m-stat-item"><div class="m-stat-label">최대 낙폭</div><div class="m-stat-value" style="color:var(--danger);">${(r.max_drawdown*100).toFixed(2)}%</div></div>
-        </div>
-      </div>`;
-  } catch(e) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">오류: ${e.message}</div></div>`; }
-}
-
-// ── 관리: 스케줄러 ──
-async function mLoadScheduler() {
-  const el = document.getElementById('m-scheduler-card');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/scheduler/list');
-    const d = await res.json();
-    const jobs = d.jobs || [];
-    if (!jobs.length) { el.innerHTML = '<div class="m-empty">등록된 스케줄러 없음</div>'; return; }
-    el.innerHTML = `<div class="m-card-title">⏰ 스케줄러 목록</div>` +
-      jobs.map(j => {
-        const isOn = j.enabled || j.running;
-        return `<div class="m-stock-row">
-          <div>
-            <div style="font-weight:700;font-size:0.88rem;">${j.name || j.id}</div>
-            <div style="font-size:0.72rem;color:var(--muted);">${j.interval || j.schedule || ''}</div>
+        <!-- 백테스트 저장 결과 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">🔬 저장된 백테스트 결과</div>
+            <button onclick="loadSavedBacktests()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span class="m-badge ${isOn ? 'm-badge-green' : 'm-badge-red'}">${isOn ? '실행중' : '정지'}</span>
-            <button class="m-btn m-btn-secondary" style="padding:5px 10px;font-size:0.72rem;"
-              onclick="mToggleScheduler('${j.id}',${isOn})">${isOn ? '정지' : '시작'}</button>
+          <div id="savedBacktestList">
+            <div class="m-empty">저장된 결과 없음</div>
           </div>
-        </div>`;
-      }).join('');
-  } catch(e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
-}
+        </div>
+      </div>
 
-async function mToggleScheduler(id, isOn) {
-  try {
-    const endpoint = isOn ? '/api/scheduler/stop' : '/api/scheduler/start';
-    await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) });
-    mLoadScheduler();
-  } catch(e) { alert('오류: ' + e.message); }
-}
+      <!-- ══════════════════════════════
+         🍀 로또 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-lotto">
+        <!-- 통계 -->
+        <div class="m-stat-grid" style="margin-bottom:12px;">
+          <div class="m-stat-item" style="text-align:center;">
+            <div class="m-stat-label">분석 회차</div>
+            <div id="stat-round" class="m-stat-value" style="color:var(--accent);">-</div>
+          </div>
+          <div class="m-stat-item" style="text-align:center;">
+            <div class="m-stat-label">최근 핫넘버</div>
+            <div id="stat-hot" class="m-stat-value" style="color:var(--success);">-</div>
+          </div>
+          <div class="m-stat-item" style="grid-column:span 2;text-align:center;">
+            <div class="m-stat-label">미출현 최장</div>
+            <div id="stat-cold" class="m-stat-value" style="color:var(--warn);">-</div>
+          </div>
+        </div>
 
-// ── 관리: DB 초기화 ──
-async function mDbAction(type) {
-  if (!confirm(`${type === 'all' ? '전체' : type} DB를 초기화할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
-  const el = document.getElementById('m-db-result');
-  el.textContent = '처리 중...';
-  try {
-    const res = await fetch('/api/db/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type }) });
-    const d = await res.json();
-    el.style.color = d.ok ? 'var(--success)' : 'var(--danger)';
-    el.textContent = d.ok ? '✅ 초기화 완료' : ('❌ 실패: ' + (d.error || ''));
-  } catch(e) { el.style.color='var(--danger)'; el.textContent='오류: ' + e.message; }
-}
+        <!-- 알고리즘 비중 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">⚙️ 알고리즘 비중</div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="lottoResetWeights()" class="m-btn m-btn-secondary m-btn-sm">초기화</button>
+              <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()"
+                class="m-btn m-btn-primary m-btn-sm">💾 저장</button>
+            </div>
+          </div>
+          <div id="lotto-algo-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
 
-// ── 관리: 비밀번호 변경 ──
-async function mChangePw() {
-  const current = document.getElementById('m-pw-current').value;
-  const newPw = document.getElementById('m-pw-new').value;
-  const confirm2 = document.getElementById('m-pw-confirm').value;
-  const el = document.getElementById('m-pw-result');
-  if (!current || !newPw) { el.style.color='var(--danger)'; el.textContent='모든 필드를 입력하세요.'; return; }
-  if (newPw !== confirm2) { el.style.color='var(--danger)'; el.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
-  try {
-    const res = await fetch('/api/auth/change-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ current_password: current, new_password: newPw }) });
-    const d = await res.json();
-    el.style.color = d.ok ? 'var(--success)' : 'var(--danger)';
-    el.textContent = d.ok ? '✅ 비밀번호 변경 완료' : ('❌ ' + (d.error || '실패'));
-    if (d.ok) { document.getElementById('m-pw-current').value=''; document.getElementById('m-pw-new').value=''; document.getElementById('m-pw-confirm').value=''; }
-  } catch(e) { el.style.color='var(--danger)'; el.textContent='오류: ' + e.message; }
-}
+        <!-- 번호 추천 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">🎰 번호 추천</div>
+            <select id="lotto-game-count" class="m-input m-select" style="width:90px;padding:6px 8px;">
+              <option value="1">1게임</option>
+              <option value="3">3게임</option>
+              <option value="5" selected>5게임</option>
+              <option value="10">10게임</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button onclick="lottoGenerate()" class="m-btn m-btn-primary" style="flex:1;">🎯 번호 추천받기</button>
+            <button onclick="lottoSaveAndSend()" class="m-btn"
+              style="background:#229ED9;color:#fff;border:none;white-space:nowrap;">💾 저장+전송</button>
+          </div>
+          <div id="lotto-results">
+            <div class="m-empty">번호 추천 버튼을 눌러주세요</div>
+          </div>
+        </div>
 
-// ── 초기 실행 ──
-(function init() {
-  const token = sessionStorage.getItem('auth_token');
-  if (token) {
-    // 토큰 검증
-    fetch('/api/auth/verify').then(r => r.json()).then(d => {
-      if (d.user) {
-        document.getElementById('m-username-display').textContent = d.user.username;
-        showApp();
-      } else {
-        showLogin();
+        <!-- 텔레그램 -->
+        <div class="m-card">
+          <div class="m-card-title">📱 텔레그램 설정 <span id="lotto-tg-status"
+              style="font-size:0.72rem;color:var(--muted);font-weight:400;"></span></div>
+          <input id="lotto-tg-chatid" placeholder="Chat ID" class="m-input" style="margin-bottom:8px;" />
+          <input id="lotto-tg-token" type="password" placeholder="Bot Token" class="m-input"
+            style="margin-bottom:10px;" />
+          <div style="display:flex;gap:8px;">
+            <button onclick="lottoSaveTg()" class="m-btn m-btn-primary" style="flex:1;">저장</button>
+            <button onclick="lottoTestTg()" class="m-btn m-btn-secondary">테스트</button>
+          </div>
+        </div>
+
+        <!-- 자동 발송 스케줄 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">⏰ 자동 발송 설정</div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="lottoResetSchedule()" class="m-btn m-btn-secondary m-btn-sm">초기화</button>
+              <button onclick="lottoSaveSchedule()" class="m-btn m-btn-primary m-btn-sm">저장</button>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:0.82rem;color:var(--muted);margin-bottom:8px;">요일 선택</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)"
+                style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;">월</button>
+              <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)"
+                style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;">화</button>
+              <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)"
+                style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;">수</button>
+              <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)"
+                style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;">목</button>
+              <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)"
+                style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;">금</button>
+              <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)"
+                style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-weight:600;">토</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:10px;">
+            <div style="flex:1;">
+              <div class="m-label">발송 시각</div>
+              <select id="lotto-sch-hour" class="m-input m-select">
+                <option value="" disabled selected>시각 선택</option>
+                <option value="7">07시</option>
+                <option value="8">08시</option>
+                <option value="9">09시</option>
+                <option value="10">10시</option>
+                <option value="11">11시</option>
+                <option value="12">12시</option>
+                <option value="13">13시</option>
+                <option value="14">14시</option>
+                <option value="15">15시</option>
+                <option value="16">16시</option>
+                <option value="17">17시</option>
+                <option value="18">18시</option>
+                <option value="19">19시</option>
+                <option value="20">20시</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <div class="m-label">게임 수</div>
+              <select id="lotto-sch-count" class="m-input m-select">
+                <option value="" disabled selected>게임 선택</option>
+                <option value="1">1게임</option>
+                <option value="3">3게임</option>
+                <option value="5">5게임</option>
+                <option value="10">10게임</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:0.72rem;color:var(--muted);" id="lotto-sch-last"></div>
+          <div style="font-size:0.72rem;color:var(--muted);" id="lotto-sch-next"></div>
+          <div style="font-size:0.72rem;color:var(--warn);margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감으로 자동 발송되지 않습니다</div>
+          <div id="lotto-sch-current"
+            style="margin-top:10px;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:4px;">📅 현재 등록된 스케줄</div>
+            <div id="lotto-sch-current-text" style="font-size:0.85rem;">스케줄 없음</div>
+          </div>
+        </div>
+
+        <!-- 추천 이력 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">📋 추천 이력</div>
+            <button onclick="lottoLoadHistory()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+          </div>
+          <div id="lotto-history-list">
+            <div class="m-loading">로딩 중...</div>
+          </div>
+        </div>
+
+        <!-- 날짜별 상세 -->
+        <div class="m-card" id="lotto-detail-card" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;" id="lotto-detail-title">📅 상세</div>
+            <div style="display:flex;gap:6px;">
+              <input id="lotto-check-drwno" type="number" placeholder="회차" class="m-input"
+                style="width:90px;padding:6px 10px;" />
+              <button onclick="lottoCheckResult()" class="m-btn m-btn-primary m-btn-sm">당첨 확인</button>
+            </div>
+          </div>
+          <div id="lotto-detail-games"></div>
+        </div>
+
+        <!-- 자동발송 이력 -->
+        <div class="m-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="m-card-title" style="margin:0;">🤖 자동발송 이력</div>
+            <button onclick="lottoLoadAutoHistory()" class="m-btn m-btn-secondary m-btn-sm">🔄</button>
+          </div>
+          <div id="lotto-auto-history-list">
+            <div class="m-loading">로딩 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+         🔍 종목 분석 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-analysis">
+        <!-- 검색 -->
+        <div class="m-card">
+          <div class="m-card-title">🔍 종목 분석</div>
+          <input type="hidden" id="analysisSymbolInput" value="" />
+          <div style="display:flex;gap:8px;">
+            <div onclick="openStockSearch && openStockSearch('analysisSymbolInput', false)"
+              style="flex:1;height:44px;border-radius:10px;border:1px solid var(--border);padding:0 14px;background:var(--surface2);display:flex;align-items:center;cursor:pointer;">
+              <span id="analysisSymbolBadge" style="color:var(--muted);font-size:0.88rem;">🔍 종목 검색 (예: AAPL,
+                Apple)</span>
+            </div>
+            <button onclick="openStockSearch && openStockSearch('analysisSymbolInput', false)"
+              class="m-btn m-btn-secondary">🔍</button>
+            <button onclick="runStockAnalysis && runStockAnalysis()" class="m-btn m-btn-primary">분석</button>
+          </div>
+        </div>
+
+        <div id="analysisLoading" style="display:none;" class="m-loading">🔍 분석 중...</div>
+        <div id="analysisError"
+          style="display:none;padding:14px;color:var(--danger);background:rgba(239,68,68,0.1);border-radius:10px;margin-bottom:12px;">
+        </div>
+
+        <!-- 결과 -->
+        <div id="analysisResult" style="display:none;">
+          <!-- 기본 정보 -->
+          <div class="m-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="m-card-title" style="margin:0;" id="analysisName">-</div>
+              <span id="analysisSector" style="font-size:0.72rem;color:var(--muted);"></span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;">
+              <span id="analysisPrice" style="font-size:1.8rem;font-weight:800;">-</span>
+              <span id="analysisChange" style="font-size:0.95rem;font-weight:700;">-</span>
+            </div>
+            <div class="m-stat-grid">
+              <div class="m-stat-item">
+                <div class="m-stat-label">52주 최고</div>
+                <div id="analysis52High" class="m-stat-value" style="color:var(--danger);font-size:0.88rem;">-</div>
+              </div>
+              <div class="m-stat-item">
+                <div class="m-stat-label">52주 최저</div>
+                <div id="analysis52Low" class="m-stat-value" style="color:#3b82f6;font-size:0.88rem;">-</div>
+              </div>
+              <div class="m-stat-item">
+                <div class="m-stat-label">거래량</div>
+                <div id="analysisVolume" class="m-stat-value" style="font-size:0.88rem;">-</div>
+              </div>
+              <div class="m-stat-item">
+                <div class="m-stat-label">시가총액</div>
+                <div id="analysisMktCap" class="m-stat-value" style="font-size:0.88rem;">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 애널리스트 컨센서스 -->
+          <div class="m-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="m-card-title" style="margin:0;">🎯 애널리스트 컨센서스</div>
+              <span id="analysisAnalystCount" style="font-size:0.72rem;color:var(--muted);"></span>
+            </div>
+            <div style="text-align:center;margin-bottom:12px;">
+              <div id="analysisRecommendation"
+                style="font-size:1.3rem;font-weight:800;padding:6px 18px;border-radius:999px;display:inline-block;">-
+              </div>
+            </div>
+            <div class="m-form-row-3">
+              <div class="m-stat-item" style="text-align:center;">
+                <div class="m-stat-label">목표가 평균</div>
+                <div id="analysisTargetMean" style="font-weight:800;color:var(--warn);">-</div>
+              </div>
+              <div class="m-stat-item" style="text-align:center;">
+                <div class="m-stat-label">목표 최고</div>
+                <div id="analysisTargetHigh" style="font-weight:800;color:var(--danger);">-</div>
+              </div>
+              <div class="m-stat-item" style="text-align:center;">
+                <div class="m-stat-label">목표 최저</div>
+                <div id="analysisTargetLow" style="font-weight:800;color:#3b82f6;">-</div>
+              </div>
+            </div>
+            <div id="analysisUpside" style="margin-top:10px;text-align:center;font-size:0.85rem;font-weight:700;"></div>
+          </div>
+
+          <!-- 재무지표 -->
+          <div class="m-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="m-card-title" style="margin:0;">📊 재무지표</div>
+              <span id="analysisTechSignal"
+                style="font-size:0.75rem;padding:3px 10px;border-radius:999px;font-weight:700;"></span>
+            </div>
+            <div class="m-stat-grid" id="analysisFundamentals"></div>
+          </div>
+
+          <!-- 기술적 지표 -->
+          <div class="m-card">
+            <div class="m-card-title">📈 기술적 지표</div>
+            <div class="m-stat-grid" id="analysisTechnical"></div>
+          </div>
+
+          <!-- 주가 차트 -->
+          <div class="m-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="m-card-title" style="margin:0;">📉 주가 차트</div>
+              <div style="display:flex;gap:4px;">
+                <button onclick="loadAnalysisChart('1mo')"
+                  class="analysis-period-btn m-btn m-btn-secondary m-btn-sm">1M</button>
+                <button onclick="loadAnalysisChart('3mo')"
+                  class="analysis-period-btn m-btn m-btn-secondary m-btn-sm active">3M</button>
+                <button onclick="loadAnalysisChart('6mo')"
+                  class="analysis-period-btn m-btn m-btn-secondary m-btn-sm">6M</button>
+                <button onclick="loadAnalysisChart('1y')"
+                  class="analysis-period-btn m-btn m-btn-secondary m-btn-sm">1Y</button>
+              </div>
+            </div>
+            <canvas id="analysisChartCanvas" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+         📊 데이터수집 탭
+    ══════════════════════════════ -->
+      <div class="m-tab" id="m-tab-datacollect">
+        <!-- 서브탭 -->
+        <div class="m-subtab-bar">
+          <button id="dcTabStock" onclick="switchDcTab('stock')" class="m-subtab-btn active">📊 종목 분석</button>
+          <button id="dcTabKorea" onclick="switchDcTab('korea')" class="m-subtab-btn">🇰🇷 한국 TOP10</button>
+        </div>
+
+        <!-- 종목 분석 패널 -->
+        <div id="dcPanelStock">
+          <div class="m-card">
+            <div class="m-card-title">🔍 통합 종목 검색</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <div onclick="openStockSearch && openStockSearch('dc-search-input-target', false)"
+                style="flex:1;height:42px;border-radius:10px;border:1px solid var(--border);padding:0 14px;background:var(--surface2);display:flex;align-items:center;cursor:pointer;color:var(--muted);font-size:0.85rem;">
+                🔍 영문으로 검색 (예: apple, samsung)
+              </div>
+              <button onclick="openStockSearch && openStockSearch('dc-search-input-target', false)"
+                class="m-btn m-btn-primary">검색</button>
+            </div>
+            <div id="dc-search-result"
+              style="display:none;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2);">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <input type="hidden" id="quantSymbol" value="" />
+              <input type="hidden" id="quantBatchSymbols" value="" />
+              <div id="dc-symbol-badge" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;">
+                <span style="color:var(--muted);font-size:0.82rem;">종목을 검색해서 선택하세요</span>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;">
+                <select id="quantStrategy" class="m-input m-select" style="width:120px;padding:6px 8px;">
+                  <option value="combined">Combined</option>
+                  <option value="rsi">RSI</option>
+                  <option value="bb">Bollinger</option>
+                  <option value="sma">SMA</option>
+                  <option value="macd">MACD</option>
+                </select>
+                <button onclick="runQuantAnalysis && runQuantAnalysis()" class="m-btn m-btn-success">분석</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="m-card" id="quantResultCard" style="display:none;">
+            <div
+              style="text-align:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;">선택된 종목</div>
+              <div id="dc-symbol-badge2" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;"></div>
+            </div>
+            <div id="quantResult"></div>
+          </div>
+
+          <div class="m-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="m-card-title" style="margin:0;">💾 주가 히스토리 (DB)</div>
+              <button onclick="initHistoryData && initHistoryData()" class="m-btn m-btn-primary m-btn-sm">🔄 초기
+                수집</button>
+            </div>
+            <input type="hidden" id="dc-symbols" value="" />
+            <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;">📅 매일 00:00 자동 업데이트 · yfinance 2년치
+            </div>
+            <div id="dc-history-result"></div>
+          </div>
+        </div>
+
+        <!-- 한국 TOP10 패널 -->
+        <div id="dcPanelKorea" style="display:none;">
+          <div class="m-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div class="m-card-title" style="margin:0;">🇰🇷 한국 시장 TOP 10</div>
+              <button onclick="loadKoreaAnalysis && loadKoreaAnalysis()" class="m-btn m-btn-primary m-btn-sm">🔍 수급
+                분석</button>
+            </div>
+            <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">거래량 + RSI 복합 점수 기반 상위 종목</p>
+            <div id="koreaResult">
+              <div class="m-empty">분석 버튼을 눌러주세요</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 하단 탭바 -->
+    <nav class="m-tabbar">
+      <button class="m-tab-btn active" data-tab="news" onclick="mTab('news')">
+        <span class="m-tab-icon">📰</span><span class="m-tab-label">뉴스</span>
+      </button>
+      <button class="m-tab-btn" data-tab="stock" onclick="mTab('stock')">
+        <span class="m-tab-icon">📈</span><span class="m-tab-label">주식</span>
+      </button>
+      <button class="m-tab-btn" data-tab="quant" onclick="mTab('quant')">
+        <span class="m-tab-icon">🤖</span><span class="m-tab-label">자동매매</span>
+      </button>
+      <button class="m-tab-btn" data-tab="backtest" onclick="mTab('backtest')">
+        <span class="m-tab-icon">🔬</span><span class="m-tab-label">백테스트</span>
+      </button>
+      <button class="m-tab-btn" data-tab="performance" onclick="mTab('performance')">
+        <span class="m-tab-icon">💹</span><span class="m-tab-label">성과</span>
+      </button>
+      <button class="m-tab-btn" data-tab="lotto" onclick="mTab('lotto')">
+        <span class="m-tab-icon">🍀</span><span class="m-tab-label">로또</span>
+      </button>
+      <button class="m-tab-btn" data-tab="analysis" onclick="mTab('analysis')">
+        <span class="m-tab-icon">🔍</span><span class="m-tab-label">종목분석</span>
+      </button>
+      <button class="m-tab-btn" data-tab="datacollect" onclick="mTab('datacollect')">
+        <span class="m-tab-icon">💾</span><span class="m-tab-label">데이터</span>
+      </button>
+    </nav>
+
+    <!-- JS 호환용 숨김 엘리먼트 (PC 버전 공통 JS 사용) -->
+    <div style="display:none;">
+      <div id="sp-alert-layer">
+        <div id="sp-alert-icon"></div>
+        <div id="sp-alert-title"></div>
+        <div id="sp-alert-msg"></div><button id="sp-alert-ok"></button>
+      </div>
+      <div id="sp-confirm-layer">
+        <div id="sp-confirm-icon"></div>
+        <div id="sp-confirm-title"></div>
+        <div id="sp-confirm-msg"></div><button id="sp-confirm-cancel"></button><button id="sp-confirm-ok"></button>
+      </div>
+      <div id="sp-stock-search-layer"><input type="text" id="sp-stock-search-input" />
+        <div id="sp-stock-search-result"></div>
+      </div>
+      <div id="lotto-toast-layer">
+        <div id="lotto-toast-icon"></div>
+        <div id="lotto-toast-title"></div>
+        <div id="lotto-toast-msg"></div>
+      </div>
+      <div id="lotto-confirm-layer">
+        <div id="lotto-confirm-icon"></div>
+        <div id="lotto-confirm-title"></div>
+        <div id="lotto-confirm-msg"></div><button id="lotto-confirm-cancel"></button><button
+          id="lotto-confirm-ok"></button>
+      </div>
+      <div id="chartPopup"><canvas id="chartPrice"></canvas><canvas id="chartVolume"></canvas><canvas
+          id="chartRsi"></canvas><canvas id="chartMacd"></canvas>
+        <div id="chartTitle"></div>
+      </div>
+      <div id="realtimeModal">
+        <div id="realtimeTitle"></div>
+        <div id="realtimeBody"></div>
+      </div>
+      <div id="quantBatchResult"></div>
+      <select id="accountSelectUs"></select>
+      <div id="quantProfilePage-compat"></div>
+      <div id="simpleTradeState-compat"></div>
+      <canvas id="priceChart"></canvas>
+    </div>
+
+  </div>
+
+  <script>
+    // ── 공통 fetch (토큰 자동 첨부) ──
+    const _origFetch = window.fetch;
+    window.fetch = function (url, opts = {}) {
+      const token = sessionStorage.getItem('auth_token');
+      if (token && typeof url === 'string' && url.startsWith('/')) {
+        opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token };
       }
-    }).catch(() => showLogin());
-  } else {
-    showLogin();
-  }
-})();
-</script>
+      return _origFetch(url, opts).then(res => {
+        if (res.status === 401 && !url.includes('/api/auth/')) {
+          sessionStorage.removeItem('auth_token');
+          showLogin();
+        }
+        return res;
+      });
+    };
+
+    // ── 로그인 ──
+    async function mLogin() {
+      const username = document.getElementById('m-un').value.trim();
+      const password = document.getElementById('m-pw').value;
+      const errEl = document.getElementById('m-login-err');
+      if (!username || !password) { errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+      try {
+        const res = await _origFetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const d = await res.json();
+        if (res.ok && d.token) {
+          sessionStorage.setItem('auth_token', d.token);
+          document.getElementById('m-uname').textContent = d.username;
+          showApp();
+        } else {
+          errEl.textContent = d.error || '로그인 실패';
+        }
+      } catch (e) { errEl.textContent = '연결 실패: ' + e.message; }
+    }
+    document.getElementById('m-pw').addEventListener('keydown', e => { if (e.key === 'Enter') mLogin(); });
+
+    function mLogout() {
+      sessionStorage.removeItem('auth_token');
+      if (typeof logout === 'function') logout();
+      else showLogin();
+    }
+
+    function showLogin() {
+      document.getElementById('m-login-screen').style.display = 'flex';
+      document.getElementById('m-app').style.display = 'none';
+    }
+
+    function showApp() {
+      document.getElementById('m-login-screen').style.display = 'none';
+      document.getElementById('m-app').style.display = 'block';
+      // 백테스트 날짜 기본값
+      const today = new Date().toISOString().split('T')[0];
+      const sixM = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const btStart = document.getElementById('bt-start');
+      const btEnd = document.getElementById('bt-end');
+      if (btStart && !btStart.value) btStart.value = sixM;
+      if (btEnd && !btEnd.value) btEnd.value = today;
+    }
+
+    // ── 탭 전환 ──
+    let _curTab = 'news';
+    function mTab(tab) {
+      document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.m-tab-btn').forEach(b => b.classList.remove('active'));
+      const tabEl = document.getElementById('m-tab-' + tab);
+      if (tabEl) tabEl.classList.add('active');
+      const btnEl = document.querySelector(`.m-tab-btn[data-tab="${tab}"]`);
+      if (btnEl) btnEl.classList.add('active');
+      _curTab = tab;
+    }
+
+    // ── 주식 서브탭 ──
+    function mStockSub(sub) {
+      ['trade', 'account', 'price', 'orders'].forEach(s => {
+        const el = document.getElementById('m-stock-' + s);
+        if (el) el.style.display = s === sub ? 'block' : 'none';
+      });
+      document.querySelectorAll('#m-tab-stock .m-subtab-btn').forEach((b, i) => {
+        b.classList.toggle('active', ['trade', 'account', 'price', 'orders'][i] === sub);
+      });
+    }
+
+    // ── goToNewsTab (JS 호환) ──
+    function goToNewsTab() { mTab('news'); }
+
+    // ── 초기 실행 ──
+    (function init() {
+      const token = sessionStorage.getItem('auth_token');
+      if (token) {
+        fetch('/api/auth/verify').then(r => r.json()).then(d => {
+          if (d.user) {
+            document.getElementById('m-uname').textContent = d.user.username;
+            showApp();
+          } else { showLogin(); }
+        }).catch(() => showLogin());
+      } else { showLogin(); }
+    })();
+  </script>
+
+  <!-- PC 버전과 동일한 공통 JS 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/chart.js?v=20260331c"></script>
+  <script src="/js/stock.js?v=20260402a"></script>
+  <script src="/js/common.js?v=20260402a"></script>
+  <script src="/js/ai-router.js?v=20260331c"></script>
+  <script src="/js/news.js?v=20260331c"></script>
+  <script src="/js/lotto.js?v=20260331c"></script>
+
+
+
 </body>
+
 </html>

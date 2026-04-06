@@ -1,6 +1,6 @@
 .env
 node_modules/
 logs/
-news.db
+stock.db
 *.log
 .DS_Store
