@@ -829,6 +829,7 @@ function authMiddleware(req, res, next) {
     } catch (e) { }
   }
   if (publicApis.some(p => req.path.startsWith(p))) return next();
+  if (req.path.startsWith('/js/') || req.path.startsWith('/css/') || req.path.startsWith('/img/')) return next();
   if (!req.user) return res.status(401).json({ error: '인증이 필요합니다.' });
   next();
 }
