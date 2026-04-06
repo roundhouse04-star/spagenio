@@ -1,4 +1,4 @@
-const originalFetch = window.fetch.bind(window);
+const _commonOrigFetch = window.fetch.bind(window);
 // ✅ 자동 로그아웃 (30분 비활동)
 (function autoLogout() {
   const TIMEOUT = 30 * 60 * 1000; // 30분
@@ -60,7 +60,7 @@ function sendClientError({ event_type, error_message, stack_trace = '', extra = 
   try {
     const user = (() => { try { return JSON.parse(sessionStorage.getItem('user') || '{}'); } catch { return {}; } })();
     const meta = { page: 'front', userId: user.id, username: user.username, url: location.href, ...extra };
-    originalFetch('/api/client-error', {
+    _commonOrigFetch('/api/client-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_type, error_message, stack_trace, meta })
@@ -76,7 +76,7 @@ window.fetch = function (url, options = {}) {
       'Authorization': `Bearer ${token}`
     };
   }
-  return originalFetch(url, options).then(res => {
+  return _commonOrigFetch(url, options).then(res => {
     // 메인 API 401만 로그인으로 (외부 포트 API 제외)
     if (res.status === 401 && typeof url === 'string' && url.includes('/api/') && !url.match(/localhost:\d+/)) {
       sessionStorage.removeItem('auth_token');
@@ -457,7 +457,7 @@ async function checkAuth() {
     return false;
   }
   try {
-    res = await originalFetch('/api/auth/verify', {
+    res = await _commonOrigFetch('/api/auth/verify', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.status === 401) {
