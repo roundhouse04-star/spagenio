@@ -2231,6 +2231,8 @@ window.setTopPicksMarket = function (market) {
     el.style.color = m === market ? '#fff' : '#9CA3AF';
     el.style.borderColor = m === market ? '#6366f1' : '#2A2A2A';
   });
+  // 시장 변경 시 자동 재조회
+  if (typeof window.loadTopPicks === 'function') window.loadTopPicks();
 };
 // ===== 거래량/뉴스 시장 선택 (일반 자동매매) =====
 let _dayMarket = 'us';
