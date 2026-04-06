@@ -933,24 +933,6 @@
 
       <!-- ── 관리 탭 ── -->
       <div class="m-tab" id="m-tab-manage">
-        <!-- 스케줄러 -->
-        <div class="m-section-label">스케줄러</div>
-        <div class="m-card" id="m-scheduler-card">
-          <div class="m-loading">로딩 중...</div>
-        </div>
-
-        <!-- DB 관리 -->
-        <div class="m-section-label">DB 관리</div>
-        <div class="m-card">
-          <div class="m-card-title">🗄️ 데이터베이스</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('news')">📰 뉴스 DB 초기화</button>
-            <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('lotto')">🍀 로또 DB 초기화</button>
-            <button class="m-btn m-btn-secondary m-btn-full" onclick="mDbAction('trade')">🤖 매매이력 DB 초기화</button>
-            <button class="m-btn m-btn-danger m-btn-full" onclick="mDbAction('all')">⚠️ 전체 초기화</button>
-          </div>
-          <div id="m-db-result" style="margin-top:10px;font-size:0.82rem;color:var(--muted);"></div>
-        </div>
 
         <!-- 비밀번호 변경 -->
         <div class="m-section-label">계정</div>
