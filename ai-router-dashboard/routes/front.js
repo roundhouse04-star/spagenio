@@ -967,6 +967,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // ✅ 오늘의 추천 종목 (거래량 + 뉴스 + 기술적 신호 종합)
   router.get('/api/trade4/top_picks', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+    if (req.query.market === 'kr') return res.redirect('/api/trade4/kr_top_picks');
     try {
       const userId = req.user.user_id || req.user.id;
       const keys = getUserAlpacaKeys(userId, null);
@@ -1056,7 +1057,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
               scored.push({ symbol, score, price, change_pct: parseFloat(change_pct.toFixed(2)), signals, rsi: rsi ? parseFloat(rsi.toFixed(1)) : null, macd_cross: macd?.goldenCross || false, has_news: !!news, has_surge: !!surge });
             }
           }
-        } catch(e) {}
+        } catch(e) { console.error('top_picks error:', symbol, e.message); }
       }));
 
       scored.sort((a, b) => b.score - a.score);
