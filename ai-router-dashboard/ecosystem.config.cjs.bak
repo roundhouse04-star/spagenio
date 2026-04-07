@@ -3,7 +3,6 @@ module.exports = {
     {
       name: 'spagenio',
       script: 'server.js',
-      interpreter: '/Users/roundhouse04/.nvm/versions/node/v22.22.2/bin/node',
       cwd: '/Users/roundhouse04/projects/spagenio/ai-router-dashboard',
       watch: false,
       env: {
