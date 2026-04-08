@@ -1,0 +1,102 @@
+package com.spagenio.travel.controller;
+
+import com.spagenio.travel.model.*;
+import com.spagenio.travel.service.TravelService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api")
+public class TravelController {
+    private final TravelService service;
+    public TravelController(TravelService service) { this.service = service; }
+
+    @GetMapping("/health")
+    public Map<String, String> health() { return Map.of("status", "ok"); }
+
+    // ── User ────────────────────────────────────────────────
+    @GetMapping("/users")
+    public List<User> getUsers() { return service.getUsers(); }
+
+    @GetMapping("/users/{id}")
+    public User getUser(@PathVariable String id) { return service.getUser(id); }
+
+    @PostMapping("/users")
+    @ResponseStatus(HttpStatus.CREATED)
+    public User createUser(@RequestBody User user) { return service.createUser(user); }
+
+    @PatchMapping("/users/{id}")
+    public User updateUser(@PathVariable String id, @RequestBody User user) { return service.updateUser(id, user); }
+
+    @PostMapping("/users/{userId}/follow/{targetId}")
+    public User follow(@PathVariable String userId, @PathVariable String targetId) { return service.follow(userId, targetId); }
+
+    @PostMapping("/users/{userId}/unfollow/{targetId}")
+    public User unfollow(@PathVariable String userId, @PathVariable String targetId) { return service.unfollow(userId, targetId); }
+
+    @GetMapping("/users/{userId}/posts")
+    public List<Post> getUserPosts(@PathVariable String userId) { return service.getPostsByUser(userId); }
+
+    @GetMapping("/users/{userId}/plans")
+    public List<Plan> getUserPlans(@PathVariable String userId) { return service.getPlans(userId); }
+
+    // ── Post ────────────────────────────────────────────────
+    @GetMapping("/posts")
+    public List<Post> getPosts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String userId) {
+        if (userId != null) return service.getFeedPosts(userId);
+        if (keyword != null || country != null || city != null) return service.searchPosts(keyword, country, city);
+        return service.getAllPosts();
+    }
+
+    @GetMapping("/posts/{id}")
+    public Post getPost(@PathVariable String id) { return service.getPost(id); }
+
+    @PostMapping("/posts")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Post createPost(@RequestBody Post post) { return service.createPost(post); }
+
+    @PostMapping("/posts/{id}/like")
+    public Post toggleLike(@PathVariable String id, @RequestBody Map<String, String> body) {
+        return service.toggleLike(id, body.get("userId"));
+    }
+
+    @PostMapping("/posts/{id}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Post addComment(@PathVariable String id, @RequestBody Comment comment) {
+        return service.addComment(id, comment);
+    }
+
+    @DeleteMapping("/posts/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePost(@PathVariable String id) { service.deletePost(id); }
+
+    // ── Plan ────────────────────────────────────────────────
+    @GetMapping("/plans/{id}")
+    public Plan getPlan(@PathVariable String id) { return service.getPlan(id); }
+
+    @PostMapping("/plans")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Plan createPlan(@RequestBody Plan plan) { return service.createPlan(plan); }
+
+    @PatchMapping("/plans/{id}")
+    public Plan updatePlan(@PathVariable String id, @RequestBody Plan plan) { return service.updatePlan(id, plan); }
+
+    @PostMapping("/plans/{id}/items")
+    public Plan addPlanItem(@PathVariable String id, @RequestBody PlanItem item) { return service.addPlanItem(id, item); }
+
+    @DeleteMapping("/plans/{planId}/items/{itemId}")
+    public Plan removePlanItem(@PathVariable String planId, @PathVariable String itemId) {
+        return service.removePlanItem(planId, itemId);
+    }
+
+    @DeleteMapping("/plans/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePlan(@PathVariable String id) { service.deletePlan(id); }
+}

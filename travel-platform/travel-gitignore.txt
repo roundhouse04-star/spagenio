@@ -1,0 +1,32 @@
+# ── 빌드 / 의존성 ──────────────────────────────────────
+travel-platform/frontend/node_modules/
+travel-platform/backend/build/
+travel-platform/backend/.gradle/
+travel-platform/backend/bin/
+travel-platform/backend/python-service/venv/
+travel-platform/backend/python-service/__pycache__/
+
+# ── 보안 (절대 올리면 안 됨) ───────────────────────────
+travel-platform/start-all.sh
+travel-platform/stop-all.sh
+travel-platform/backend/src/main/resources/application.yml
+travel-platform/frontend/vite.config.js
+
+# ── 런타임 데이터 ───────────────────────────────────────
+travel-platform/backend/data/
+travel-platform/logs/
+travel-platform/.run/
+travel-platform/**/*.pid
+
+# ── 레거시 파일 ─────────────────────────────────────────
+travel-platform/travel_*.sh
+travel-platform/travel_*.js
+travel-platform/travel_*.yml
+travel-platform/nginx.conf
+
+# ── 공통 ────────────────────────────────────────────────
+*.bak
+*.log
+.DS_Store
+__MACOSX/
+*.zip

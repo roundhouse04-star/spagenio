@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pydantic[email]
+python-multipart
+bcrypt
+PyJWT
