@@ -3,12 +3,12 @@ import { api } from '../api';
 
 // ── 지도 컴포넌트 (Leaflet + Nominatim + Overpass) ────────
 const CATEGORY = {
-  restaurant: { label: '맛집', icon: '🍽️', color: '#ef4444' },
-  cafe: { label: '카페', icon: '☕', color: '#f59e0b' },
-  subway: { label: '교통', icon: '🚇', color: '#10b981' },
-  hotel: { label: '숙소', icon: '🏨', color: '#8b5cf6' },
-  attraction: { label: '관광', icon: '🏛️', color: '#0ea5e9' },
-  convenience: { label: '편의점', icon: '🏪', color: '#6b7280' },
+  restaurant: { label: '맛집',   icon: '🍽️', color: '#ef4444' },
+  cafe:       { label: '카페',   icon: '☕', color: '#f59e0b' },
+  subway:     { label: '교통',   icon: '🚇', color: '#10b981' },
+  hotel:      { label: '숙소',   icon: '🏨', color: '#8b5cf6' },
+  attraction: { label: '관광',   icon: '🏛️', color: '#0ea5e9' },
+  convenience:{ label: '편의점', icon: '🏪', color: '#6b7280' },
 };
 
 function classifyNode(tags) {
@@ -26,9 +26,9 @@ function calcDist(lat1, lng1, lat2, lng2) {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return d < 1000 ? `${Math.round(d)}m` : `${(d / 1000).toFixed(1)}km`;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return d < 1000 ? `${Math.round(d)}m` : `${(d/1000).toFixed(1)}km`;
 }
 
 function PlanMap({ onAddPlace, planPlaces = [] }) {
@@ -97,8 +97,8 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
     places.forEach((p, i) => {
       if (!p.lat || !p.lng) return;
       const icon = L.divIcon({
-        html: `<div style="width:30px;height:30px;border-radius:50%;background:#4f46e5;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${i + 1}</div>`,
-        className: '', iconSize: [30, 30], iconAnchor: [15, 30]
+        html: `<div style="width:30px;height:30px;border-radius:50%;background:#4f46e5;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${i+1}</div>`,
+        className: '', iconSize: [30,30], iconAnchor: [15,30]
       });
       const m = L.marker([p.lat, p.lng], { icon }).addTo(mapInst.current);
       m.bindPopup(`<div style="font-size:13px;font-weight:700">📍 ${p.name}</div>`);
@@ -112,10 +112,10 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
     if (selectedMarkerRef.current) mapInst.current.removeLayer(selectedMarkerRef.current);
     const icon = L.divIcon({
       html: `<div style="width:36px;height:36px;border-radius:50%;background:#ef4444;color:white;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3)">📍</div>`,
-      className: '', iconSize: [36, 36], iconAnchor: [18, 36]
+      className: '', iconSize: [36,36], iconAnchor: [18,36]
     });
     const m = L.marker([lat, lng], { icon }).addTo(mapInst.current);
-    m.bindPopup(`<div style="font-size:13px;font-weight:700">${name}</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">${address.slice(0, 50)}...</div>`).openPopup();
+    m.bindPopup(`<div style="font-size:13px;font-weight:700">${name}</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">${address.slice(0,50)}...</div>`).openPopup();
     selectedMarkerRef.current = m;
     setSelectedPlace({ lat, lng, name, address });
     fetchNearby(lat, lng);
@@ -161,7 +161,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
           address: n.tags['addr:street'] || '',
         }))
         .sort((a, b) => {
-          const toM = d => parseFloat(d.replace('km', '000').replace('m', ''));
+          const toM = d => parseFloat(d.replace('km','000').replace('m',''));
           return toM(a.dist) - toM(b.dist);
         })
         .slice(0, 40);
@@ -184,7 +184,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
       const cfg = CATEGORY[p.type] || CATEGORY.attraction;
       const icon = L.divIcon({
         html: `<div style="width:26px;height:26px;border-radius:50%;background:${cfg.color};display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.2)">${cfg.icon}</div>`,
-        className: '', iconSize: [26, 26], iconAnchor: [13, 26]
+        className: '', iconSize: [26,26], iconAnchor: [13,26]
       });
       const m = L.marker([p.lat, p.lng], { icon }).addTo(mapInst.current);
       m.bindPopup(`<div style="font-size:13px;font-weight:700">${cfg.icon} ${p.name}</div><div style="font-size:11px;color:#9ca3af">${p.dist}</div>`);
@@ -221,7 +221,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
                 onMouseEnter={e => e.currentTarget.style.background = '#f5f6f8'}
                 onMouseLeave={e => e.currentTarget.style.background = 'white'}>
                 <div style={{ fontWeight: 600, color: '#1a1a2e' }}>{r.display_name.split(',')[0]}</div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.display_name.split(',').slice(1, 3).join(',')}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.display_name.split(',').slice(1,3).join(',')}</div>
               </div>
             ))}
           </div>
@@ -258,7 +258,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
 
           {/* 필터 */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-            {[['all', '전체', '#4f46e5'], ...Object.entries(CATEGORY).map(([k, v]) => [k, `${v.icon} ${v.label}`, v.color])].map(([key, label, color]) => (
+            {[['all','전체','#4f46e5'], ...Object.entries(CATEGORY).map(([k,v]) => [k, `${v.icon} ${v.label}`, v.color])].map(([key, label, color]) => (
               <button key={key} onClick={() => setFilter(key)}
                 style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${filter === key ? color : '#eee'}`, background: filter === key ? color : 'white', color: filter === key ? 'white' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
                 {label}
@@ -367,7 +367,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
   const [loading, setLoading] = useState(true);
   const [showNewPlan, setShowNewPlan] = useState(false);
   const [editPlan, setEditPlan] = useState(null);
-  const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '' });
+  const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '', shareType: 'private', shareSchedule: false, sharePlaces: false });
   const [viewMode, setViewMode] = useState('list'); // list | map
 
   useEffect(() => { if (currentUser) load(); }, [currentUser]);
@@ -483,6 +483,36 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                 onChange={e => setNewPlan(p => ({ ...p, endDate: e.target.value }))} />
             </div>
           </div>
+          {/* 공유 설정 */}
+          <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>🔗 공유 설정</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              {[['private','🔒 비공개'], ['friends','👥 친구 공개'], ['public','🌍 전체 공개']].map(([val, label]) => (
+                <button key={val} onClick={() => setNewPlan(p => ({...p, shareType: val}))}
+                  style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `2px solid ${newPlan.shareType === val ? '#4f46e5' : '#eee'}`, background: newPlan.shareType === val ? '#eef2ff' : 'white', color: newPlan.shareType === val ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {newPlan.shareType !== 'private' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="checkbox" checked={newPlan.shareSchedule}
+                    onChange={e => setNewPlan(p => ({...p, shareSchedule: e.target.checked}))}
+                    style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
+                  <span style={{ color: '#374151', fontWeight: 600 }}>📅 일정 공유</span>
+                  <span style={{ color: '#9ca3af', fontSize: 12 }}>— 여행 날짜를 공유해요</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="checkbox" checked={newPlan.sharePlaces}
+                    onChange={e => setNewPlan(p => ({...p, sharePlaces: e.target.checked}))}
+                    style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
+                  <span style={{ color: '#374151', fontWeight: 600 }}>📍 장소 공유</span>
+                  <span style={{ color: '#9ca3af', fontSize: 12 }}>— 방문할 장소를 공유해요</span>
+                </label>
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-primary" onClick={createPlan}>만들기</button>
             <button className="btn-secondary" onClick={() => setShowNewPlan(false)}>취소</button>
@@ -508,6 +538,34 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                 onChange={e => setEditPlan(p => ({ ...p, endDate: e.target.value }))} />
             </div>
           </div>
+          {/* 공유 설정 */}
+          <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>🔗 공유 설정</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              {[['private','🔒 비공개'], ['friends','👥 친구 공개'], ['public','🌍 전체 공개']].map(([val, label]) => (
+                <button key={val} onClick={() => setEditPlan(p => ({...p, shareType: val}))}
+                  style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `2px solid ${editPlan.shareType === val ? '#4f46e5' : '#eee'}`, background: editPlan.shareType === val ? '#eef2ff' : 'white', color: editPlan.shareType === val ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {editPlan.shareType !== 'private' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="checkbox" checked={editPlan.shareSchedule}
+                    onChange={e => setEditPlan(p => ({...p, shareSchedule: e.target.checked}))}
+                    style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
+                  <span style={{ color: '#374151', fontWeight: 600 }}>📅 일정 공유</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="checkbox" checked={editPlan.sharePlaces}
+                    onChange={e => setEditPlan(p => ({...p, sharePlaces: e.target.checked}))}
+                    style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
+                  <span style={{ color: '#374151', fontWeight: 600 }}>📍 장소 공유</span>
+                </label>
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-primary" onClick={savePlanEdit}>저장</button>
             <button className="btn-secondary" onClick={() => setEditPlan(null)}>취소</button>
@@ -516,7 +574,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
       )}
 
       {(!plans || plans.length === 0) && !showNewPlan ? (
-        <div className="empty">아직 일정이 없어요.<br />새 일정을 만들고 장소를 추가해보세요!</div>
+        <div className="empty">아직 일정이 없어요.<br/>새 일정을 만들고 장소를 추가해보세요!</div>
       ) : (
         <div className="plan-layout">
           {/* 왼쪽: 일정 목록 */}
@@ -528,6 +586,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                 <div className="plan-card-title">{plan.title}</div>
                 <div className="plan-card-meta">{plan.startDate || '날짜 미설정'}{plan.endDate ? ` ~ ${plan.endDate}` : ''}</div>
                 <div className="plan-card-count">📍 {plan.items?.length || 0}개 장소</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                  {plan.shareType === 'friends' ? '👥 친구 공개' : plan.shareType === 'public' ? '🌍 전체 공개' : '🔒 비공개'}
+                  {plan.shareSchedule && ' · 📅 일정공유'}
+                  {plan.sharePlaces && ' · 📍 장소공유'}
+                </div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 8 }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setEditPlan({ id: plan.id, title: plan.title, startDate: plan.startDate, endDate: plan.endDate })}
                     style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, border: '1px solid #eee', background: '#f9fafb', color: '#555', cursor: 'pointer', fontWeight: 600 }}>✏️ 수정</button>
@@ -553,7 +616,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
 
               {/* 탭 */}
               <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4, marginBottom: 14 }}>
-                {[['list', '📋 장소 목록'], ['map', '🗺️ 지도/장소 검색']].map(([key, label]) => (
+                {[['list','📋 장소 목록'], ['map','🗺️ 지도/장소 검색']].map(([key, label]) => (
                   <button key={key} onClick={() => setViewMode(key)}
                     style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', background: viewMode === key ? 'white' : 'transparent', color: viewMode === key ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: viewMode === key ? 700 : 500, cursor: 'pointer', boxShadow: viewMode === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
                     {label}
@@ -565,8 +628,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
               {viewMode === 'list' && (
                 selected.items?.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '28px 0', lineHeight: 1.9 }}>
-                    아직 추가된 장소가 없어요.<br />
-                    지도/장소 검색 탭에서<br />장소를 추가해보세요!
+                    아직 추가된 장소가 없어요.<br/>
+                    지도/장소 검색 탭에서<br/>장소를 추가해보세요!
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

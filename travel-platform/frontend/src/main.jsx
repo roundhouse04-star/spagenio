@@ -9,6 +9,7 @@ import Planner from './pages/Planner';
 import Write from './pages/Write';
 import PostDetail from './components/PostDetail';
 import Admin from './pages/Admin';
+import Share from './pages/Share';
 import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -278,6 +279,7 @@ function App() {
     { key: 'explore', icon: '🔍', label: '탐색' },
     { key: 'write',   icon: '✏️', label: '글쓰기' },
     { key: 'planner', icon: '🗺️', label: '일정' },
+    { key: 'share',   icon: '🔗', label: '정보공유' },
     { key: 'profile', icon: '👤', label: '프로필' },
   ];
 
@@ -349,6 +351,8 @@ function App() {
           <Write currentUser={currentUser} onDone={() => setPage('feed')} />
         ) : page === 'planner' ? (
           <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} />
+        ) : page === 'share' ? (
+          <Share currentUser={currentUser} onProfile={handleProfile} />
         ) : page === 'profile' ? (
           <Profile userId={profileUserId || currentUser?.id} currentUser={currentUser}
             onOpenPost={handleOpenPost} onChangeUser={setCurrentUser} />
@@ -356,7 +360,7 @@ function App() {
       </main>
 
       {/* 모바일 하단 네비 */}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
         {navItems.map(item => (
           item.key === 'write' ? (
             <div key={item.key} className="bottom-nav-item" onClick={() => goPage(item.key)}>

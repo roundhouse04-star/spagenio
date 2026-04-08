@@ -14,6 +14,9 @@ public class Plan {
     private String startDate;
     private String endDate;
     private String createdAt;
+    private String shareType = "private"; // private | friends | public
+    private boolean shareSchedule = false;
+    private boolean sharePlaces = false;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "plan_id", referencedColumnName = "id")
@@ -31,6 +34,12 @@ public class Plan {
     public void setEndDate(String endDate) { this.endDate = endDate; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public String getShareType() { return shareType; }
+    public void setShareType(String shareType) { this.shareType = shareType; }
+    public boolean isShareSchedule() { return shareSchedule; }
+    public void setShareSchedule(boolean shareSchedule) { this.shareSchedule = shareSchedule; }
+    public boolean isSharePlaces() { return sharePlaces; }
+    public void setSharePlaces(boolean sharePlaces) { this.sharePlaces = sharePlaces; }
     public List<PlanItem> getItems() { return items; }
     public void setItems(List<PlanItem> items) { this.items = items; }
 }

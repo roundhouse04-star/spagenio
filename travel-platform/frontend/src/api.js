@@ -47,6 +47,9 @@ export const api = {
   removePlanItem: (planId, itemId) => req(`/api/plans/${planId}/items/${itemId}`, { method: 'DELETE' }),
   deletePlan: (id) => req(`/api/plans/${id}`, { method: 'DELETE' }),
 
+  // Shared Plans
+  getSharedPlans: (userId) => req(`/api/plans/shared?userId=${userId}`),
+
   // Report
   createReport: (data) => req('/api/reports', { method: 'POST', body: JSON.stringify(data) }),
   getReports: (status) => req(`/api/reports${status ? '?status=' + status : ''}`),

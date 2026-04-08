@@ -112,6 +112,12 @@ public class TravelController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePlan(@PathVariable String id) { service.deletePlan(id); }
 
+    // ── 친구 공유 일정 ──────────────────────────────────────
+    @GetMapping("/plans/shared")
+    public List<Plan> getSharedPlans(@RequestParam String userId) {
+        return service.getFriendSharedPlans(userId);
+    }
+
     // ── Report ────────────────────────────────────────────
     @GetMapping("/reports")
     public List<Report> getReports(@RequestParam(required = false) String status) {

@@ -78,6 +78,7 @@ public class TravelService {
     public Plan addPlanItem(String planId, PlanItem item) { return repo.addPlanItem(planId, item); }
     public Plan removePlanItem(String planId, String itemId) { return repo.removePlanItem(planId, itemId); }
     public void deletePlan(String planId) { repo.deletePlan(planId); }
+    public List<Plan> getFriendSharedPlans(String userId) { return repo.findSharedPlansByFriends(userId); }
 
     // Report
     public List<Report> getReports() { return repo.findAllReports(); }

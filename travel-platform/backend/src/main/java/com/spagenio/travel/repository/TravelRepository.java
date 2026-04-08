@@ -237,6 +237,22 @@ public class TravelRepository {
         return em.merge(plan);
     }
 
+    public List<Plan> findSharedPlansByFriends(String userId) {
+        // 팔로잉한 사람들의 공유 일정 조회
+        User user = findUserById(userId).orElse(null);
+        if (user == null || user.getFollowingIds().isEmpty()) return new ArrayList<>();
+        List<String> blocked = user.getBlockedIds();
+        List<String> followingIds = user.getFollowingIds().stream()
+                .filter(id -> !blocked.contains(id))
+                .collect(java.util.stream.Collectors.toList());
+        if (followingIds.isEmpty()) return new ArrayList<>();
+        return em.createQuery(
+                "SELECT p FROM Plan p WHERE p.userId IN :ids AND p.shareType IN ('friends','public') ORDER BY p.createdAt DESC",
+                Plan.class)
+                .setParameter("ids", followingIds)
+                .getResultList();
+    }
+
     public void deletePlan(String planId) {
         Plan plan = findPlanById(planId).orElseThrow(() -> new IllegalArgumentException("plan_not_found"));
         em.remove(plan);
