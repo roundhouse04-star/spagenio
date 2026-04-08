@@ -371,6 +371,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
   const [routeResults, setRouteResults] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
+  const [addedRoutes, setAddedRoutes] = useState([]); // 추가된 교통편 목록
   const [viewMode, setViewMode] = useState('list'); // list | map | chat
   const [messages, setMessages] = useState([]);
   const [msgText, setMsgText] = useState('');
@@ -641,52 +642,81 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                 <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>
                   {newPlan.from} → {newPlan.to} · {newPlan.pax}인 기준 · 교통편을 선택하면 일정에 자동 추가돼요
                 </div>
-                {routeResults.map((r, i) => (
-                  <div key={i} onClick={() => setSelectedRoute(selectedRoute === r ? null : r)}
-                    style={{ border: `2px solid ${selectedRoute === r ? '#4f46e5' : '#eee'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: selectedRoute === r ? '#eef2ff' : 'white', transition: 'all 0.15s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: 20 }}>{r.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{r.name}</span>
-                          {r.tag && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: r.tagColor + '20', color: r.tagColor, border: `1px solid ${r.tagColor}40` }}>{r.tag}</span>}
-                        </div>
-                        <div style={{ display: 'flex', gap: 10, fontSize: 12, color: '#6b7280' }}>
-                          <span>⏱ {r.time}</span>
-                          <span>💰 {r.price}</span>
-                        </div>
-                      </div>
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${selectedRoute === r ? '#4f46e5' : '#ddd'}`, background: selectedRoute === r ? '#4f46e5' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {selectedRoute === r && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'white' }} />}
-                      </div>
-                    </div>
-                    {/* 상세 단계 */}
-                    {selectedRoute === r && (
-                      <div style={{ borderTop: '1px solid #eee', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        {r.steps.map((s, j) => (
-                          <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#555' }}>
-                            <span style={{ flexShrink: 0 }}>{j === 0 ? '🔵' : j === r.steps.length - 1 ? '🔴' : '⚪'}</span>
-                            <span style={{ lineHeight: 1.5 }}>{s}</span>
-                          </div>
-                        ))}
-                        <div style={{ marginTop: 6, fontSize: 12, color: '#4f46e5', fontWeight: 600 }}>
-                          {newPlan.pax}인 합계: ≈ {(r.priceNum * newPlan.pax).toLocaleString()}원~
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                          {r.links.map(l => (
-                            <a key={l.t} href={l.u} target="_blank" rel="noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              style={{ fontSize: 11, padding: '4px 10px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, color: '#555', textDecoration: 'none' }}>
-                              {l.t} →
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {/* 날짜 입력 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: '#6b7280', flexShrink: 0 }}>📅 탑승일</span>
+                  <input type="date" value={newPlan.routeDate || newPlan.startDate || ''}
+                    onChange={e => setNewPlan(p => ({ ...p, routeDate: e.target.value }))}
+                    style={{ flex: 1, padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                </div>
 
-                {/* 목록에 없는 경우 */}
+                {routeResults.map((r, i) => {
+                  const isSelected = selectedRoute === r;
+                  const isAdded = addedRoutes.some(a => a.name === r.name && a.from === newPlan.from && a.to === newPlan.to);
+                  return (
+                    <div key={i} onClick={() => setSelectedRoute(isSelected ? null : r)}
+                      style={{ border: `2px solid ${isSelected ? '#4f46e5' : isAdded ? '#bbf7d0' : '#eee'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: isSelected ? '#eef2ff' : isAdded ? '#f0fdf4' : 'white', transition: 'all 0.15s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isSelected ? 8 : 0 }}>
+                        <span style={{ fontSize: 20 }}>{r.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{r.name}</span>
+                            {r.tag && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: r.tagColor + '20', color: r.tagColor, border: `1px solid ${r.tagColor}40` }}>{r.tag}</span>}
+                            {isAdded && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>✅ 추가됨</span>}
+                          </div>
+                          <div style={{ display: 'flex', gap: 10, fontSize: 12, color: '#6b7280' }}>
+                            <span>⏱ {r.time}</span>
+                            <span>💰 {r.price}</span>
+                          </div>
+                        </div>
+                        {!isAdded && (
+                          <button onClick={e => {
+                            e.stopPropagation();
+                            const routeDate = newPlan.routeDate || newPlan.startDate || '';
+                            setAddedRoutes(prev => [...prev, { ...r, from: newPlan.from, to: newPlan.to, date: routeDate }]);
+                            setSelectedRoute(null);
+                          }}
+                            style={{ padding: '6px 14px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                            + 추가
+                          </button>
+                        )}
+                        {isAdded && (
+                          <button onClick={e => {
+                            e.stopPropagation();
+                            setAddedRoutes(prev => prev.filter(a => !(a.name === r.name && a.from === newPlan.from && a.to === newPlan.to)));
+                          }}
+                            style={{ padding: '6px 10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+                            취소
+                          </button>
+                        )}
+                      </div>
+                      {/* 상세 단계 */}
+                      {isSelected && (
+                        <div style={{ borderTop: '1px solid #eee', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {r.steps.map((s, j) => (
+                            <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#555' }}>
+                              <span style={{ flexShrink: 0 }}>{j === 0 ? '🔵' : j === r.steps.length - 1 ? '🔴' : '⚪'}</span>
+                              <span style={{ lineHeight: 1.5 }}>{s}</span>
+                            </div>
+                          ))}
+                          <div style={{ marginTop: 6, fontSize: 12, color: '#4f46e5', fontWeight: 600 }}>
+                            {newPlan.pax}인 합계: ≈ {(r.priceNum * newPlan.pax).toLocaleString()}원~
+                          </div>
+                          <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                            {r.links.map(l => (
+                              <a key={l.t} href={l.u} target="_blank" rel="noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                style={{ fontSize: 11, padding: '4px 10px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, color: '#555', textDecoration: 'none' }}>
+                                {l.t} →
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
                 <div style={{ textAlign: 'center', fontSize: 12, color: '#bbb', padding: '4px 0' }}>
                   다른 교통편은 <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>스카이스캐너</a>에서 확인하세요
                 </div>
@@ -696,13 +726,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
             {!routeLoading && routeResults.length === 0 && newPlan.from && newPlan.to && (
               <div style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', padding: '12px 0' }}>
                 교통편 정보가 없어요. 직접 검색해보세요 →{' '}
-                <a href={`https://www.skyscanner.co.kr`} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>스카이스캐너</a>
-              </div>
-            )}
-
-            {selectedRoute && (
-              <div style={{ marginTop: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '8px 14px', fontSize: 12, color: '#16a34a', fontWeight: 600 }}>
-                ✅ "{selectedRoute.name}" 선택됨 — 일정 만들기 시 자동 추가돼요
+                <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>스카이스캐너</a>
               </div>
             )}
           </div>
