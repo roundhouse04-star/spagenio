@@ -80,6 +80,26 @@ public class TravelService {
     public void deletePlan(String planId) { repo.deletePlan(planId); }
     public List<Plan> getFriendSharedPlans(String userId) { return repo.findSharedPlansByFriends(userId); }
 
+    // Plan 협업
+    public Plan inviteMember(String planId, String inviteeId) {
+        User invitee = getUser(inviteeId);
+        return repo.inviteMember(planId, invitee);
+    }
+    public Plan removeMember(String planId, String userId) { return repo.removeMember(planId, userId); }
+    public List<PlanMessage> getMessages(String planId) { return repo.findMessages(planId); }
+    public PlanMessage sendMessage(String planId, String userId, String content, String type) {
+        User user = getUser(userId);
+        PlanMessage msg = new PlanMessage();
+        msg.setPlanId(planId);
+        msg.setUserId(userId);
+        msg.setUserNickname(user.getNickname());
+        msg.setUserProfileImage(user.getProfileImage());
+        msg.setContent(content);
+        msg.setType(type != null ? type : "text");
+        return repo.saveMessage(msg);
+    }
+    public List<Plan> getMemberPlans(String userId) { return repo.findPlansByMember(userId); }
+
     // Report
     public List<Report> getReports() { return repo.findAllReports(); }
     public List<Report> getPendingReports() { return repo.findPendingReports(); }

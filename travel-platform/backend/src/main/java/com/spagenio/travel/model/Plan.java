@@ -22,6 +22,10 @@ public class Plan {
     @JoinColumn(name = "plan_id", referencedColumnName = "id")
     private List<PlanItem> items = new ArrayList<>();
 
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "plan_id", referencedColumnName = "id")
+    private List<PlanMember> members = new ArrayList<>();
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getUserId() { return userId; }
@@ -42,4 +46,6 @@ public class Plan {
     public void setSharePlaces(boolean sharePlaces) { this.sharePlaces = sharePlaces; }
     public List<PlanItem> getItems() { return items; }
     public void setItems(List<PlanItem> items) { this.items = items; }
+    public List<PlanMember> getMembers() { return members; }
+    public void setMembers(List<PlanMember> members) { this.members = members; }
 }

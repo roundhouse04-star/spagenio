@@ -112,6 +112,33 @@ public class TravelController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePlan(@PathVariable String id) { service.deletePlan(id); }
 
+    // ── Plan 협업 ────────────────────────────────────────────
+    @PostMapping("/plans/{planId}/members/{userId}")
+    public Plan inviteMember(@PathVariable String planId, @PathVariable String userId) {
+        return service.inviteMember(planId, userId);
+    }
+
+    @DeleteMapping("/plans/{planId}/members/{userId}")
+    public Plan removeMember(@PathVariable String planId, @PathVariable String userId) {
+        return service.removeMember(planId, userId);
+    }
+
+    @GetMapping("/plans/{planId}/messages")
+    public List<PlanMessage> getMessages(@PathVariable String planId) {
+        return service.getMessages(planId);
+    }
+
+    @PostMapping("/plans/{planId}/messages")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PlanMessage sendMessage(@PathVariable String planId, @RequestBody Map<String, String> body) {
+        return service.sendMessage(planId, body.get("userId"), body.get("content"), body.get("type"));
+    }
+
+    @GetMapping("/plans/member")
+    public List<Plan> getMemberPlans(@RequestParam String userId) {
+        return service.getMemberPlans(userId);
+    }
+
     // ── 친구 공유 일정 ──────────────────────────────────────
     @GetMapping("/plans/shared")
     public List<Plan> getSharedPlans(@RequestParam String userId) {

@@ -321,6 +321,50 @@ public class TravelRepository {
         em.remove(notice);
     }
 
+    // ── Plan Members & Messages ───────────────────────────
+    public Plan inviteMember(String planId, User invitee) {
+        Plan plan = findPlanById(planId).orElseThrow(() -> new IllegalArgumentException("plan_not_found"));
+        boolean exists = plan.getMembers().stream().anyMatch(m -> m.getUserId().equals(invitee.getId()));
+        if (!exists) {
+            PlanMember member = new PlanMember();
+            member.setId(uuid());
+            member.setPlanId(planId);
+            member.setUserId(invitee.getId());
+            member.setUserNickname(invitee.getNickname());
+            member.setUserProfileImage(invitee.getProfileImage());
+            member.setRole("member");
+            member.setJoinedAt(now());
+            plan.getMembers().add(member);
+            em.merge(plan);
+        }
+        return plan;
+    }
+
+    public Plan removeMember(String planId, String userId) {
+        Plan plan = findPlanById(planId).orElseThrow(() -> new IllegalArgumentException("plan_not_found"));
+        plan.getMembers().removeIf(m -> m.getUserId().equals(userId));
+        return em.merge(plan);
+    }
+
+    public List<PlanMessage> findMessages(String planId) {
+        return em.createQuery("SELECT m FROM PlanMessage m WHERE m.planId = :id ORDER BY m.createdAt ASC", PlanMessage.class)
+                .setParameter("id", planId).getResultList();
+    }
+
+    public PlanMessage saveMessage(PlanMessage msg) {
+        msg.setId(uuid());
+        msg.setCreatedAt(now());
+        em.persist(msg);
+        return msg;
+    }
+
+    public List<Plan> findPlansByMember(String userId) {
+        // 내가 멤버로 초대된 일정
+        return em.createQuery(
+            "SELECT p FROM Plan p JOIN p.members m WHERE m.userId = :uid ORDER BY p.createdAt DESC", Plan.class)
+                .setParameter("uid", userId).getResultList();
+    }
+
     // ── Admin Stats ───────────────────────────────────────
     public Map<String, Object> getAdminStats() {
         long totalPosts = (long) em.createQuery("SELECT COUNT(p) FROM Post p").getSingleResult();

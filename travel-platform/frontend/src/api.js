@@ -47,6 +47,13 @@ export const api = {
   removePlanItem: (planId, itemId) => req(`/api/plans/${planId}/items/${itemId}`, { method: 'DELETE' }),
   deletePlan: (id) => req(`/api/plans/${id}`, { method: 'DELETE' }),
 
+  // Plan 협업
+  inviteMember: (planId, userId) => req(`/api/plans/${planId}/members/${userId}`, { method: 'POST' }),
+  removeMember: (planId, userId) => req(`/api/plans/${planId}/members/${userId}`, { method: 'DELETE' }),
+  getMessages: (planId) => req(`/api/plans/${planId}/messages`),
+  sendMessage: (planId, data) => req(`/api/plans/${planId}/messages`, { method: 'POST', body: JSON.stringify(data) }),
+  getMemberPlans: (userId) => req(`/api/plans/member?userId=${userId}`),
+
   // Shared Plans
   getSharedPlans: (userId) => req(`/api/plans/shared?userId=${userId}`),
 

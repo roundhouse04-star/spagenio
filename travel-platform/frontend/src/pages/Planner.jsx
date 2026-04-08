@@ -368,19 +368,93 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
   const [showNewPlan, setShowNewPlan] = useState(false);
   const [editPlan, setEditPlan] = useState(null);
   const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '', shareType: 'private', shareSchedule: false, sharePlaces: false });
-  const [viewMode, setViewMode] = useState('list'); // list | map
+  const [viewMode, setViewMode] = useState('list'); // list | map | chat
+  const [messages, setMessages] = useState([]);
+  const [msgText, setMsgText] = useState('');
+  const [showInvite, setShowInvite] = useState(false);
+  const [followings, setFollowings] = useState([]);
+  const [memberPlans, setMemberPlans] = useState([]);
+  const msgEndRef = React.useRef(null);
+  const pollRef = React.useRef(null);
 
   useEffect(() => { if (currentUser) load(); }, [currentUser]);
   useEffect(() => { if (plans?.length > 0 && !selected) setSelected(plans[0]); }, [plans]);
 
+  useEffect(() => {
+    if (selected && viewMode === 'chat') {
+      loadMessages();
+      pollRef.current = setInterval(loadMessages, 30000);
+    }
+    return () => clearInterval(pollRef.current);
+  }, [selected?.id, viewMode]);
+
+  useEffect(() => {
+    msgEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const load = async () => {
     setLoading(true);
     try {
-      const data = await api.getUserPlans(currentUser.id);
-      onUpdatePlans?.(data || []);
-      if (data?.length > 0) setSelected(data[0]);
+      const [owned, membered] = await Promise.all([
+        api.getUserPlans(currentUser.id),
+        api.getMemberPlans(currentUser.id),
+      ]);
+      const allPlans = [...(owned || []), ...(membered || [])];
+      onUpdatePlans?.(owned || []);
+      setMemberPlans(membered || []);
+      if (allPlans.length > 0) setSelected(allPlans[0]);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  };
+
+  const loadMessages = async () => {
+    if (!selected) return;
+    try {
+      const data = await api.getMessages(selected.id);
+      setMessages(data || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const loadFollowings = async () => {
+    try {
+      const data = await api.getFollowings(currentUser.id);
+      setFollowings(data || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || !selected) return;
+    try {
+      const msg = await api.sendMessage(selected.id, {
+        userId: currentUser.id, content: msgText, type: 'text'
+      });
+      setMessages(prev => [...prev, msg]);
+      setMsgText('');
+    } catch (e) { console.error(e); }
+  };
+
+  const inviteMember = async (userId, nickname) => {
+    if (!selected) return;
+    try {
+      const updated = await api.inviteMember(selected.id, userId);
+      setSelected(updated);
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
+      // 시스템 메시지
+      await api.sendMessage(selected.id, {
+        userId: currentUser.id, content: `${currentUser.nickname}님이 ${nickname}님을 초대했어요.`, type: 'system'
+      });
+      await loadMessages();
+      setShowInvite(false);
+    } catch (e) { console.error(e); }
+  };
+
+  const kickMember = async (userId, nickname) => {
+    if (!selected || !confirm(`${nickname}님을 내보내시겠습니까?`)) return;
+    try {
+      const updated = await api.removeMember(selected.id, userId);
+      setSelected(updated);
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
+    } catch (e) { console.error(e); }
   };
 
   const createPlan = async () => {
@@ -616,8 +690,9 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
 
               {/* 탭 */}
               <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4, marginBottom: 14 }}>
-                {[['list','📋 장소 목록'], ['map','🗺️ 지도/장소 검색']].map(([key, label]) => (
-                  <button key={key} onClick={() => setViewMode(key)}
+                {[['list','📋 장소 목록'], ['map','🗺️ 지도/장소 검색'], ['chat','💬 채팅']].map(([key, label]) => (
+                  <button key={key}
+                    onClick={() => { setViewMode(key); if (key === 'chat') loadMessages(); }}
                     style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', background: viewMode === key ? 'white' : 'transparent', color: viewMode === key ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: viewMode === key ? 700 : 500, cursor: 'pointer', boxShadow: viewMode === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
                     {label}
                   </button>
@@ -649,8 +724,137 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                   planPlaces={planPlaces}
                 />
               )}
+
+              {/* 채팅 탭 */}
+              {viewMode === 'chat' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {/* 멤버 */}
+                  <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 14, padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>👥 여행 멤버</div>
+                      {selected.userId === currentUser.id && (
+                        <button onClick={() => { setShowInvite(true); loadFollowings(); }}
+                          style={{ fontSize: 12, padding: '4px 10px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 8, color: '#4f46e5', fontWeight: 700, cursor: 'pointer' }}>
+                          + 친구 초대
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {/* 방장 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 20, padding: '5px 12px 5px 6px' }}>
+                        <img src={`https://ui-avatars.com/api/?name=${selected.userNickname || '?'}&background=4f46e5&color=fff&size=24`}
+                          style={{ width: 24, height: 24, borderRadius: '50%' }} alt="" />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>{selected.userNickname || '방장'}</span>
+                        <span style={{ fontSize: 10, color: '#818cf8' }}>방장</span>
+                      </div>
+                      {/* 멤버들 */}
+                      {(selected.members || []).map(m => (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1px solid #eee', borderRadius: 20, padding: '5px 12px 5px 6px' }}>
+                          <img src={m.userProfileImage || `https://ui-avatars.com/api/?name=${m.userNickname}&background=e5e7eb&color=555&size=24`}
+                            style={{ width: 24, height: 24, borderRadius: '50%' }} alt="" />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{m.userNickname}</span>
+                          {selected.userId === currentUser.id && (
+                            <button onClick={() => kickMember(m.userId, m.userNickname)}
+                              style={{ fontSize: 10, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}>✕</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 채팅창 */}
+                  <div style={{ border: '1px solid #eee', borderRadius: 16, overflow: 'hidden' }}>
+                    <div style={{ padding: '10px 14px', background: '#fafafa', borderBottom: '1px solid #eee', fontSize: 12, fontWeight: 700, color: '#9ca3af' }}>
+                      💬 대화 · {messages.length}개
+                    </div>
+                    <div style={{ height: 320, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f9fafb' }}>
+                      {messages.length === 0 && (
+                        <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, marginTop: 40 }}>
+                          아직 대화가 없어요.<br/>여행 계획을 같이 짜보세요! ✈️
+                        </div>
+                      )}
+                      {messages.map(msg => {
+                        const isMe = msg.userId === currentUser.id;
+                        const isSystem = msg.type === 'system';
+                        if (isSystem) return (
+                          <div key={msg.id} style={{ textAlign: 'center', fontSize: 11, color: '#9ca3af', padding: '4px 0' }}>
+                            {msg.content}
+                          </div>
+                        );
+                        return (
+                          <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 3 }}>
+                            {!isMe && <div style={{ fontSize: 11, color: '#9ca3af', marginLeft: 4 }}>{msg.userNickname}</div>}
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+                              {!isMe && (
+                                <img src={msg.userProfileImage || `https://ui-avatars.com/api/?name=${msg.userNickname}&background=4f46e5&color=fff&size=28`}
+                                  style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }} alt="" />
+                              )}
+                              <div style={{
+                                maxWidth: '70%', padding: '9px 13px', borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                background: isMe ? '#4f46e5' : 'white', color: isMe ? 'white' : '#1a1a2e',
+                                fontSize: 14, lineHeight: 1.5, border: isMe ? 'none' : '1px solid #eee',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.06)', wordBreak: 'break-word',
+                              }}>{msg.content}</div>
+                              <div style={{ fontSize: 10, color: '#bbb', flexShrink: 0 }}>
+                                {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={msgEndRef} />
+                    </div>
+                    {/* 입력창 */}
+                    <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'white', borderTop: '1px solid #eee' }}>
+                      <input value={msgText} onChange={e => setMsgText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                        placeholder="메시지 입력..."
+                        style={{ flex: 1, padding: '9px 14px', border: '1px solid #eee', borderRadius: 20, fontSize: 14, outline: 'none', background: '#f9fafb' }} />
+                      <button onClick={sendMessage} disabled={!msgText.trim()}
+                        style={{ width: 38, height: 38, borderRadius: '50%', background: msgText.trim() ? '#4f46e5' : '#e5e7eb', color: 'white', border: 'none', cursor: msgText.trim() ? 'pointer' : 'not-allowed', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        ↑
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 친구 초대 모달 */}
+      {showInvite && (
+        <div className="modal-overlay" onClick={() => setShowInvite(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#1a1a2e', marginBottom: 16 }}>👥 친구 초대</div>
+            {followings.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>팔로우한 친구가 없어요.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+                {followings.filter(u => {
+                  const alreadyMember = (selected?.members || []).some(m => m.userId === u.id);
+                  const isOwner = selected?.userId === u.id;
+                  return !alreadyMember && !isOwner;
+                }).map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid #eee', borderRadius: 12 }}>
+                    <img src={u.profileImage || `https://ui-avatars.com/api/?name=${u.nickname}&background=4f46e5&color=fff&size=36`}
+                      style={{ width: 36, height: 36, borderRadius: '50%' }} alt="" />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#1a1a2e' }}>{u.nickname}</div>
+                      {u.bio && <div style={{ fontSize: 12, color: '#9ca3af' }}>{u.bio}</div>}
+                    </div>
+                    <button onClick={() => inviteMember(u.id, u.nickname)}
+                      style={{ padding: '7px 14px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      초대
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowInvite(false)}
+              style={{ width: '100%', marginTop: 14, padding: 11, borderRadius: 12, border: '1px solid #eee', background: '#f3f4f6', color: '#555', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>닫기</button>
+          </div>
         </div>
       )}
     </div>
