@@ -3,12 +3,12 @@ import { api } from '../api';
 
 // ── 지도 컴포넌트 (Leaflet + Nominatim + Overpass) ────────
 const CATEGORY = {
-  restaurant: { label: '맛집',   icon: '🍽️', color: '#ef4444' },
-  cafe:       { label: '카페',   icon: '☕', color: '#f59e0b' },
-  subway:     { label: '교통',   icon: '🚇', color: '#10b981' },
-  hotel:      { label: '숙소',   icon: '🏨', color: '#8b5cf6' },
-  attraction: { label: '관광',   icon: '🏛️', color: '#0ea5e9' },
-  convenience:{ label: '편의점', icon: '🏪', color: '#6b7280' },
+  restaurant: { label: '맛집', icon: '🍽️', color: '#ef4444' },
+  cafe: { label: '카페', icon: '☕', color: '#f59e0b' },
+  subway: { label: '교통', icon: '🚇', color: '#10b981' },
+  hotel: { label: '숙소', icon: '🏨', color: '#8b5cf6' },
+  attraction: { label: '관광', icon: '🏛️', color: '#0ea5e9' },
+  convenience: { label: '편의점', icon: '🏪', color: '#6b7280' },
 };
 
 function classifyNode(tags) {
@@ -26,9 +26,9 @@ function calcDist(lat1, lng1, lat2, lng2) {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return d < 1000 ? `${Math.round(d)}m` : `${(d/1000).toFixed(1)}km`;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return d < 1000 ? `${Math.round(d)}m` : `${(d / 1000).toFixed(1)}km`;
 }
 
 function PlanMap({ onAddPlace, planPlaces = [] }) {
@@ -97,8 +97,8 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
     places.forEach((p, i) => {
       if (!p.lat || !p.lng) return;
       const icon = L.divIcon({
-        html: `<div style="width:30px;height:30px;border-radius:50%;background:#4f46e5;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${i+1}</div>`,
-        className: '', iconSize: [30,30], iconAnchor: [15,30]
+        html: `<div style="width:30px;height:30px;border-radius:50%;background:#4f46e5;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${i + 1}</div>`,
+        className: '', iconSize: [30, 30], iconAnchor: [15, 30]
       });
       const m = L.marker([p.lat, p.lng], { icon }).addTo(mapInst.current);
       m.bindPopup(`<div style="font-size:13px;font-weight:700">📍 ${p.name}</div>`);
@@ -112,10 +112,10 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
     if (selectedMarkerRef.current) mapInst.current.removeLayer(selectedMarkerRef.current);
     const icon = L.divIcon({
       html: `<div style="width:36px;height:36px;border-radius:50%;background:#ef4444;color:white;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3)">📍</div>`,
-      className: '', iconSize: [36,36], iconAnchor: [18,36]
+      className: '', iconSize: [36, 36], iconAnchor: [18, 36]
     });
     const m = L.marker([lat, lng], { icon }).addTo(mapInst.current);
-    m.bindPopup(`<div style="font-size:13px;font-weight:700">${name}</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">${address.slice(0,50)}...</div>`).openPopup();
+    m.bindPopup(`<div style="font-size:13px;font-weight:700">${name}</div><div style="font-size:11px;color:#9ca3af;margin-top:4px">${address.slice(0, 50)}...</div>`).openPopup();
     selectedMarkerRef.current = m;
     setSelectedPlace({ lat, lng, name, address });
     fetchNearby(lat, lng);
@@ -161,7 +161,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
           address: n.tags['addr:street'] || '',
         }))
         .sort((a, b) => {
-          const toM = d => parseFloat(d.replace('km','000').replace('m',''));
+          const toM = d => parseFloat(d.replace('km', '000').replace('m', ''));
           return toM(a.dist) - toM(b.dist);
         })
         .slice(0, 40);
@@ -184,7 +184,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
       const cfg = CATEGORY[p.type] || CATEGORY.attraction;
       const icon = L.divIcon({
         html: `<div style="width:26px;height:26px;border-radius:50%;background:${cfg.color};display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.2)">${cfg.icon}</div>`,
-        className: '', iconSize: [26,26], iconAnchor: [13,26]
+        className: '', iconSize: [26, 26], iconAnchor: [13, 26]
       });
       const m = L.marker([p.lat, p.lng], { icon }).addTo(mapInst.current);
       m.bindPopup(`<div style="font-size:13px;font-weight:700">${cfg.icon} ${p.name}</div><div style="font-size:11px;color:#9ca3af">${p.dist}</div>`);
@@ -221,7 +221,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
                 onMouseEnter={e => e.currentTarget.style.background = '#f5f6f8'}
                 onMouseLeave={e => e.currentTarget.style.background = 'white'}>
                 <div style={{ fontWeight: 600, color: '#1a1a2e' }}>{r.display_name.split(',')[0]}</div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.display_name.split(',').slice(1,3).join(',')}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.display_name.split(',').slice(1, 3).join(',')}</div>
               </div>
             ))}
           </div>
@@ -258,7 +258,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
 
           {/* 필터 */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-            {[['all','전체','#4f46e5'], ...Object.entries(CATEGORY).map(([k,v]) => [k, `${v.icon} ${v.label}`, v.color])].map(([key, label, color]) => (
+            {[['all', '전체', '#4f46e5'], ...Object.entries(CATEGORY).map(([k, v]) => [k, `${v.icon} ${v.label}`, v.color])].map(([key, label, color]) => (
               <button key={key} onClick={() => setFilter(key)}
                 style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${filter === key ? color : '#eee'}`, background: filter === key ? color : 'white', color: filter === key ? 'white' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
                 {label}
@@ -367,7 +367,10 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
   const [loading, setLoading] = useState(true);
   const [showNewPlan, setShowNewPlan] = useState(false);
   const [editPlan, setEditPlan] = useState(null);
-  const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '', shareType: 'private', shareSchedule: false, sharePlaces: false });
+  const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '', from: '', to: '', pax: 1, shareType: 'private', shareSchedule: false, sharePlaces: false });
+  const [routeResults, setRouteResults] = useState([]);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // list | map | chat
   const [messages, setMessages] = useState([]);
   const [msgText, setMsgText] = useState('');
@@ -455,6 +458,51 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
       setSelected(updated);
       onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
     } catch (e) { console.error(e); }
+  };
+
+  const ROUTES_DB = {
+    '서울_오사카': [
+      { type: 'airplane', icon: '✈', name: '직항 (인천→간사이)', tag: '추천', tagColor: '#4f46e5', time: '1시간 50분', price: '89,000~180,000원', priceNum: 130000, steps: ['인천공항 체크인 (출발 2시간 전)', '대한항공/아시아나/제주항공 탑승', '간사이공항 도착 후 입국', '난카이 라피트로 오사카 시내 이동 (약 50분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }, { t: '네이버항공', u: 'https://flight.naver.com' }] },
+      { type: 'ferry', icon: '🚢', name: '배 + 기차 (부산→시모노세키→오사카)', tag: '최저가', tagColor: '#f59e0b', time: '약 18시간', price: '60,000~90,000원', priceNum: 75000, steps: ['KTX 서울→부산 (약 2시간 30분, 59,800원)', '부산항 페리 탑승 (야간)', '시모노세키 도착 후 JR로 오사카 이동'], links: [{ t: '부관훼리', u: 'https://www.pukuanferry.com' }] },
+    ],
+    '서울_도쿄': [
+      { type: 'airplane', icon: '✈', name: '직항 (인천→나리타/하네다)', tag: '추천', tagColor: '#4f46e5', time: '2시간 30분', price: '110,000~220,000원', priceNum: 165000, steps: ['인천공항 출발', '대한항공/아시아나 탑승', '나리타 or 하네다 도착', '나리타 익스프레스로 시내 이동 (약 1시간)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }, { t: '네이버항공', u: 'https://flight.naver.com' }] },
+      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→도쿄)', tag: '최저가', tagColor: '#f59e0b', time: '6~9시간', price: '70,000~110,000원', priceNum: 90000, steps: ['인천공항 출발', '경유지 환승 (2~4시간)', '나리타 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    ],
+    '오사카_도쿄': [
+      { type: 'train', icon: '🚄', name: '신칸센 노조미', tag: '최단시간', tagColor: '#10b981', time: '2시간 30분', price: '약 15,000엔 (135,000원)', priceNum: 135000, steps: ['신오사카역 출발 (노조미)', '교토→나고야 경유', '도쿄역 도착'], links: [{ t: 'JR패스', u: 'https://www.jrpass.com' }, { t: '에키넷', u: 'https://www.eki-net.com' }] },
+      { type: 'bus', icon: '🚌', name: '야간버스 (오사카→도쿄)', tag: '최저가', tagColor: '#f59e0b', time: '약 8시간 (야간)', price: '약 4,000~8,000엔 (36,000~72,000원)', priceNum: 54000, steps: ['난바역 출발 (저녁 10~11시)', '야간 고속버스 탑승', '신주쿠/도쿄역 도착 (아침 6~7시)'], links: [{ t: '버스예약', u: 'https://www.bushikaku.net' }] },
+      { type: 'airplane', icon: '✈', name: '국내선 (간사이→하네다)', tag: '', tagColor: '', time: '1시간 10분', price: '약 8,000~15,000엔 (72,000~135,000원)', priceNum: 100000, steps: ['간사이공항 출발', 'ANA/JAL/피치항공 탑승', '하네다공항 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    ],
+    '서울_방콕': [
+      { type: 'airplane', icon: '✈', name: '직항 (인천→수완나품)', tag: '추천', tagColor: '#4f46e5', time: '5시간 30분', price: '150,000~280,000원', priceNum: 215000, steps: ['인천공항 출발', '대한항공/타이항공 탑승', '수완나품공항 도착', 'BTS or 택시로 시내 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    ],
+    '서울_파리': [
+      { type: 'airplane', icon: '✈', name: '직항 (인천→파리 CDG)', tag: '추천', tagColor: '#4f46e5', time: '13시간', price: '700,000~1,400,000원', priceNum: 1000000, steps: ['인천공항 출발', '대한항공/에어프랑스 탑승', '샤를드골공항 도착', 'RER B로 시내 이동 (약 45분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    ],
+    '서울_제주': [
+      { type: 'airplane', icon: '✈', name: '직항 (김포/인천→제주)', tag: '추천', tagColor: '#4f46e5', time: '1시간', price: '40,000~120,000원', priceNum: 70000, steps: ['김포 or 인천공항 출발', '제주항공/진에어/티웨이 탑승', '제주공항 도착', '렌터카 or 버스 이동'], links: [{ t: '네이버항공', u: 'https://flight.naver.com' }] },
+      { type: 'ferry', icon: '🚢', name: '배 (목포/완도→제주)', tag: '최저가', tagColor: '#f59e0b', time: '약 3~5시간', price: '30,000~60,000원', priceNum: 45000, steps: ['목포 or 완도 항구 출발', '한일고속/씨스타크루즈 탑승', '제주항 도착'], links: [{ t: '섬여행', u: 'https://www.island.go.kr' }] },
+    ],
+  };
+
+  const searchRoutes = () => {
+    const from = newPlan.from.trim();
+    const to = newPlan.to.trim();
+    if (!from || !to) return;
+    setRouteLoading(true);
+    setRouteResults([]);
+    setSelectedRoute(null);
+    setTimeout(() => {
+      const cities = ['서울', '도쿄', '오사카', '방콕', '파리', '제주', '런던', '싱가포르', '발리', '뉴욕'];
+      const f = cities.find(c => from.includes(c)) || from;
+      const t = cities.find(c => to.includes(c)) || to;
+      const key = f + '_' + t;
+      const revKey = t + '_' + f;
+      const results = ROUTES_DB[key] || ROUTES_DB[revKey] || [];
+      setRouteResults(results);
+      setRouteLoading(false);
+    }, 1200);
   };
 
   const createPlan = async () => {
@@ -557,12 +605,114 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                 onChange={e => setNewPlan(p => ({ ...p, endDate: e.target.value }))} />
             </div>
           </div>
+
+          {/* 교통편 검색 */}
+          <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>✈ 교통편 검색</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="출발지 (예: 서울)"
+                value={newPlan.from} onChange={e => setNewPlan(p => ({ ...p, from: e.target.value }))} />
+              <button onClick={() => setNewPlan(p => ({ ...p, from: p.to, to: p.from }))}
+                style={{ padding: '8px 10px', border: '1px solid #eee', borderRadius: 8, background: 'white', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>⇄</button>
+              <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="목적지 (예: 오사카)"
+                value={newPlan.to} onChange={e => setNewPlan(p => ({ ...p, to: e.target.value }))} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
+              <select className="form-input" style={{ flex: 1, marginBottom: 0 }} value={newPlan.pax}
+                onChange={e => setNewPlan(p => ({ ...p, pax: parseInt(e.target.value) }))}>
+                {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}명</option>)}
+              </select>
+              <button onClick={searchRoutes} disabled={!newPlan.from || !newPlan.to}
+                style={{ flex: 2, padding: '10px', background: newPlan.from && newPlan.to ? '#4f46e5' : '#e5e7eb', color: newPlan.from && newPlan.to ? 'white' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: newPlan.from && newPlan.to ? 'pointer' : 'not-allowed' }}>
+                교통편 검색
+              </button>
+            </div>
+
+            {/* 로딩 */}
+            {routeLoading && (
+              <div style={{ textAlign: 'center', padding: '16px 0', color: '#9ca3af', fontSize: 13 }}>
+                AI가 교통편 분석 중...
+              </div>
+            )}
+
+            {/* 검색 결과 */}
+            {!routeLoading && routeResults.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>
+                  {newPlan.from} → {newPlan.to} · {newPlan.pax}인 기준 · 교통편을 선택하면 일정에 자동 추가돼요
+                </div>
+                {routeResults.map((r, i) => (
+                  <div key={i} onClick={() => setSelectedRoute(selectedRoute === r ? null : r)}
+                    style={{ border: `2px solid ${selectedRoute === r ? '#4f46e5' : '#eee'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: selectedRoute === r ? '#eef2ff' : 'white', transition: 'all 0.15s' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <span style={{ fontSize: 20 }}>{r.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{r.name}</span>
+                          {r.tag && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: r.tagColor + '20', color: r.tagColor, border: `1px solid ${r.tagColor}40` }}>{r.tag}</span>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, fontSize: 12, color: '#6b7280' }}>
+                          <span>⏱ {r.time}</span>
+                          <span>💰 {r.price}</span>
+                        </div>
+                      </div>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${selectedRoute === r ? '#4f46e5' : '#ddd'}`, background: selectedRoute === r ? '#4f46e5' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {selectedRoute === r && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'white' }} />}
+                      </div>
+                    </div>
+                    {/* 상세 단계 */}
+                    {selectedRoute === r && (
+                      <div style={{ borderTop: '1px solid #eee', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {r.steps.map((s, j) => (
+                          <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#555' }}>
+                            <span style={{ flexShrink: 0 }}>{j === 0 ? '🔵' : j === r.steps.length - 1 ? '🔴' : '⚪'}</span>
+                            <span style={{ lineHeight: 1.5 }}>{s}</span>
+                          </div>
+                        ))}
+                        <div style={{ marginTop: 6, fontSize: 12, color: '#4f46e5', fontWeight: 600 }}>
+                          {newPlan.pax}인 합계: ≈ {(r.priceNum * newPlan.pax).toLocaleString()}원~
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                          {r.links.map(l => (
+                            <a key={l.t} href={l.u} target="_blank" rel="noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              style={{ fontSize: 11, padding: '4px 10px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, color: '#555', textDecoration: 'none' }}>
+                              {l.t} →
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* 목록에 없는 경우 */}
+                <div style={{ textAlign: 'center', fontSize: 12, color: '#bbb', padding: '4px 0' }}>
+                  다른 교통편은 <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>스카이스캐너</a>에서 확인하세요
+                </div>
+              </div>
+            )}
+
+            {!routeLoading && routeResults.length === 0 && newPlan.from && newPlan.to && (
+              <div style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af', padding: '12px 0' }}>
+                교통편 정보가 없어요. 직접 검색해보세요 →{' '}
+                <a href={`https://www.skyscanner.co.kr`} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>스카이스캐너</a>
+              </div>
+            )}
+
+            {selectedRoute && (
+              <div style={{ marginTop: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '8px 14px', fontSize: 12, color: '#16a34a', fontWeight: 600 }}>
+                ✅ "{selectedRoute.name}" 선택됨 — 일정 만들기 시 자동 추가돼요
+              </div>
+            )}
+          </div>
+
           {/* 공유 설정 */}
           <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>🔗 공유 설정</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              {[['private','🔒 비공개'], ['friends','👥 친구 공개'], ['public','🌍 전체 공개']].map(([val, label]) => (
-                <button key={val} onClick={() => setNewPlan(p => ({...p, shareType: val}))}
+              {[['private', '🔒 비공개'], ['friends', '👥 친구 공개'], ['public', '🌍 전체 공개']].map(([val, label]) => (
+                <button key={val} onClick={() => setNewPlan(p => ({ ...p, shareType: val }))}
                   style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `2px solid ${newPlan.shareType === val ? '#4f46e5' : '#eee'}`, background: newPlan.shareType === val ? '#eef2ff' : 'white', color: newPlan.shareType === val ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {label}
                 </button>
@@ -572,14 +722,14 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={newPlan.shareSchedule}
-                    onChange={e => setNewPlan(p => ({...p, shareSchedule: e.target.checked}))}
+                    onChange={e => setNewPlan(p => ({ ...p, shareSchedule: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
                   <span style={{ color: '#374151', fontWeight: 600 }}>📅 일정 공유</span>
                   <span style={{ color: '#9ca3af', fontSize: 12 }}>— 여행 날짜를 공유해요</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={newPlan.sharePlaces}
-                    onChange={e => setNewPlan(p => ({...p, sharePlaces: e.target.checked}))}
+                    onChange={e => setNewPlan(p => ({ ...p, sharePlaces: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
                   <span style={{ color: '#374151', fontWeight: 600 }}>📍 장소 공유</span>
                   <span style={{ color: '#9ca3af', fontSize: 12 }}>— 방문할 장소를 공유해요</span>
@@ -616,8 +766,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
           <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>🔗 공유 설정</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              {[['private','🔒 비공개'], ['friends','👥 친구 공개'], ['public','🌍 전체 공개']].map(([val, label]) => (
-                <button key={val} onClick={() => setEditPlan(p => ({...p, shareType: val}))}
+              {[['private', '🔒 비공개'], ['friends', '👥 친구 공개'], ['public', '🌍 전체 공개']].map(([val, label]) => (
+                <button key={val} onClick={() => setEditPlan(p => ({ ...p, shareType: val }))}
                   style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `2px solid ${editPlan.shareType === val ? '#4f46e5' : '#eee'}`, background: editPlan.shareType === val ? '#eef2ff' : 'white', color: editPlan.shareType === val ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {label}
                 </button>
@@ -627,13 +777,13 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={editPlan.shareSchedule}
-                    onChange={e => setEditPlan(p => ({...p, shareSchedule: e.target.checked}))}
+                    onChange={e => setEditPlan(p => ({ ...p, shareSchedule: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
                   <span style={{ color: '#374151', fontWeight: 600 }}>📅 일정 공유</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={editPlan.sharePlaces}
-                    onChange={e => setEditPlan(p => ({...p, sharePlaces: e.target.checked}))}
+                    onChange={e => setEditPlan(p => ({ ...p, sharePlaces: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: '#4f46e5' }} />
                   <span style={{ color: '#374151', fontWeight: 600 }}>📍 장소 공유</span>
                 </label>
@@ -648,7 +798,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
       )}
 
       {(!plans || plans.length === 0) && !showNewPlan ? (
-        <div className="empty">아직 일정이 없어요.<br/>새 일정을 만들고 장소를 추가해보세요!</div>
+        <div className="empty">아직 일정이 없어요.<br />새 일정을 만들고 장소를 추가해보세요!</div>
       ) : (
         <div className="plan-layout">
           {/* 왼쪽: 일정 목록 */}
@@ -690,7 +840,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
 
               {/* 탭 */}
               <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4, marginBottom: 14 }}>
-                {[['list','📋 장소 목록'], ['map','🗺️ 지도/장소 검색'], ['chat','💬 채팅']].map(([key, label]) => (
+                {[['list', '📋 장소 목록'], ['map', '🗺️ 지도/장소 검색'], ['chat', '💬 채팅']].map(([key, label]) => (
                   <button key={key}
                     onClick={() => { setViewMode(key); if (key === 'chat') loadMessages(); }}
                     style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', background: viewMode === key ? 'white' : 'transparent', color: viewMode === key ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: viewMode === key ? 700 : 500, cursor: 'pointer', boxShadow: viewMode === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
@@ -703,8 +853,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
               {viewMode === 'list' && (
                 selected.items?.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '28px 0', lineHeight: 1.9 }}>
-                    아직 추가된 장소가 없어요.<br/>
-                    지도/장소 검색 탭에서<br/>장소를 추가해보세요!
+                    아직 추가된 장소가 없어요.<br />
+                    지도/장소 검색 탭에서<br />장소를 추가해보세요!
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -770,7 +920,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                     <div style={{ height: 320, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f9fafb' }}>
                       {messages.length === 0 && (
                         <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, marginTop: 40 }}>
-                          아직 대화가 없어요.<br/>여행 계획을 같이 짜보세요! ✈️
+                          아직 대화가 없어요.<br />여행 계획을 같이 짜보세요! ✈️
                         </div>
                       )}
                       {messages.map(msg => {
