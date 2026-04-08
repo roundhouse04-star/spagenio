@@ -1,530 +1,369 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>관리자 - Travellog</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f6f8; color: #1a1a2e; }
+import React, { useState, useEffect } from 'react';
 
-    /* 레이아웃 */
-    .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
-    .sidebar { background: #1a1a2e; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
-    .sidebar-logo { font-size: 16px; font-weight: 900; color: white; padding: 4px 12px 20px; letter-spacing: -0.5px; }
-    .sidebar-logo span { color: #818cf8; }
-    .sidebar-section { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3); padding: 8px 12px 4px; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 8px; }
-    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
-    .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
-    .nav-item.active { background: #4f46e5; color: white; font-weight: 700; }
-    .sidebar-bottom { margin-top: auto; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.06); display: flex; align-items: center; gap: 10px; cursor: pointer; }
-    .sidebar-bottom:hover { background: rgba(255,255,255,0.1); }
-    .sidebar-bottom-name { font-size: 13px; font-weight: 700; color: white; }
-    .sidebar-bottom-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+const API = ''; // 같은 origin, vite proxy가 /api → 9001로 전달
 
-    /* 메인 */
-    .main { padding: 28px; display: flex; flex-direction: column; gap: 20px; }
-    .page { display: none; flex-direction: column; gap: 20px; }
-    .page.active { display: flex; }
-    .page-title { font-size: 20px; font-weight: 800; color: #1a1a2e; }
+// ── 스타일 ────────────────────────────────────────────────
+const S = {
+wrap: { minHeight: '100vh', background: '#f5f6f8', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI",
+sans-serif' },
+app: { display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh' },
+sidebar: { background: '#1a1a2e', padding: '24px 12px', display: 'flex', flexDirection: 'column', gap: 4, position:
+'sticky', top: 0, height: '100vh' },
+logo: { fontSize: 16, fontWeight: 900, color: 'white', padding: '4px 12px 20px', letterSpacing: -0.5 },
+navItem: (active) => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, color:
+active ? 'white' : 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: active ? 700 : 500, background: active ? '#4f46e5'
+: 'transparent', cursor: 'pointer', transition: 'all 0.15s' }),
+main: { padding: 28, display: 'flex', flexDirection: 'column', gap: 20 },
+pageTitle: { fontSize: 20, fontWeight: 800, color: '#1a1a2e' },
+statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 },
+statCard: (color) => ({ background: 'white', border: '1px solid #eee', borderRadius: 16, padding: '18px 20px',
+boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }),
+statNum: (color) => ({ fontSize: 28, fontWeight: 900, color: color, margin: '6px 0 2px' }),
+statLabel: { fontSize: 12, color: '#9ca3af', fontWeight: 600 },
+statSub: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+tableWrap: { background: 'white', border: '1px solid #eee', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px
+rgba(0,0,0,0.06)' },
+tableHeader: { padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between',
+alignItems: 'center', gap: 12 },
+tableTitle: { fontSize: 15, fontWeight: 700, color: '#1a1a2e' },
+th: { padding: '11px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform:
+'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #eee' },
+td: { padding: '12px 16px', fontSize: 13, color: '#374151', borderBottom: '1px solid #f9fafb', verticalAlign: 'middle'
+},
+badge: (type) => {
+const s = { green: { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }, red: { background:
+'#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }, gray: { background: '#f3f4f6', color: '#6b7280', border:
+'1px solid #e5e7eb' } };
+return { ...s[type], display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 };
+},
+btn: (type) => {
+const s = { primary: { background: '#4f46e5', color: 'white' }, danger: { background: '#fef2f2', color: '#dc2626',
+border: '1px solid #fecaca' }, warning: { background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }, gray:
+{ background: '#f3f4f6', color: '#555' } };
+return { ...s[type], padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', border:
+s[type].border || 'none', transition: 'all 0.15s' };
+},
+input: { padding: '9px 14px', border: '1px solid #eee', borderRadius: 10, fontSize: 13, outline: 'none', background:
+'white' },
+modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center',
+justifyContent: 'center', zIndex: 1000, padding: 20 },
+modal: { background: 'white', borderRadius: 20, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY:
+'auto' },
+modalTitle: { fontSize: 17, fontWeight: 800, color: '#1a1a2e', marginBottom: 20 },
+infoRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f0f0',
+fontSize: 13 },
+toast: (type) => ({ position: 'fixed', bottom: 24, right: 24, background: type === 'success' ? '#059669' : type ===
+'error' ? '#dc2626' : '#1a1a2e', color: 'white', padding: '12px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600,
+zIndex: 2000 }),
+loginWrap: { minHeight: '100vh', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center',
+padding: 20 },
+loginBox: { background: 'white', borderRadius: 20, padding: 40, width: '100%', maxWidth: 380 },
+};
 
-    /* 스탯 카드 */
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .stat-card { background: white; border: 1px solid #eee; border-radius: 16px; padding: 18px 20px; }
-    .stat-label { font-size: 12px; color: #9ca3af; font-weight: 600; margin-bottom: 8px; }
-    .stat-num { font-size: 28px; font-weight: 900; color: #1a1a2e; }
-    .stat-sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
-    .stat-card.indigo .stat-num { color: #4f46e5; }
-    .stat-card.green .stat-num { color: #10b981; }
-    .stat-card.red .stat-num { color: #ef4444; }
-    .stat-card.amber .stat-num { color: #f59e0b; }
+export default function Admin() {
+const [token, setToken] = useState(sessionStorage.getItem('admin_token') || '');
+const [page, setPage] = useState('dashboard');
+const [stats, setStats] = useState(null);
+const [users, setUsers] = useState([]);
+const [total, setTotal] = useState(0);
+const [currentPage, setCurrentPage] = useState(1);
+const [search, setSearch] = useState('');
+const [selectedUser, setSelectedUser] = useState(null);
+const [showResetPw, setShowResetPw] = useState(null);
+const [newPw, setNewPw] = useState('');
+const [toast, setToast] = useState(null);
+const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+const [loginErr, setLoginErr] = useState('');
+const [recentUsers, setRecentUsers] = useState([]);
 
-    /* 테이블 */
-    .table-wrap { background: white; border: 1px solid #eee; border-radius: 16px; overflow: hidden; }
-    .table-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .table-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-    .table-search { display: flex; gap: 8px; }
-    .search-input { padding: 8px 14px; border: 1px solid #eee; border-radius: 10px; font-size: 13px; outline: none; width: 220px; }
-    .search-input:focus { border-color: #6366f1; }
-    table { width: 100%; border-collapse: collapse; }
-    thead th { padding: 11px 16px; text-align: left; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; background: #fafafa; border-bottom: 1px solid #eee; }
-    tbody td { padding: 12px 16px; font-size: 13px; color: #374151; border-bottom: 1px solid #f9fafb; vertical-align: middle; }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: #fafafa; }
-    .user-cell { display: flex; align-items: center; gap: 10px; }
-    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #eef2ff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #4f46e5; flex-shrink: 0; }
+const apiFetch = async (path, options = {}) => {
+const res = await fetch(path, {
+...options,
+headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...(options.headers || {}) }
+});
+if (res.status === 401) { setToken(''); sessionStorage.removeItem('admin_token'); return null; }
+return res;
+};
 
-    /* 배지 */
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-    .badge-red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .badge-gray { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
-    .badge-indigo { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+const showToast = (msg, type = 'success') => {
+setToast({ msg, type });
+setTimeout(() => setToast(null), 3000);
+};
 
-    /* 버튼 */
-    .btn { padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; }
-    .btn-primary { background: #4f46e5; color: white; }
-    .btn-primary:hover { background: #4338ca; }
-    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .btn-danger:hover { background: #fee2e2; }
-    .btn-warning { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-    .btn-warning:hover { background: #fef3c7; }
-    .btn-sm { padding: 5px 10px; font-size: 11px; }
-    .btn-row { display: flex; gap: 5px; }
+useEffect(() => {
+if (token) { loadStats(); loadRecentUsers(); }
+}, [token]);
 
-    /* 페이지네이션 */
-    .pagination { display: flex; align-items: center; gap: 6px; padding: 14px 20px; border-top: 1px solid #eee; }
-    .page-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #eee; background: white; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #555; }
-    .page-btn.active { background: #4f46e5; color: white; border-color: #4f46e5; }
-    .page-btn:hover:not(.active) { background: #f3f4f6; }
-    .page-info { font-size: 13px; color: #9ca3af; margin-left: auto; }
+useEffect(() => {
+if (token && page === 'users') loadUsers(1);
+}, [page, token]);
 
-    /* 모달 */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: white; border-radius: 20px; padding: 28px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; transform: scale(0.95); transition: transform 0.2s; }
-    .modal-overlay.open .modal { transform: scale(1); }
-    .modal-title { font-size: 17px; font-weight: 800; color: #1a1a2e; margin-bottom: 20px; }
-    .modal-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-    .modal-label { font-size: 12px; font-weight: 700; color: #555; }
-    .modal-input { padding: 10px 14px; border: 1px solid #eee; border-radius: 10px; font-size: 14px; outline: none; }
-    .modal-input:focus { border-color: #6366f1; }
-    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-    .modal-info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-    .modal-info-row:last-child { border-bottom: none; }
-    .modal-info-key { color: #9ca3af; font-weight: 600; }
-    .modal-info-val { color: #1a1a2e; font-weight: 500; text-align: right; }
+const loadStats = async () => {
+const res = await apiFetch('/api/auth/admin/stats');
+if (res?.ok) setStats(await res.json());
+};
 
-    /* 메시지 */
-    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a2e; color: white; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; z-index: 2000; opacity: 0; transform: translateY(8px); transition: all 0.25s; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.success { background: #059669; }
-    .toast.error { background: #dc2626; }
+const loadRecentUsers = async () => {
+const res = await apiFetch('/api/auth/admin/users?page=1&limit=5');
+if (res?.ok) { const d = await res.json(); setRecentUsers(d.users || []); }
+};
 
-    /* 로그인 */
-    .login-wrap { min-height: 100vh; background: #1a1a2e; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .login-box { background: white; border-radius: 20px; padding: 40px; width: 100%; max-width: 380px; }
-    .login-logo { font-size: 20px; font-weight: 900; color: #4f46e5; margin-bottom: 6px; }
-    .login-sub { font-size: 13px; color: #6b7280; margin-bottom: 28px; }
-    .login-label { font-size: 12px; font-weight: 700; color: #555; display: block; margin-bottom: 6px; }
-    .login-input { width: 100%; padding: 12px 14px; border: 1px solid #eee; border-radius: 10px; font-size: 14px; outline: none; margin-bottom: 12px; }
-    .login-input:focus { border-color: #6366f1; }
-    .login-btn { width: 100%; background: #4f46e5; color: white; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; }
-    .login-btn:hover { background: #4338ca; }
-    .login-err { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; }
+const loadUsers = async (p = 1) => {
+setCurrentPage(p);
+const res = await apiFetch(`/api/auth/admin/users?page=${p}&limit=15&search=${encodeURIComponent(search)}`);
+if (res?.ok) { const d = await res.json(); setUsers(d.users || []); setTotal(d.total || 0); }
+};
 
-    @media (max-width: 900px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
-  </style>
-</head>
-<body>
+const adminLogin = async () => {
+setLoginErr('');
+try {
+const res = await fetch('/api/auth/admin/login', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(loginForm)
+});
+const data = await res.json();
+if (res.ok) { setToken(data.token); sessionStorage.setItem('admin_token', data.token); }
+else setLoginErr(data.detail || '로그인 실패');
+} catch { setLoginErr('서버 연결 오류'); }
+};
 
-<!-- 로그인 화면 -->
-<div id="loginWrap" class="login-wrap">
-  <div class="login-box">
-    <div class="login-logo">✈ Travellog</div>
-    <div class="login-sub">관리자 로그인</div>
-    <div id="loginErr" class="login-err"></div>
-    <label class="login-label">아이디</label>
-    <input type="text" id="adminUsername" class="login-input" placeholder="관리자 아이디" />
-    <label class="login-label">비밀번호</label>
-    <input type="password" id="adminPassword" class="login-input" placeholder="관리자 비밀번호"
-      onkeydown="if(event.key==='Enter') adminLogin()" />
-    <button class="login-btn" onclick="adminLogin()">로그인</button>
+const toggleSuspend = async () => {
+if (!selectedUser) return;
+const res = await apiFetch(`/api/auth/admin/users/${selectedUser.id}`, {
+method: 'PATCH', body: JSON.stringify({ suspended: !selectedUser.suspended })
+});
+if (res?.ok) { showToast(selectedUser.suspended ? '정지 해제됐습니다.' : '계정이 정지됐습니다.'); setSelectedUser(null);
+loadUsers(currentPage); loadStats(); }
+};
+
+const deleteUser = async () => {
+if (!selectedUser || !confirm(`${selectedUser.nickname} 회원을 탈퇴 처리하시겠습니까?`)) return;
+const res = await apiFetch(`/api/auth/admin/users/${selectedUser.id}`, { method: 'DELETE' });
+if (res?.ok) { showToast('탈퇴 처리됐습니다.'); setSelectedUser(null); loadUsers(currentPage); loadStats(); }
+};
+
+const resetPassword = async () => {
+if (!newPw || newPw.length < 8) { showToast('8자 이상 입력해주세요.', 'error' ); return; } const res=await
+  apiFetch(`/api/auth/admin/users/${showResetPw}/reset-password`, { method: 'POST' , body: JSON.stringify({ newPassword:
+  newPw }) }); if (res?.ok) { showToast('비밀번호가 초기화됐습니다.'); setShowResetPw(null); setNewPw(''); } }; const fmtDate=(ts)=>
+  ts ? new Date(ts * 1000).toLocaleDateString('ko-KR') : '-';
+  const fmtDateFull = (ts) => ts ? new Date(ts * 1000).toLocaleString('ko-KR') : '-';
+  const maskEmail = (e) => { const [id, d] = e.split('@'); return id.slice(0,3) + '***@' + d; };
+
+  // 로그인 안된 상태
+  if (!token) return (
+  <div style={S.loginWrap}>
+    <div style={S.loginBox}>
+      <div style={{ fontSize: 20, fontWeight: 900, color: '#4f46e5' , marginBottom: 6 }}>✈ Travellog</div>
+      <div style={{ fontSize: 13, color: '#6b7280' , marginBottom: 28 }}>관리자 로그인</div>
+      {loginErr && <div style={{ background: '#fef2f2' , border: '1px solid #fecaca' , color: '#dc2626' , borderRadius:
+        10, padding: '10px 14px' , fontSize: 13, marginBottom: 14 }}>{loginErr}</div>}
+      <input style={{ ...S.input, width: '100%' , marginBottom: 10 }} placeholder="관리자 아이디" value={loginForm.username}
+        onChange={e=> setLoginForm(p => ({ ...p, username: e.target.value }))} />
+      <input style={{ ...S.input, width: '100%' , marginBottom: 16 }} type="password" placeholder="관리자 비밀번호"
+        value={loginForm.password} onChange={e=> setLoginForm(p => ({ ...p, password: e.target.value }))}
+      onKeyDown={e => e.key === 'Enter' && adminLogin()} />
+      <button onClick={adminLogin} style={{ width: '100%' , background: '#4f46e5' , color: 'white' , border: 'none' ,
+        borderRadius: 10, padding: 13, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>로그인</button>
+      <div style={{ textAlign: 'center' , marginTop: 16 }}>
+        <button onClick={()=> window.location.href = '/'} style={{ fontSize: 13, color: '#9ca3af', background: 'none',
+          border: 'none', cursor: 'pointer' }}>← 사이트로 돌아가기</button>
+      </div>
+    </div>
   </div>
-</div>
+  );
 
-<!-- 관리자 앱 -->
-<div id="adminApp" class="app" style="display:none;">
-  <aside class="sidebar">
-    <div class="sidebar-logo">✈ Travel<span>log</span> <span style="font-size:10px;color:#818cf8;font-weight:600;">Admin</span></div>
-
-    <div class="sidebar-section">대시보드</div>
-    <div class="nav-item active" id="nav-dashboard" onclick="goPage('dashboard')">📊 대시보드</div>
-
-    <div class="sidebar-section">회원 관리</div>
-    <div class="nav-item" id="nav-users" onclick="goPage('users')">👥 회원 목록</div>
-
-    <div style="margin-top:auto;">
-      <div class="sidebar-bottom" onclick="adminLogout()">
-        <div style="width:32px;height:32px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;font-size:14px;color:white;font-weight:700;">A</div>
-        <div>
-          <div class="sidebar-bottom-name">관리자</div>
-          <div class="sidebar-bottom-role">로그아웃</div>
+  return (
+  <div style={S.wrap}>
+    <div style={S.app}>
+      {/* 사이드바 */}
+      <aside style={S.sidebar}>
+        <div style={S.logo}>✈ Travellog <span style={{ fontSize: 10, color: '#818cf8' }}>Admin</span></div>
+        <div style={S.navItem(page==='dashboard' )} onClick={()=> setPage('dashboard')}>📊 대시보드</div>
+        <div style={S.navItem(page==='users' )} onClick={()=> setPage('users')}>👥 회원 관리</div>
+        <div style={{ marginTop: 'auto' }}>
+          <div style={{ padding: '10px 14px' , borderRadius: 10, color: 'rgba(255,255,255,0.5)' , fontSize: 13,
+            cursor: 'pointer' }} onClick={()=> { window.location.href = '/'; }}>← 사이트로 돌아가기</div>
+          <div style={{ padding: '10px 14px' , borderRadius: 10, color: '#ef4444' , fontSize: 13, cursor: 'pointer' ,
+            fontWeight: 600 }} onClick={()=> { setToken(''); sessionStorage.removeItem('admin_token'); }}>로그아웃</div>
         </div>
-      </div>
-    </div>
-  </aside>
+      </aside>
 
-  <main class="main">
-    <!-- 대시보드 -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-title">대시보드</div>
-      <div class="stats-grid">
-        <div class="stat-card indigo">
-          <div class="stat-label">전체 회원</div>
-          <div class="stat-num" id="statTotal">-</div>
-          <div class="stat-sub">누적 가입자</div>
-        </div>
-        <div class="stat-card green">
-          <div class="stat-label">오늘 가입</div>
-          <div class="stat-num" id="statToday">-</div>
-          <div class="stat-sub">최근 24시간</div>
-        </div>
-        <div class="stat-card amber">
-          <div class="stat-label">이번 주 가입</div>
-          <div class="stat-num" id="statWeek">-</div>
-          <div class="stat-sub">최근 7일</div>
-        </div>
-        <div class="stat-card red">
-          <div class="stat-label">정지된 계정</div>
-          <div class="stat-num" id="statSuspended">-</div>
-          <div class="stat-sub">이용 제한 중</div>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">최근 가입 회원</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>회원</th>
-              <th>이메일</th>
-              <th>가입일</th>
-              <th>상태</th>
-            </tr>
-          </thead>
-          <tbody id="recentUsersTbody">
-            <tr><td colspan="4" style="text-align:center;color:#bbb;padding:24px;">불러오는 중...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 회원 목록 -->
-    <div class="page" id="page-users">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div class="page-title">회원 관리</div>
-      </div>
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">전체 회원 <span id="userTotalBadge" style="font-size:12px;color:#9ca3af;font-weight:400;"></span></div>
-          <div class="table-search">
-            <input type="text" id="userSearch" class="search-input" placeholder="닉네임 또는 이메일 검색"
-              onkeydown="if(event.key==='Enter') loadUsers(1)" />
-            <button class="btn btn-primary" onclick="loadUsers(1)">검색</button>
+      {/* 메인 */}
+      <main style={S.main}>
+        {/* 대시보드 */}
+        {page === 'dashboard' && (
+        <>
+          <div style={S.pageTitle}>대시보드</div>
+          <div style={S.statsGrid}>
+            {[
+            { label: '전체 회원', num: stats?.total_users ?? '-', color: '#4f46e5', sub: '누적 가입자' },
+            { label: '오늘 가입', num: stats?.today_joined ?? '-', color: '#10b981', sub: '최근 24시간' },
+            { label: '이번 주 가입', num: stats?.week_joined ?? '-', color: '#f59e0b', sub: '최근 7일' },
+            { label: '정지된 계정', num: stats?.suspended_users ?? '-', color: '#ef4444', sub: '이용 제한 중' },
+            ].map(s => (
+            <div key={s.label} style={S.statCard()}>
+              <div style={S.statLabel}>{s.label}</div>
+              <div style={S.statNum(s.color)}>{s.num}</div>
+              <div style={S.statSub}>{s.sub}</div>
+            </div>
+            ))}
           </div>
+          <div style={S.tableWrap}>
+            <div style={S.tableHeader}>
+              <div style={S.tableTitle}>최근 가입 회원</div>
+            </div>
+            <table style={{ width: '100%' , borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['회원', '이메일', '가입일', '상태'].map(h => <th key={h} style={S.th}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {recentUsers.map(u => (
+                <tr key={u.id}>
+                  <td style={S.td}>
+                    <div style={{ display: 'flex' , alignItems: 'center' , gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%' , background: '#eef2ff' , display: 'flex'
+                        , alignItems: 'center' , justifyContent: 'center' , fontSize: 12, fontWeight: 700,
+                        color: '#4f46e5' }}>{u.nickname[0]}</div>
+                      <span style={{ fontWeight: 600 }}>{u.nickname}</span>
+                    </div>
+                  </td>
+                  <td style={{ ...S.td, color: '#6b7280' }}>{maskEmail(u.email)}</td>
+                  <td style={{ ...S.td, color: '#9ca3af' }}>{fmtDate(u.created_at)}</td>
+                  <td style={S.td}><span style={S.badge(u.suspended ? 'red' : 'green' )}>{u.suspended ? '정지' :
+                      '정상'}</span></td>
+                </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+        )}
+
+        {/* 회원 관리 */}
+        {page === 'users' && (
+        <>
+          <div style={{ display: 'flex' , justifyContent: 'space-between' , alignItems: 'center' }}>
+            <div style={S.pageTitle}>회원 관리</div>
+          </div>
+          <div style={S.tableWrap}>
+            <div style={S.tableHeader}>
+              <div style={S.tableTitle}>전체 회원 <span style={{ fontSize: 12, color: '#9ca3af' , fontWeight: 400
+                  }}>({total}명)</span></div>
+              <div style={{ display: 'flex' , gap: 8 }}>
+                <input style={{ ...S.input, width: 220 }} placeholder="닉네임 또는 이메일 검색" value={search} onChange={e=>
+                setSearch(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && loadUsers(1)} />
+                <button style={S.btn('primary')} onClick={()=> loadUsers(1)}>검색</button>
+              </div>
+            </div>
+            <table style={{ width: '100%' , borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['회원', '이메일', '가입일', '최근 로그인', '상태', '관리'].map(h => <th key={h} style={S.th}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {users.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ ...S.td, textAlign: 'center' , color: '#bbb' , padding: 24 }}>회원이 없습니다.</td>
+                </tr>
+                ) : users.map(u => (
+                <tr key={u.id} style={{ cursor: 'pointer' }}>
+                  <td style={S.td}>
+                    <div style={{ display: 'flex' , alignItems: 'center' , gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%' , background: '#eef2ff' , display: 'flex'
+                        , alignItems: 'center' , justifyContent: 'center' , fontSize: 12, fontWeight: 700,
+                        color: '#4f46e5' , flexShrink: 0 }}>{u.nickname[0]}</div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{u.nickname}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{u.id.slice(0,8)}...</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ ...S.td, color: '#6b7280' }}>{maskEmail(u.email)}</td>
+                  <td style={{ ...S.td, color: '#9ca3af' }}>{fmtDate(u.created_at)}</td>
+                  <td style={{ ...S.td, color: '#9ca3af' }}>{u.last_login ? fmtDate(u.last_login) : '-'}</td>
+                  <td style={S.td}><span style={S.badge(u.suspended ? 'red' : 'green' )}>{u.suspended ? '정지' :
+                      '정상'}</span></td>
+                  <td style={S.td}>
+                    <div style={{ display: 'flex' , gap: 5 }}>
+                      <button style={S.btn('gray')} onClick={()=> setSelectedUser(u)}>상세</button>
+                      <button style={S.btn('warning')} onClick={()=> { setShowResetPw(u.id); setNewPw('');
+                        }}>PW초기화</button>
+                    </div>
+                  </td>
+                </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* 페이지네이션 */}
+            <div style={{ display: 'flex' , alignItems: 'center' , gap: 6, padding: '14px 20px' ,
+              borderTop: '1px solid #eee' }}>
+              {Array.from({ length: Math.ceil(total / 15) }, (_, i) => i + 1).map(p => (
+              <button key={p} onClick={()=> loadUsers(p)}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #eee', background: p === currentPage
+                ? '#4f46e5' : 'white', color: p === currentPage ? 'white' : '#555', fontSize: 13, cursor: 'pointer'
+                }}>{p}</button>
+              ))}
+              <span style={{ fontSize: 13, color: '#9ca3af' , marginLeft: 'auto' }}>{total}명 중
+                {(currentPage-1)*15+1}~{Math.min(currentPage*15, total)}명</span>
+            </div>
+          </div>
+        </>
+        )}
+      </main>
+    </div>
+
+    {/* 회원 상세 모달 */}
+    {selectedUser && (
+    <div style={S.modalOverlay} onClick={()=> setSelectedUser(null)}>
+      <div style={S.modal} onClick={e=> e.stopPropagation()}>
+        <div style={S.modalTitle}>{selectedUser.nickname} 회원 정보</div>
+        {[
+        ['닉네임', selectedUser.nickname],
+        ['이메일', selectedUser.email],
+        ['소개', selectedUser.bio || '-'],
+        ['가입일', fmtDateFull(selectedUser.created_at)],
+        ['최근 로그인', fmtDateFull(selectedUser.last_login)],
+        ['마케팅 동의', selectedUser.agree_marketing ? '동의' : '미동의'],
+        ['계정 상태', selectedUser.suspended ? '정지' : '정상'],
+        ].map(([k, v]) => (
+        <div key={k} style={S.infoRow}>
+          <span style={{ color: '#9ca3af' , fontWeight: 600 }}>{k}</span>
+          <span style={{ color: '#1a1a2e' , fontWeight: 500 }}>{v}</span>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>회원</th>
-              <th>이메일</th>
-              <th>가입일</th>
-              <th>최근 로그인</th>
-              <th>상태</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody id="usersTbody">
-            <tr><td colspan="6" style="text-align:center;color:#bbb;padding:24px;">불러오는 중...</td></tr>
-          </tbody>
-        </table>
-        <div class="pagination" id="userPagination"></div>
+        ))}
+        <div style={{ display: 'flex' , gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
+          <button style={S.btn(selectedUser.suspended ? 'primary' : 'warning' )} onClick={toggleSuspend}>
+            {selectedUser.suspended ? '정지 해제' : '계정 정지'}
+          </button>
+          <button style={S.btn('danger')} onClick={deleteUser}>탈퇴 처리</button>
+          <button style={S.btn('gray')} onClick={()=> setSelectedUser(null)}>닫기</button>
+        </div>
       </div>
     </div>
-  </main>
-</div>
+    )}
 
-<!-- 회원 상세 모달 -->
-<div class="modal-overlay" id="userModal">
-  <div class="modal">
-    <div class="modal-title" id="modalTitle">회원 정보</div>
-    <div id="modalContent"></div>
-    <div class="modal-actions">
-      <button class="btn btn-warning btn-sm" id="modalSuspendBtn" onclick="toggleSuspend()"></button>
-      <button class="btn btn-danger btn-sm" onclick="deleteUser()">탈퇴 처리</button>
-      <button class="btn btn-primary btn-sm" onclick="closeModal()">닫기</button>
+    {/* 비밀번호 초기화 모달 */}
+    {showResetPw && (
+    <div style={S.modalOverlay} onClick={()=> setShowResetPw(null)}>
+      <div style={S.modal} onClick={e=> e.stopPropagation()}>
+        <div style={S.modalTitle}>비밀번호 초기화</div>
+        <input style={{ ...S.input, width: '100%' , marginBottom: 20 }} type="password"
+          placeholder="새 비밀번호 (8자 이상, 대/소문자, 숫자)" value={newPw} onChange={e=> setNewPw(e.target.value)} />
+        <div style={{ display: 'flex' , gap: 8, justifyContent: 'flex-end' }}>
+          <button style={S.btn('gray')} onClick={()=> setShowResetPw(null)}>취소</button>
+          <button style={S.btn('primary')} onClick={resetPassword}>초기화</button>
+        </div>
+      </div>
     </div>
+    )}
+
+    {/* 토스트 */}
+    {toast && <div style={S.toast(toast.type)}>{toast.msg}</div>}
   </div>
-</div>
-
-<!-- 비밀번호 초기화 모달 -->
-<div class="modal-overlay" id="resetPwModal">
-  <div class="modal">
-    <div class="modal-title">비밀번호 초기화</div>
-    <div class="modal-row">
-      <label class="modal-label">새 비밀번호</label>
-      <input type="password" id="newPwInput" class="modal-input" placeholder="새 비밀번호 입력 (8자 이상, 대/소문자, 숫자)" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-sm" onclick="closeResetPwModal()" style="background:#f3f4f6;color:#555;">취소</button>
-      <button class="btn btn-primary btn-sm" onclick="submitResetPw()">초기화</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-  const API = 'http://localhost:9001';
-  let adminToken = sessionStorage.getItem('admin_token');
-  let currentPage = 'dashboard';
-  let selectedUser = null;
-  let usersCurrentPage = 1;
-
-  // ── 초기화 ──────────────────────────────────────────
-  if (adminToken) showApp();
-
-  function showApp() {
-    document.getElementById('loginWrap').style.display = 'none';
-    document.getElementById('adminApp').style.display = 'grid';
-    loadStats();
-    loadRecentUsers();
+  );
   }
-
-  // ── 로그인 ──────────────────────────────────────────
-  async function adminLogin() {
-    const username = document.getElementById('adminUsername').value.trim();
-    const password = document.getElementById('adminPassword').value;
-    const errEl = document.getElementById('loginErr');
-    errEl.style.display = 'none';
-    try {
-      const res = await fetch(`${API}/api/admin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        adminToken = data.token;
-        sessionStorage.setItem('admin_token', adminToken);
-        showApp();
-      } else {
-        errEl.textContent = data.detail || '로그인에 실패했습니다.';
-        errEl.style.display = 'block';
-      }
-    } catch (e) {
-      errEl.textContent = '서버 연결 오류';
-      errEl.style.display = 'block';
-    }
-  }
-
-  function adminLogout() {
-    sessionStorage.removeItem('admin_token');
-    adminToken = null;
-    document.getElementById('loginWrap').style.display = 'flex';
-    document.getElementById('adminApp').style.display = 'none';
-  }
-
-  // ── 페이지 이동 ─────────────────────────────────────
-  function goPage(page) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('page-' + page).classList.add('active');
-    document.getElementById('nav-' + page).classList.add('active');
-    currentPage = page;
-    if (page === 'users') loadUsers(1);
-  }
-
-  // ── API 헬퍼 ────────────────────────────────────────
-  async function apiFetch(path, options = {}) {
-    const res = await fetch(API + path, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken, ...(options.headers || {}) }
-    });
-    if (res.status === 401) { adminLogout(); return null; }
-    return res;
-  }
-
-  // ── 통계 ────────────────────────────────────────────
-  async function loadStats() {
-    const res = await apiFetch('/api/admin/stats');
-    if (!res) return;
-    const data = await res.json();
-    document.getElementById('statTotal').textContent = data.total_users;
-    document.getElementById('statToday').textContent = data.today_joined;
-    document.getElementById('statWeek').textContent = data.week_joined;
-    document.getElementById('statSuspended').textContent = data.suspended_users;
-  }
-
-  // ── 최근 가입 ────────────────────────────────────────
-  async function loadRecentUsers() {
-    const res = await apiFetch('/api/admin/users?page=1&limit=5');
-    if (!res) return;
-    const data = await res.json();
-    const tbody = document.getElementById('recentUsersTbody');
-    if (!data.users.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#bbb;padding:24px;">회원이 없습니다.</td></tr>'; return; }
-    tbody.innerHTML = data.users.map(u => `
-      <tr>
-        <td><div class="user-cell">
-          <div class="user-avatar">${u.nickname[0]}</div>
-          <div style="font-weight:600;">${u.nickname}</div>
-        </div></td>
-        <td style="color:#6b7280;">${maskEmail(u.email)}</td>
-        <td style="color:#9ca3af;">${fmtDate(u.created_at)}</td>
-        <td>${u.suspended ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</td>
-      </tr>`).join('');
-  }
-
-  // ── 회원 목록 ────────────────────────────────────────
-  async function loadUsers(page = 1) {
-    usersCurrentPage = page;
-    const search = document.getElementById('userSearch').value.trim();
-    const res = await apiFetch(`/api/admin/users?page=${page}&limit=15&search=${encodeURIComponent(search)}`);
-    if (!res) return;
-    const data = await res.json();
-
-    document.getElementById('userTotalBadge').textContent = `(총 ${data.total}명)`;
-
-    const tbody = document.getElementById('usersTbody');
-    if (!data.users.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#bbb;padding:24px;">검색 결과가 없습니다.</td></tr>';
-    } else {
-      tbody.innerHTML = data.users.map(u => `
-        <tr>
-          <td><div class="user-cell">
-            <div class="user-avatar">${u.nickname[0]}</div>
-            <div>
-              <div style="font-weight:600;">${u.nickname}</div>
-              <div style="font-size:11px;color:#9ca3af;">${u.id.slice(0,8)}...</div>
-            </div>
-          </div></td>
-          <td style="color:#6b7280;">${maskEmail(u.email)}</td>
-          <td style="color:#9ca3af;">${fmtDate(u.created_at)}</td>
-          <td style="color:#9ca3af;">${u.last_login ? fmtDate(u.last_login) : '-'}</td>
-          <td>${u.suspended ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</td>
-          <td>
-            <div class="btn-row">
-              <button class="btn btn-sm" style="background:#f3f4f6;color:#555;" onclick="openUserModal('${u.id}')">상세</button>
-              <button class="btn btn-sm btn-warning" onclick="openResetPwModal('${u.id}')">PW초기화</button>
-            </div>
-          </td>
-        </tr>`).join('');
-    }
-
-    // 페이지네이션
-    const totalPages = Math.ceil(data.total / 15);
-    const pag = document.getElementById('userPagination');
-    let html = '';
-    for (let i = 1; i <= totalPages; i++) {
-      html += `<button class="page-btn${i === page ? ' active' : ''}" onclick="loadUsers(${i})">${i}</button>`;
-    }
-    html += `<span class="page-info">${data.total}명 중 ${(page-1)*15+1}~${Math.min(page*15, data.total)}명</span>`;
-    pag.innerHTML = html;
-  }
-
-  // ── 회원 상세 모달 ───────────────────────────────────
-  async function openUserModal(userId) {
-    const res = await apiFetch(`/api/admin/users/${userId}`);
-    if (!res) return;
-    const u = await res.json();
-    selectedUser = u;
-
-    document.getElementById('modalTitle').textContent = `${u.nickname} 회원 정보`;
-    document.getElementById('modalContent').innerHTML = `
-      <div class="modal-info-row"><span class="modal-info-key">ID</span><span class="modal-info-val" style="font-family:monospace;font-size:12px;">${u.id}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">닉네임</span><span class="modal-info-val">${u.nickname}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">이메일</span><span class="modal-info-val">${u.email}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">소개</span><span class="modal-info-val">${u.bio || '-'}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">가입일</span><span class="modal-info-val">${fmtDateFull(u.created_at)}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">최근 로그인</span><span class="modal-info-val">${u.last_login ? fmtDateFull(u.last_login) : '-'}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">마케팅 동의</span><span class="modal-info-val">${u.agree_marketing ? '동의' : '미동의'}</span></div>
-      <div class="modal-info-row"><span class="modal-info-key">계정 상태</span><span class="modal-info-val">${u.suspended ? '<span class="badge badge-red">정지</span>' : '<span class="badge badge-green">정상</span>'}</span></div>
-    `;
-    const suspendBtn = document.getElementById('modalSuspendBtn');
-    suspendBtn.textContent = u.suspended ? '정지 해제' : '계정 정지';
-    suspendBtn.className = u.suspended ? 'btn btn-primary btn-sm' : 'btn btn-warning btn-sm';
-
-    document.getElementById('userModal').classList.add('open');
-  }
-
-  function closeModal() {
-    document.getElementById('userModal').classList.remove('open');
-    selectedUser = null;
-  }
-
-  async function toggleSuspend() {
-    if (!selectedUser) return;
-    const res = await apiFetch(`/api/admin/users/${selectedUser.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ suspended: !selectedUser.suspended })
-    });
-    if (res?.ok) {
-      showToast(selectedUser.suspended ? '계정 정지가 해제됐습니다.' : '계정이 정지됐습니다.', 'success');
-      closeModal();
-      loadUsers(usersCurrentPage);
-      loadStats();
-    }
-  }
-
-  async function deleteUser() {
-    if (!selectedUser) return;
-    if (!confirm(`${selectedUser.nickname} 회원을 탈퇴 처리하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
-    const res = await apiFetch(`/api/admin/users/${selectedUser.id}`, { method: 'DELETE' });
-    if (res?.ok) {
-      showToast('회원이 탈퇴 처리됐습니다.', 'success');
-      closeModal();
-      loadUsers(usersCurrentPage);
-      loadStats();
-    }
-  }
-
-  // ── 비밀번호 초기화 ──────────────────────────────────
-  let resetPwUserId = null;
-  function openResetPwModal(userId) {
-    resetPwUserId = userId;
-    document.getElementById('newPwInput').value = '';
-    document.getElementById('resetPwModal').classList.add('open');
-  }
-  function closeResetPwModal() {
-    document.getElementById('resetPwModal').classList.remove('open');
-    resetPwUserId = null;
-  }
-  async function submitResetPw() {
-    const pw = document.getElementById('newPwInput').value;
-    if (pw.length < 8) { showToast('8자 이상 입력해주세요.', 'error'); return; }
-    const res = await apiFetch(`/api/admin/users/${resetPwUserId}/reset-password`, {
-      method: 'POST', body: JSON.stringify({ newPassword: pw })
-    });
-    if (res?.ok) {
-      showToast('비밀번호가 초기화됐습니다.', 'success');
-      closeResetPwModal();
-    }
-  }
-
-  // ── 유틸 ─────────────────────────────────────────────
-  function maskEmail(email) {
-    const [id, domain] = email.split('@');
-    return id.slice(0,3) + '***@' + domain;
-  }
-  function fmtDate(ts) {
-    if (!ts) return '-';
-    return new Date(ts * 1000).toLocaleDateString('ko-KR');
-  }
-  function fmtDateFull(ts) {
-    if (!ts) return '-';
-    return new Date(ts * 1000).toLocaleString('ko-KR');
-  }
-  function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (type ? ' ' + type : '');
-    setTimeout(() => t.className = 'toast', 3000);
-  }
-
-  // 모달 외부 클릭 닫기
-  document.getElementById('userModal').addEventListener('click', e => {
-    if (e.target === document.getElementById('userModal')) closeModal();
-  });
-  document.getElementById('resetPwModal').addEventListener('click', e => {
-    if (e.target === document.getElementById('resetPwModal')) closeResetPwModal();
-  });
-</script>
-</body>
-</html>

@@ -1,34 +1,78 @@
 package com.spagenio.travel.model;
+
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+
+@Entity
+@Table(name = "posts")
 public class Post {
+    @Id
     private String id;
+
     private String userId;
     private String userNickname;
     private String userProfileImage;
+
+    @Column(nullable = false)
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String content;
+
     private String country;
     private String city;
-    private List<String> images = new ArrayList<>();
-    private List<Place> places = new ArrayList<>();
-    private List<String> likedUserIds = new ArrayList<>();
-    private List<Comment> comments = new ArrayList<>();
-    private List<String> tags = new ArrayList<>();
     private String createdAt;
-    public Post() {}
-    public String getId() { return id; } public void setId(String v) { this.id = v; }
-    public String getUserId() { return userId; } public void setUserId(String v) { this.userId = v; }
-    public String getUserNickname() { return userNickname; } public void setUserNickname(String v) { this.userNickname = v; }
-    public String getUserProfileImage() { return userProfileImage; } public void setUserProfileImage(String v) { this.userProfileImage = v; }
-    public String getTitle() { return title; } public void setTitle(String v) { this.title = v; }
-    public String getContent() { return content; } public void setContent(String v) { this.content = v; }
-    public String getCountry() { return country; } public void setCountry(String v) { this.country = v; }
-    public String getCity() { return city; } public void setCity(String v) { this.city = v; }
-    public List<String> getImages() { return images; } public void setImages(List<String> v) { this.images = v; }
-    public List<Place> getPlaces() { return places; } public void setPlaces(List<Place> v) { this.places = v; }
-    public List<String> getLikedUserIds() { return likedUserIds; } public void setLikedUserIds(List<String> v) { this.likedUserIds = v; }
-    public List<Comment> getComments() { return comments; } public void setComments(List<Comment> v) { this.comments = v; }
-    public List<String> getTags() { return tags; } public void setTags(List<String> v) { this.tags = v; }
-    public String getCreatedAt() { return createdAt; } public void setCreatedAt(String v) { this.createdAt = v; }
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "post_images", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "image_url")
+    private List<String> images = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "post_tags", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "tag")
+    private List<String> tags = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "post_likes", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "user_id")
+    private List<String> likedUserIds = new ArrayList<>();
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "post_id", referencedColumnName = "id")
+    private List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "post_id", referencedColumnName = "id")
+    private List<Place> places = new ArrayList<>();
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+    public String getUserNickname() { return userNickname; }
+    public void setUserNickname(String userNickname) { this.userNickname = userNickname; }
+    public String getUserProfileImage() { return userProfileImage; }
+    public void setUserProfileImage(String userProfileImage) { this.userProfileImage = userProfileImage; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public List<String> getImages() { return images; }
+    public void setImages(List<String> images) { this.images = images; }
+    public List<String> getTags() { return tags; }
+    public void setTags(List<String> tags) { this.tags = tags; }
+    public List<String> getLikedUserIds() { return likedUserIds; }
+    public void setLikedUserIds(List<String> likedUserIds) { this.likedUserIds = likedUserIds; }
+    public List<Comment> getComments() { return comments; }
+    public void setComments(List<Comment> comments) { this.comments = comments; }
+    public List<Place> getPlaces() { return places; }
+    public void setPlaces(List<Place> places) { this.places = places; }
 }
