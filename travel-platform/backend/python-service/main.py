@@ -362,6 +362,12 @@ def register(req: RegisterReq):
                         VALUES (?, ?, ?, ?, 'user', 0, ?, ?)""",
                      (user_id, req.nickname, req.email, hash_password(req.password),
                       1 if req.agree_marketing else 0, now))
+        # 공식 계정 자동 팔로우
+        official_id = "travellog-official"
+        official = conn.execute("SELECT id FROM users WHERE id=?", (official_id,)).fetchone()
+        if official:
+            conn.execute("INSERT OR IGNORE INTO user_following (user_id, following_id) VALUES (?, ?)", (user_id, official_id))
+            conn.execute("INSERT OR IGNORE INTO user_followers (user_id, follower_id) VALUES (?, ?)", (official_id, user_id))
     del verify_store[req.email]
     return {"message": "가입이 완료됐습니다.", "userId": user_id}
 
