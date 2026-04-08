@@ -46,4 +46,20 @@ export const api = {
   addPlanItem: (planId, data) => req(`/api/plans/${planId}/items`, { method: 'POST', body: JSON.stringify(data) }),
   removePlanItem: (planId, itemId) => req(`/api/plans/${planId}/items/${itemId}`, { method: 'DELETE' }),
   deletePlan: (id) => req(`/api/plans/${id}`, { method: 'DELETE' }),
+
+  // Report
+  createReport: (data) => req('/api/reports', { method: 'POST', body: JSON.stringify(data) }),
+  getReports: (status) => req(`/api/reports${status ? '?status=' + status : ''}`),
+  resolveReport: (id, action) => req(`/api/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({ action }) }),
+
+  // Notice
+  getNotices: (activeOnly) => req(`/api/notices${activeOnly ? '?active=true' : ''}`),
+  createNotice: (data) => req('/api/notices', { method: 'POST', body: JSON.stringify(data) }),
+  updateNotice: (id, data) => req(`/api/notices/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteNotice: (id) => req(`/api/notices/${id}`, { method: 'DELETE' }),
+
+  // Admin
+  getAdminPostStats: () => req('/api/admin/stats/posts'),
+  hidePost: (id) => req(`/api/admin/posts/${id}/hide`, { method: 'POST' }),
+  adminDeletePost: (id) => req(`/api/admin/posts/${id}`, { method: 'DELETE' }),
 };

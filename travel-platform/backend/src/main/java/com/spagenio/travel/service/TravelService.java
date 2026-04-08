@@ -5,6 +5,7 @@ import com.spagenio.travel.repository.TravelRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class TravelService {
@@ -77,4 +78,34 @@ public class TravelService {
     public Plan addPlanItem(String planId, PlanItem item) { return repo.addPlanItem(planId, item); }
     public Plan removePlanItem(String planId, String itemId) { return repo.removePlanItem(planId, itemId); }
     public void deletePlan(String planId) { repo.deletePlan(planId); }
+
+    // Report
+    public List<Report> getReports() { return repo.findAllReports(); }
+    public List<Report> getPendingReports() { return repo.findPendingReports(); }
+    public Report createReport(Report report) { return repo.saveReport(report); }
+    public Report resolveReport(String id, String action) { return repo.resolveReport(id, action); }
+
+    // Notice
+    public List<Notice> getNotices() { return repo.findAllNotices(); }
+    public List<Notice> getActiveNotices() { return repo.findActiveNotices(); }
+    public Notice createNotice(Notice notice) { return repo.saveNotice(notice); }
+    public Notice updateNotice(String id, Notice notice) {
+        Notice existing = repo.findNoticeById(id).orElseThrow(() -> new IllegalArgumentException("notice_not_found"));
+        if (notice.getTitle() != null) existing.setTitle(notice.getTitle());
+        if (notice.getContent() != null) existing.setContent(notice.getContent());
+        if (notice.getType() != null) existing.setType(notice.getType());
+        existing.setActive(notice.isActive());
+        return repo.saveNotice(existing);
+    }
+    public void deleteNotice(String id) { repo.deleteNotice(id); }
+
+    // Admin Stats
+    public Map<String, Object> getAdminStats() { return repo.getAdminStats(); }
+
+    // Admin Post
+    public Post hidePost(String id) {
+        Post post = getPost(id);
+        post.setVisibility("private");
+        return repo.savePost(post);
+    }
 }

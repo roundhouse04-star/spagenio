@@ -172,6 +172,7 @@ function App() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+  const [searchTag, setSearchTag] = useState('');
 
   useEffect(() => { init(); }, []);
 
@@ -254,11 +255,18 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
+  const handleTagClick = (tag) => {
+    setSearchTag(tag);
+    setPage('explore');
+    setOpenedPost(null);
+  };
+
   const goPage = (key) => {
     if ((key === 'write' || key === 'planner') && !currentUser) {
       alert('로그인이 필요합니다.');
       return;
     }
+    if (key !== 'explore') setSearchTag('');
     setPage(key);
     setOpenedPost(null);
     setShowLogoutMenu(false);
@@ -334,9 +342,9 @@ function App() {
             onLike={handleLike} onComment={handleComment} onProfile={handleProfile}
             onAddToPlanner={handleAddToPlanner} onBack={() => setOpenedPost(null)} />
         ) : page === 'feed' ? (
-          <Feed currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} />
+          <Feed currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
         ) : page === 'explore' ? (
-          <Explore currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} />
+          <Explore currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} searchTag={searchTag} />
         ) : page === 'write' ? (
           <Write currentUser={currentUser} onDone={() => setPage('feed')} />
         ) : page === 'planner' ? (

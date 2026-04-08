@@ -11,7 +11,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(h / 24)}일 전`;
 }
 
-export default function PostCard({ post, currentUserId, onOpen, onProfile, onLike }) {
+export default function PostCard({ post, currentUserId, onOpen, onProfile, onLike, onTagClick, onReport }) {
   const liked = post.likedUserIds?.includes(currentUserId);
   const mainImg = post.images?.[0];
   const extraCount = (post.images?.length || 0) - 1;
@@ -32,7 +32,10 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
             <div className="post-meta">{locationText && `${locationText} · `}{timeAgo(post.createdAt)}</div>
           </div>
         </div>
-        <div style={{ fontSize: 18, color: '#ddd', cursor: 'pointer' }}>⋯</div>
+        <div style={{ position: 'relative' }}>
+          <button style={{ fontSize: 18, color: '#ddd', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+            onClick={(e) => { e.stopPropagation(); onReport?.(post); }}>⋯</button>
+        </div>
       </div>
 
       {/* 이미지 - 다크 */}
@@ -64,7 +67,10 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
         </div>
         {post.tags?.length > 0 && (
           <div className="post-tags">
-            {post.tags.slice(0, 4).map(t => <span key={t} className="tag">#{t}</span>)}
+            {post.tags.slice(0, 4).map(t => (
+              <span key={t} className="tag" style={{ cursor: onTagClick ? 'pointer' : 'default' }}
+                onClick={() => onTagClick?.(t)}>#{t}</span>
+            ))}
           </div>
         )}
         {post.places?.length > 0 && (

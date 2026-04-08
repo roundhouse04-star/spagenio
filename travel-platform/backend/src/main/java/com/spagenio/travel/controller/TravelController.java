@@ -111,4 +111,51 @@ public class TravelController {
     @DeleteMapping("/plans/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePlan(@PathVariable String id) { service.deletePlan(id); }
+
+    // ── Report ────────────────────────────────────────────
+    @GetMapping("/reports")
+    public List<Report> getReports(@RequestParam(required = false) String status) {
+        return "pending".equals(status) ? service.getPendingReports() : service.getReports();
+    }
+
+    @PostMapping("/reports")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Report createReport(@RequestBody Report report) { return service.createReport(report); }
+
+    @PostMapping("/reports/{id}/resolve")
+    public Report resolveReport(@PathVariable String id, @RequestBody Map<String, String> body) {
+        return service.resolveReport(id, body.getOrDefault("action", "resolved"));
+    }
+
+    // ── Notice ────────────────────────────────────────────
+    @GetMapping("/notices")
+    public List<Notice> getNotices(@RequestParam(required = false) String active) {
+        return "true".equals(active) ? service.getActiveNotices() : service.getNotices();
+    }
+
+    @PostMapping("/notices")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Notice createNotice(@RequestBody Notice notice) { return service.createNotice(notice); }
+
+    @PatchMapping("/notices/{id}")
+    public Notice updateNotice(@PathVariable String id, @RequestBody Notice notice) {
+        return service.updateNotice(id, notice);
+    }
+
+    @DeleteMapping("/notices/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteNotice(@PathVariable String id) { service.deleteNotice(id); }
+
+    // ── Admin Stats ───────────────────────────────────────
+    @GetMapping("/admin/stats/posts")
+    public Map<String, Object> getAdminPostStats() { return service.getAdminStats(); }
+
+    // 게시물 강제 비공개
+    @PostMapping("/admin/posts/{id}/hide")
+    public Post hidePost(@PathVariable String id) { return service.hidePost(id); }
+
+    // 게시물 강제 삭제
+    @DeleteMapping("/admin/posts/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void adminDeletePost(@PathVariable String id) { service.deletePost(id); }
 }

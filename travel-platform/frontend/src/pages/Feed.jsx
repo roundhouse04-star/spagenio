@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import PostCard from '../components/PostCard';
+import NoticeBar from '../components/NoticeBar';
+import ReportModal from '../components/ReportModal';
 
-export default function Feed({ currentUser, onOpenPost, onProfile }) {
+export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick }) {
+  const [reportPost, setReportPost] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,10 +58,12 @@ export default function Feed({ currentUser, onOpenPost, onProfile }) {
         <div className="feed">
           {posts.map(post => (
             <PostCard key={post.id} post={post} currentUserId={currentUser?.id}
-              onOpen={onOpenPost} onProfile={onProfile} onLike={handleLike} />
+              onOpen={onOpenPost} onProfile={onProfile} onLike={handleLike} onTagClick={onTagClick}
+              onReport={setReportPost} />
           ))}
         </div>
       )}
+      {reportPost && <ReportModal post={reportPost} currentUser={currentUser} onClose={() => setReportPost(null)} />}
     </div>
   );
 }
