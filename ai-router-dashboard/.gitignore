@@ -4,3 +4,4 @@ logs/
 stock.db
 *.log
 .DS_Store
+*.bak

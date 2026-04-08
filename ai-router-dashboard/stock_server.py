@@ -323,11 +323,15 @@ def get_market_indicators():
                 change_pct = round((change / prev) * 100, 2) if prev else 0
             else:
                 ticker = yf.Ticker(item['symbol'])
-                hist = ticker.history(period='2d')
+                hist = ticker.history(period='5d')
                 if hist.empty:
                     continue
-                price = round(float(hist['Close'].iloc[-1]), 2)
-                prev  = round(float(hist['Close'].iloc[-2]), 2) if len(hist) >= 2 else price
+                close_val = hist["Close"].dropna()
+                if close_val.empty:
+                    continue
+                price = round(float(close_val.iloc[-1]), 2)
+                prev_val = hist['Close'].dropna()
+                prev  = round(float(prev_val.iloc[-2]), 2) if len(prev_val) >= 2 else price
                 change = round(price - prev, 2)
                 change_pct = round((change / prev) * 100, 2) if prev else 0
             results.append({
