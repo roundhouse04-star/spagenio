@@ -20,6 +20,10 @@ export const api = {
   updateUser: (id, data) => req(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   follow: (userId, targetId) => req(`/api/users/${userId}/follow/${targetId}`, { method: 'POST' }),
   unfollow: (userId, targetId) => req(`/api/users/${userId}/unfollow/${targetId}`, { method: 'POST' }),
+  block: (userId, targetId) => req(`/api/users/${userId}/block/${targetId}`, { method: 'POST' }),
+  unblock: (userId, targetId) => req(`/api/users/${userId}/unblock/${targetId}`, { method: 'POST' }),
+  getFollowers: (userId) => req(`/api/users/${userId}/followers`),
+  getFollowings: (userId) => req(`/api/users/${userId}/followings`),
   getUserPosts: (userId) => req(`/api/users/${userId}/posts`),
   getUserPlans: (userId) => req(`/api/users/${userId}/plans`),
 
@@ -28,7 +32,7 @@ export const api = {
     const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v)));
     return req(`/api/posts${q.toString() ? '?' + q : ''}`);
   },
-  getFeed: (userId) => req(`/api/posts?userId=${userId}`),
+  getFeed: (userId) => req(`/api/posts?userId=${userId}&feed=true`),
   getPost: (id) => req(`/api/posts/${id}`),
   createPost: (data) => req('/api/posts', { method: 'POST', body: JSON.stringify(data) }),
   toggleLike: (id, userId) => req(`/api/posts/${id}/like`, { method: 'POST', body: JSON.stringify({ userId }) }),

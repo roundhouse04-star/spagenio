@@ -23,6 +23,7 @@ public class Post {
     private String country;
     private String city;
     private String createdAt;
+    private String visibility = "public"; // public | private
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "post_images", joinColumns = @JoinColumn(name = "post_id"))
@@ -65,6 +66,8 @@ public class Post {
     public void setCity(String city) { this.city = city; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public String getVisibility() { return visibility; }
+    public void setVisibility(String visibility) { this.visibility = visibility; }
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
     public List<String> getTags() { return tags; }

@@ -37,6 +37,18 @@ public class TravelController {
     @PostMapping("/users/{userId}/unfollow/{targetId}")
     public User unfollow(@PathVariable String userId, @PathVariable String targetId) { return service.unfollow(userId, targetId); }
 
+    @PostMapping("/users/{userId}/block/{targetId}")
+    public User block(@PathVariable String userId, @PathVariable String targetId) { return service.block(userId, targetId); }
+
+    @PostMapping("/users/{userId}/unblock/{targetId}")
+    public User unblock(@PathVariable String userId, @PathVariable String targetId) { return service.unblock(userId, targetId); }
+
+    @GetMapping("/users/{userId}/followers")
+    public List<User> getFollowers(@PathVariable String userId) { return service.getFollowers(userId); }
+
+    @GetMapping("/users/{userId}/followings")
+    public List<User> getFollowings(@PathVariable String userId) { return service.getFollowings(userId); }
+
     @GetMapping("/users/{userId}/posts")
     public List<Post> getUserPosts(@PathVariable String userId) { return service.getPostsByUser(userId); }
 

@@ -29,9 +29,14 @@ public class TravelService {
     }
     public User follow(String userId, String targetId) { return repo.followUser(userId, targetId); }
     public User unfollow(String userId, String targetId) { return repo.unfollowUser(userId, targetId); }
+    public User block(String userId, String targetId) { return repo.blockUser(userId, targetId); }
+    public User unblock(String userId, String targetId) { return repo.unblockUser(userId, targetId); }
+    public List<User> getFollowers(String userId) { return repo.findFollowers(userId); }
+    public List<User> getFollowings(String userId) { return repo.findFollowings(userId); }
 
     // Post
-    public List<Post> getAllPosts() { return repo.findAllPosts(); }
+    public List<Post> getAllPosts() { return repo.findAllPosts(null); }
+    public List<Post> getAllPosts(String currentUserId) { return repo.findAllPosts(currentUserId); }
     public List<Post> getFeedPosts(String userId) { return repo.findFeedPosts(userId); }
     public List<Post> getPostsByUser(String userId) { return repo.findPostsByUserId(userId); }
     public List<Post> searchPosts(String keyword, String country, String city) { return repo.searchPosts(keyword, country, city); }

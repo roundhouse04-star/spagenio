@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, UploadFile, File
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import smtplib, random, string, os, time, uuid, sqlite3
 from pathlib import Path
 from contextlib import contextmanager
+from io import BytesIO
+import shutil
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -39,6 +43,20 @@ DB_PATH = HOME / "projects/spagenio/travel-platform/data/travellog.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 verify_store: dict = {}
+
+# ── 업로드 설정 ──────────────────────────────────────────
+UPLOAD_DIR = HOME / "projects/spagenio/travel-platform/uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+BASE_URL = os.getenv("BASE_URL", "https://travel.spagenio.com")
+MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20MB
+ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"}
+
+# 이미지 사이즈 설정
+IMG_SIZES = {
+    "thumb":  (300,  300,  85),   # (width, height, quality)
+    "feed":   (800,  800,  85),
+    "detail": (1920, 1920, 90),
+}
 
 @contextmanager
 def get_db():
@@ -220,8 +238,95 @@ class AdminUpdateReq(BaseModel):
 class AdminResetPwReq(BaseModel):
     newPassword: str
 
+# ── 정적 파일 서빙 (/uploads/**) ─────────────────────────
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 @app.get("/")
 def root(): return {"status": "ok", "service": "travellog-auth"}
+
+# ── 이미지 업로드 ─────────────────────────────────────────
+def resize_to_webp(image_bytes: bytes, max_w: int, max_h: int, quality: int) -> bytes:
+    try:
+        from PIL import Image
+        img = Image.open(BytesIO(image_bytes))
+        # EXIF 회전 보정
+        try:
+            from PIL import ExifTags
+            exif = img._getexif()
+            if exif:
+                for tag, val in exif.items():
+                    if ExifTags.TAGS.get(tag) == "Orientation":
+                        if val == 3: img = img.rotate(180, expand=True)
+                        elif val == 6: img = img.rotate(270, expand=True)
+                        elif val == 8: img = img.rotate(90, expand=True)
+        except:
+            pass
+        # RGBA → RGB
+        if img.mode in ("RGBA", "P", "LA"):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
+            img = bg
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+        # 비율 유지 리사이즈
+        img.thumbnail((max_w, max_h), Image.LANCZOS)
+        out = BytesIO()
+        img.save(out, format="WEBP", quality=quality, method=6)
+        return out.getvalue()
+    except Exception as e:
+        raise HTTPException(500, f"이미지 변환 실패: {str(e)}")
+
+@app.post("/api/upload")
+async def upload_image(file: UploadFile = File(...)):
+    # 타입 검증
+    if file.content_type not in ALLOWED_TYPES:
+        raise HTTPException(400, "이미지 파일만 업로드 가능합니다. (jpg, png, gif, webp, heic)")
+    # 크기 검증
+    image_bytes = await file.read()
+    if len(image_bytes) > MAX_UPLOAD_SIZE:
+        raise HTTPException(400, "파일 크기는 20MB 이하여야 합니다.")
+
+    # 날짜별 폴더
+    date_dir = time.strftime("%Y/%m/%d")
+    save_dir = UPLOAD_DIR / date_dir
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # 고유 ID
+    file_id = str(uuid.uuid4()).replace("-", "")[:16]
+    ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
+
+    # 원본 저장
+    original_path = save_dir / f"{file_id}_original{ext}"
+    original_path.write_bytes(image_bytes)
+
+    # 각 사이즈별 WebP 변환 저장
+    urls = {"original": f"{BASE_URL}/uploads/{date_dir}/{file_id}_original{ext}"}
+    for size_name, (max_w, max_h, quality) in IMG_SIZES.items():
+        webp_bytes = resize_to_webp(image_bytes, max_w, max_h, quality)
+        webp_path = save_dir / f"{file_id}_{size_name}.webp"
+        webp_path.write_bytes(webp_bytes)
+        urls[size_name] = f"{BASE_URL}/uploads/{date_dir}/{file_id}_{size_name}.webp"
+
+    return {
+        "url": urls["feed"],          # 기본 반환 URL (피드용)
+        "thumb": urls["thumb"],
+        "feed": urls["feed"],
+        "detail": urls["detail"],
+        "original": urls["original"],
+    }
+
+@app.post("/api/upload/multiple")
+async def upload_multiple(files: list[UploadFile] = File(...)):
+    if len(files) > 10:
+        raise HTTPException(400, "최대 10개까지 업로드 가능합니다.")
+    results = []
+    for file in files:
+        result = await upload_image(file)
+        results.append(result)
+    return {
+        "urls": [r["feed"] for r in results],   # 피드용 URL 목록
+        "details": results,
+    }
 
 @app.post("/api/register/send-code")
 def register_send_code(req: SendCodeReq):

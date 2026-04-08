@@ -39,6 +39,13 @@ public class User {
     @Column(name = "follower_id")
     private List<String> followerIds = new ArrayList<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_blocked", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "blocked_id")
+    private List<String> blockedIds = new ArrayList<>();
+
+    private String defaultFeed = "all";
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getNickname() { return nickname; }
@@ -67,4 +74,8 @@ public class User {
     public void setFollowingIds(List<String> followingIds) { this.followingIds = followingIds; }
     public List<String> getFollowerIds() { return followerIds; }
     public void setFollowerIds(List<String> followerIds) { this.followerIds = followerIds; }
+    public List<String> getBlockedIds() { return blockedIds; }
+    public void setBlockedIds(List<String> blockedIds) { this.blockedIds = blockedIds; }
+    public String getDefaultFeed() { return defaultFeed; }
+    public void setDefaultFeed(String defaultFeed) { this.defaultFeed = defaultFeed; }
 }
