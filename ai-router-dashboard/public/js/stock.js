@@ -2371,7 +2371,7 @@ window.saveAutoStrategy = async function () {
       sma200_exit: document.getElementById('asSma200Exit').checked,
       broker_key_id: window.selectedAccountId || window.activeAccountId || null,
     };
-    const res = await fetch('/api/trade3/settings', {
+    const res = await fetch('/api/trade3/settings_save', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
     const d = await res.json();
