@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { api } from '../api';
+import { TRAVEL_STYLES } from '../travelStyles';
 
 const emptyPlace = () => ({ name: '', address: '', lat: '', lng: '', category: '관광', howToGet: '', tip: '' });
 
@@ -32,6 +33,7 @@ export default function Write({ currentUser, onDone, draft }) {
     images: [],
     visibility: 'public'
   });
+  const [travelStyles, setTravelStyles] = useState(draft?.tags || []);
   const [places, setPlaces] = useState([emptyPlace()]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -111,6 +113,10 @@ export default function Write({ currentUser, onDone, draft }) {
     setUrlInput('');
   };
 
+  const toggleStyle = (key) => {
+    setTravelStyles(prev => prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]);
+  };
+
   const submit = async () => {
     if (!form.title.trim()) { setError('제목을 입력해주세요.'); return; }
     if (!currentUser) { setError('로그인이 필요해요.'); return; }
@@ -120,7 +126,7 @@ export default function Write({ currentUser, onDone, draft }) {
       const validPlaces = places
         .filter(p => p.name.trim())
         .map((p, i) => ({ ...p, order: i + 1, lat: parseFloat(p.lat) || 0, lng: parseFloat(p.lng) || 0 }));
-      await api.createPost({ ...form, tags, places: validPlaces, userId: currentUser.id });
+      await api.createPost({ ...form, tags, travelStyles, places: validPlaces, userId: currentUser.id });
       onDone?.();
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -154,6 +160,22 @@ export default function Write({ currentUser, onDone, draft }) {
         <div className="form-group">
           <label className="form-label">여행 이야기</label>
           <textarea className="form-textarea" placeholder="여행 이야기를 자유롭게 적어주세요..." value={form.content} onChange={e => update('content', e.target.value)} rows={5} />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">여행 스타일 (복수 선택 가능)</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {TRAVEL_STYLES.map(s => {
+              const selected = travelStyles.includes(s.key);
+              return (
+                <button key={s.key} type="button" onClick={() => toggleStyle(s.key)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 20, border: `1.5px solid ${selected ? s.color : '#eee'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#9ca3af', fontSize: 13, fontWeight: selected ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
+                  <span style={{ fontSize: 16 }}>{s.icon}</span> {s.label}
+                </button>
+              );
+            })}
+          </div>
+          {travelStyles.length === 0 && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>선택 안 해도 되지만 선택하면 탐색에서 더 잘 찾아져요!</div>}
         </div>
 
         <div className="form-group">

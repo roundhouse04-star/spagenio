@@ -41,7 +41,8 @@ public class TravelService {
     public List<Post> getAllPosts(String currentUserId) { return repo.findAllPosts(currentUserId); }
     public List<Post> getFeedPosts(String userId) { return repo.findFeedPosts(userId); }
     public List<Post> getPostsByUser(String userId) { return repo.findPostsByUserId(userId); }
-    public List<Post> searchPosts(String keyword, String country, String city) { return repo.searchPosts(keyword, country, city); }
+    public List<Post> searchPosts(String keyword, String country, String city) { return repo.searchPosts(keyword, country, city, null); }
+    public List<Post> searchPosts(String keyword, String country, String city, String travelStyle) { return repo.searchPosts(keyword, country, city, travelStyle); }
     public Post getPost(String id) { return repo.findPostById(id).orElseThrow(() -> new IllegalArgumentException("post_not_found")); }
     public Post createPost(Post post) {
         if (post.getTitle() == null || post.getTitle().isBlank()) throw new IllegalArgumentException("title_required");

@@ -61,9 +61,11 @@ public class TravelController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String country,
             @RequestParam(required = false) String city,
+            @RequestParam(required = false) String travelStyle,
             @RequestParam(required = false) String userId) {
         if (userId != null) return service.getFeedPosts(userId);
-        if (keyword != null || country != null || city != null) return service.searchPosts(keyword, country, city);
+        if (keyword != null || country != null || city != null || travelStyle != null)
+            return service.searchPosts(keyword, country, city, travelStyle);
         return service.getAllPosts();
     }
 

@@ -149,16 +149,22 @@ public class TravelRepository {
     }
 
     public List<Post> searchPosts(String keyword, String country, String city) {
+        return searchPosts(keyword, country, city, null);
+    }
+
+    public List<Post> searchPosts(String keyword, String country, String city, String travelStyle) {
         String q = "SELECT p FROM Post p WHERE p.visibility = 'public'";
         if (keyword != null && !keyword.isBlank()) q += " AND (LOWER(p.title) LIKE LOWER(:kw) OR LOWER(p.content) LIKE LOWER(:kw))";
         if (country != null && !country.isBlank()) q += " AND LOWER(p.country) LIKE LOWER(:ct)";
         if (city != null && !city.isBlank()) q += " AND LOWER(p.city) LIKE LOWER(:ci)";
+        if (travelStyle != null && !travelStyle.isBlank()) q += " AND :ts MEMBER OF p.travelStyles";
         q += " ORDER BY p.createdAt DESC";
 
         var query = em.createQuery(q, Post.class);
         if (keyword != null && !keyword.isBlank()) query.setParameter("kw", "%" + keyword + "%");
         if (country != null && !country.isBlank()) query.setParameter("ct", "%" + country + "%");
         if (city != null && !city.isBlank()) query.setParameter("ci", "%" + city + "%");
+        if (travelStyle != null && !travelStyle.isBlank()) query.setParameter("ts", travelStyle);
         return query.getResultList();
     }
 

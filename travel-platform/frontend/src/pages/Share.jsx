@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
+import { TRAVEL_STYLES } from '../travelStyles';
 
 function timeUntil(dateStr) {
   if (!dateStr) return null;
@@ -23,7 +24,8 @@ export default function Share({ currentUser, onProfile }) {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('all');       // all | schedule | places
   const [searchQuery, setSearchQuery] = useState('');
-  const [showMine, setShowMine] = useState(false); // 내 공유정보만 보기
+  const [showMine, setShowMine] = useState(false);
+  const [styleFilter, setStyleFilter] = useState(''); // 여행 스타일 필터
 
   useEffect(() => {
     if (currentUser) load();
@@ -64,13 +66,14 @@ export default function Share({ currentUser, onProfile }) {
 
   // 검색 필터 (제목 or 작성자 닉네임 or 장소명)
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q
-    ? tabFiltered.filter(p =>
-        p.title?.toLowerCase().includes(q) ||
-        p.userNickname?.toLowerCase().includes(q) ||
-        p.items?.some(i => i.placeName?.toLowerCase().includes(q))
-      )
-    : tabFiltered;
+  const filtered = tabFiltered.filter(p => {
+    const matchSearch = !q || (
+      p.title?.toLowerCase().includes(q) ||
+      p.userNickname?.toLowerCase().includes(q) ||
+      p.items?.some(i => i.placeName?.toLowerCase().includes(q))
+    );
+    return matchSearch;
+  });
 
   // 같은 장소 가는 친구 (내 공유정보 모드 아닐 때만)
   const sameDestFriends = !showMine
@@ -112,6 +115,23 @@ export default function Share({ currentUser, onProfile }) {
             style={{ width: 15, height: 15, accentColor: '#4f46e5', cursor: 'pointer' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: showMine ? '#4f46e5' : '#6b7280', whiteSpace: 'nowrap' }}>🔗 내 공유정보</span>
         </label>
+      </div>
+
+      {/* 여행 스타일 필터 */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <button onClick={() => setStyleFilter('')}
+          style={{ padding: '6px 14px', borderRadius: 20, border: `1.5px solid ${!styleFilter ? '#4f46e5' : '#eee'}`, background: !styleFilter ? '#eef2ff' : 'white', color: !styleFilter ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: !styleFilter ? 700 : 500, cursor: 'pointer' }}>
+          🌍 전체
+        </button>
+        {TRAVEL_STYLES.map(s => {
+          const isSel = styleFilter === s.key;
+          return (
+            <button key={s.key} onClick={() => setStyleFilter(isSel ? '' : s.key)}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${isSel ? s.color : '#eee'}`, background: isSel ? s.bg : 'white', color: isSel ? s.color : '#9ca3af', fontSize: 12, fontWeight: isSel ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
+              <span style={{ fontSize: 14 }}>{s.icon}</span> {s.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* 같은 곳 가는 친구 알림 */}
