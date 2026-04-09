@@ -3,13 +3,46 @@ import { api } from '../api';
 import PostCard from '../components/PostCard';
 import NoticeBar from '../components/NoticeBar';
 import ReportModal from '../components/ReportModal';
+import { TRAVEL_STYLES } from '../travelStyles';
 
 const PAGE_SIZE = 8;
+
+// 프로모션 카드 컴포넌트
+function PromoCard({ promo }) {
+  const typeColor = promo.type === 'ad' ? { bg: '#fffbeb', border: '#fde68a', badge: '#d97706', badgeText: '광고' }
+    : promo.type === 'event' ? { bg: '#f0fdf4', border: '#bbf7d0', badge: '#16a34a', badgeText: '이벤트' }
+    : { bg: '#eef2ff', border: '#c7d2fe', badge: '#4f46e5', badgeText: '공지' };
+
+  return (
+    <div style={{ background: typeColor.bg, border: `1.5px solid ${typeColor.border}`, borderRadius: 18, overflow: 'hidden', marginBottom: 0 }}>
+      {promo.imageUrl && (
+        <img src={promo.imageUrl} alt={promo.title}
+          style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }} />
+      )}
+      <div style={{ padding: '14px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: typeColor.badge, color: 'white' }}>
+            {typeColor.badgeText}
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>{promo.title}</span>
+        </div>
+        <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6, margin: 0 }}>{promo.content}</p>
+        {promo.linkUrl && (
+          <a href={promo.linkUrl} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-block', marginTop: 10, padding: '7px 16px', background: typeColor.badge, color: 'white', borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            {promo.linkLabel || '자세히 보기'} →
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick }) {
   const [reportPost, setReportPost] = useState(null);
   const [posts, setPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -20,6 +53,16 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
 
   const hasFollowings = currentUser?.followingIds?.length > 0;
   const [tab, setTab] = useState(hasFollowings ? 'following' : 'all');
+
+  // 성향 기반 정렬
+  const sortByPreference = (posts, preferredStyles) => {
+    if (!preferredStyles?.length) return posts;
+    return [...posts].sort((a, b) => {
+      const aMatch = (a.travelStyles || []).some(s => preferredStyles.includes(s)) ? 1 : 0;
+      const bMatch = (b.travelStyles || []).some(s => preferredStyles.includes(s)) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  };
 
   useEffect(() => { load(); }, [tab, currentUser?.id]);
 
@@ -33,17 +76,30 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
       } else {
         data = await api.getPosts({ currentUserId: currentUser?.id });
       }
-      const sorted = (data || []);
+
+      // 성향 기반 정렬
+      const sorted = sortByPreference(data || [], currentUser?.preferredStyles);
       setAllPosts(sorted);
       setPosts(sorted.slice(0, PAGE_SIZE));
       setHasMore(sorted.length > PAGE_SIZE);
 
-      // 팔로우 추천 (팔로잉 탭 & 게시물 없을 때 or 전체에서 항상)
+      // 프로모션 로드
+      try {
+        const promos = await api.getPromotions();
+        setPromotions(promos || []);
+      } catch (e) { setPromotions([]); }
+
+      // 팔로우 추천
       if (tab === 'following' && (!data || data.length === 0)) {
         const users = await api.getUsers();
         const suggested = (users || [])
           .filter(u => u.id !== currentUser?.id && !currentUser?.followingIds?.includes(u.id))
-          .sort(() => Math.random() - 0.5)
+          .sort((a, b) => {
+            // 같은 성향 유저 우선
+            const aMatch = (a.preferredStyles || []).some(s => currentUser?.preferredStyles?.includes(s)) ? 1 : 0;
+            const bMatch = (b.preferredStyles || []).some(s => currentUser?.preferredStyles?.includes(s)) ? 1 : 0;
+            return bMatch - aMatch || Math.random() - 0.5;
+          })
           .slice(0, 5);
         setSuggestedUsers(suggested);
       } else {
@@ -92,6 +148,29 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
     } catch (e) { console.error(e); }
   };
 
+  // 프로모션을 게시물 사이에 삽입하는 로직
+  const buildFeedItems = (posts, promotions) => {
+    if (!promotions.length) return posts.map(p => ({ type: 'post', data: p }));
+    const items = [];
+    let promoIdx = 0;
+    posts.forEach((post, i) => {
+      items.push({ type: 'post', data: post });
+      const promo = promotions[promoIdx % promotions.length];
+      const interval = promo?.insertEvery || 5;
+      if ((i + 1) % interval === 0 && promoIdx < promotions.length * 3) {
+        items.push({ type: 'promo', data: promo });
+        promoIdx++;
+      }
+    });
+    return items;
+  };
+
+  const feedItems = buildFeedItems(posts, promotions.filter(p => p.active));
+
+  // 성향 표시 라벨
+  const prefStyles = currentUser?.preferredStyles || [];
+  const prefLabels = prefStyles.map(k => TRAVEL_STYLES.find(s => s.key === k)).filter(Boolean);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="feed-tabs">
@@ -100,6 +179,18 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
           팔로잉 {hasFollowings && <span style={{ fontSize: 11, background: '#4f46e5', color: 'white', borderRadius: 10, padding: '1px 6px', marginLeft: 4 }}>{currentUser.followingIds.length}</span>}
         </button>
       </div>
+
+      {/* 성향 기반 필터 표시 */}
+      {prefLabels.length > 0 && tab === 'all' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>✨ 내 성향 맞춤:</span>
+          {prefLabels.map(s => (
+            <span key={s.key} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: s.bg, color: s.color, border: `1px solid ${s.border}`, fontWeight: 700 }}>
+              {s.icon} {s.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="empty">불러오는 중...</div>
@@ -117,6 +208,10 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
                       onClick={() => onProfile?.(u.id)} alt="" />
                     <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a2e', textAlign: 'center', maxWidth: 76, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.nickname}</div>
                     {u.visitedCountries > 0 && <div style={{ fontSize: 10, color: '#9ca3af' }}>{u.visitedCountries}개국</div>}
+                    {/* 공통 성향 표시 */}
+                    {prefStyles.length > 0 && (u.preferredStyles || []).some(s => prefStyles.includes(s)) && (
+                      <div style={{ fontSize: 10, color: '#4f46e5', fontWeight: 700 }}>같은 성향</div>
+                    )}
                     <button onClick={() => handleFollow(u.id)}
                       style={{ padding: '4px 10px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                       팔로우
@@ -135,11 +230,15 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
             </div>
           ) : (
             <div className="feed">
-              {posts.map(post => (
-                <PostCard key={post.id} post={post} currentUserId={currentUser?.id}
-                  onOpen={onOpenPost} onProfile={onProfile} onLike={handleLike} onTagClick={onTagClick}
-                  onReport={setReportPost} />
-              ))}
+              {feedItems.map((item, idx) =>
+                item.type === 'promo' ? (
+                  <PromoCard key={`promo-${item.data.id}-${idx}`} promo={item.data} />
+                ) : (
+                  <PostCard key={item.data.id} post={item.data} currentUserId={currentUser?.id}
+                    onOpen={onOpenPost} onProfile={onProfile} onLike={handleLike} onTagClick={onTagClick}
+                    onReport={setReportPost} />
+                )
+              )}
             </div>
           )}
 

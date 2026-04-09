@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
+import { TRAVEL_STYLES } from '../travelStyles';
 
 // 팔로워/팔로잉 목록 모달
 function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow }) {
@@ -51,7 +52,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [modalUsers, setModalUsers] = useState([]);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '' });
+  const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '', preferredStyles: [] });
   const [imagePreview, setImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [profileTab, setProfileTab] = useState('posts'); // posts | saved | badges
@@ -124,11 +125,11 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     if (!editData.nickname.trim()) return;
     setSaving(true);
     try {
-      const payload = { nickname: editData.nickname, bio: editData.bio };
+      const payload = { nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles };
       if (editData.profileImage) payload.profileImage = editData.profileImage;
       await api.updateUser(userId, payload);
-      setUser(prev => ({ ...prev, nickname: editData.nickname, bio: editData.bio, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) }));
-      onChangeUser?.({ ...currentUser, nickname: editData.nickname, bio: editData.bio, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) });
+      setUser(prev => ({ ...prev, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) }));
+      onChangeUser?.({ ...currentUser, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) });
       setEditing(false);
       setImagePreview('');
     } catch (e) { alert('저장 실패: ' + e.message); }
@@ -170,6 +171,27 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               <textarea value={editData.bio} onChange={e => setEditData(p => ({ ...p, bio: e.target.value }))}
                 placeholder="소개글 (선택)" rows={3} maxLength={100}
                 style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical' }} />
+
+              {/* 여행 성향 */}
+              <div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>✈️ 여행 성향 (복수 선택)</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {TRAVEL_STYLES.map(s => {
+                    const selected = (editData.preferredStyles || []).includes(s.key);
+                    return (
+                      <button key={s.key} type="button" onClick={() => setEditData(p => ({
+                        ...p,
+                        preferredStyles: selected
+                          ? p.preferredStyles.filter(k => k !== s.key)
+                          : [...(p.preferredStyles || []), s.key]
+                      }))}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${selected ? s.color : '#eee'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#9ca3af', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
+                        <span style={{ fontSize: 14 }}>{s.icon}</span> {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveProfile} disabled={saving}
                   style={{ flex: 1, padding: '9px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -186,7 +208,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div className="profile-name">{user.nickname}</div>
                 {isMe && (
-                  <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '' }); setImagePreview(''); }}
+                  <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '', preferredStyles: user.preferredStyles || [] }); setImagePreview(''); }}
                     style={{ padding: '5px 12px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
                     ✏️ 편집
                   </button>

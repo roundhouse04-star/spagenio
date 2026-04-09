@@ -73,6 +73,12 @@ export const api = {
   // Bookmark
   toggleBookmark: (userId, postId) => req(`/api/users/${userId}/bookmark/${postId}`, { method: 'POST' }),
 
+  // Promotion
+  getPromotions: (all) => req(`/api/promotions${all ? '?all=true' : ''}`),
+  createPromotion: (data) => req('/api/promotions', { method: 'POST', body: JSON.stringify(data) }),
+  updatePromotion: (id, data) => req(`/api/promotions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deletePromotion: (id) => req(`/api/promotions/${id}`, { method: 'DELETE' }),
+
   // Admin
   getAdminPostStats: () => req('/api/admin/stats/posts'),
   hidePost: (id) => req(`/api/admin/posts/${id}/hide`, { method: 'POST' }),

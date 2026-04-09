@@ -442,4 +442,23 @@ public class TravelRepository {
         );
     }
 
+    // ── Promotion ─────────────────────────────────────────
+    public List<Promotion> findActivePromotions() {
+        return em.createQuery("SELECT p FROM Promotion p WHERE p.active = true ORDER BY p.priority DESC, p.createdAt DESC", Promotion.class).getResultList();
+    }
+
+    public List<Promotion> findAllPromotions() {
+        return em.createQuery("SELECT p FROM Promotion p ORDER BY p.createdAt DESC", Promotion.class).getResultList();
+    }
+
+    public Promotion savePromotion(Promotion p) {
+        if (p.getId() == null) { p.setId(uuid()); p.setCreatedAt(now()); em.persist(p); }
+        else p = em.merge(p);
+        return p;
+    }
+
+    public void deletePromotion(String id) {
+        Promotion p = em.find(Promotion.class, id);
+        if (p != null) em.remove(p);
+    }
 }

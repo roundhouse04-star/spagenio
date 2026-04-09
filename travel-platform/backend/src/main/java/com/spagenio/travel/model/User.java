@@ -56,6 +56,11 @@ public class User {
     @Column(name = "badge")
     private List<String> badges = new ArrayList<>();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_preferred_styles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "style")
+    private List<String> preferredStyles = new ArrayList<>();
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getNickname() { return nickname; }
@@ -92,4 +97,6 @@ public class User {
     public void setSavedPostIds(List<String> savedPostIds) { this.savedPostIds = savedPostIds; }
     public List<String> getBadges() { return badges; }
     public void setBadges(List<String> badges) { this.badges = badges; }
+    public List<String> getPreferredStyles() { return preferredStyles; }
+    public void setPreferredStyles(List<String> preferredStyles) { this.preferredStyles = preferredStyles; }
 }

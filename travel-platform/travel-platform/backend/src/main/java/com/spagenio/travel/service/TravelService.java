@@ -27,6 +27,7 @@ public class TravelService {
         if (user.getNickname() != null) existing.setNickname(user.getNickname());
         if (user.getBio() != null) existing.setBio(user.getBio());
         if (user.getProfileImage() != null) existing.setProfileImage(user.getProfileImage());
+        if (user.getPreferredStyles() != null) existing.setPreferredStyles(user.getPreferredStyles());
         return repo.saveUser(existing);
     }
     public User follow(String userId, String targetId) { return repo.followUser(userId, targetId); }
@@ -180,4 +181,10 @@ public class TravelService {
         post.setVisibility("private");
         return repo.savePost(post);
     }
+
+    // Promotion
+    public List<Promotion> getActivePromotions() { return repo.findActivePromotions(); }
+    public List<Promotion> getAllPromotions() { return repo.findAllPromotions(); }
+    public Promotion savePromotion(Promotion p) { return repo.savePromotion(p); }
+    public void deletePromotion(String id) { repo.deletePromotion(id); }
 }

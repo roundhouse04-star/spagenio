@@ -207,4 +207,26 @@ public class TravelController {
     public User toggleBookmark(@PathVariable String userId, @PathVariable String postId) {
         return service.toggleBookmark(userId, postId);
     }
+
+    // ── Promotion ─────────────────────────────────────────
+    @GetMapping("/promotions")
+    public List<Promotion> getPromotions(@RequestParam(required = false) String all) {
+        return "true".equals(all) ? service.getAllPromotions() : service.getActivePromotions();
+    }
+
+    @PostMapping("/promotions")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Promotion createPromotion(@RequestBody Promotion promotion) {
+        return service.savePromotion(promotion);
+    }
+
+    @PatchMapping("/promotions/{id}")
+    public Promotion updatePromotion(@PathVariable String id, @RequestBody Promotion promotion) {
+        promotion.setId(id);
+        return service.savePromotion(promotion);
+    }
+
+    @DeleteMapping("/promotions/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePromotion(@PathVariable String id) { service.deletePromotion(id); }
 }
