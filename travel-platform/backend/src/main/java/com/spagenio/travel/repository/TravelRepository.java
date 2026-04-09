@@ -435,4 +435,30 @@ public class TravelRepository {
             "topPosts", topPosts
         );
     }
+
+    // ── 게시물 (유저별) ──────────────────────────────────────
+    public List<Post> findPostsByUserId(String userId) {
+        return em.createQuery("SELECT p FROM Post p WHERE p.userId = :uid ORDER BY p.createdAt DESC", Post.class)
+                .setParameter("uid", userId).getResultList();
+    }
+
+    // ── Companion ─────────────────────────────────────────────
+    public List<Companion> findCompanions(String country) {
+        if (country != null && !country.isBlank()) {
+            return em.createQuery("SELECT c FROM Companion c WHERE c.country = :country ORDER BY c.createdAt DESC", Companion.class)
+                    .setParameter("country", country).getResultList();
+        }
+        return em.createQuery("SELECT c FROM Companion c ORDER BY c.createdAt DESC", Companion.class).getResultList();
+    }
+
+    public Companion saveCompanion(Companion c) {
+        if (em.find(Companion.class, c.getId()) == null) em.persist(c);
+        else c = em.merge(c);
+        return c;
+    }
+
+    public void deleteCompanion(String id) {
+        Companion c = em.find(Companion.class, id);
+        if (c != null) em.remove(c);
+    }
 }

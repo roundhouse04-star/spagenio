@@ -46,6 +46,16 @@ public class User {
 
     private String defaultFeed = "all";
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_saved_posts", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "post_id")
+    private List<String> savedPostIds = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_badges", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "badge")
+    private List<String> badges = new ArrayList<>();
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public String getNickname() { return nickname; }
@@ -78,4 +88,8 @@ public class User {
     public void setBlockedIds(List<String> blockedIds) { this.blockedIds = blockedIds; }
     public String getDefaultFeed() { return defaultFeed; }
     public void setDefaultFeed(String defaultFeed) { this.defaultFeed = defaultFeed; }
+    public List<String> getSavedPostIds() { return savedPostIds; }
+    public void setSavedPostIds(List<String> savedPostIds) { this.savedPostIds = savedPostIds; }
+    public List<String> getBadges() { return badges; }
+    public void setBadges(List<String> badges) { this.badges = badges; }
 }

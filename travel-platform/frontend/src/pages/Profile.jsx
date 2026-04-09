@@ -54,6 +54,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '' });
   const [imagePreview, setImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
+  const [profileTab, setProfileTab] = useState('posts'); // posts | saved | badges
 
   useEffect(() => { load(); }, [userId]);
 
@@ -137,7 +138,6 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   if (loading) return <div className="empty">불러오는 중...</div>;
   if (!user) return <div className="empty">유저를 찾을 수 없어요.</div>;
 
-  // 비공개 게시물 필터 (본인이 아닐 경우)
   const visiblePosts = isMe ? posts : posts.filter(p => p.visibility !== 'private');
 
   return (
@@ -252,24 +252,121 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         />
       )}
 
-      {/* 게시물 그리드 */}
-      {visiblePosts.length === 0 ? (
-        <div className="empty">아직 게시물이 없어요.</div>
-      ) : (
-        <div className="profile-grid">
-          {visiblePosts.map(post => (
-            <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
-              {post.images?.[0]
-                ? <img src={post.images[0]} alt={post.title} />
-                : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
-              }
-              {post.visibility === 'private' && (
-                <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.5)', borderRadius: 6, padding: '2px 8px', fontSize: 11, color: 'white' }}>🔒</div>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* 프로필 탭 */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eee' }}>
+        {[
+          { key: 'posts', label: `📷 게시물 ${visiblePosts.length}` },
+          ...(isMe ? [{ key: 'saved', label: `🔖 저장됨` }] : []),
+          { key: 'badges', label: `🏅 뱃지 ${user.badges?.length || 0}` },
+        ].map(t => (
+          <button key={t.key} onClick={() => setProfileTab(t.key)}
+            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', borderBottom: `2px solid ${profileTab === t.key ? '#4f46e5' : 'transparent'}`, color: profileTab === t.key ? '#4f46e5' : '#9ca3af', fontSize: 13, fontWeight: profileTab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 게시물 탭 */}
+      {profileTab === 'posts' && (
+        visiblePosts.length === 0 ? (
+          <div className="empty">아직 게시물이 없어요.</div>
+        ) : (
+          <div className="profile-grid">
+            {visiblePosts.map(post => (
+              <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
+                {post.images?.[0]
+                  ? <img src={post.images[0]} alt={post.title} />
+                  : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
+                }
+                {post.visibility === 'private' && (
+                  <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.5)', borderRadius: 6, padding: '2px 8px', fontSize: 11, color: 'white' }}>🔒</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
       )}
+
+      {/* 저장된 게시물 탭 (본인만) */}
+      {profileTab === 'saved' && isMe && (
+        <SavedPosts userId={userId} savedPostIds={user.savedPostIds || []} onOpenPost={onOpenPost} />
+      )}
+
+      {/* 뱃지 탭 */}
+      {profileTab === 'badges' && (
+        <BadgeGrid badges={user.badges || []} posts={visiblePosts} user={user} />
+      )}
+    </div>
+  );
+}
+
+// ── 저장된 게시물 ───────────────────────────────────────
+function SavedPosts({ userId, savedPostIds, onOpenPost }) {
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!savedPostIds.length) { setLoading(false); return; }
+      try {
+        const all = await api.getPosts();
+        setSavedPosts((all || []).filter(p => savedPostIds.includes(p.id)));
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    load();
+  }, [savedPostIds]);
+
+  if (loading) return <div className="empty">불러오는 중...</div>;
+  if (!savedPosts.length) return <div className="empty">저장된 게시물이 없어요.<br/>게시물 상세에서 🔖 버튼으로 저장해보세요!</div>;
+
+  return (
+    <div className="profile-grid">
+      {savedPosts.map(post => (
+        <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
+          {post.images?.[0]
+            ? <img src={post.images[0]} alt={post.title} />
+            : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
+          }
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── 뱃지 그리드 ─────────────────────────────────────────
+const BADGE_INFO = {
+  first_post:    { icon: '✏️', name: '첫 게시물', desc: '첫 번째 여행 이야기 작성' },
+  ten_posts:     { icon: '📝', name: '여행 작가', desc: '게시물 10개 달성' },
+  fifty_posts:   { icon: '📚', name: '여행 전문가', desc: '게시물 50개 달성' },
+  likes_100:     { icon: '❤️', name: '인기 여행자', desc: '좋아요 100개 달성' },
+  likes_1000:    { icon: '🔥', name: '여행 인플루언서', desc: '좋아요 1000개 달성' },
+  followers_10:  { icon: '👥', name: '친구 만들기', desc: '팔로워 10명 달성' },
+  followers_100: { icon: '🌟', name: '여행 스타', desc: '팔로워 100명 달성' },
+  countries_5:   { icon: '🗺️', name: '세계 탐험가', desc: '5개국 방문' },
+  countries_10:  { icon: '✈️', name: '글로벌 여행자', desc: '10개국 방문' },
+  countries_30:  { icon: '🌍', name: '세계 일주', desc: '30개국 방문' },
+};
+
+function BadgeGrid({ badges, posts, user }) {
+  const allBadgeKeys = Object.keys(BADGE_INFO);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 12, color: '#9ca3af' }}>획득한 뱃지 {badges.length}개 / 전체 {allBadgeKeys.length}개</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+        {allBadgeKeys.map(key => {
+          const info = BADGE_INFO[key];
+          const earned = badges.includes(key);
+          return (
+            <div key={key} style={{ border: `1px solid ${earned ? '#c7d2fe' : '#eee'}`, borderRadius: 14, padding: '14px 12px', textAlign: 'center', background: earned ? '#fafbff' : '#f9fafb', opacity: earned ? 1 : 0.5 }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>{info.icon}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: earned ? '#1a1a2e' : '#9ca3af', marginBottom: 3 }}>{info.name}</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.4 }}>{info.desc}</div>
+              {earned && <div style={{ fontSize: 10, color: '#4f46e5', fontWeight: 700, marginTop: 6 }}>✓ 획득</div>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

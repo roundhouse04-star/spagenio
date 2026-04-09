@@ -13,6 +13,7 @@ import Share from './pages/Share';
 import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import Companion from './pages/Companion';
 
 // ── 로그인 페이지 (인스타 레이아웃 + 여행 지도 일러스트) ──
 function LoginPage({ onLogin }) {
@@ -177,6 +178,7 @@ function App() {
   const [feedKey, setFeedKey] = useState(0); // 피드 강제 새로고침용
   const [notifications, setNotifications] = useState([]); // 알림 목록
   const [showNotif, setShowNotif] = useState(false); // 알림 패널
+  const [writeDraft, setWriteDraft] = useState(null); // 글쓰기 초안
 
   useEffect(() => { init(); }, []);
 
@@ -262,6 +264,27 @@ function App() {
     setFeedKey(k => k + 1);
   };
 
+  const handleBookmark = (updatedUser) => {
+    setCurrentUser(prev => ({ ...prev, savedPostIds: updatedUser.savedPostIds }));
+    addNotif({ type: 'bookmark', icon: '🔖', message: '게시물을 저장했어요' });
+  };
+
+  const handleConvertToPost = (plan) => {
+    // 완료된 일정을 글쓰기 페이지에 초안으로 전달
+    const draft = {
+      title: `[${plan.title}] 여행 후기`,
+      content: `📅 ${plan.startDate} ~ ${plan.endDate}\n\n` +
+        (plan.items || []).map((item, i) => `${i+1}. ${item.placeName}${item.memo ? ' — ' + item.memo : ''}`).join('\n'),
+      country: '',
+      city: plan.title,
+      tags: ['여행후기'],
+    };
+    setWriteDraft(draft);
+    setPage('write');
+    setOpenedPost(null);
+    addNotif({ type: 'convert', icon: '✍️', message: '일정을 후기 초안으로 변환했어요' });
+  };
+
   const handleAddToPlanner = async (planId, place, post) => {
     try {
       const item = {
@@ -296,12 +319,13 @@ function App() {
   };
 
   const navItems = [
-    { key: 'feed',    icon: '🏠', label: '홈' },
-    { key: 'explore', icon: '🔍', label: '탐색' },
-    { key: 'write',   icon: '✏️', label: '글쓰기' },
-    { key: 'planner', icon: '🗺️', label: '일정' },
-    { key: 'share',   icon: '🔗', label: '정보공유' },
-    { key: 'profile', icon: '👤', label: '프로필' },
+    { key: 'feed',      icon: '🏠', label: '홈' },
+    { key: 'explore',   icon: '🔍', label: '탐색' },
+    { key: 'write',     icon: '✏️', label: '글쓰기' },
+    { key: 'planner',   icon: '🗺️', label: '일정' },
+    { key: 'share',     icon: '🔗', label: '정보공유' },
+    { key: 'companion', icon: '🤝', label: '동행' },
+    { key: 'profile',   icon: '👤', label: '프로필' },
   ];
 
   if (loading) return (
@@ -403,20 +427,22 @@ function App() {
 
       <main className="main">
         {openedPost ? (
-          <PostDetail post={openedPost} currentUserId={currentUser?.id} plans={plans}
+          <PostDetail post={openedPost} currentUserId={currentUser?.id} currentUser={currentUser} plans={plans}
             onLike={handleLike} onComment={handleComment} onProfile={handleProfile}
             onAddToPlanner={handleAddToPlanner} onBack={() => setOpenedPost(null)}
-            onDelete={handleDeletePost} onUpdate={handleUpdatePost} />
+            onDelete={handleDeletePost} onUpdate={handleUpdatePost} onBookmark={handleBookmark} />
         ) : page === 'feed' ? (
           <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
         ) : page === 'explore' ? (
           <Explore currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} searchTag={searchTag} />
         ) : page === 'write' ? (
-          <Write currentUser={currentUser} onDone={() => { setFeedKey(k => k + 1); setPage('feed'); addNotif({ type: 'post', icon: '✏️', message: '게시물을 작성했어요' }); }} />
+          <Write currentUser={currentUser} draft={writeDraft} onDone={() => { setFeedKey(k => k + 1); setPage('feed'); setWriteDraft(null); addNotif({ type: 'post', icon: '✏️', message: '게시물을 작성했어요' }); }} />
         ) : page === 'planner' ? (
-          <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} />
+          <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} onConvertToPost={handleConvertToPost} />
         ) : page === 'share' ? (
           <Share currentUser={currentUser} onProfile={handleProfile} />
+        ) : page === 'companion' ? (
+          <Companion currentUser={currentUser} onProfile={handleProfile} />
         ) : page === 'profile' ? (
           <Profile userId={profileUserId || currentUser?.id} currentUser={currentUser}
             onOpenPost={handleOpenPost} onChangeUser={setCurrentUser} />

@@ -193,12 +193,32 @@ public class TravelController {
     @GetMapping("/admin/stats/posts")
     public Map<String, Object> getAdminPostStats() { return service.getAdminStats(); }
 
-    // 게시물 강제 비공개
     @PostMapping("/admin/posts/{id}/hide")
     public Post hidePost(@PathVariable String id) { return service.hidePost(id); }
 
-    // 게시물 강제 삭제
     @DeleteMapping("/admin/posts/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void adminDeletePost(@PathVariable String id) { service.deletePost(id); }
+
+    // ── Bookmark ──────────────────────────────────────────
+    @PostMapping("/users/{userId}/bookmark/{postId}")
+    public User toggleBookmark(@PathVariable String userId, @PathVariable String postId) {
+        return service.toggleBookmark(userId, postId);
+    }
+
+    // ── Companion (동행 구하기) ───────────────────────────
+    @GetMapping("/companions")
+    public List<Companion> getCompanions(@RequestParam(required = false) String country) {
+        return service.getCompanions(country);
+    }
+
+    @PostMapping("/companions")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Companion createCompanion(@RequestBody Companion companion) {
+        return service.createCompanion(companion);
+    }
+
+    @DeleteMapping("/companions/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCompanion(@PathVariable String id) { service.deleteCompanion(id); }
 }

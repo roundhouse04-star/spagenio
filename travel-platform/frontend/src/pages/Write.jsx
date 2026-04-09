@@ -22,8 +22,16 @@ async function extractGPS(file) {
   }
 }
 
-export default function Write({ currentUser, onDone }) {
-  const [form, setForm] = useState({ title: '', content: '', country: '', city: '', tags: '', images: [], visibility: 'public' });
+export default function Write({ currentUser, onDone, draft }) {
+  const [form, setForm] = useState({
+    title: draft?.title || '',
+    content: draft?.content || '',
+    country: draft?.country || '',
+    city: draft?.city || '',
+    tags: draft?.tags?.join(', ') || '',
+    images: [],
+    visibility: 'public'
+  });
   const [places, setPlaces] = useState([emptyPlace()]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

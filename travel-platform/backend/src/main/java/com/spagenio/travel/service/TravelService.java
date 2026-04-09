@@ -3,6 +3,7 @@ package com.spagenio.travel.service;
 import com.spagenio.travel.model.*;
 import com.spagenio.travel.repository.TravelRepository;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,56 @@ public class TravelService {
     public Post deleteComment(String postId, String commentId) { return repo.deleteComment(postId, commentId); }
     public Post updatePost(String postId, String title, String content) { return repo.updatePost(postId, title, content); }
     public void deletePost(String postId) { repo.deletePost(postId); }
+
+    // Bookmark
+    public User toggleBookmark(String userId, String postId) {
+        User user = getUser(userId);
+        if (user.getSavedPostIds().contains(postId)) {
+            user.getSavedPostIds().remove(postId);
+        } else {
+            user.getSavedPostIds().add(postId);
+        }
+        User saved = repo.saveUser(user);
+        checkAndAwardBadges(userId);
+        return saved;
+    }
+
+    // Badge 자동 지급
+    public void checkAndAwardBadges(String userId) {
+        try {
+            User user = getUser(userId);
+            List<String> badges = user.getBadges();
+            List<Post> posts = repo.findPostsByUserId(userId);
+            int postCount = posts.size();
+            int totalLikes = posts.stream().mapToInt(p -> p.getLikedUserIds().size()).sum();
+            int followers = user.getFollowerIds().size();
+            int countries = user.getVisitedCountries();
+            boolean changed = false;
+            if (postCount >= 1 && !badges.contains("first_post")) { badges.add("first_post"); changed = true; }
+            if (postCount >= 10 && !badges.contains("ten_posts")) { badges.add("ten_posts"); changed = true; }
+            if (postCount >= 50 && !badges.contains("fifty_posts")) { badges.add("fifty_posts"); changed = true; }
+            if (totalLikes >= 100 && !badges.contains("likes_100")) { badges.add("likes_100"); changed = true; }
+            if (totalLikes >= 1000 && !badges.contains("likes_1000")) { badges.add("likes_1000"); changed = true; }
+            if (followers >= 10 && !badges.contains("followers_10")) { badges.add("followers_10"); changed = true; }
+            if (followers >= 100 && !badges.contains("followers_100")) { badges.add("followers_100"); changed = true; }
+            if (countries >= 5 && !badges.contains("countries_5")) { badges.add("countries_5"); changed = true; }
+            if (countries >= 10 && !badges.contains("countries_10")) { badges.add("countries_10"); changed = true; }
+            if (countries >= 30 && !badges.contains("countries_30")) { badges.add("countries_30"); changed = true; }
+            if (changed) { user.setBadges(badges); repo.saveUser(user); }
+        } catch (Exception e) { /* 뱃지 오류는 무시 */ }
+    }
+
+    // Companion
+    public List<Companion> getCompanions(String country) { return repo.findCompanions(country); }
+    public Companion createCompanion(Companion c) {
+        if (c.getId() == null) c.setId(java.util.UUID.randomUUID().toString());
+        c.setCreatedAt(java.time.LocalDateTime.now().toString());
+        User user = getUser(c.getUserId());
+        c.setUserNickname(user.getNickname());
+        c.setUserProfileImage(user.getProfileImage());
+        return repo.saveCompanion(c);
+    }
+    public void deleteCompanion(String id) { repo.deleteCompanion(id); }
 
     // Plan
     public List<Plan> getPlans(String userId) { return repo.findPlansByUserId(userId); }
