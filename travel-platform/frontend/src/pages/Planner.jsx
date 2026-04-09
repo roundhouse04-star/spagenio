@@ -1300,12 +1300,10 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                   </div>
 
                   {/* 아코디언 상세 */}
-                  {isOpen && (() => {
-                    const countries = detectCountries(plan.items || []);
-                    return (
+                  {isOpen && (
                     <div style={{ borderTop: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, background: isPast ? '#f9fafb' : '#fafbff' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 0 }}>
-                        {/* 왼쪽: 기존 일정 상세 */}
+                        {/* 왼쪽: 일정 상세 */}
                         <div style={{ padding: '12px 16px' }}>
 
                       {/* 완료된 일정 안내 배너 + 게시물 변환 버튼 */}
@@ -1459,16 +1457,15 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         <div style={{ borderLeft: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, padding: '12px 14px', overflowY: 'auto', maxHeight: 600, background: isPast ? '#f9fafb' : '#fafbff' }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>
                             🌍 여행 정보
-                            {countries.length > 0 && (
-                              <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>{countries.join(' · ')}</span>
+                            {detectCountries(plan.items || []).length > 0 && (
+                              <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>{detectCountries(plan.items || []).join(' · ')}</span>
                             )}
                           </div>
-                          <CountryPanel countries={countries} planTitle={plan.title} />
+                          <CountryPanel countries={detectCountries(plan.items || [])} planTitle={plan.title} />
                         </div>
                       </div>
                     </div>
-                    );
-                  })()}
+                  )}
                 </div>
               );
             })}
