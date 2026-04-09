@@ -10,6 +10,7 @@ import Write from './pages/Write';
 import PostDetail from './components/PostDetail';
 import Admin from './pages/Admin';
 import Share from './pages/Share';
+import Exchange from './pages/Exchange';
 import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -318,12 +319,13 @@ function App() {
   };
 
   const navItems = [
-    { key: 'feed',    icon: '🏠', label: '홈' },
-    { key: 'explore', icon: '🔍', label: '탐색' },
-    { key: 'write',   icon: '✏️', label: '글쓰기' },
-    { key: 'planner', icon: '🗺️', label: '일정' },
-    { key: 'share',   icon: '🔗', label: '정보공유' },
-    { key: 'profile', icon: '👤', label: '프로필' },
+    { key: 'feed',     icon: '🏠', label: '홈' },
+    { key: 'explore',  icon: '🔍', label: '탐색' },
+    { key: 'write',    icon: '✏️', label: '글쓰기' },
+    { key: 'planner',  icon: '🗺️', label: '일정' },
+    { key: 'share',    icon: '🔗', label: '정보공유' },
+    { key: 'exchange', icon: '💱', label: '환율' },
+    { key: 'profile',  icon: '👤', label: '프로필' },
   ];
 
   if (loading) return (
@@ -439,6 +441,8 @@ function App() {
           <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} onConvertToPost={handleConvertToPost} />
         ) : page === 'share' ? (
           <Share currentUser={currentUser} onProfile={handleProfile} />
+        ) : page === 'exchange' ? (
+          <Exchange />
         ) : page === 'profile' ? (
           <Profile userId={profileUserId || currentUser?.id} currentUser={currentUser}
             onOpenPost={handleOpenPost} onChangeUser={setCurrentUser} />
