@@ -1260,7 +1260,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
               const isPast = plan.endDate && plan.endDate < today;
 
               return (
-                <div key={plan.id} style={{ border: `2px solid ${isOpen ? (isPast ? '#d1d5db' : '#4f46e5') : '#eee'}`, borderRadius: 16, overflow: 'hidden', background: isPast ? '#fafafa' : 'white', transition: 'border-color 0.15s' }}>
+                <div key={plan.id} style={{ border: isOpen ? (isPast ? '2px solid #d1d5db' : '2px solid #4f46e5') : '2px solid #eee', borderRadius: 16, overflow: 'hidden', background: isPast ? '#fafafa' : 'white', transition: 'border-color 0.15s' }}>
                   {/* 카드 헤더 */}
                   <div onClick={() => { setSelected(isOpen ? null : plan); setViewMode('list'); }}
                     style={{ padding: '14px 16px', cursor: 'pointer', background: isOpen ? (isPast ? '#f9fafb' : '#fafbff') : (isPast ? '#fafafa' : 'white') }}>
@@ -1301,10 +1301,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
 
                   {/* 아코디언 상세 */}
                   {isOpen && (
-                    <div style={{ borderTop: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, background: isPast ? '#f9fafb' : '#fafbff' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 0 }}>
-                        {/* 왼쪽: 일정 상세 */}
-                        <div style={{ padding: '12px 16px' }}>
+                    <div style={{ borderTop: isPast ? '1px solid #e5e7eb' : '1px solid #eef2ff', background: isPast ? '#f9fafb' : '#fafbff', padding: '12px 16px' }}>
 
                       {/* 완료된 일정 안내 배너 + 게시물 변환 버튼 */}
                       {isPast && (
@@ -1323,8 +1320,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                       {/* 탭 버튼 */}
                       <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 10, padding: 3, marginBottom: 12 }}>
                         {(isPast
-                          ? [['list', '📋 장소 목록'], ['timeline', '📅 타임라인']]
-                          : [['list', '📋 장소 목록'], ['timeline', '📅 타임라인'], ['map', '🗺️ 지도 검색'], ['chat', '💬 채팅']]
+                          ? [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778']]
+                          : [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778'], ['map', '\uD83D\uDDFA\uFE0F \uC9C0\uB3C4 \uAC80\uC0C9'], ['chat', '\uD83D\uDCAC \uCC44\uD305']]
                         ).map(([key, label]) => (
                           <button key={key}
                             onClick={() => { setViewMode(key); if (key === 'chat') loadMessages(); }}
@@ -1452,18 +1449,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         </div>
                       )}
                     </div>
-                        </div>
-                        {/* 오른쪽: 국가 정보 패널 */}
-                        <div style={{ borderLeft: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, padding: '12px 14px', overflowY: 'auto', maxHeight: 600, background: isPast ? '#f9fafb' : '#fafbff' }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>
-                            🌍 여행 정보
-                            {detectCountries(plan.items || []).length > 0 && (
-                              <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>{detectCountries(plan.items || []).join(' · ')}</span>
-                            )}
-                          </div>
-                          <CountryPanel countries={detectCountries(plan.items || [])} planTitle={plan.title} />
-                        </div>
-                      </div>
+                  )}
+                  {/* 국가 정보 패널 — 아코디언 아래 별도 표시 */}
+                  {isOpen && detectCountries(plan.items || []).length > 0 && (
+                    <div style={{ borderTop: '1px solid #eef2ff' }}>
+                      <CountryPanel countries={detectCountries(plan.items || [])} planTitle={plan.title} />
                     </div>
                   )}
                 </div>
