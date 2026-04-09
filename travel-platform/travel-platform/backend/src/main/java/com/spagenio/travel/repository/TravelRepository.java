@@ -197,6 +197,19 @@ public class TravelRepository {
         return em.merge(post);
     }
 
+    public Post deleteComment(String postId, String commentId) {
+        Post post = findPostById(postId).orElseThrow(() -> new IllegalArgumentException("post_not_found"));
+        post.getComments().removeIf(c -> c.getId().equals(commentId));
+        return em.merge(post);
+    }
+
+    public Post updatePost(String postId, String title, String content) {
+        Post post = findPostById(postId).orElseThrow(() -> new IllegalArgumentException("post_not_found"));
+        if (title != null && !title.isBlank()) post.setTitle(title);
+        if (content != null) post.setContent(content);
+        return em.merge(post);
+    }
+
     public void deletePost(String postId) {
         Post post = findPostById(postId).orElseThrow(() -> new IllegalArgumentException("post_not_found"));
         em.remove(post);

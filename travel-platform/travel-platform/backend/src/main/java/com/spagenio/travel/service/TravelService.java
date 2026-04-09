@@ -58,6 +58,8 @@ public class TravelService {
         comment.setUserProfileImage(user.getProfileImage());
         return repo.addComment(postId, comment);
     }
+    public Post deleteComment(String postId, String commentId) { return repo.deleteComment(postId, commentId); }
+    public Post updatePost(String postId, String title, String content) { return repo.updatePost(postId, title, content); }
     public void deletePost(String postId) { repo.deletePost(postId); }
 
     // Plan
