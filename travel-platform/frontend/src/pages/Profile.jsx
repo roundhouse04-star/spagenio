@@ -47,9 +47,13 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'followers' | 'followings' | null
+  const [modal, setModal] = useState(null);
   const [modalUsers, setModalUsers] = useState([]);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '' });
+  const [imagePreview, setImagePreview] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); }, [userId]);
 
@@ -103,6 +107,33 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     } catch (e) { console.error(e); }
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('이미지 크기는 2MB 이하여야 해요.'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImagePreview(ev.target.result);
+      setEditData(p => ({ ...p, profileImage: ev.target.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editData.nickname.trim()) return;
+    setSaving(true);
+    try {
+      const payload = { nickname: editData.nickname, bio: editData.bio };
+      if (editData.profileImage) payload.profileImage = editData.profileImage;
+      await api.updateUser(userId, payload);
+      setUser(prev => ({ ...prev, nickname: editData.nickname, bio: editData.bio, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) }));
+      onChangeUser?.({ ...currentUser, nickname: editData.nickname, bio: editData.bio, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) });
+      setEditing(false);
+      setImagePreview('');
+    } catch (e) { alert('저장 실패: ' + e.message); }
+    finally { setSaving(false); }
+  };
+
   if (loading) return <div className="empty">불러오는 중...</div>;
   if (!user) return <div className="empty">유저를 찾을 수 없어요.</div>;
 
@@ -116,31 +147,77 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
           src={user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=4f46e5&color=fff&size=110`}
           alt={user.nickname} />
         <div className="profile-info">
-          <div className="profile-name">{user.nickname}</div>
-          {user.bio && <div className="profile-bio">{user.bio}</div>}
-          <div className="profile-stats">
-            <div className="stat"><div className="stat-num">{visiblePosts.length}</div><div className="stat-label">게시물</div></div>
-            <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followers')}>
-              <div className="stat-num">{user.followerIds?.length || 0}</div>
-              <div className="stat-label">팔로워</div>
+          {editing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>프로필 편집</div>
+
+              {/* 사진 변경 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <img src={imagePreview || editData.profileImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=4f46e5&color=fff&size=80`}
+                  style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb' }} alt="" />
+                <label style={{ cursor: 'pointer' }}>
+                  <div style={{ padding: '7px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#555' }}>
+                    📷 사진 변경
+                  </div>
+                  <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+                </label>
+                <span style={{ fontSize: 11, color: '#9ca3af' }}>JPG, PNG / 2MB 이하</span>
+              </div>
+
+              <input value={editData.nickname} onChange={e => setEditData(p => ({ ...p, nickname: e.target.value }))}
+                placeholder="닉네임" maxLength={20}
+                style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, outline: 'none' }} />
+              <textarea value={editData.bio} onChange={e => setEditData(p => ({ ...p, bio: e.target.value }))}
+                placeholder="소개글 (선택)" rows={3} maxLength={100}
+                style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={handleSaveProfile} disabled={saving}
+                  style={{ flex: 1, padding: '9px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  {saving ? '저장 중...' : '저장'}
+                </button>
+                <button onClick={() => { setEditing(false); setImagePreview(''); }}
+                  style={{ flex: 1, padding: '9px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>
+                  취소
+                </button>
+              </div>
             </div>
-            <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followings')}>
-              <div className="stat-num">{user.followingIds?.length || 0}</div>
-              <div className="stat-label">팔로잉</div>
-            </div>
-            <div className="stat"><div className="stat-num">{user.visitedCountries || 0}</div><div className="stat-label">방문국가</div></div>
-          </div>
-          {!isMe && currentUser && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button className={isFollowing ? 'btn-following' : 'btn-follow'}
-                onClick={() => handleFollow(userId, isFollowing)}>
-                {isFollowing ? '팔로잉' : '팔로우'}
-              </button>
-              <button onClick={() => setShowBlockConfirm(true)}
-                style={{ padding: '9px 16px', borderRadius: 10, border: '1px solid #eee', background: 'white', fontSize: 13, color: isBlocked ? '#ef4444' : '#9ca3af', fontWeight: 600, cursor: 'pointer' }}>
-                {isBlocked ? '차단 해제' : '차단'}
-              </button>
-            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="profile-name">{user.nickname}</div>
+                {isMe && (
+                  <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '' }); setImagePreview(''); }}
+                    style={{ padding: '5px 12px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
+                    ✏️ 편집
+                  </button>
+                )}
+              </div>
+              {user.bio && <div className="profile-bio">{user.bio}</div>}
+              <div className="profile-stats">
+                <div className="stat"><div className="stat-num">{visiblePosts.length}</div><div className="stat-label">게시물</div></div>
+                <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followers')}>
+                  <div className="stat-num">{user.followerIds?.length || 0}</div>
+                  <div className="stat-label">팔로워</div>
+                </div>
+                <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followings')}>
+                  <div className="stat-num">{user.followingIds?.length || 0}</div>
+                  <div className="stat-label">팔로잉</div>
+                </div>
+                <div className="stat"><div className="stat-num">{user.visitedCountries || 0}</div><div className="stat-label">방문국가</div></div>
+              </div>
+              {!isMe && currentUser && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button className={isFollowing ? 'btn-following' : 'btn-follow'}
+                    onClick={() => handleFollow(userId, isFollowing)}>
+                    {isFollowing ? '팔로잉' : '팔로우'}
+                  </button>
+                  <button onClick={() => setShowBlockConfirm(true)}
+                    style={{ padding: '9px 16px', borderRadius: 10, border: '1px solid #eee', background: 'white', fontSize: 13, color: isBlocked ? '#ef4444' : '#9ca3af', fontWeight: 600, cursor: 'pointer' }}>
+                    {isBlocked ? '차단 해제' : '차단'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -174,6 +174,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
   const [searchTag, setSearchTag] = useState('');
+  const [feedKey, setFeedKey] = useState(0); // 피드 강제 새로고침용
+  const [notifications, setNotifications] = useState([]); // 알림 목록
+  const [showNotif, setShowNotif] = useState(false); // 알림 패널
 
   useEffect(() => { init(); }, []);
 
@@ -217,6 +220,10 @@ function App() {
     setShowLogoutMenu(false);
   };
 
+  const addNotif = (notif) => {
+    setNotifications(prev => [{ id: Date.now(), ...notif, time: new Date() }, ...prev].slice(0, 30));
+  };
+
   const handleOpenPost = (post) => setOpenedPost(post);
 
   const handleProfile = (userId) => {
@@ -230,6 +237,7 @@ function App() {
     try {
       const updated = await api.toggleLike(postId, currentUser.id);
       if (openedPost?.id === postId) setOpenedPost(updated);
+      return updated;
     } catch (e) { console.error(e); }
   };
 
@@ -238,7 +246,20 @@ function App() {
     try {
       const updated = await api.addComment(postId, { userId: currentUser.id, content: text });
       if (openedPost?.id === postId) setOpenedPost(updated);
+      addNotif({ type: 'comment', icon: '💬', message: `"${text.slice(0, 20)}${text.length > 20 ? '...' : ''}" 댓글을 달았어요` });
+      return updated;
     } catch (e) { console.error(e); }
+  };
+
+  const handleDeletePost = (postId) => {
+    setOpenedPost(null);
+    setFeedKey(k => k + 1);
+    addNotif({ type: 'delete', icon: '🗑', message: '게시물을 삭제했어요' });
+  };
+
+  const handleUpdatePost = (updated) => {
+    setOpenedPost(updated);
+    setFeedKey(k => k + 1);
   };
 
   const handleAddToPlanner = async (planId, place, post) => {
@@ -306,6 +327,48 @@ function App() {
           </div>
         ))}
 
+        {/* 알림 벨 */}
+        <div style={{ position: 'relative' }}>
+          <div className="nav-item" onClick={e => { e.stopPropagation(); setShowNotif(v => !v); setNotifications(prev => prev.map(n => ({ ...n, read: true }))); }}>
+            <span className="nav-icon">🔔</span>
+            <span>알림</span>
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, background: '#ef4444', borderRadius: 20, fontSize: 10, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, padding: '0 4px' }}>
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
+          </div>
+          {showNotif && (
+            <div style={{ position: 'absolute', left: '110%', top: 0, width: 280, background: 'white', border: '1px solid #eee', borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 300, overflow: 'hidden' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>🔔 알림</div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>아직 알림이 없어요</div>
+              ) : (
+                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                  {notifications.map(n => (
+                    <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f9fafb', background: n.read ? 'white' : '#fafbff' }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{n.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, color: '#1a1a2e' }}>{n.message}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                          {Math.floor((Date.now() - new Date(n.time).getTime()) / 60000) < 1 ? '방금 전' : `${Math.floor((Date.now() - new Date(n.time).getTime()) / 60000)}분 전`}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {notifications.length > 0 && (
+                <button onClick={() => setNotifications([])}
+                  style={{ width: '100%', padding: '10px', border: 'none', borderTop: '1px solid #f3f4f6', background: '#f9fafb', fontSize: 12, color: '#9ca3af', cursor: 'pointer' }}>
+                  전체 삭제
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* 로그아웃 메뉴 */}
         <div style={{ marginTop: 'auto', position: 'relative' }}>
           {showLogoutMenu && (
@@ -342,13 +405,14 @@ function App() {
         {openedPost ? (
           <PostDetail post={openedPost} currentUserId={currentUser?.id} plans={plans}
             onLike={handleLike} onComment={handleComment} onProfile={handleProfile}
-            onAddToPlanner={handleAddToPlanner} onBack={() => setOpenedPost(null)} />
+            onAddToPlanner={handleAddToPlanner} onBack={() => setOpenedPost(null)}
+            onDelete={handleDeletePost} onUpdate={handleUpdatePost} />
         ) : page === 'feed' ? (
-          <Feed currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
+          <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
         ) : page === 'explore' ? (
           <Explore currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} searchTag={searchTag} />
         ) : page === 'write' ? (
-          <Write currentUser={currentUser} onDone={() => setPage('feed')} />
+          <Write currentUser={currentUser} onDone={() => { setFeedKey(k => k + 1); setPage('feed'); addNotif({ type: 'post', icon: '✏️', message: '게시물을 작성했어요' }); }} />
         ) : page === 'planner' ? (
           <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} />
         ) : page === 'share' ? (

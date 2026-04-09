@@ -37,6 +37,8 @@ export const api = {
   createPost: (data) => req('/api/posts', { method: 'POST', body: JSON.stringify(data) }),
   toggleLike: (id, userId) => req(`/api/posts/${id}/like`, { method: 'POST', body: JSON.stringify({ userId }) }),
   addComment: (id, data) => req(`/api/posts/${id}/comments`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteComment: (postId, commentId) => req(`/api/posts/${postId}/comments/${commentId}`, { method: 'DELETE' }),
+  updatePost: (id, data) => req(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deletePost: (id) => req(`/api/posts/${id}`, { method: 'DELETE' }),
 
   // Plan

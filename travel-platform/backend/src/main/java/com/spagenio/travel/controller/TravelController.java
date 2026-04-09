@@ -85,6 +85,16 @@ public class TravelController {
         return service.addComment(id, comment);
     }
 
+    @DeleteMapping("/posts/{id}/comments/{commentId}")
+    public Post deleteComment(@PathVariable String id, @PathVariable String commentId) {
+        return service.deleteComment(id, commentId);
+    }
+
+    @PatchMapping("/posts/{id}")
+    public Post updatePost(@PathVariable String id, @RequestBody Map<String, String> body) {
+        return service.updatePost(id, body.get("title"), body.get("content"));
+    }
+
     @DeleteMapping("/posts/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePost(@PathVariable String id) { service.deletePost(id); }
