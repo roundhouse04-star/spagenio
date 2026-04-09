@@ -128,9 +128,7 @@ export default function Register() {
   const saveStyles = async () => {
     if (userId && selectedStyles.length > 0) {
       try {
-        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        const base = isLocal ? 'http://localhost:19080' : '';
-        await fetch(`${base}/api/users/${userId}`, {
+        await fetch(`/api/users/${userId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ preferredStyles: selectedStyles })

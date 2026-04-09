@@ -1,8 +1,5 @@
-const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const BASE = isLocal ? 'http://localhost:19080' : '';
-
 async function req(url, options = {}) {
-  const res = await fetch(BASE + url, {
+  const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(options.headers || {}) },
     ...options,
   });

@@ -68,11 +68,8 @@ export default function Admin() {
   const [loginErr, setLoginErr] = useState('');
   const [pendingReports, setPendingReports] = useState(0);
 
-  const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  const API_BASE = isLocal ? 'http://localhost:19080' : '';
-
   const apiFetch = async (path, options = {}) => {
-    const res = await fetch(API_BASE + path, {
+    const res = await fetch(path, {
       ...options,
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...(options.headers || {}) }
     });
