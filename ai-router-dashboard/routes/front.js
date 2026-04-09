@@ -203,7 +203,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const encSecret = encryptEmail(alpaca_secret_key);
       const paper = alpaca_paper ? 1 : 0;
       const name = account_name || (paper ? '페이퍼 트레이딩' : '실거래 계좌');
-      const count = db.prepare('SELECT COUNT(*) as cnt FROM user_broker_keys WHERE user_id = ?').get(req.user.id).cnt;
+      const count = db.prepare('SELECT COUNT(*) as cnt FROM user_broker_keys WHERE user_id = ?').get(req.user.user_id || req.user.id).cnt;
       const isActive = count === 0 ? 1 : 0;
       const { account_type = 0 } = req.body;
       // account_type 중복 체크 (1=수동, 2=자동은 각 1개만 허용)
@@ -385,14 +385,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // ✅ 로또 API
   router.get('/api/lotto/telegram/config', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
+    const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
     res.json({ chat_id: row?.chat_id || '', has_token: !!row?.bot_token });
   });
 
   // ✅ 텔레그램 설정 공통 API (성과 대시보드용)
   router.get('/api/user/telegram', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
+    const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
     res.json({ chat_id: row?.chat_id || '', bot_token: row?.bot_token || '' });
   });
 
@@ -401,11 +401,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     let { chat_id, bot_token } = req.body;
     if (!chat_id) return res.status(400).json({ error: 'chat_id 필요' });
     if (bot_token && bot_token.startsWith('bot')) bot_token = bot_token.slice(3);
-    const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
     if (existing) {
-      db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`).run(chat_id, bot_token || '', req.user.id);
+      db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`).run(chat_id, bot_token || '', req.user.user_id || req.user.id);
     } else {
-      db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.id, chat_id, bot_token || '');
+      db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.user_id || req.user.id, chat_id, bot_token || '');
     }
     res.json({ ok: true });
   });
@@ -416,9 +416,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     let { bot_token } = req.body;
     if (!chat_id) return res.status(400).json({ error: 'chat_id 필요' });
     if (bot_token && bot_token.startsWith('bot')) bot_token = bot_token.slice(3);
-    const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.id);
-    if (existing) { db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`).run(chat_id, bot_token || '', req.user.id); }
-    else { db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.id, chat_id, bot_token || ''); }
+    const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
+    if (existing) { db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`).run(chat_id, bot_token || '', req.user.user_id || req.user.id); }
+    else { db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.user_id || req.user.id, chat_id, bot_token || ''); }
     res.json({ ok: true });
   });
 
@@ -426,7 +426,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     let { token, chatid, text } = req.body;
     if (!chatid) {
-      const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.id);
+      const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
       if (!tg) return res.status(400).json({ ok: false, error: '텔레그램 Chat ID를 먼저 등록하세요.' });
       chatid = tg.chat_id;
       token = token || tg.bot_token || process.env.TG_BOT_TOKEN;
@@ -549,7 +549,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
 
     // 일반 유저: 본인 날짜별
-    const total = db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks WHERE user_id=?').get(req.user.id)?.cnt || 0;
+    const total = db.prepare('SELECT COUNT(DISTINCT pick_date) as cnt FROM lotto_picks WHERE user_id=?').get(req.user.user_id || req.user.id)?.cnt || 0;
     const rows = db.prepare(`SELECT pick_date, COUNT(*) as game_count, MAX(drw_no) as drw_no, MIN(CASE WHEN rank > 0 THEN rank END) as best_rank, MAX(matched_count) as max_match, SUM(CASE WHEN rank > 0 THEN 1 ELSE 0 END) as checked_count FROM lotto_picks WHERE user_id=? GROUP BY pick_date ORDER BY pick_date DESC LIMIT ? OFFSET ?`).all(req.user.id, pageSize, offset);
     res.json({ picks: rows, total, page: parseInt(page), limit: pageSize, totalPages: Math.ceil(total / pageSize), is_admin: false });
   });
@@ -559,14 +559,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/lotto/schedule', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM lotto_schedule WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT * FROM lotto_schedule WHERE user_id=?').get(req.user.user_id || req.user.id);
     res.json(row || null);
   });
 
   router.post('/api/lotto/schedule', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled, days, hour, game_count } = req.body;
-    const existing = db.prepare('SELECT id, updated_at FROM lotto_schedule WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id, updated_at FROM lotto_schedule WHERE user_id=?').get(req.user.user_id || req.user.id);
     if (existing && existing.updated_at) {
       const diffDays = (Date.now() - new Date(existing.updated_at).getTime()) / (1000 * 60 * 60 * 24);
       if (diffDays < 7) return res.json({ ok: false, remain_days: Math.ceil(7 - diffDays) });
@@ -595,7 +595,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     const offset = (parseInt(page) - 1) * pageSize;
     const total = isAdmin
       ? db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log').get()?.cnt || 0
-      : db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log WHERE user_id=?').get(req.user.id)?.cnt || 0;
+      : db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log WHERE user_id=?').get(req.user.user_id || req.user.id)?.cnt || 0;
     const rows = isAdmin
       ? db.prepare('SELECT sl.*, u.username FROM lotto_schedule_log sl LEFT JOIN users u ON sl.user_id=u.id ORDER BY sl.created_at DESC LIMIT ? OFFSET ?').all(pageSize, offset)
       : db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(req.user.id, pageSize, offset);
@@ -683,7 +683,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/lotto/algorithm-weights', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const DEFAULT_WEIGHTS = { freq: 20, hot: 20, cold: 10, balance: 15, zone: 10, ac: 10, prime: 5, delta: 10 };
-    const row = db.prepare('SELECT weights FROM lotto_algorithm_weights WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT weights FROM lotto_algorithm_weights WHERE user_id=?').get(req.user.user_id || req.user.id);
     if (!row) return res.json(DEFAULT_WEIGHTS);
     try { res.json({ ...DEFAULT_WEIGHTS, ...JSON.parse(row.weights) }); } catch { res.json(DEFAULT_WEIGHTS); }
   });
@@ -692,7 +692,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const weights = JSON.stringify(req.body);
-      const existing = db.prepare('SELECT id FROM lotto_algorithm_weights WHERE user_id=?').get(req.user.id);
+      const existing = db.prepare('SELECT id FROM lotto_algorithm_weights WHERE user_id=?').get(req.user.user_id || req.user.id);
       if (existing) { db.prepare('UPDATE lotto_algorithm_weights SET weights=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(weights, req.user.id); }
       else { db.prepare('INSERT INTO lotto_algorithm_weights (user_id, weights) VALUES (?,?)').run(req.user.id, weights); }
       res.json({ ok: true });
@@ -1267,7 +1267,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/trade3/settings_save', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter, use_macd, use_rsi, rsi_threshold, use_bb, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit, sma200_exit } = req.body;
-    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.user_id || req.user.id);
     if (existing) {
       db.prepare('UPDATE trade_setting_type3 SET market=?,roe_min=?,debt_max=?,revenue_min=?,momentum_top=?,sma200_filter=?,use_macd=?,use_rsi=?,rsi_threshold=?,use_bb=?,balance_ratio=?,max_positions=?,take_profit1=?,take_profit2=?,stop_loss=?,factor_exit=?,sma200_exit=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?')
         .run(market, roe_min, debt_max, revenue_min, momentum_top, sma200_filter ? 1 : 0, use_macd ? 1 : 0, use_rsi ? 1 : 0, rsi_threshold, use_bb ? 1 : 0, balance_ratio, max_positions, take_profit1, take_profit2, stop_loss, factor_exit ? 1 : 0, sma200_exit ? 1 : 0, req.user.id);
@@ -1282,7 +1282,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.post('/api/trade3/toggle', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const { enabled } = req.body;
-    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM trade_setting_type3 WHERE user_id=?').get(req.user.user_id || req.user.id);
     if (existing) {
       db.prepare('UPDATE trade_setting_type3 SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled ? 1 : 0, req.user.id);
     } else {
@@ -1324,7 +1324,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // 성향 조회
   router.get('/api/investor-profile', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM investor_profile WHERE user_id=?').get(req.user.id);
+    const row = db.prepare('SELECT * FROM investor_profile WHERE user_id=?').get(req.user.user_id || req.user.id);
     res.json({ ok: true, profile: row || null });
   });
 
@@ -1373,7 +1373,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       risk_max_positions = 3; risk_balance_ratio = 0.10;
     }
 
-    const existing = db.prepare('SELECT id FROM investor_profile WHERE user_id=?').get(req.user.id);
+    const existing = db.prepare('SELECT id FROM investor_profile WHERE user_id=?').get(req.user.user_id || req.user.id);
     if (existing) {
       db.prepare(`UPDATE investor_profile SET
         q_period=?, q_loss=?, q_return=?, q_style=?, q_experience=?,
