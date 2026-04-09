@@ -433,10 +433,13 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
     if (!token) return res.status(400).json({ ok: false, error: 'Bot Token 없음' });
     try {
-      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatid, text, parse_mode: 'Markdown' }) });
-      const data = await r.json();
+      const { execSync } = await import('child_process');
+      const bodyStr = JSON.stringify({ chat_id: chatid, text, parse_mode: 'Markdown' });
+      const curlCmd = `curl -s -X POST https://api.telegram.org/bot${token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
+      const result = execSync(curlCmd, { input: bodyStr }).toString();
+      const data = JSON.parse(result);
       res.json(data.ok ? { ok: true } : { ok: false, error: data.description });
-    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+    } catch (e) { console.error('[telegram error]', e.message, e.stack); res.status(500).json({ ok: false, error: e.message }); }
   });
 
   router.get('/api/lotto/picks/unconfirmed', (req, res) => {
