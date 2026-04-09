@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api';
+import CountryPanel from '../components/CountryPanel';
+import { detectCountries } from '../countryInfo';
 
 // ── 지도 컴포넌트 (Leaflet + Nominatim + Overpass) ────────
 const CATEGORY = {
@@ -1298,8 +1300,13 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                   </div>
 
                   {/* 아코디언 상세 */}
-                  {isOpen && (
-                    <div style={{ borderTop: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, padding: '12px 16px', background: isPast ? '#f9fafb' : '#fafbff' }}>
+                  {isOpen && (() => {
+                    const countries = detectCountries(plan.items || []);
+                    return (
+                    <div style={{ borderTop: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, background: isPast ? '#f9fafb' : '#fafbff' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 0 }}>
+                        {/* 왼쪽: 기존 일정 상세 */}
+                        <div style={{ padding: '12px 16px' }}>
 
                       {/* 완료된 일정 안내 배너 + 게시물 변환 버튼 */}
                       {isPast && (
@@ -1447,7 +1454,21 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         </div>
                       )}
                     </div>
-                  )}
+                        </div>
+                        {/* 오른쪽: 국가 정보 패널 */}
+                        <div style={{ borderLeft: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, padding: '12px 14px', overflowY: 'auto', maxHeight: 600, background: isPast ? '#f9fafb' : '#fafbff' }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>
+                            🌍 여행 정보
+                            {countries.length > 0 && (
+                              <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>{countries.join(' · ')}</span>
+                            )}
+                          </div>
+                          <CountryPanel countries={countries} planTitle={plan.title} />
+                        </div>
+                      </div>
+                    </div>
+                    );
+                  })()}
                 </div>
               );
             })}
