@@ -435,4 +435,5 @@ public class TravelRepository {
             "topPosts", topPosts
         );
     }
+
 }

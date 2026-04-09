@@ -377,8 +377,107 @@ function PlanItem({ item, idx, onRemove, onUpdate, readOnly = false }) {
 // PlanItemRow — PlanItem alias (아코디언 내 리스트용)
 const PlanItemRow = PlanItem;
 
+// ── 날짜별 타임라인 컴포넌트 ──────────────────────────────
+function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
+  // 날짜별 그룹핑
+  const groups = {};
+  const undated = [];
+  items.forEach(item => {
+    if (item.date) {
+      if (!groups[item.date]) groups[item.date] = [];
+      groups[item.date].push(item);
+    } else {
+      undated.push(item);
+    }
+  });
+
+  // 날짜 범위 생성
+  const dates = Object.keys(groups).sort();
+  if (startDate && endDate) {
+    const s = new Date(startDate), e = new Date(endDate);
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      if (!groups[key]) groups[key] = [];
+      if (!dates.includes(key)) dates.push(key);
+    }
+    dates.sort();
+  }
+
+  if (!dates.length && !undated.length) return (
+    <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '20px 0' }}>
+      장소에 날짜를 지정하면 타임라인으로 볼 수 있어요!
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {dates.map((date, di) => {
+        const dayItems = groups[date] || [];
+        const dayNum = di + 1;
+        return (
+          <div key={date}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
+                D{dayNum}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{date}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{dayItems.length}개 장소</div>
+              </div>
+            </div>
+            {dayItems.length === 0 ? (
+              <div style={{ marginLeft: 46, fontSize: 12, color: '#d1d5db', padding: '8px 0' }}>이 날 장소가 없어요</div>
+            ) : (
+              <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {dayItems.map((item, idx) => (
+                  <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'white', border: '1px solid #eee', borderRadius: 12 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{item.placeName}</div>
+                      {item.address && <div style={{ fontSize: 11, color: '#9ca3af' }}>{item.address}</div>}
+                      {item.memo && <div style={{ fontSize: 11, color: '#6b7280' }}>📝 {item.memo}</div>}
+                    </div>
+                    {item.lat && item.lng && (
+                      <a href={`https://maps.google.com/?q=${item.lat},${item.lng}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 11, color: '#4f46e5', textDecoration: 'none', padding: '3px 8px', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 7, flexShrink: 0 }}>🗺</a>
+                    )}
+                    {!readOnly && onRemove && (
+                      <button onClick={() => onRemove(item.id)}
+                        style={{ color: '#e5e7eb', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}
+                        onMouseEnter={e => e.target.style.color = '#ef4444'}
+                        onMouseLeave={e => e.target.style.color = '#e5e7eb'}>✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {undated.length > 0 && (
+        <div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, paddingLeft: 46 }}>📌 날짜 미지정 ({undated.length}개)</div>
+          <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {undated.map(item => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f9fafb', border: '1px solid #eee', borderRadius: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', flex: 1 }}>{item.placeName}</div>
+                {!readOnly && onRemove && (
+                  <button onClick={() => onRemove(item.id)}
+                    style={{ color: '#e5e7eb', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}
+                    onMouseEnter={e => e.target.style.color = '#ef4444'}
+                    onMouseLeave={e => e.target.style.color = '#e5e7eb'}>✕</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 메인 Planner ──────────────────────────────────────────
-export default function Planner({ currentUser, plans, onUpdatePlans }) {
+export default function Planner({ currentUser, plans, onUpdatePlans, onConvertToPost }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNewPlan, setShowNewPlan] = useState(false);
@@ -1202,19 +1301,25 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                   {isOpen && (
                     <div style={{ borderTop: `1px solid ${isPast ? '#e5e7eb' : '#eef2ff'}`, padding: '12px 16px', background: isPast ? '#f9fafb' : '#fafbff' }}>
 
-                      {/* 완료된 일정 안내 배너 */}
+                      {/* 완료된 일정 안내 배너 + 게시물 변환 버튼 */}
                       {isPast && (
-                        <div style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#6b7280', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span>🔒</span>
-                          <span>완료된 일정이에요. 장소 목록은 읽기 전용이에요.</span>
+                        <div style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#6b7280', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>🔒</span>
+                            <span>완료된 일정이에요. 읽기 전용이에요.</span>
+                          </span>
+                          <button onClick={() => onConvertToPost?.(plan)}
+                            style={{ fontSize: 11, padding: '5px 12px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>
+                            ✍️ 후기 쓰기
+                          </button>
                         </div>
                       )}
 
-                      {/* 탭 버튼 — 완료된 일정은 장소 목록만 */}
+                      {/* 탭 버튼 */}
                       <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 10, padding: 3, marginBottom: 12 }}>
                         {(isPast
-                          ? [['list', '📋 장소 목록']]
-                          : [['list', '📋 장소 목록'], ['map', '🗺️ 지도 검색'], ['chat', '💬 채팅']]
+                          ? [['list', '📋 장소 목록'], ['timeline', '📅 타임라인']]
+                          : [['list', '📋 장소 목록'], ['timeline', '📅 타임라인'], ['map', '🗺️ 지도 검색'], ['chat', '💬 채팅']]
                         ).map(([key, label]) => (
                           <button key={key}
                             onClick={() => { setViewMode(key); if (key === 'chat') loadMessages(); }}
@@ -1223,6 +1328,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans }) {
                           </button>
                         ))}
                       </div>
+
+                      {/* 타임라인 탭 */}
+                      {viewMode === 'timeline' && (
+                        <PlanTimeline items={plan.items || []} startDate={plan.startDate} endDate={plan.endDate} readOnly={isPast} onRemove={isPast ? null : removeItem} />
+                      )}
 
                       {/* 장소 목록 탭 */}
                       {viewMode === 'list' && (

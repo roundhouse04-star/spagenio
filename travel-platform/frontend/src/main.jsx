@@ -13,7 +13,6 @@ import Share from './pages/Share';
 import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-import Companion from './pages/Companion';
 
 // ── 로그인 페이지 (인스타 레이아웃 + 여행 지도 일러스트) ──
 function LoginPage({ onLogin }) {
@@ -319,13 +318,12 @@ function App() {
   };
 
   const navItems = [
-    { key: 'feed',      icon: '🏠', label: '홈' },
-    { key: 'explore',   icon: '🔍', label: '탐색' },
-    { key: 'write',     icon: '✏️', label: '글쓰기' },
-    { key: 'planner',   icon: '🗺️', label: '일정' },
-    { key: 'share',     icon: '🔗', label: '정보공유' },
-    { key: 'companion', icon: '🤝', label: '동행' },
-    { key: 'profile',   icon: '👤', label: '프로필' },
+    { key: 'feed',    icon: '🏠', label: '홈' },
+    { key: 'explore', icon: '🔍', label: '탐색' },
+    { key: 'write',   icon: '✏️', label: '글쓰기' },
+    { key: 'planner', icon: '🗺️', label: '일정' },
+    { key: 'share',   icon: '🔗', label: '정보공유' },
+    { key: 'profile', icon: '👤', label: '프로필' },
   ];
 
   if (loading) return (
@@ -441,8 +439,6 @@ function App() {
           <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} onConvertToPost={handleConvertToPost} />
         ) : page === 'share' ? (
           <Share currentUser={currentUser} onProfile={handleProfile} />
-        ) : page === 'companion' ? (
-          <Companion currentUser={currentUser} onProfile={handleProfile} />
         ) : page === 'profile' ? (
           <Profile userId={profileUserId || currentUser?.id} currentUser={currentUser}
             onOpenPost={handleOpenPost} onChangeUser={setCurrentUser} />

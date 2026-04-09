@@ -102,16 +102,7 @@ public class TravelService {
     }
 
     // Companion
-    public List<Companion> getCompanions(String country) { return repo.findCompanions(country); }
-    public Companion createCompanion(Companion c) {
-        if (c.getId() == null) c.setId(java.util.UUID.randomUUID().toString());
-        c.setCreatedAt(java.time.LocalDateTime.now().toString());
-        User user = getUser(c.getUserId());
-        c.setUserNickname(user.getNickname());
-        c.setUserProfileImage(user.getProfileImage());
-        return repo.saveCompanion(c);
-    }
-    public void deleteCompanion(String id) { repo.deleteCompanion(id); }
+    // (동행 구하기는 보안상 이유로 제거됨)
 
     // Plan
     public List<Plan> getPlans(String userId) { return repo.findPlansByUserId(userId); }

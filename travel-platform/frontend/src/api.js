@@ -73,11 +73,6 @@ export const api = {
   // Bookmark
   toggleBookmark: (userId, postId) => req(`/api/users/${userId}/bookmark/${postId}`, { method: 'POST' }),
 
-  // Companion
-  getCompanions: (country) => req(`/api/companions${country ? '?country=' + encodeURIComponent(country) : ''}`),
-  createCompanion: (data) => req('/api/companions', { method: 'POST', body: JSON.stringify(data) }),
-  deleteCompanion: (id) => req(`/api/companions/${id}`, { method: 'DELETE' }),
-
   // Admin
   getAdminPostStats: () => req('/api/admin/stats/posts'),
   hidePost: (id) => req(`/api/admin/posts/${id}/hide`, { method: 'POST' }),

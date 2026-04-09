@@ -205,20 +205,4 @@ public class TravelController {
     public User toggleBookmark(@PathVariable String userId, @PathVariable String postId) {
         return service.toggleBookmark(userId, postId);
     }
-
-    // ── Companion (동행 구하기) ───────────────────────────
-    @GetMapping("/companions")
-    public List<Companion> getCompanions(@RequestParam(required = false) String country) {
-        return service.getCompanions(country);
-    }
-
-    @PostMapping("/companions")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Companion createCompanion(@RequestBody Companion companion) {
-        return service.createCompanion(companion);
-    }
-
-    @DeleteMapping("/companions/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCompanion(@PathVariable String id) { service.deleteCompanion(id); }
 }

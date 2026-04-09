@@ -19,7 +19,7 @@ const TABS = [
   { key: 'comments', label: '💬 댓글' },
 ];
 
-export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate }) {
+export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark }) {
   const [post, setPost] = useState(initialPost);
   const [activeImg, setActiveImg] = useState(0);
   const [commentText, setCommentText] = useState('');
@@ -197,6 +197,17 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                     <button className="action-btn" onClick={() => setTab('comments')}>
                       <span className="icon">💬</span> {post.comments?.length || 0}
                     </button>
+                    {currentUser && (
+                      <button className="action-btn" onClick={async () => {
+                        try {
+                          const updated = await api.toggleBookmark(currentUser.id, post.id);
+                          onBookmark?.(updated);
+                        } catch(e) { console.error(e); }
+                      }} style={{ marginLeft: 'auto' }}>
+                        <span className="icon">{currentUser?.savedPostIds?.includes(post.id) ? '🔖' : '🔖'}</span>
+                        {currentUser?.savedPostIds?.includes(post.id) ? '저장됨' : '저장'}
+                      </button>
+                    )}
                   </div>
                   <hr className="divider" />
                   {post.places?.length > 0 && (

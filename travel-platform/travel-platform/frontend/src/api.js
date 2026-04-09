@@ -70,6 +70,9 @@ export const api = {
   updateNotice: (id, data) => req(`/api/notices/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteNotice: (id) => req(`/api/notices/${id}`, { method: 'DELETE' }),
 
+  // Bookmark
+  toggleBookmark: (userId, postId) => req(`/api/users/${userId}/bookmark/${postId}`, { method: 'POST' }),
+
   // Admin
   getAdminPostStats: () => req('/api/admin/stats/posts'),
   hidePost: (id) => req(`/api/admin/posts/${id}/hide`, { method: 'POST' }),
