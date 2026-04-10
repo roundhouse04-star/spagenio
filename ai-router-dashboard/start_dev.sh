@@ -1,4 +1,8 @@
 #!/bin/bash
+export NVM_DIR="$HOME/.nvm"
+source "$NVM_DIR/nvm.sh"
+nvm use 22
+
 echo "🚀 spagenio 개발 모드 시작"
 echo "======================================"
 
@@ -12,6 +16,7 @@ npm rebuild better-sqlite3
 # PM2로 서버 시작
 echo "🔄 PM2로 서버 시작 중..."
 pm2 start ecosystem.config.cjs
+pm2 stop cloudflared 2>/dev/null || true
 
 # n8n 시작 (중복 방지)
 echo "🔄 n8n 시작 중... (포트 5678)"

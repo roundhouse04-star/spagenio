@@ -6,7 +6,7 @@ PROJECT="/Users/roundhouse04/projects/spagenio/ai-router-dashboard"
 
 # PM2 종료
 echo "🔄 PM2 종료 중..."
-pm2 stop all
+pm2 stop spagenio spagenio-stock spagenio-quant
 
 # n8n 종료
 echo "🔄 n8n 종료 중..."
