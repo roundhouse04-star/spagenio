@@ -52,6 +52,11 @@ public class User {
     private List<String> savedPostIds = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_wishlist_posts", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "post_id")
+    private List<String> wishlistPostIds = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_badges", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "badge")
     private List<String> badges = new ArrayList<>();
@@ -95,6 +100,8 @@ public class User {
     public void setDefaultFeed(String defaultFeed) { this.defaultFeed = defaultFeed; }
     public List<String> getSavedPostIds() { return savedPostIds; }
     public void setSavedPostIds(List<String> savedPostIds) { this.savedPostIds = savedPostIds; }
+    public List<String> getWishlistPostIds() { return wishlistPostIds; }
+    public void setWishlistPostIds(List<String> wishlistPostIds) { this.wishlistPostIds = wishlistPostIds; }
     public List<String> getBadges() { return badges; }
     public void setBadges(List<String> badges) { this.badges = badges; }
     public List<String> getPreferredStyles() { return preferredStyles; }

@@ -11,6 +11,7 @@ import PostDetail from './components/PostDetail';
 import Admin from './pages/Admin';
 import Share from './pages/Share';
 import Exchange from './pages/Exchange';
+import Nearby from './pages/Nearby';
 import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -182,7 +183,25 @@ function App() {
 
   useEffect(() => { init(); }, []);
 
+  // 로그인 상태에서 뒤로가기로 로그인 화면 접근 방지
+  useEffect(() => {
+    if (!currentUser) return;
+    const handlePopState = () => {
+      // 로그인된 상태에서 뒤로가기 시 현재 상태 유지
+      window.history.pushState(null, '', window.location.pathname);
+    };
+    window.history.pushState(null, '', window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentUser]);
+
   const init = async () => {
+    // 메뉴 설정 서버에서 로드
+    try {
+      const menus = await api.getMenus();
+      if (menus?.length) setNavItems(menus.sort((a, b) => a.sortOrder - b.sortOrder));
+    } catch (e) { /* 기본값 유지 */ }
+
     const savedUser = sessionStorage.getItem('auth_user');
     const token = sessionStorage.getItem('auth_token');
     if (savedUser && token) {
@@ -210,6 +229,8 @@ function App() {
       setCurrentUser(finalUser);
       const userPlans = await api.getUserPlans(finalUser.id);
       setPlans(userPlans || []);
+      // 로그인 후 뒤로가기로 로그인 화면에 못 가도록 히스토리 교체
+      window.history.replaceState(null, '', window.location.pathname);
     } catch (e) { setCurrentUser(user); }
   };
 
@@ -269,6 +290,11 @@ function App() {
     addNotif({ type: 'bookmark', icon: '🔖', message: '게시물을 저장했어요' });
   };
 
+  const handleWishlist = (updatedUser) => {
+    setCurrentUser(prev => ({ ...prev, wishlistPostIds: updatedUser.wishlistPostIds }));
+    addNotif({ type: 'wishlist', icon: '✈️', message: '가고 싶다 목록에 추가했어요' });
+  };
+
   const handleConvertToPost = (plan) => {
     // 완료된 일정을 글쓰기 페이지에 초안으로 전달
     const draft = {
@@ -318,15 +344,16 @@ function App() {
     if (key === 'profile') setProfileUserId(currentUser?.id);
   };
 
-  const navItems = [
-    { key: 'feed',     icon: '🏠', label: '홈' },
-    { key: 'explore',  icon: '🔍', label: '탐색' },
-    { key: 'write',    icon: '✏️', label: '글쓰기' },
-    { key: 'planner',  icon: '🗺️', label: '일정' },
-    { key: 'share',    icon: '🔗', label: '정보공유' },
-    { key: 'exchange', icon: '💱', label: '환율' },
-    { key: 'profile',  icon: '👤', label: '프로필' },
-  ];
+  const [navItems, setNavItems] = useState([
+    { key: 'feed',     icon: '🏠', label: '홈',       visible: true, sortOrder: 0, requireLogin: false },
+    { key: 'nearby',   icon: '📍', label: '내 주변',   visible: true, sortOrder: 1, requireLogin: true },
+    { key: 'explore',  icon: '🔍', label: '탐색',     visible: true, sortOrder: 2, requireLogin: false },
+    { key: 'write',    icon: '✏️', label: '글쓰기',   visible: true, sortOrder: 3, requireLogin: true },
+    { key: 'planner',  icon: '🗺️', label: '일정',     visible: true, sortOrder: 4, requireLogin: true },
+    { key: 'share',    icon: '🔗', label: '정보공유', visible: true, sortOrder: 5, requireLogin: true },
+    { key: 'exchange', icon: '💱', label: '환율',     visible: true, sortOrder: 6, requireLogin: false },
+    { key: 'profile',  icon: '👤', label: '프로필',   visible: true, sortOrder: 7, requireLogin: true },
+  ]);
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#bbb', fontSize: 16 }}>
@@ -342,7 +369,7 @@ function App() {
         <div className="logo" style={{ cursor: 'pointer' }} onClick={() => goPage('feed')}>
           ✈ Travel<span>log</span>
         </div>
-        {navItems.map(item => (
+        {navItems.filter(item => item.visible !== false).map(item => (
           <div key={item.key}
             className={`nav-item${page === item.key && !openedPost ? ' active' : ''}`}
             onClick={() => goPage(item.key)}>
@@ -430,9 +457,12 @@ function App() {
           <PostDetail post={openedPost} currentUserId={currentUser?.id} currentUser={currentUser} plans={plans}
             onLike={handleLike} onComment={handleComment} onProfile={handleProfile}
             onAddToPlanner={handleAddToPlanner} onBack={() => setOpenedPost(null)}
-            onDelete={handleDeletePost} onUpdate={handleUpdatePost} onBookmark={handleBookmark} />
+            onDelete={handleDeletePost} onUpdate={handleUpdatePost}
+            onBookmark={handleBookmark} onWishlist={handleWishlist} />
         ) : page === 'feed' ? (
           <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
+        ) : page === 'nearby' ? (
+          <Nearby currentUser={currentUser} onOpenPost={handleOpenPost} />
         ) : page === 'explore' ? (
           <Explore currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} searchTag={searchTag} />
         ) : page === 'write' ? (
@@ -451,7 +481,7 @@ function App() {
 
       {/* 모바일 하단 네비 */}
       <nav className="bottom-nav" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-        {navItems.map(item => (
+        {navItems.filter(item => item.visible !== false).map(item => (
           item.key === 'write' ? (
             <div key={item.key} className="bottom-nav-item" onClick={() => goPage(item.key)}>
               <div className="bottom-nav-plus">+</div>

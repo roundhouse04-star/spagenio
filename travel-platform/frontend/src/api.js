@@ -67,8 +67,19 @@ export const api = {
   updateNotice: (id, data) => req(`/api/notices/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteNotice: (id) => req(`/api/notices/${id}`, { method: 'DELETE' }),
 
+  // 위치 기반 검색
+  getPostsNearby: (lat, lng, radius = 2.0) => req(`/api/posts/nearby?lat=${lat}&lng=${lng}&radius=${radius}`),
+  getSavedPlacesNearby: (userId, lat, lng, radius = 1.0) => req(`/api/users/${userId}/saved-nearby?lat=${lat}&lng=${lng}&radius=${radius}`),
+
+  // 메뉴 관리
+  getMenus: () => req('/api/menus'),
+  saveMenus: (items) => req('/api/menus', { method: 'POST', body: JSON.stringify(items) }),
+
   // Bookmark
   toggleBookmark: (userId, postId) => req(`/api/users/${userId}/bookmark/${postId}`, { method: 'POST' }),
+
+  // Wishlist
+  toggleWishlist: (userId, postId) => req(`/api/users/${userId}/wishlist/${postId}`, { method: 'POST' }),
 
   // Promotion
   getPromotions: (all) => req(`/api/promotions${all ? '?all=true' : ''}`),

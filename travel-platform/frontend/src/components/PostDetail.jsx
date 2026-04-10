@@ -204,11 +204,34 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                           onBookmark?.(updated);
                         } catch(e) { console.error(e); }
                       }} style={{ marginLeft: 'auto' }}>
-                        <span className="icon">{currentUser?.savedPostIds?.includes(post.id) ? '🔖' : '🔖'}</span>
+                        <span className="icon">🔖</span>
                         {currentUser?.savedPostIds?.includes(post.id) ? '저장됨' : '저장'}
                       </button>
                     )}
+                    {currentUser && (
+                      <button className="action-btn" onClick={async () => {
+                        try {
+                          const updated = await api.toggleWishlist(currentUser.id, post.id);
+                          onWishlist?.(updated);
+                        } catch(e) { console.error(e); }
+                      }}>
+                        <span className="icon">{currentUser?.wishlistPostIds?.includes(post.id) ? '✈️' : '✈️'}</span>
+                        {currentUser?.wishlistPostIds?.includes(post.id) ? '가고 싶다 ✓' : '가고 싶다'}
+                      </button>
+                    )}
                   </div>
+
+                  {/* 유튜브 영상 */}
+                  {post.youtubeUrl && (
+                    <a href={post.youtubeUrl} target="_blank" rel="noreferrer"
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, textDecoration: 'none' }}>
+                      {post.youtubeThumbnail && <img src={post.youtubeThumbnail} style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} alt="" />}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>▶ 관련 유튜브 영상</div>
+                        {post.youtubeTitle && <div style={{ fontSize: 12, color: '#6b7280' }}>{post.youtubeTitle}</div>}
+                      </div>
+                    </a>
+                  )}
                   <hr className="divider" />
                   {post.places?.length > 0 && (
                     <div>

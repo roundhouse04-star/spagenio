@@ -34,6 +34,9 @@ export default function Write({ currentUser, onDone, draft }) {
     visibility: 'public'
   });
   const [travelStyles, setTravelStyles] = useState(draft?.tags || []);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeInfo, setYoutubeInfo] = useState(null); // { title, thumbnail }
+  const [youtubeLoading, setYoutubeLoading] = useState(false);
   const [places, setPlaces] = useState([emptyPlace()]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -117,6 +120,28 @@ export default function Write({ currentUser, onDone, draft }) {
     setTravelStyles(prev => prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]);
   };
 
+  // 유튜브 URL에서 oEmbed 정보 추출
+  const fetchYoutubeInfo = async (url) => {
+    if (!url.trim()) { setYoutubeInfo(null); return; }
+    const ytRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(ytRegex);
+    if (!match) { setYoutubeInfo(null); return; }
+    const videoId = match[1];
+    setYoutubeLoading(true);
+    try {
+      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+      if (res.ok) {
+        const data = await res.json();
+        setYoutubeInfo({ title: data.title, thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`, videoId, url });
+      } else {
+        setYoutubeInfo({ videoId, url, title: '', thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` });
+      }
+    } catch (e) {
+      setYoutubeInfo({ videoId, url, title: '', thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` });
+    }
+    setYoutubeLoading(false);
+  };
+
   const submit = async () => {
     if (!form.title.trim()) { setError('제목을 입력해주세요.'); return; }
     if (!currentUser) { setError('로그인이 필요해요.'); return; }
@@ -126,7 +151,7 @@ export default function Write({ currentUser, onDone, draft }) {
       const validPlaces = places
         .filter(p => p.name.trim())
         .map((p, i) => ({ ...p, order: i + 1, lat: parseFloat(p.lat) || 0, lng: parseFloat(p.lng) || 0 }));
-      await api.createPost({ ...form, tags, travelStyles, places: validPlaces, userId: currentUser.id });
+      await api.createPost({ ...form, tags, travelStyles, places: validPlaces, userId: currentUser.id, youtubeUrl: youtubeInfo?.url || '', youtubeTitle: youtubeInfo?.title || '', youtubeThumbnail: youtubeInfo?.thumbnail || '' });
       onDone?.();
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -176,6 +201,33 @@ export default function Write({ currentUser, onDone, draft }) {
             })}
           </div>
           {travelStyles.length === 0 && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>선택 안 해도 되지만 선택하면 탐색에서 더 잘 찾아져요!</div>}
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">🎬 관련 유튜브 영상 (선택)</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input className="form-input" style={{ flex: 1, marginBottom: 0 }}
+              placeholder="유튜브 URL 입력 (예: https://youtube.com/watch?v=...)"
+              value={youtubeUrl}
+              onChange={e => setYoutubeUrl(e.target.value)}
+              onBlur={() => fetchYoutubeInfo(youtubeUrl)}
+              onKeyDown={e => e.key === 'Enter' && fetchYoutubeInfo(youtubeUrl)} />
+            <button type="button" onClick={() => fetchYoutubeInfo(youtubeUrl)}
+              className="btn-secondary" style={{ fontSize: 13, padding: '0 14px', flexShrink: 0 }}>
+              {youtubeLoading ? '...' : '확인'}
+            </button>
+          </div>
+          {youtubeInfo && (
+            <div style={{ marginTop: 10, display: 'flex', gap: 10, background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+              <img src={youtubeInfo.thumbnail} alt="" style={{ width: 80, height: 50, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', marginBottom: 2 }}>{youtubeInfo.title || '유튜브 영상'}</div>
+                <a href={youtubeInfo.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#4f46e5' }}>▶ 유튜브에서 보기</a>
+              </div>
+              <button onClick={() => { setYoutubeInfo(null); setYoutubeUrl(''); }}
+                style={{ color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            </div>
+          )}
         </div>
 
         <div className="form-group">

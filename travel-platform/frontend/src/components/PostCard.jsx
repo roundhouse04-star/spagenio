@@ -97,6 +97,17 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
             </button>
           </div>
         )}
+        {post.youtubeUrl && (
+          <a href={post.youtubeUrl} target="_blank" rel="noreferrer"
+            onClick={e => e.stopPropagation()}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, textDecoration: 'none' }}>
+            {post.youtubeThumbnail && <img src={post.youtubeThumbnail} style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} alt="" />}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>▶ 유튜브 영상</div>
+              {post.youtubeTitle && <div style={{ fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.youtubeTitle}</div>}
+            </div>
+          </a>
+        )}
       </div>
     </div>
   );

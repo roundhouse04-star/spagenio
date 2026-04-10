@@ -78,6 +78,17 @@ public class TravelService {
         return saved;
     }
 
+    // Wishlist (가고 싶다)
+    public User toggleWishlist(String userId, String postId) {
+        User user = getUser(userId);
+        if (user.getWishlistPostIds().contains(postId)) {
+            user.getWishlistPostIds().remove(postId);
+        } else {
+            user.getWishlistPostIds().add(postId);
+        }
+        return repo.saveUser(user);
+    }
+
     // Badge 자동 지급
     public void checkAndAwardBadges(String userId) {
         try {
@@ -187,4 +198,16 @@ public class TravelService {
     public List<Promotion> getAllPromotions() { return repo.findAllPromotions(); }
     public Promotion savePromotion(Promotion p) { return repo.savePromotion(p); }
     public void deletePromotion(String id) { repo.deletePromotion(id); }
+
+    // 위치 기반 검색
+    public List<Post> getPostsNearby(double lat, double lng, double radiusKm) {
+        return repo.findPostsNearby(lat, lng, radiusKm);
+    }
+    public List<java.util.Map<String, Object>> getSavedPlacesNearby(String userId, double lat, double lng, double radiusKm) {
+        return repo.findSavedPlacesNearby(userId, lat, lng, radiusKm);
+    }
+
+    // 메뉴 관리
+    public List<MenuItem> getMenuItems() { return repo.findAllMenuItems(); }
+    public void saveMenuItems(List<MenuItem> items) { repo.saveAllMenuItems(items); }
 }

@@ -1,0 +1,302 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { api } from '../api';
+import { TRAVEL_STYLES } from '../travelStyles';
+
+// 거리 표시
+function distLabel(km) {
+  if (km < 1) return `${Math.round(km * 1000)}m`;
+  return `${km.toFixed(1)}km`;
+}
+
+// 저장한 장소 근처 알림 배너
+function SavedNearbyBanner({ places, onOpenMaps }) {
+  if (!places.length) return null;
+  return (
+    <div style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderRadius: 18, padding: '16px 20px', color: 'white' }}>
+      <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>
+        🔔 내가 저장한 장소가 근처에 있어요!
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {places.slice(0, 3).map((p, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '10px 14px' }}>
+            {p.image && <img src={p.image} style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} alt="" />}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{p.placeName}</div>
+              <div style={{ fontSize: 11, opacity: 0.8 }}>{p.postTitle} · {p.userNickname}</div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>{distLabel(p.distKm)}</div>
+              {p.lat && p.lng && (
+                <button onClick={() => onOpenMaps(p.lat, p.lng, p.placeName)}
+                  style={{ fontSize: 10, marginTop: 3, padding: '2px 8px', background: 'rgba(255,255,255,0.25)', border: 'none', borderRadius: 6, color: 'white', cursor: 'pointer' }}>
+                  길 안내
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 근처 게시물 카드
+function NearbyPostCard({ post, onOpen, closestDist }) {
+  const firstImg = post.images?.[0];
+  const styles = post.travelStyles || [];
+  return (
+    <div onClick={() => onOpen?.(post)}
+      style={{ background: 'white', border: '1px solid #eee', borderRadius: 16, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.1s' }}
+      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
+      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+      {firstImg && (
+        <img src={firstImg} alt={post.title}
+          style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
+      )}
+      <div style={{ padding: '12px 14px' }}>
+        {styles.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+            {styles.slice(0, 2).map(key => {
+              const s = TRAVEL_STYLES.find(t => t.key === key);
+              if (!s) return null;
+              return (
+                <span key={key} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, background: s.bg, color: s.color, fontWeight: 700 }}>
+                  {s.icon} {s.label}
+                </span>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>{post.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 12, color: '#9ca3af' }}>
+            {post.userNickname} · {post.city || post.country || ''}
+          </div>
+          {closestDist != null && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 20 }}>
+              📍 {distLabel(closestDist)}
+            </div>
+          )}
+        </div>
+        {post.places?.length > 0 && (
+          <div style={{ marginTop: 8, fontSize: 11, color: '#6b7280' }}>
+            📍 {post.places.slice(0, 2).map(p => p.name).join(' · ')}
+            {post.places.length > 2 ? ` +${post.places.length - 2}` : ''}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Nearby({ currentUser, onOpenPost }) {
+  const [location, setLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [nearbyPosts, setNearbyPosts] = useState([]);
+  const [savedNearby, setSavedNearby] = useState([]);
+  const [radius, setRadius] = useState(2.0);
+  const [styleFilter, setStyleFilter] = useState('');
+  const [tab, setTab] = useState('around'); // around | saved
+
+  const getLocation = useCallback(() => {
+    setLoading(true);
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError('이 브라우저는 위치 서비스를 지원하지 않아요.');
+      setLoading(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setLocation(loc);
+        loadNearby(loc);
+      },
+      err => {
+        setLocationError('위치 권한이 필요해요. 브라우저 설정에서 허용해주세요.');
+        setLoading(false);
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  }, [radius]);
+
+  const loadNearby = async (loc) => {
+    setLoading(true);
+    try {
+      const [posts, saved] = await Promise.all([
+        api.getPostsNearby(loc.lat, loc.lng, radius),
+        currentUser ? api.getSavedPlacesNearby(currentUser.id, loc.lat, loc.lng, 1.0) : Promise.resolve([]),
+      ]);
+
+      // 각 게시물의 가장 가까운 장소 거리 계산
+      const postsWithDist = (posts || []).map(post => {
+        let minDist = Infinity;
+        (post.places || []).forEach(place => {
+          if (!place.lat || !place.lng) return;
+          const dLat = (place.lat - loc.lat) * Math.PI / 180;
+          const dLng = (place.lng - loc.lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2)**2 + Math.cos(loc.lat*Math.PI/180) * Math.cos(place.lat*Math.PI/180) * Math.sin(dLng/2)**2;
+          const dist = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          if (dist < minDist) minDist = dist;
+        });
+        return { ...post, _dist: minDist === Infinity ? null : minDist };
+      });
+      postsWithDist.sort((a, b) => (a._dist ?? 999) - (b._dist ?? 999));
+
+      setNearbyPosts(postsWithDist);
+      setSavedNearby(saved || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { getLocation(); }, []);
+
+  const openMaps = (lat, lng, name) => {
+    window.open(`https://maps.google.com/?q=${lat},${lng}&label=${encodeURIComponent(name)}`, '_blank');
+  };
+
+  const filtered = styleFilter
+    ? nearbyPosts.filter(p => (p.travelStyles || []).includes(styleFilter))
+    : nearbyPosts;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* 헤더 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div className="page-title">📍 내 주변</div>
+          {location && (
+            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+              현재 위치 기준 · 반경 {radius}km
+            </div>
+          )}
+        </div>
+        <button onClick={getLocation}
+          style={{ padding: '8px 16px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          {loading ? '검색 중...' : '🔄 새로고침'}
+        </button>
+      </div>
+
+      {/* 위치 오류 */}
+      {locationError && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: '14px 16px', fontSize: 13, color: '#dc2626' }}>
+          ⚠️ {locationError}
+          <button onClick={getLocation}
+            style={{ marginLeft: 10, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>
+            다시 시도
+          </button>
+        </div>
+      )}
+
+      {/* 저장한 장소 근처 배너 */}
+      {savedNearby.length > 0 && (
+        <SavedNearbyBanner places={savedNearby} onOpenMaps={openMaps} />
+      )}
+
+      {/* 반경 설정 */}
+      {location && (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>반경</span>
+          {[0.5, 1, 2, 5, 10].map(r => (
+            <button key={r} onClick={() => { setRadius(r); loadNearby(location); }}
+              style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${radius === r ? '#4f46e5' : '#eee'}`, background: radius === r ? '#eef2ff' : 'white', color: radius === r ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: radius === r ? 700 : 500, cursor: 'pointer' }}>
+              {r < 1 ? `${r*1000}m` : `${r}km`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 탭 */}
+      <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4 }}>
+        {[['around', '🗺️ 주변 게시물'], ['saved', `🔖 저장한 장소 근처 ${savedNearby.length > 0 ? `(${savedNearby.length})` : ''}`]].map(([key, label]) => (
+          <button key={key} onClick={() => setTab(key)}
+            style={{ flex: 1, padding: '9px 4px', borderRadius: 9, border: 'none', background: tab === key ? 'white' : 'transparent', color: tab === key ? '#4f46e5' : '#9ca3af', fontSize: 13, fontWeight: tab === key ? 700 : 500, cursor: 'pointer', boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* 주변 게시물 탭 */}
+      {tab === 'around' && (
+        <>
+          {/* 여행 스타일 필터 */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button onClick={() => setStyleFilter('')}
+              style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${!styleFilter ? '#4f46e5' : '#eee'}`, background: !styleFilter ? '#eef2ff' : 'white', color: !styleFilter ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: !styleFilter ? 700 : 500, cursor: 'pointer' }}>
+              🌍 전체
+            </button>
+            {TRAVEL_STYLES.map(s => {
+              const isSelected = styleFilter === s.key;
+              return (
+                <button key={s.key} onClick={() => setStyleFilter(isSelected ? '' : s.key)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${isSelected ? s.color : '#eee'}`, background: isSelected ? s.bg : 'white', color: isSelected ? s.color : '#9ca3af', fontSize: 12, fontWeight: isSelected ? 700 : 500, cursor: 'pointer' }}>
+                  <span style={{ fontSize: 13 }}>{s.icon}</span> {s.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {loading ? (
+            <div className="empty">위치 기반으로 검색 중...</div>
+          ) : !location ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>📍</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 6 }}>위치 권한이 필요해요</div>
+              <div style={{ fontSize: 13 }}>내 주변 맛집과 여행 코스를 찾아드릴게요!</div>
+              <button onClick={getLocation}
+                style={{ marginTop: 16, padding: '10px 24px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                위치 허용하기
+              </button>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 4 }}>근처에 게시물이 없어요</div>
+              <div style={{ fontSize: 13 }}>반경을 늘려보거나 직접 여행 후기를 올려보세요!</div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+              {filtered.map(post => (
+                <NearbyPostCard key={post.id} post={post} onOpen={onOpenPost} closestDist={post._dist} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 저장한 장소 탭 */}
+      {tab === 'saved' && (
+        savedNearby.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>🔖</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
+              {!location ? '위치를 허용해주세요' : '근처에 저장한 장소가 없어요'}
+            </div>
+            <div style={{ fontSize: 13 }}>게시물에서 🔖 버튼으로 장소를 저장해보세요!</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {savedNearby.map((p, i) => (
+              <div key={i} style={{ background: 'white', border: '1px solid #eee', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                {p.image && <img src={p.image} style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} alt="" />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 2 }}>{p.placeName}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2 }}>{p.postTitle}</div>
+                  {p.address && <div style={{ fontSize: 11, color: '#9ca3af' }}>{p.address}</div>}
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#4f46e5' }}>{distLabel(p.distKm)}</div>
+                  <button onClick={() => openMaps(p.lat, p.lng, p.placeName)}
+                    style={{ marginTop: 6, padding: '5px 12px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    길 안내
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}

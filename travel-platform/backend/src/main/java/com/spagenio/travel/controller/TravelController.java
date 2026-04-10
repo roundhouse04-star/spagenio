@@ -202,10 +202,41 @@ public class TravelController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void adminDeletePost(@PathVariable String id) { service.deletePost(id); }
 
+    // ── 메뉴 관리 ─────────────────────────────────────────
+    @GetMapping("/menus")
+    public List<MenuItem> getMenus() { return service.getMenuItems(); }
+
+    @PostMapping("/menus")
+    public void saveMenus(@RequestBody List<MenuItem> items) { service.saveMenuItems(items); }
+
+    // ── 위치 기반 검색 ────────────────────────────────────
+    @GetMapping("/posts/nearby")
+    public List<Post> getPostsNearby(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "2.0") double radius) {
+        return service.getPostsNearby(lat, lng, radius);
+    }
+
+    @GetMapping("/users/{userId}/saved-nearby")
+    public List<Map<String, Object>> getSavedPlacesNearby(
+            @PathVariable String userId,
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "1.0") double radius) {
+        return service.getSavedPlacesNearby(userId, lat, lng, radius);
+    }
+
     // ── Bookmark ──────────────────────────────────────────
     @PostMapping("/users/{userId}/bookmark/{postId}")
     public User toggleBookmark(@PathVariable String userId, @PathVariable String postId) {
         return service.toggleBookmark(userId, postId);
+    }
+
+    // ── Wishlist (가고 싶다) ───────────────────────────────
+    @PostMapping("/users/{userId}/wishlist/{postId}")
+    public User toggleWishlist(@PathVariable String userId, @PathVariable String postId) {
+        return service.toggleWishlist(userId, postId);
     }
 
     // ── Promotion ─────────────────────────────────────────

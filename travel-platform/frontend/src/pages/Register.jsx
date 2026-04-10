@@ -275,7 +275,7 @@ export default function Register() {
                 })}
               </div>
             )}
-            <button style={S.btn} onClick={() => window.location.href = '/'}>🏠 로그인하러 가기</button>
+            <button style={S.btn} onClick={() => window.location.replace('/')}>🏠 로그인하러 가기</button>
           </div>
         )}
       </div>

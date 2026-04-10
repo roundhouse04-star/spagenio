@@ -41,6 +41,7 @@ const NAV = [
   { key: 'reports', icon: '🚨', label: '신고 관리' },
   { key: 'notices', icon: '📢', label: '공지사항' },
   { key: 'promotions', icon: '📣', label: '프로모션' },
+  { key: 'menus', icon: '🗂️', label: '메뉴 관리' },
 ];
 
 export default function Admin() {
@@ -54,7 +55,11 @@ export default function Admin() {
   const [notices, setNotices] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [showPromoForm, setShowPromoForm] = useState(false);
+  const [editPromo, setEditPromo] = useState(null); // 수정 중인 프로모션
   const [promoForm, setPromoForm] = useState({ title: '', content: '', imageUrl: '', linkUrl: '', linkLabel: '자세히 보기', type: 'notice', insertEvery: 5, priority: 0, active: true });
+
+  const [menuItems, setMenuItems] = useState([]);
+  const [menuSaving, setMenuSaving] = useState(false);
   const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -93,6 +98,7 @@ export default function Admin() {
     if (page === 'reports') loadReports();
     if (page === 'notices') loadNotices();
     if (page === 'promotions') loadPromotions();
+    if (page === 'menus') loadMenus();
   }, [page, token]);
 
   const loadUserStats = async () => {
@@ -136,10 +142,58 @@ export default function Admin() {
     if (res?.ok) setPromotions(await res.json());
   };
 
+  const loadMenus = async () => {
+    const res = await apiFetch('/api/menus');
+    if (res?.ok) {
+      const data = await res.json();
+      setMenuItems(data.sort((a, b) => a.sortOrder - b.sortOrder));
+    }
+  };
+
+  const saveMenus = async () => {
+    setMenuSaving(true);
+    const res = await apiFetch('/api/menus', { method: 'POST', body: JSON.stringify(menuItems) });
+    if (res?.ok) showToast('메뉴 설정이 저장됐습니다.');
+    setMenuSaving(false);
+  };
+
+  const moveMenu = (idx, dir) => {
+    const items = [...menuItems];
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= items.length) return;
+    [items[idx], items[swapIdx]] = [items[swapIdx], items[idx]];
+    items.forEach((m, i) => { m.sortOrder = i; });
+    setMenuItems([...items]);
+  };
+
+  const toggleMenuVisible = (key) => {
+    setMenuItems(prev => prev.map(m => m.key === key ? { ...m, visible: !m.visible } : m));
+  };
+
+  const updateMenuLabel = (key, label) => {
+    setMenuItems(prev => prev.map(m => m.key === key ? { ...m, label } : m));
+  };
+
+  const updateMenuIcon = (key, icon) => {
+    setMenuItems(prev => prev.map(m => m.key === key ? { ...m, icon } : m));
+  };
+
   const savePromotion = async () => {
     if (!promoForm.title.trim() || !promoForm.content.trim()) { showToast('제목과 내용을 입력해주세요.', 'error'); return; }
-    const res = await apiFetch('/api/promotions', { method: 'POST', body: JSON.stringify({ ...promoForm, insertEvery: Number(promoForm.insertEvery), priority: Number(promoForm.priority) }) });
-    if (res?.ok) { showToast('프로모션이 등록됐습니다.'); setShowPromoForm(false); setPromoForm({ title: '', content: '', imageUrl: '', linkUrl: '', linkLabel: '자세히 보기', type: 'notice', insertEvery: 5, priority: 0, active: true }); loadPromotions(); }
+    const body = { ...promoForm, insertEvery: Number(promoForm.insertEvery), priority: Number(promoForm.priority) };
+    let res;
+    if (editPromo) {
+      res = await apiFetch(`/api/promotions/${editPromo.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    } else {
+      res = await apiFetch('/api/promotions', { method: 'POST', body: JSON.stringify(body) });
+    }
+    if (res?.ok) {
+      showToast(editPromo ? '수정됐습니다.' : '프로모션이 등록됐습니다.');
+      setShowPromoForm(false);
+      setEditPromo(null);
+      setPromoForm({ title: '', content: '', imageUrl: '', linkUrl: '', linkLabel: '자세히 보기', type: 'notice', insertEvery: 5, priority: 0, active: true });
+      loadPromotions();
+    }
   };
 
   const togglePromo = async (promo) => {
@@ -517,41 +571,162 @@ export default function Admin() {
           {page === 'promotions' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={S.pageTitle}>📣 프로모션 관리</div>
-                <button style={S.btn('primary')} onClick={() => setShowPromoForm(true)}>+ 프로모션 등록</button>
+                <div style={S.pageTitle}>📣 프로모션 메뉴 관리</div>
+                <button style={S.btn('primary')} onClick={() => { setShowPromoForm(true); setEditPromo(null); setPromoForm({ title: '', content: '', imageUrl: '', linkUrl: '', linkLabel: '자세히 보기', type: 'notice', insertEvery: 5, priority: 0, active: true }); }}>+ 메뉴 등록</button>
               </div>
+
+              {/* 안내 */}
               <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#4f46e5' }}>
-                💡 피드에서 N개 게시물마다 프로모션이 자동으로 삽입돼요. 우선순위가 높을수록 먼저 표시됩니다.
+                💡 등록된 메뉴는 피드에서 N개 게시물마다 자동으로 삽입돼요. 활성 상태의 메뉴만 표시됩니다.
               </div>
-              <div style={S.tableWrap}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead><tr>
-                    {['제목', '유형', '삽입 간격', '우선순위', '상태', '등록일', '관리'].map(h => <th key={h} style={S.th}>{h}</th>)}
-                  </tr></thead>
-                  <tbody>
-                    {promotions.length === 0 ? (
-                      <tr><td colSpan={7} style={{ ...S.td, textAlign: 'center', color: '#bbb', padding: 24 }}>등록된 프로모션이 없습니다.</td></tr>
-                    ) : promotions.map(p => (
-                      <tr key={p.id}>
-                        <td style={{ ...S.td, fontWeight: 700 }}>
-                          {p.imageUrl && <img src={p.imageUrl} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', marginRight: 8, verticalAlign: 'middle' }} alt="" />}
-                          {p.title}
-                          {p.linkUrl && <div style={{ fontSize: 11, color: '#4f46e5', marginTop: 2 }}>{p.linkLabel}</div>}
-                        </td>
-                        <td style={S.td}><span style={S.badge(p.type === 'ad' ? 'yellow' : p.type === 'event' ? 'green' : 'blue')}>{p.type === 'ad' ? '광고' : p.type === 'event' ? '이벤트' : '공지'}</span></td>
-                        <td style={{ ...S.td, textAlign: 'center', fontWeight: 700, color: '#4f46e5' }}>{p.insertEvery}개마다</td>
-                        <td style={{ ...S.td, textAlign: 'center' }}>{p.priority}</td>
-                        <td style={S.td}><span style={S.badge(p.active ? 'green' : 'gray')}>{p.active ? '활성' : '비활성'}</span></td>
-                        <td style={{ ...S.td, color: '#9ca3af' }}>{fmtDate(p.createdAt)}</td>
-                        <td style={S.td}><div style={{ display: 'flex', gap: 5 }}>
-                          <button style={S.btn(p.active ? 'gray' : 'green')} onClick={() => togglePromo(p)}>{p.active ? '비활성화' : '활성화'}</button>
-                          <button style={S.btn('danger')} onClick={() => deletePromo(p.id)}>삭제</button>
-                        </div></td>
-                      </tr>
+
+              {/* 카드 목록 */}
+              {promotions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 0', color: '#9ca3af' }}>
+                  <div style={{ fontSize: 36, marginBottom: 10 }}>📣</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 6 }}>등록된 메뉴가 없어요</div>
+                  <div style={{ fontSize: 13 }}>+ 메뉴 등록 버튼을 눌러 첫 번째 프로모션을 만들어보세요!</div>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+                  {promotions.map(p => (
+                    <div key={p.id} style={{ background: 'white', border: `2px solid ${p.active ? '#c7d2fe' : '#eee'}`, borderRadius: 16, overflow: 'hidden', opacity: p.active ? 1 : 0.6 }}>
+                      {/* 이미지 미리보기 */}
+                      {p.imageUrl && (
+                        <img src={p.imageUrl} alt={p.title}
+                          style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }} />
+                      )}
+                      <div style={{ padding: '14px 16px' }}>
+                        {/* 타입 뱃지 + 상태 */}
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+                          <span style={S.badge(p.type === 'ad' ? 'yellow' : p.type === 'event' ? 'green' : 'blue')}>
+                            {p.type === 'ad' ? '광고' : p.type === 'event' ? '이벤트' : '공지'}
+                          </span>
+                          <span style={S.badge(p.active ? 'green' : 'gray')}>{p.active ? '활성' : '비활성'}</span>
+                          <span style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af' }}>
+                            {p.insertEvery}개마다 · 우선순위 {p.priority}
+                          </span>
+                        </div>
+                        {/* 제목 */}
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#1a1a2e', marginBottom: 4 }}>{p.title}</div>
+                        {/* 내용 */}
+                        <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5, marginBottom: 8,
+                          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {p.content}
+                        </div>
+                        {/* 링크 */}
+                        {p.linkUrl && (
+                          <div style={{ fontSize: 11, color: '#4f46e5', marginBottom: 10 }}>
+                            🔗 {p.linkUrl}
+                          </div>
+                        )}
+                        {/* 등록일 */}
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 12 }}>등록일: {fmtDate(p.createdAt)}</div>
+                        {/* 버튼 */}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...S.btn('primary'), flex: 1, fontSize: 12 }}
+                            onClick={() => { setEditPromo(p); setPromoForm({ ...p }); setShowPromoForm(true); }}>
+                            ✏️ 수정
+                          </button>
+                          <button style={{ ...S.btn(p.active ? 'gray' : 'green'), flex: 1, fontSize: 12 }}
+                            onClick={() => togglePromo(p)}>
+                            {p.active ? '비활성화' : '활성화'}
+                          </button>
+                          <button style={{ ...S.btn('danger'), fontSize: 12 }}
+                            onClick={() => deletePromo(p.id)}>
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          {/* ── 메뉴 관리 ── */}
+          {page === 'menus' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={S.pageTitle}>🗂️ 메뉴 관리</div>
+                <button style={S.btn('primary')} onClick={saveMenus} disabled={menuSaving}>
+                  {menuSaving ? '저장 중...' : '💾 변경 저장'}
+                </button>
+              </div>
+
+              <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#4f46e5' }}>
+                💡 메뉴를 켜고 끄거나 순서를 바꾸면 앱의 사이드바와 하단 메뉴에 즉시 반영돼요.
+              </div>
+
+              {menuItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>불러오는 중...</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {menuItems.map((m, idx) => (
+                    <div key={m.key} style={{ background: 'white', border: `2px solid ${m.visible ? '#c7d2fe' : '#eee'}`, borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, opacity: m.visible ? 1 : 0.5, transition: 'all 0.15s' }}>
+
+                      {/* 순서 이동 버튼 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <button onClick={() => moveMenu(idx, -1)} disabled={idx === 0}
+                          style={{ width: 26, height: 26, border: '1px solid #eee', borderRadius: 6, background: idx === 0 ? '#f9fafb' : 'white', color: idx === 0 ? '#d1d5db' : '#6b7280', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          ▲
+                        </button>
+                        <button onClick={() => moveMenu(idx, 1)} disabled={idx === menuItems.length - 1}
+                          style={{ width: 26, height: 26, border: '1px solid #eee', borderRadius: 6, background: idx === menuItems.length - 1 ? '#f9fafb' : 'white', color: idx === menuItems.length - 1 ? '#d1d5db' : '#6b7280', cursor: idx === menuItems.length - 1 ? 'default' : 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          ▼
+                        </button>
+                      </div>
+
+                      {/* 순서 번호 */}
+                      <div style={{ width: 24, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#9ca3af' }}>
+                        {idx + 1}
+                      </div>
+
+                      {/* 아이콘 편집 */}
+                      <input value={m.icon} onChange={e => updateMenuIcon(m.key, e.target.value)}
+                        style={{ width: 48, textAlign: 'center', fontSize: 22, border: '1px solid #eee', borderRadius: 8, padding: '4px 0', outline: 'none', background: '#fafafa' }} />
+
+                      {/* 라벨 편집 */}
+                      <input value={m.label} onChange={e => updateMenuLabel(m.key, e.target.value)}
+                        style={{ flex: 1, padding: '8px 12px', border: '1px solid #eee', borderRadius: 10, fontSize: 14, fontWeight: 600, color: '#1a1a2e', outline: 'none' }} />
+
+                      {/* 키(고정값) */}
+                      <span style={{ fontSize: 11, color: '#9ca3af', background: '#f3f4f6', padding: '3px 8px', borderRadius: 6, fontFamily: 'monospace', flexShrink: 0 }}>
+                        {m.key}
+                      </span>
+
+                      {/* 로그인 필요 여부 */}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', flexShrink: 0, fontSize: 12, color: '#6b7280' }}>
+                        <input type="checkbox" checked={m.requireLogin || false}
+                          onChange={e => setMenuItems(prev => prev.map(item => item.key === m.key ? { ...item, requireLogin: e.target.checked } : item))}
+                          style={{ accentColor: '#4f46e5', cursor: 'pointer' }} />
+                        로그인 필요
+                      </label>
+
+                      {/* 표시/숨김 토글 */}
+                      <button onClick={() => toggleMenuVisible(m.key)}
+                        style={{ padding: '7px 14px', borderRadius: 10, border: `1.5px solid ${m.visible ? '#4f46e5' : '#e5e7eb'}`, background: m.visible ? '#eef2ff' : '#f9fafb', color: m.visible ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                        {m.visible ? '👁️ 표시 중' : '🙈 숨김'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 미리보기 */}
+              {menuItems.length > 0 && (
+                <div style={{ marginTop: 20, background: '#1a1a2e', borderRadius: 16, padding: '16px 12px' }}>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12, fontWeight: 600 }}>📱 사이드바 미리보기</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {menuItems.filter(m => m.visible !== false).map(m => (
+                      <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)' }}>
+                        <span style={{ fontSize: 18 }}>{m.icon}</span>
+                        <span style={{ fontSize: 13, color: 'white', fontWeight: 500 }}>{m.label}</span>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </main>
@@ -597,17 +772,19 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 프로모션 등록 모달 */}
+      {/* 프로모션 등록/수정 모달 */}
       {showPromoForm && (
-        <div style={S.modalOverlay} onClick={() => setShowPromoForm(false)}>
-          <div style={{ ...S.modal, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#1a1a2e', marginBottom: 18 }}>📣 프로모션 등록</div>
+        <div style={S.modalOverlay} onClick={() => { setShowPromoForm(false); setEditPromo(null); }}>
+          <div style={{ ...S.modal, maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#1a1a2e', marginBottom: 18 }}>
+              {editPromo ? '📣 프로모션 수정' : '📣 프로모션 등록'}
+            </div>
 
             {/* 유형 */}
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>유형</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                {[['notice','공지'], ['event','이벤트'], ['ad','광고']].map(([val, label]) => (
+                {[['notice','📢 공지'], ['event','🎉 이벤트'], ['ad','💰 광고']].map(([val, label]) => (
                   <button key={val} onClick={() => setPromoForm(p => ({...p, type: val}))}
                     style={{ flex: 1, padding: '8px', borderRadius: 10, border: `2px solid ${promoForm.type === val ? '#4f46e5' : '#eee'}`, background: promoForm.type === val ? '#eef2ff' : 'white', color: promoForm.type === val ? '#4f46e5' : '#9ca3af', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                     {label}
@@ -620,18 +797,32 @@ export default function Admin() {
               value={promoForm.title} onChange={e => setPromoForm(p => ({...p, title: e.target.value}))} />
             <textarea style={{ width: '100%', padding: '10px 14px', border: '1px solid #eee', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
               placeholder="내용 *" rows={3} value={promoForm.content} onChange={e => setPromoForm(p => ({...p, content: e.target.value}))} />
-            <input style={{ ...S.input, width: '100%', marginBottom: 10 }} placeholder="이미지 URL (선택)"
-              value={promoForm.imageUrl} onChange={e => setPromoForm(p => ({...p, imageUrl: e.target.value}))} />
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <input style={{ ...S.input, flex: 2, marginBottom: 0 }} placeholder="링크 URL (선택)"
-                value={promoForm.linkUrl} onChange={e => setPromoForm(p => ({...p, linkUrl: e.target.value}))} />
-              <input style={{ ...S.input, flex: 1, marginBottom: 0 }} placeholder="버튼 텍스트"
-                value={promoForm.linkLabel} onChange={e => setPromoForm(p => ({...p, linkLabel: e.target.value}))} />
+
+            {/* 이미지 URL */}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4, fontWeight: 600 }}>이미지 URL (선택)</div>
+              <input style={{ ...S.input, width: '100%', marginBottom: 0 }} placeholder="https://... 이미지 링크"
+                value={promoForm.imageUrl} onChange={e => setPromoForm(p => ({...p, imageUrl: e.target.value}))} />
+              {promoForm.imageUrl && (
+                <img src={promoForm.imageUrl} alt="" style={{ marginTop: 8, width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }}
+                  onError={e => e.target.style.display='none'} />
+              )}
+            </div>
+
+            {/* 링크 */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4, fontWeight: 600 }}>링크 설정 (선택)</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input style={{ ...S.input, flex: 2, marginBottom: 0 }} placeholder="링크 URL"
+                  value={promoForm.linkUrl} onChange={e => setPromoForm(p => ({...p, linkUrl: e.target.value}))} />
+                <input style={{ ...S.input, flex: 1, marginBottom: 0 }} placeholder="버튼 텍스트"
+                  value={promoForm.linkLabel} onChange={e => setPromoForm(p => ({...p, linkLabel: e.target.value}))} />
+              </div>
             </div>
 
             {/* 삽입 간격 */}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>피드 삽입 간격 (게시물 N개마다 1번)</div>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>피드 삽입 간격 (게시물 N개마다 1번 노출)</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[3, 5, 10].map(n => (
                   <button key={n} onClick={() => setPromoForm(p => ({...p, insertEvery: n}))}
@@ -642,16 +833,52 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* 우선순위 */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>우선순위 (높을수록 먼저 표시)</div>
-              <input type="number" style={{ ...S.input, width: 100 }} value={promoForm.priority}
-                onChange={e => setPromoForm(p => ({...p, priority: Number(e.target.value)}))} min={0} max={100} />
+            {/* 우선순위 + 활성 */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4, fontWeight: 600 }}>우선순위 (높을수록 먼저)</div>
+                <input type="number" style={{ ...S.input, width: '100%', marginBottom: 0 }} value={promoForm.priority}
+                  onChange={e => setPromoForm(p => ({...p, priority: Number(e.target.value)}))} min={0} max={100} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4, fontWeight: 600 }}>즉시 활성화</div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 8 }}>
+                  <input type="checkbox" checked={promoForm.active} onChange={e => setPromoForm(p => ({...p, active: e.target.checked}))}
+                    style={{ width: 18, height: 18, accentColor: '#4f46e5', cursor: 'pointer' }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: promoForm.active ? '#4f46e5' : '#9ca3af' }}>
+                    {promoForm.active ? '활성' : '비활성'}
+                  </span>
+                </label>
+              </div>
             </div>
 
+            {/* 미리보기 */}
+            {promoForm.title && (
+              <div style={{ marginBottom: 16, border: '1px dashed #c7d2fe', borderRadius: 12, padding: 10 }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>📱 피드 미리보기</div>
+                <div style={{ background: promoForm.type === 'ad' ? '#fffbeb' : promoForm.type === 'event' ? '#f0fdf4' : '#eef2ff', border: `1px solid ${promoForm.type === 'ad' ? '#fde68a' : promoForm.type === 'event' ? '#bbf7d0' : '#c7d2fe'}`, borderRadius: 12, overflow: 'hidden' }}>
+                  {promoForm.imageUrl && <img src={promoForm.imageUrl} alt="" style={{ width: '100%', height: 80, objectFit: 'cover' }} onError={e => e.target.style.display='none'} />}
+                  <div style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, background: promoForm.type === 'ad' ? '#d97706' : promoForm.type === 'event' ? '#16a34a' : '#4f46e5', color: 'white' }}>
+                        {promoForm.type === 'ad' ? '광고' : promoForm.type === 'event' ? '이벤트' : '공지'}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e' }}>{promoForm.title}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#6b7280' }}>{promoForm.content}</div>
+                    {promoForm.linkUrl && (
+                      <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: promoForm.type === 'ad' ? '#d97706' : promoForm.type === 'event' ? '#16a34a' : '#4f46e5' }}>
+                        {promoForm.linkLabel} →
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button style={S.btn('gray')} onClick={() => setShowPromoForm(false)}>취소</button>
-              <button style={S.btn('primary')} onClick={savePromotion}>등록</button>
+              <button style={S.btn('gray')} onClick={() => { setShowPromoForm(false); setEditPromo(null); }}>취소</button>
+              <button style={S.btn('primary')} onClick={savePromotion}>{editPromo ? '수정 완료' : '등록'}</button>
             </div>
           </div>
         </div>

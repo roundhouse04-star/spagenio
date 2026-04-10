@@ -19,6 +19,9 @@ public class Post {
 
     @Column(columnDefinition = "TEXT")
     private String content;
+    private String youtubeUrl = "";
+    private String youtubeTitle = "";
+    private String youtubeThumbnail = "";
 
     private String country;
     private String city;
@@ -77,6 +80,12 @@ public class Post {
     public void setImages(List<String> images) { this.images = images; }
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
+    public String getYoutubeUrl() { return youtubeUrl; }
+    public void setYoutubeUrl(String youtubeUrl) { this.youtubeUrl = youtubeUrl; }
+    public String getYoutubeTitle() { return youtubeTitle; }
+    public void setYoutubeTitle(String youtubeTitle) { this.youtubeTitle = youtubeTitle; }
+    public String getYoutubeThumbnail() { return youtubeThumbnail; }
+    public void setYoutubeThumbnail(String youtubeThumbnail) { this.youtubeThumbnail = youtubeThumbnail; }
     public List<String> getTravelStyles() { return travelStyles; }
     public void setTravelStyles(List<String> travelStyles) { this.travelStyles = travelStyles; }
     public List<String> getLikedUserIds() { return likedUserIds; }

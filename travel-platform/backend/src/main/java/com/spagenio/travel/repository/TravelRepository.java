@@ -443,6 +443,82 @@ public class TravelRepository {
     }
 
     // ── Promotion ─────────────────────────────────────────
+
+    // ── 위치 기반 장소 검색 ───────────────────────────────
+    // 반경 내 장소가 포함된 게시물 검색 (하버사인 공식 근사)
+    public List<Post> findPostsNearby(double lat, double lng, double radiusKm) {
+        // lat/lng 범위로 1차 필터링 (1도 ≈ 111km)
+        double latDelta = radiusKm / 111.0;
+        double lngDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
+
+        List<Post> candidates = em.createQuery(
+            "SELECT DISTINCT p FROM Post p JOIN p.places pl " +
+            "WHERE p.visibility = 'public' " +
+            "AND pl.lat BETWEEN :minLat AND :maxLat " +
+            "AND pl.lng BETWEEN :minLng AND :maxLng " +
+            "ORDER BY p.createdAt DESC", Post.class)
+            .setParameter("minLat", lat - latDelta)
+            .setParameter("maxLat", lat + latDelta)
+            .setParameter("minLng", lng - lngDelta)
+            .setParameter("maxLng", lng + lngDelta)
+            .setMaxResults(50)
+            .getResultList();
+
+        // 하버사인 공식으로 정확한 거리 계산하여 필터링
+        return candidates.stream().filter(post ->
+            post.getPlaces().stream().anyMatch(place -> {
+                double dLat = Math.toRadians(place.getLat() - lat);
+                double dLng = Math.toRadians(place.getLng() - lng);
+                double a = Math.sin(dLat/2) * Math.sin(dLat/2)
+                    + Math.cos(Math.toRadians(lat)) * Math.cos(Math.toRadians(place.getLat()))
+                    * Math.sin(dLng/2) * Math.sin(dLng/2);
+                double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return 6371 * c <= radiusKm;
+            })
+        ).collect(java.util.stream.Collectors.toList());
+    }
+
+    // 유저가 저장한 장소 중 근처 있는 것 찾기
+    public List<Map<String, Object>> findSavedPlacesNearby(String userId, double lat, double lng, double radiusKm) {
+        double latDelta = radiusKm / 111.0;
+        double lngDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
+
+        User user = em.find(User.class, userId);
+        if (user == null || user.getSavedPostIds().isEmpty()) return new java.util.ArrayList<>();
+
+        List<Post> savedPosts = em.createQuery(
+            "SELECT p FROM Post p WHERE p.id IN :ids", Post.class)
+            .setParameter("ids", user.getSavedPostIds())
+            .getResultList();
+
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Post post : savedPosts) {
+            for (var place : post.getPlaces()) {
+                if (place.getLat() == 0 && place.getLng() == 0) continue;
+                double dLat = Math.toRadians(place.getLat() - lat);
+                double dLng = Math.toRadians(place.getLng() - lng);
+                double a = Math.sin(dLat/2) * Math.sin(dLat/2)
+                    + Math.cos(Math.toRadians(lat)) * Math.cos(Math.toRadians(place.getLat()))
+                    * Math.sin(dLng/2) * Math.sin(dLng/2);
+                double distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                if (distKm <= radiusKm) {
+                    result.add(Map.of(
+                        "postId", post.getId(),
+                        "postTitle", post.getTitle(),
+                        "placeName", place.getName(),
+                        "address", place.getAddress() != null ? place.getAddress() : "",
+                        "lat", place.getLat(),
+                        "lng", place.getLng(),
+                        "distKm", Math.round(distKm * 10.0) / 10.0,
+                        "userNickname", post.getUserNickname(),
+                        "image", post.getImages() != null && !post.getImages().isEmpty() ? post.getImages().get(0) : ""
+                    ));
+                }
+            }
+        }
+        result.sort((a2, b2) -> Double.compare((Double)a2.get("distKm"), (Double)b2.get("distKm")));
+        return result;
+    }
     public List<Promotion> findActivePromotions() {
         return em.createQuery("SELECT p FROM Promotion p WHERE p.active = true ORDER BY p.priority DESC, p.createdAt DESC", Promotion.class).getResultList();
     }
@@ -460,5 +536,54 @@ public class TravelRepository {
     public void deletePromotion(String id) {
         Promotion p = em.find(Promotion.class, id);
         if (p != null) em.remove(p);
+    }
+
+    // ── Menu Items ────────────────────────────────────────
+    // 기본 메뉴 목록
+    private static final Object[][] DEFAULT_MENUS = {
+        {"feed",     "🏠", "홈",       true,  0,  false},
+        {"nearby",   "📍", "내 주변",   true,  1,  true},
+        {"explore",  "🔍", "탐색",     true,  2,  false},
+        {"write",    "✏️", "글쓰기",   true,  3,  true},
+        {"planner",  "🗺️", "일정",     true,  4,  true},
+        {"share",    "🔗", "정보공유", true,  5,  true},
+        {"exchange", "💱", "환율",     true,  6,  false},
+        {"profile",  "👤", "프로필",   true,  7,  true},
+    };
+
+    public List<MenuItem> findAllMenuItems() {
+        List<MenuItem> items = em.createQuery("SELECT m FROM MenuItem m ORDER BY m.sortOrder", MenuItem.class).getResultList();
+        // DB가 비어있으면 기본값으로 초기화
+        if (items.isEmpty()) {
+            for (Object[] d : DEFAULT_MENUS) {
+                MenuItem m = new MenuItem();
+                m.setKey((String) d[0]);
+                m.setIcon((String) d[1]);
+                m.setLabel((String) d[2]);
+                m.setVisible((boolean) d[3]);
+                m.setSortOrder((int) d[4]);
+                m.setRequireLogin((boolean) d[5]);
+                em.persist(m);
+            }
+            items = em.createQuery("SELECT m FROM MenuItem m ORDER BY m.sortOrder", MenuItem.class).getResultList();
+        }
+        return items;
+    }
+
+    public MenuItem saveMenuItem(MenuItem m) {
+        MenuItem existing = em.find(MenuItem.class, m.getKey());
+        if (existing == null) em.persist(m);
+        else {
+            existing.setIcon(m.getIcon());
+            existing.setLabel(m.getLabel());
+            existing.setVisible(m.isVisible());
+            existing.setSortOrder(m.getSortOrder());
+            existing.setRequireLogin(m.isRequireLogin());
+        }
+        return m;
+    }
+
+    public void saveAllMenuItems(List<MenuItem> items) {
+        for (MenuItem m : items) saveMenuItem(m);
     }
 }
