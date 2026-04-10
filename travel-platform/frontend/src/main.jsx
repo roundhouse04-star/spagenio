@@ -460,7 +460,17 @@ function App() {
             onDelete={handleDeletePost} onUpdate={handleUpdatePost}
             onBookmark={handleBookmark} onWishlist={handleWishlist} />
         ) : page === 'feed' ? (
-          <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
+          <>
+            {/* SNS 스타일 상단 헤더 (모바일 피드용) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: 'white', position: 'sticky', top: 0, zIndex: 10 }} className="mobile-feed-header">
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#4f46e5', letterSpacing: -0.5 }}>✈ Travellog</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => goPage('nearby')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>📍</button>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>💬</button>
+              </div>
+            </div>
+            <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
+          </>
         ) : page === 'nearby' ? (
           <Nearby currentUser={currentUser} onOpenPost={handleOpenPost} />
         ) : page === 'explore' ? (
