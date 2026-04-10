@@ -34,5 +34,15 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 5
     }
+  ,
+    {
+      name: 'cloudflared',
+      script: '/opt/homebrew/bin/cloudflared',
+      args: 'tunnel run spagenio',
+      interpreter: 'none',
+      autorestart: true,
+      watch: false,
+      restart_delay: 3000
+    }
   ]
 };

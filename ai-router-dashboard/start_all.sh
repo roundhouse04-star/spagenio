@@ -24,13 +24,6 @@ sleep 1
 n8n start &
 sleep 2
 
-# Cloudflare Tunnel 시작 (중복 방지)
-echo "🔄 Cloudflare Tunnel 시작 중..."
-pkill -f "cloudflared" 2>/dev/null
-sleep 1
-cloudflared tunnel run spagenio &
-sleep 2
-
 # 자동 배포 감지 시작 (백그라운드)
 echo "🔄 자동 배포 감지 시작..."
 bash "$PROJECT/auto-deploy.sh" &
