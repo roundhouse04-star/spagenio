@@ -39,6 +39,7 @@ echo "📦 배포 시작: $MSG"
 
 # ai-router-dashboard 폴더만 올림 (travel-platform 건드리지 않음)
 git add "$AI_DIR"/
+git reset HEAD "$AI_DIR/ecosystem.config.cjs" 2>/dev/null || true
 git add .gitignore
 git commit -m "$MSG"
 git push origin main

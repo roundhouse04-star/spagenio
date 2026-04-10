@@ -38,3 +38,4 @@ travel-platform/nginx.conf
 ai-router-dashboard/node_modules/
 ai-router-dashboard/.env
 ai-router-dashboard/vite.config.js
+ai-router-dashboard/ecosystem.config.cjs
