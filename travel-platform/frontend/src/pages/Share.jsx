@@ -309,7 +309,7 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
                 같은 곳 여행 🎉
               </div>
             )}
-            {/* 내 일정에 복사 버튼 — 내 일정이 아니고 장소공유=ON이고 items가 있을 때만 */}
+            {/* 내 일정에 복사 버튼 — 내 일정이 아니고 (장소공유 or 일정공유)=ON이고 items가 있을 때 */}
             {!isMyPlan && (plan.sharePlaces || plan.shareSchedule) && plan.items?.length > 0 && (
               <div style={{ position: 'relative' }}>
                 <button

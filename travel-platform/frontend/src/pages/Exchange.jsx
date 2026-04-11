@@ -46,10 +46,19 @@ export default function Exchange() {
     setLoading(true);
     setError(null);
     try {
-      const codes = CURRENCIES.map(c => c.code).join(',');
-      const res = await fetch(`https://api.frankfurter.dev/v1/latest?from=KRW&to=${codes}`);
+      const codes = [...CURRENCIES.map(c => c.code), 'KRW'].join(',');
+      // USD 기준으로 받아서 KRW 기준으로 역산
+      const res = await fetch(`https://api.frankfurter.dev/v1/latest?from=USD&to=${codes}`);
       const data = await res.json();
-      setRates(data.rates);
+      const usdToKrw = data.rates['KRW'];
+      // 각 통화의 KRW 기준 환율 계산 (1 KRW = ? 외화)
+      const krwRates = {};
+      CURRENCIES.forEach(c => {
+        if (data.rates[c.code]) {
+          krwRates[c.code] = data.rates[c.code] / usdToKrw;
+        }
+      });
+      setRates(krwRates);
       setLastUpdated(data.date);
     } catch (e) {
       setError('환율 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
