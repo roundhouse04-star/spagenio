@@ -32,7 +32,7 @@ const STEPS = [
 
 export default function Register() {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ nickname: '', email: '', password: '', passwordConfirm: '', verifyCode: '' });
+  const [form, setForm] = useState({ nickname: '', email: '', password: '', passwordConfirm: '', verifyCode: '', nationality: 'KR' });
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
@@ -112,6 +112,7 @@ export default function Register() {
           agree_content: agreed.agree_content || false,
           agree_location: agreed.agree_location || false,
           agree_marketing: agreed.agree_marketing || false,
+          nationality: form.nationality || 'KR',
         })
       });
       const data = await res.json();
@@ -163,6 +164,23 @@ export default function Register() {
             <div style={S.title}>기본 정보 입력</div>
             <input style={S.inp} placeholder="닉네임 (2~20자)" value={form.nickname}
               onChange={e => setForm(p => ({...p, nickname: e.target.value}))} />
+            <select style={{...S.inp, color: form.nationality ? '#1a1a2e' : '#9ca3af'}}
+              value={form.nationality}
+              onChange={e => setForm(p => ({...p, nationality: e.target.value}))}>
+              <option value="KR">🇰🇷 대한민국</option>
+              <option value="JP">🇯🇵 일본</option>
+              <option value="US">🇺🇸 미국</option>
+              <option value="EU">🇪🇺 유럽 (유로)</option>
+              <option value="TH">🇹🇭 태국</option>
+              <option value="CN">🇨🇳 중국</option>
+              <option value="GB">🇬🇧 영국</option>
+              <option value="AU">🇦🇺 호주</option>
+              <option value="SG">🇸🇬 싱가포르</option>
+              <option value="MY">🇲🇾 말레이시아</option>
+              <option value="VN">🇻🇳 베트남</option>
+              <option value="ID">🇮🇩 인도네시아</option>
+              <option value="PH">🇵🇭 필리핀</option>
+            </select>
             <input style={S.inp} type="email" placeholder="이메일 주소" value={form.email}
               onChange={e => setForm(p => ({...p, email: e.target.value}))} />
             <input style={S.inp} type="password" placeholder="비밀번호" value={form.password}

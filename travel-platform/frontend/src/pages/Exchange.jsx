@@ -25,13 +25,37 @@ const BUDGETS = [
 ];
 
 export default function Exchange() {
+  // 국적 → 기준 통화 매핑
+  const NATIONALITY_CURRENCY = {
+    KR: { code: 'KRW', isBase: true },   // 한국 → 원화 기준 (외화 입력)
+    JP: { code: 'JPY', isBase: false },  // 일본 → JPY 입력
+    US: { code: 'USD', isBase: false },  // 미국 → USD 입력
+    EU: { code: 'EUR', isBase: false },  // 유럽 → EUR 입력
+    TH: { code: 'THB', isBase: false },  // 태국 → THB 입력
+    CN: { code: 'CNY', isBase: false },  // 중국 → CNY 입력
+    GB: { code: 'GBP', isBase: false },  // 영국 → GBP 입력
+    AU: { code: 'AUD', isBase: false },  // 호주 → AUD 입력
+    SG: { code: 'SGD', isBase: false },  // 싱가포르 → SGD 입력
+    MY: { code: 'MYR', isBase: false },  // 말레이시아 → MYR 입력
+    VN: { code: 'VND', isBase: false },  // 베트남 → VND 입력
+    ID: { code: 'IDR', isBase: false },  // 인도네시아 → IDR 입력
+    PH: { code: 'PHP', isBase: false },  // 필리핀 → PHP 입력
+  };
+
+  const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
+  const nationality = savedUser?.nationality || 'KR';
+  const natCurrency = NATIONALITY_CURRENCY[nationality] || NATIONALITY_CURRENCY['KR'];
+  // 한국인이면 외화 입력 기본(100 JPY → KRW), 외국인이면 자국 통화 입력 기본
+  const defaultForeign = natCurrency.isBase ? '100' : '';
+  const defaultKrw = natCurrency.isBase ? '' : '10000';
+  const defaultSelected = natCurrency.isBase ? 'JPY' : natCurrency.code;
   const [rates, setRates] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [krwInput, setKrwInput] = useState('10000');
-  const [selectedCurrency, setSelectedCurrency] = useState('JPY');
-  const [foreignInput, setForeignInput] = useState('');
+  const [krwInput, setKrwInput] = useState(defaultKrw);
+  const [selectedCurrency, setSelectedCurrency] = useState(defaultSelected);
+  const [foreignInput, setForeignInput] = useState(defaultForeign);
   const [tab, setTab] = useState('exchange'); // exchange | budget
   const [budgetItems, setBudgetItems] = useState(
     BUDGETS.map(b => ({ ...b, amount: '' }))
@@ -150,7 +174,7 @@ export default function Exchange() {
             {/* 통화 선택 */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
               {CURRENCIES.map(c => (
-                <button key={c.code} onClick={() => { setSelectedCurrency(c.code); setForeignInput(''); setKrwInput('10000'); }}
+                <button key={c.code} onClick={() => { setSelectedCurrency(c.code); setForeignInput('100'); setKrwInput(''); }}
                   style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${selectedCurrency === c.code ? '#4f46e5' : '#eee'}`, background: selectedCurrency === c.code ? '#eef2ff' : 'white', color: selectedCurrency === c.code ? '#4f46e5' : '#6b7280', fontSize: 12, fontWeight: selectedCurrency === c.code ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
                   {c.flag} {c.code}
                 </button>
@@ -233,7 +257,7 @@ export default function Exchange() {
                 const displayKRW = krwPerUnit ? krwPerUnit.toLocaleString() : '-';
                 return (
                   <div key={c.code}
-                    onClick={() => { setSelectedCurrency(c.code); setTab('exchange'); setKrwInput('10000'); setForeignInput(''); }}
+                    onClick={() => { setSelectedCurrency(c.code); setTab('exchange'); setKrwInput(''); setForeignInput('100'); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < CURRENCIES.length - 1 ? '1px solid #f9fafb' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#fafbff'}
                     onMouseLeave={e => e.currentTarget.style.background = 'white'}>

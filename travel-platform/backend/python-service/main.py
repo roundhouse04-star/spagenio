@@ -212,6 +212,7 @@ class RegisterReq(BaseModel):
     nickname: str; email: str; password: str; verifyCode: str
     agree_terms: bool = False; agree_privacy: bool = False; agree_content: bool = False
     agree_location: bool = False; agree_marketing: bool = False
+    nationality: str = 'KR'
 
 class LoginReq(BaseModel):
     email: str; password: str
@@ -358,10 +359,10 @@ def register(req: RegisterReq):
             raise HTTPException(400, "이미 사용 중인 이메일입니다.")
         if conn.execute("SELECT 1 FROM users WHERE nickname=?", (req.nickname,)).fetchone():
             raise HTTPException(400, "이미 사용 중인 닉네임입니다.")
-        conn.execute("""INSERT INTO users (id, nickname, email, password, role, suspended, agree_marketing, created_at)
-                        VALUES (?, ?, ?, ?, 'user', 0, ?, ?)""",
+        conn.execute("""INSERT INTO users (id, nickname, email, password, role, suspended, agree_marketing, nationality, created_at)
+                        VALUES (?, ?, ?, ?, 'user', 0, ?, ?, ?)""",
                      (user_id, req.nickname, req.email, hash_password(req.password),
-                      1 if req.agree_marketing else 0, now))
+                      1 if req.agree_marketing else 0, req.nationality, now))
         # 공식 계정 자동 팔로우
         official_id = "travellog-official"
         official = conn.execute("SELECT id FROM users WHERE id=?", (official_id,)).fetchone()
@@ -384,7 +385,8 @@ def login(req: LoginReq):
         user = row_to_user(row, conn)
     return {"token": make_token(user["id"], user.get("role", "user")),
             "user": {"id": user["id"], "nickname": user["nickname"],
-                     "profileImage": user.get("profileImage", ""), "bio": user.get("bio", "")}}
+                     "profileImage": user.get("profileImage", ""), "bio": user.get("bio", ""),
+                     "nationality": user.get("nationality", "KR")}}
 
 @app.post("/api/admin/login")
 def admin_login(req: AdminLoginReq):
