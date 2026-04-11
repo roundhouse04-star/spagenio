@@ -11,6 +11,7 @@ import PostDetail from './components/PostDetail';
 import Admin from './pages/Admin';
 import Share from './pages/Share';
 import Exchange from './pages/Exchange';
+import Transit from './pages/Transit';
 import Nearby from './pages/Nearby';
 import Terms from './pages/Terms';
 import Register from './pages/Register';
@@ -362,7 +363,8 @@ function App() {
     { key: 'planner',  icon: '🗺️', label: '일정',     visible: true, sortOrder: 4, requireLogin: true },
     { key: 'share',    icon: '🔗', label: '정보공유', visible: true, sortOrder: 5, requireLogin: true },
     { key: 'exchange', icon: '💱', label: '환율',     visible: true, sortOrder: 6, requireLogin: false },
-    { key: 'profile',  icon: '👤', label: '프로필',   visible: true, sortOrder: 7, requireLogin: true },
+    { key: 'transit',  icon: '🚇', label: '교통',     visible: true, sortOrder: 7, requireLogin: false },
+    { key: 'profile',  icon: '👤', label: '프로필',   visible: true, sortOrder: 8, requireLogin: true },
   ]);
 
   if (loading) return (
@@ -519,6 +521,8 @@ function App() {
           <Share currentUser={currentUser} onProfile={handleProfile} />
         ) : page === 'exchange' ? (
           <Exchange />
+        ) : page === 'transit' ? (
+          <Transit />
         ) : page === 'profile' ? (
           <Profile userId={profileUserId || currentUser?.id} currentUser={currentUser}
             onOpenPost={handleOpenPost} onChangeUser={setCurrentUser} />
