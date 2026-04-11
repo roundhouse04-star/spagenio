@@ -62,10 +62,13 @@ public class TravelController {
             @RequestParam(required = false) String country,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String travelStyle,
-            @RequestParam(required = false) String userId) {
-        if (userId != null) return service.getFeedPosts(userId);
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false, defaultValue = "0") int offset,
+            @RequestParam(required = false, defaultValue = "0") int limit) {
+        if (userId != null) return service.getFeedPosts(userId, offset, limit);
         if (keyword != null || country != null || city != null || travelStyle != null)
             return service.searchPosts(keyword, country, city, travelStyle);
+        if (limit > 0) return service.getAllPostsPaged(offset, limit);
         return service.getAllPosts();
     }
 
@@ -260,4 +263,5 @@ public class TravelController {
     @DeleteMapping("/promotions/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePromotion(@PathVariable String id) { service.deletePromotion(id); }
+
 }

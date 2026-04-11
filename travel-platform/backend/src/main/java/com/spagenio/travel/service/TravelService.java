@@ -42,7 +42,14 @@ public class TravelService {
     // Post
     public List<Post> getAllPosts() { return repo.findAllPosts(null); }
     public List<Post> getAllPosts(String currentUserId) { return repo.findAllPosts(currentUserId); }
+    public List<Post> getAllPostsPaged(int offset, int limit) {
+        List<Post> all = repo.findAllPosts(null);
+        int end = Math.min(offset + limit, all.size());
+        if (offset >= all.size()) return new java.util.ArrayList<>();
+        return new java.util.ArrayList<>(all.subList(offset, end));
+    }
     public List<Post> getFeedPosts(String userId) { return repo.findFeedPosts(userId); }
+    public List<Post> getFeedPosts(String userId, int offset, int limit) { return repo.findFeedPosts(userId, offset, limit); }
     public List<Post> getPostsByUser(String userId) { return repo.findPostsByUserId(userId); }
     public List<Post> searchPosts(String keyword, String country, String city) { return repo.searchPosts(keyword, country, city, null); }
     public List<Post> searchPosts(String keyword, String country, String city, String travelStyle) { return repo.searchPosts(keyword, country, city, travelStyle); }

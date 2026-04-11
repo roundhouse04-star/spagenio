@@ -127,6 +127,14 @@ public class TravelRepository {
 
     public List<Post> findAllPosts() { return findAllPosts(null); }
 
+    public List<Post> findFeedPosts(String userId, int offset, int limit) {
+        List<Post> all = findFeedPosts(userId);
+        if (limit <= 0) return all;
+        int end = Math.min(offset + limit, all.size());
+        if (offset >= all.size()) return new java.util.ArrayList<>();
+        return all.subList(offset, end);
+    }
+
     public List<Post> findFeedPosts(String userId) {
         User user = findUserById(userId).orElse(null);
         if (user == null || user.getFollowingIds().isEmpty()) return findAllPosts(userId);

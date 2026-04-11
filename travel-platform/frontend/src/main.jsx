@@ -55,23 +55,23 @@ function LoginPage({ onLogin }) {
         <div className="login-left" style={{ background: '#FF5A5F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', gap: 28, minHeight: '100vh' }}>
           {/* 로고 */}
           <svg width="72" height="72" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="96" height="96" rx="24" fill="rgba(255,255,255,0.15)"/>
-            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-            <circle cx="48" cy="38" r="22" fill="white"/>
-            <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
-            <path d="M36 58 Q48 80 60 58" fill="white"/>
+            <rect width="96" height="96" rx="24" fill="rgba(255,255,255,0.15)" />
+            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.3" />
+            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.3" />
+            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3" />
+            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3" />
+            <circle cx="48" cy="38" r="22" fill="white" />
+            <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
+            <path d="M36 58 Q48 80 60 58" fill="white" />
           </svg>
 
           {/* 카피 */}
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 30, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: -0.5 }}>
-              당신의 순간을<br/>세상과 나눠요
+              당신의 순간을<br />세상과 나눠요
             </div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 12, lineHeight: 1.7 }}>
-              사진 한 장, 짧은 글 하나로<br/>새로운 연결이 시작돼요
+              사진 한 장, 짧은 글 하나로<br />새로운 연결이 시작돼요
             </div>
           </div>
 
@@ -91,17 +91,17 @@ function LoginPage({ onLogin }) {
         <div className="login-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: 'white', minHeight: '100vh' }}>
           <div style={{ marginBottom: 28 }}>
             <svg width="56" height="56" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
-              <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-              <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-              <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-              <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-              <circle cx="15" cy="15" r="4" fill="white" opacity="0.22"/>
-              <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22"/>
-              <circle cx="20" cy="74" r="3" fill="white" opacity="0.18"/>
-              <circle cx="48" cy="38" r="22" fill="white"/>
-              <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
-              <path d="M36 58 Q48 80 60 58" fill="white"/>
+              <rect width="96" height="96" rx="24" fill="#FF5A5F" />
+              <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18" />
+              <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18" />
+              <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
+              <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
+              <circle cx="15" cy="15" r="4" fill="white" opacity="0.22" />
+              <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22" />
+              <circle cx="20" cy="74" r="3" fill="white" opacity="0.18" />
+              <circle cx="48" cy="38" r="22" fill="white" />
+              <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
+              <path d="M36 58 Q48 80 60 58" fill="white" />
             </svg>
           </div>
           <div style={{ fontSize: 24, fontWeight: 700, color: '#111', marginBottom: 4 }}>로그인</div>
@@ -311,7 +311,7 @@ function App() {
     const draft = {
       title: `[${plan.title}] 여행 후기`,
       content: `📅 ${plan.startDate} ~ ${plan.endDate}\n\n` +
-        (plan.items || []).map((item, i) => `${i+1}. ${item.placeName}${item.memo ? ' — ' + item.memo : ''}`).join('\n'),
+        (plan.items || []).map((item, i) => `${i + 1}. ${item.placeName}${item.memo ? ' — ' + item.memo : ''}`).join('\n'),
       country: '',
       city: plan.title,
       tags: ['여행후기'],
@@ -356,15 +356,15 @@ function App() {
   };
 
   const [navItems, setNavItems] = useState([
-    { key: 'feed',     icon: '🏠', label: '홈',       visible: true, sortOrder: 0, requireLogin: false },
-    { key: 'nearby',   icon: '📍', label: '내 주변',   visible: true, sortOrder: 1, requireLogin: true },
-    { key: 'explore',  icon: '🔍', label: '탐색',     visible: true, sortOrder: 2, requireLogin: false },
-    { key: 'write',    icon: '✏️', label: '글쓰기',   visible: true, sortOrder: 3, requireLogin: true },
-    { key: 'planner',  icon: '🗺️', label: '일정',     visible: true, sortOrder: 4, requireLogin: true },
-    { key: 'share',    icon: '🔗', label: '정보공유', visible: true, sortOrder: 5, requireLogin: true },
-    { key: 'exchange', icon: '💱', label: '환율',     visible: true, sortOrder: 6, requireLogin: false },
-    { key: 'transit',  icon: '🚇', label: '교통',     visible: true, sortOrder: 7, requireLogin: false },
-    { key: 'profile',  icon: '👤', label: '프로필',   visible: true, sortOrder: 8, requireLogin: true },
+    { key: 'feed', icon: '🏠', label: '홈', visible: true, sortOrder: 0, requireLogin: false },
+    { key: 'nearby', icon: '📍', label: '내 주변', visible: true, sortOrder: 1, requireLogin: true },
+    { key: 'explore', icon: '🔍', label: '탐색', visible: true, sortOrder: 2, requireLogin: false },
+    { key: 'write', icon: '✏️', label: '글쓰기', visible: true, sortOrder: 3, requireLogin: true },
+    { key: 'planner', icon: '🗺️', label: '일정', visible: true, sortOrder: 4, requireLogin: true },
+    { key: 'share', icon: '🔗', label: '정보공유', visible: true, sortOrder: 5, requireLogin: true },
+    { key: 'exchange', icon: '💱', label: '환율', visible: true, sortOrder: 6, requireLogin: false },
+    { key: 'transit', icon: '🚇', label: '교통', visible: true, sortOrder: 7, requireLogin: false },
+    { key: 'profile', icon: '👤', label: '프로필', visible: true, sortOrder: 8, requireLogin: true },
   ]);
 
   if (loading) return (
@@ -380,17 +380,17 @@ function App() {
       <aside className="sidebar">
         <div className="logo" style={{ cursor: 'pointer', padding: '4px 14px 22px' }} onClick={() => goPage('feed')}>
           <svg width="44" height="44" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
-            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-            <circle cx="15" cy="15" r="4" fill="white" opacity="0.22"/>
-            <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22"/>
-            <circle cx="20" cy="74" r="3" fill="white" opacity="0.18"/>
-            <circle cx="48" cy="38" r="22" fill="white"/>
-            <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
-            <path d="M36 58 Q48 80 60 58" fill="white"/>
+            <rect width="96" height="96" rx="24" fill="#FF5A5F" />
+            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18" />
+            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18" />
+            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
+            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
+            <circle cx="15" cy="15" r="4" fill="white" opacity="0.22" />
+            <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22" />
+            <circle cx="20" cy="74" r="3" fill="white" opacity="0.18" />
+            <circle cx="48" cy="38" r="22" fill="white" />
+            <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
+            <path d="M36 58 Q48 80 60 58" fill="white" />
           </svg>
         </div>
         {navItems.filter(item => item.visible !== false).map(item => (
@@ -489,17 +489,17 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: 'white', position: 'sticky', top: 0, zIndex: 10 }} className="mobile-feed-header">
               <div style={{ cursor: 'pointer' }} onClick={() => goPage('feed')}>
                 <svg width="36" height="36" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
-                  <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-                  <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-                  <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-                  <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
-                  <circle cx="15" cy="15" r="4" fill="white" opacity="0.22"/>
-                  <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22"/>
-                  <circle cx="20" cy="74" r="3" fill="white" opacity="0.18"/>
-                  <circle cx="48" cy="38" r="22" fill="white"/>
-                  <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
-                  <path d="M36 58 Q48 80 60 58" fill="white"/>
+                  <rect width="96" height="96" rx="24" fill="#FF5A5F" />
+                  <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18" />
+                  <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18" />
+                  <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
+                  <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
+                  <circle cx="15" cy="15" r="4" fill="white" opacity="0.22" />
+                  <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22" />
+                  <circle cx="20" cy="74" r="3" fill="white" opacity="0.18" />
+                  <circle cx="48" cy="38" r="22" fill="white" />
+                  <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
+                  <path d="M36 58 Q48 80 60 58" fill="white" />
                 </svg>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>

@@ -10,8 +10,8 @@ function PromoCard({ promo }) {
   const typeColor = promo.type === 'ad'
     ? { bg: '#fffbeb', border: '#fde68a', badge: '#d97706', badgeText: '광고' }
     : promo.type === 'event'
-    ? { bg: '#f0fdf4', border: '#bbf7d0', badge: '#16a34a', badgeText: '이벤트' }
-    : { bg: '#eef2ff', border: '#c7d2fe', badge: '#4f46e5', badgeText: '공지' };
+      ? { bg: '#f0fdf4', border: '#bbf7d0', badge: '#16a34a', badgeText: '이벤트' }
+      : { bg: '#eef2ff', border: '#c7d2fe', badge: '#4f46e5', badgeText: '공지' };
 
   return (
     <div style={{ background: typeColor.bg, border: `1.5px solid ${typeColor.border}`, overflow: 'hidden', borderBottom: '1px solid #f0f0f0' }}>
@@ -69,8 +69,8 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
         {post.images?.[0]
           ? <img src={post.images[0]} alt={post.title} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
           : <div style={{ width: '100%', aspectRatio: '1/1', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 64 }}>✈️</span>
-            </div>
+            <span style={{ fontSize: 64 }}>✈️</span>
+          </div>
         }
       </div>
 
@@ -192,13 +192,13 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
 
   const load = async () => {
     setLoading(true);
-    setPage(1);
+    setPage(0);
     try {
-      const data = await api.getPosts({ currentUserId: currentUser?.id });
+      const data = await api.getPosts({ offset: 0, limit: PAGE_SIZE });
       const sorted = sortByPreference(data || [], currentUser?.preferredStyles);
       setAllPosts(sorted);
-      setPosts(sorted.slice(0, PAGE_SIZE));
-      setHasMore(sorted.length > PAGE_SIZE);
+      setPosts(sorted);
+      setHasMore(sorted.length >= PAGE_SIZE);
       try {
         const promos = await api.getPromotions();
         setPromotions(promos || []);
@@ -209,25 +209,34 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
 
   useEffect(() => { load(); }, [tab, currentUser?.id]);
 
-  const loadMore = useCallback(() => {
+  const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
-    const nextPage = page + 1;
-    const nextPosts = allPosts.slice(0, nextPage * PAGE_SIZE);
-    setPosts(nextPosts);
-    setPage(nextPage);
-    setHasMore(nextPosts.length < allPosts.length);
+    try {
+      const nextPage = page + 1;
+      const nextOffset = nextPage * PAGE_SIZE;
+      const data = await api.getPosts({ offset: nextOffset, limit: PAGE_SIZE });
+      const sorted = sortByPreference(data || [], currentUser?.preferredStyles);
+      if (sorted.length === 0) {
+        setHasMore(false);
+      } else {
+        setPosts(prev => [...prev, ...sorted]);
+        setAllPosts(prev => [...prev, ...sorted]);
+        setPage(nextPage);
+        setHasMore(sorted.length >= PAGE_SIZE);
+      }
+    } catch (e) { console.error(e); }
     setLoadingMore(false);
-  }, [loadingMore, hasMore, page, allPosts]);
+  }, [loadingMore, hasMore, page, currentUser]);
 
   useEffect(() => {
-    if (!sentinelRef.current) return;
-    observerRef.current = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) loadMore(); },
-      { threshold: 0.1 }
-    );
-    observerRef.current.observe(sentinelRef.current);
-    return () => observerRef.current?.disconnect();
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        loadMore();
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [loadMore]);
 
   const handleLike = async (postId) => {
