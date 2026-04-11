@@ -109,8 +109,20 @@ function LoginPage({ onLogin }) {
 
         {/* 오른쪽: 로그인 폼 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#1a1a2e', letterSpacing: -0.5, marginBottom: 32 }}>
-            ✈ Travel<span style={{ color: '#4f46e5' }}>log</span>
+          <div style={{ marginBottom: 32 }}>
+            <svg width="56" height="56" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
+              <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <circle cx="15" cy="15" r="4" fill="white" opacity="0.22"/>
+              <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22"/>
+              <circle cx="20" cy="74" r="3" fill="white" opacity="0.18"/>
+              <circle cx="48" cy="38" r="22" fill="white"/>
+              <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
+              <path d="M36 58 Q48 80 60 58" fill="white"/>
+            </svg>
           </div>
 
           {error && (
@@ -366,8 +378,20 @@ function App() {
   return (
     <div className="app" onClick={() => showLogoutMenu && setShowLogoutMenu(false)}>
       <aside className="sidebar">
-        <div className="logo" style={{ cursor: 'pointer' }} onClick={() => goPage('feed')}>
-          ✈ Travel<span>log</span>
+        <div className="logo" style={{ cursor: 'pointer', padding: '4px 14px 22px' }} onClick={() => goPage('feed')}>
+          <svg width="44" height="44" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
+            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+            <circle cx="15" cy="15" r="4" fill="white" opacity="0.22"/>
+            <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22"/>
+            <circle cx="20" cy="74" r="3" fill="white" opacity="0.18"/>
+            <circle cx="48" cy="38" r="22" fill="white"/>
+            <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
+            <path d="M36 58 Q48 80 60 58" fill="white"/>
+          </svg>
         </div>
         {navItems.filter(item => item.visible !== false).map(item => (
           <div key={item.key}
@@ -463,7 +487,21 @@ function App() {
           <>
             {/* SNS 스타일 상단 헤더 (모바일 피드용) */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: 'white', position: 'sticky', top: 0, zIndex: 10 }} className="mobile-feed-header">
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#4f46e5', letterSpacing: -0.5 }}>✈ Travellog</div>
+              <div style={{ cursor: 'pointer' }} onClick={() => goPage('feed')}>
+                <svg width="36" height="36" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
+                  <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+                  <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+                  <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+                  <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+                  <circle cx="15" cy="15" r="4" fill="white" opacity="0.22"/>
+                  <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22"/>
+                  <circle cx="20" cy="74" r="3" fill="white" opacity="0.18"/>
+                  <circle cx="48" cy="38" r="22" fill="white"/>
+                  <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
+                  <path d="M36 58 Q48 80 60 58" fill="white"/>
+                </svg>
+              </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => goPage('nearby')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>📍</button>
                 <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>💬</button>
