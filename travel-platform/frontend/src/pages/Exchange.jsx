@@ -223,18 +223,14 @@ export default function Exchange() {
           <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 18, overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>📊 오늘의 환율</div>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>1,000원 기준</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>외화 → 원화 기준</div>
             </div>
             <div>
               {CURRENCIES.map((c, i) => {
-                const rate = rates[c.code];
-                const per1000 = rate ? (1000 * rate) : null;
-                let displayRate;
-                if (c.code === 'JPY' || c.code === 'IDR' || c.code === 'VND' || c.code === 'PHP') {
-                  displayRate = per1000 ? Math.round(per1000).toLocaleString() : '-';
-                } else {
-                  displayRate = per1000 ? per1000.toFixed(2) : '-';
-                }
+                const rate = rates[c.code]; // 1 KRW = rate 외화
+                const unit = (c.code === 'JPY' || c.code === 'IDR' || c.code === 'VND' || c.code === 'PHP') ? 100 : 1;
+                const krwPerUnit = rate ? Math.round(unit / rate) : null;
+                const displayKRW = krwPerUnit ? krwPerUnit.toLocaleString() : '-';
                 return (
                   <div key={c.code}
                     onClick={() => { setSelectedCurrency(c.code); setTab('exchange'); setKrwInput('10000'); setForeignInput(''); }}
@@ -247,8 +243,8 @@ export default function Exchange() {
                       <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.name} · {c.code}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#4f46e5' }}>{displayRate} <span style={{ fontSize: 11, fontWeight: 500 }}>{c.code}</span></div>
-                      <div style={{ fontSize: 10, color: '#9ca3af' }}>₩1,000</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#4f46e5' }}>₩{displayKRW}</div>
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>{unit} {c.code}</div>
                     </div>
                   </div>
                 );
