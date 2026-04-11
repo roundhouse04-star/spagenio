@@ -33,6 +33,7 @@ const STEPS = [
 export default function Register() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ nickname: '', email: '', password: '', passwordConfirm: '', verifyCode: '', nationality: 'KR' });
+  const [wishCountries, setWishCountries] = useState([]);
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
@@ -113,6 +114,7 @@ export default function Register() {
           agree_location: agreed.agree_location || false,
           agree_marketing: agreed.agree_marketing || false,
           nationality: form.nationality || 'KR',
+          wish_countries: JSON.stringify(wishCountries),
         })
       });
       const data = await res.json();
@@ -181,6 +183,36 @@ export default function Register() {
               <option value="ID">🇮🇩 인도네시아</option>
               <option value="PH">🇵🇭 필리핀</option>
             </select>
+
+            {/* 가고싶은 나라 선택 (선택) */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ color: '#9ca3af', fontWeight: 400 }}>(선택, 복수 선택 가능)</span></div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {[
+                  { code: 'JP', label: '🇯🇵 일본' }, { code: 'US', label: '🇺🇸 미국' },
+                  { code: 'FR', label: '🇫🇷 프랑스' }, { code: 'IT', label: '🇮🇹 이탈리아' },
+                  { code: 'TH', label: '🇹🇭 태국' }, { code: 'ID', label: '🇮🇩 발리' },
+                  { code: 'ES', label: '🇪🇸 스페인' }, { code: 'GB', label: '🇬🇧 영국' },
+                  { code: 'AU', label: '🇦🇺 호주' }, { code: 'SG', label: '🇸🇬 싱가포르' },
+                  { code: 'VN', label: '🇻🇳 베트남' }, { code: 'CN', label: '🇨🇳 중국' },
+                  { code: 'HK', label: '🇭🇰 홍콩' }, { code: 'TR', label: '🇹🇷 터키' },
+                  { code: 'MA', label: '🇲🇦 모로코' }, { code: 'MX', label: '🇲🇽 멕시코' },
+                  { code: 'CZ', label: '🇨🇿 체코' }, { code: 'NL', label: '🇳🇱 네덜란드' },
+                  { code: 'AE', label: '🇦🇪 두바이' }, { code: 'HW', label: '🌺 하와이' },
+                ].map(c => {
+                  const selected = wishCountries.includes(c.code);
+                  return (
+                    <button key={c.code} type="button"
+                      onClick={() => setWishCountries(prev =>
+                        prev.includes(c.code) ? prev.filter(x => x !== c.code) : [...prev, c.code]
+                      )}
+                      style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${selected ? '#4f46e5' : '#e5e7eb'}`, background: selected ? '#eef2ff' : 'white', color: selected ? '#4f46e5' : '#6b7280', fontSize: 12, fontWeight: selected ? 700 : 400, cursor: 'pointer', transition: 'all 0.1s' }}>
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <input style={S.inp} type="email" placeholder="이메일 주소" value={form.email}
               onChange={e => setForm(p => ({...p, email: e.target.value}))} />
             <input style={S.inp} type="password" placeholder="비밀번호" value={form.password}

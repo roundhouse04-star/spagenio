@@ -150,11 +150,43 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const observerRef = useRef(null);
 
   const sortByPreference = (posts, preferredStyles) => {
-    if (!preferredStyles?.length) return posts;
+    // 유저 국적 & 희망 국가 가져오기
+    const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
+    const nationality = savedUser?.nationality || 'KR';
+    const wishCountries = JSON.parse(savedUser?.wishCountries || '[]');
+
+    // 국가코드 → 나라명 매핑
+    const COUNTRY_MAP = {
+      JP: ['일본', 'japan'], US: ['미국', '하와이', 'usa'], FR: ['프랑스', 'france'],
+      IT: ['이탈리아', 'italy', '로마'], TH: ['태국', '방콕', 'thailand'],
+      ID: ['발리', '인도네시아', 'bali'], ES: ['스페인', 'spain', '바르셀로나'],
+      GB: ['영국', '런던', 'london'], AU: ['호주', 'australia'],
+      SG: ['싱가포르', 'singapore'], VN: ['베트남', 'vietnam'],
+      CN: ['중국', 'china'], HK: ['홍콩', 'hong kong'],
+      TR: ['터키', '이스탄불'], MA: ['모로코', '마라케시'],
+      MX: ['멕시코', 'mexico'], CZ: ['체코', '프라하'],
+      NL: ['네덜란드', '암스테르담'], AE: ['두바이', 'dubai'],
+      KR: ['한국', '서울', 'korea'],
+    };
+
+    const matchesCountry = (post, codes) => {
+      const city = (post.city || '').toLowerCase();
+      const country = (post.country || '').toLowerCase();
+      return codes.some(code => {
+        const keywords = COUNTRY_MAP[code] || [];
+        return keywords.some(k => city.includes(k.toLowerCase()) || country.includes(k.toLowerCase()));
+      });
+    };
+
     return [...posts].sort((a, b) => {
-      const aMatch = (a.travelStyles || []).some(s => preferredStyles.includes(s)) ? 1 : 0;
-      const bMatch = (b.travelStyles || []).some(s => preferredStyles.includes(s)) ? 1 : 0;
-      return bMatch - aMatch;
+      // 1순위: 희망 국가
+      const aWish = wishCountries.length > 0 && matchesCountry(a, wishCountries) ? 2 : 0;
+      const bWish = wishCountries.length > 0 && matchesCountry(b, wishCountries) ? 2 : 0;
+      if (bWish !== aWish) return bWish - aWish;
+      // 2순위: 여행 스타일
+      const aStyle = (preferredStyles?.length && (a.travelStyles || []).some(s => preferredStyles.includes(s))) ? 1 : 0;
+      const bStyle = (preferredStyles?.length && (b.travelStyles || []).some(s => preferredStyles.includes(s))) ? 1 : 0;
+      return bStyle - aStyle;
     });
   };
 

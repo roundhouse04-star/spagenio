@@ -86,6 +86,8 @@ def init_db():
                 suspended INTEGER DEFAULT 0,
                 agree_marketing INTEGER DEFAULT 0,
                 visited_countries INTEGER DEFAULT 0,
+                nationality TEXT DEFAULT 'KR',
+                wish_countries TEXT DEFAULT '[]',
                 created_at TEXT,
                 last_login TEXT
             )
@@ -213,6 +215,7 @@ class RegisterReq(BaseModel):
     agree_terms: bool = False; agree_privacy: bool = False; agree_content: bool = False
     agree_location: bool = False; agree_marketing: bool = False
     nationality: str = 'KR'
+    wish_countries: str = '[]'
 
 class LoginReq(BaseModel):
     email: str; password: str
@@ -359,10 +362,10 @@ def register(req: RegisterReq):
             raise HTTPException(400, "이미 사용 중인 이메일입니다.")
         if conn.execute("SELECT 1 FROM users WHERE nickname=?", (req.nickname,)).fetchone():
             raise HTTPException(400, "이미 사용 중인 닉네임입니다.")
-        conn.execute("""INSERT INTO users (id, nickname, email, password, role, suspended, agree_marketing, nationality, created_at)
-                        VALUES (?, ?, ?, ?, 'user', 0, ?, ?, ?)""",
+        conn.execute("""INSERT INTO users (id, nickname, email, password, role, suspended, agree_marketing, nationality, wish_countries, created_at)
+                        VALUES (?, ?, ?, ?, 'user', 0, ?, ?, ?, ?)""",
                      (user_id, req.nickname, req.email, hash_password(req.password),
-                      1 if req.agree_marketing else 0, req.nationality, now))
+                      1 if req.agree_marketing else 0, req.nationality, req.wish_countries, now))
         # 공식 계정 자동 팔로우
         official_id = "travellog-official"
         official = conn.execute("SELECT id FROM users WHERE id=?", (official_id,)).fetchone()
@@ -386,7 +389,8 @@ def login(req: LoginReq):
     return {"token": make_token(user["id"], user.get("role", "user")),
             "user": {"id": user["id"], "nickname": user["nickname"],
                      "profileImage": user.get("profileImage", ""), "bio": user.get("bio", ""),
-                     "nationality": user.get("nationality", "KR")}}
+                     "nationality": user.get("nationality", "KR"),
+                     "wishCountries": user.get("wish_countries", "[]")}}
 
 @app.post("/api/admin/login")
 def admin_login(req: AdminLoginReq):
