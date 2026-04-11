@@ -3,29 +3,12 @@
 # Travellog 배포 스크립트
 # 위치: ~/projects/spagenio/travel-platform/deploy.sh
 # 사용: bash deploy.sh "커밋 메시지"
-#
-# ⚠️  패치 파일 적용 방법 (반드시 spagenio 폴더에서!)
-#   cd ~/projects/spagenio          ← 여기서!
-#   unzip -o ~/Downloads/travel-platform-patch.zip
-#   cd travel-platform
-#   bash deploy.sh "커밋 메시지"
-#
-# ❌ 절대 이렇게 하지 마세요:
-#   cd ~/projects/spagenio/travel-platform
-#   unzip ...  ← travel-platform 폴더 중첩 생김!
 # ==========================================
 
 TRAVEL="$(cd "$(dirname "$0")" && pwd)"   # 이 파일이 있는 폴더 = travel-platform
 PROJECT="$(dirname "$TRAVEL")"            # 상위 = spagenio
 
 cd "$PROJECT"
-
-# ── 중첩 폴더 자동 감지 및 제거 ──────────────────────────
-if [ -d "$TRAVEL/travel-platform" ]; then
-  echo "⚠️  travel-platform 중첩 폴더 감지됨! 자동 제거합니다..."
-  rm -rf "$TRAVEL/travel-platform"
-  echo "✅ 중첩 폴더 제거 완료"
-fi
 
 # ── .gitignore 확인 및 업데이트 ──────────────────────────
 GITIGNORE="$PROJECT/.gitignore"

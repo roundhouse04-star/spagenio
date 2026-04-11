@@ -26,7 +26,7 @@ export const api = {
 
   // Post
   getPosts: (params = {}) => {
-    const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([,v]) => v)));
+    const q = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v)));
     return req(`/api/posts${q.toString() ? '?' + q : ''}`);
   },
   getFeed: (userId) => req(`/api/posts?userId=${userId}&feed=true`),
