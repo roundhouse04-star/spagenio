@@ -199,9 +199,9 @@ export default function Exchange() {
                 )}
               </div>
 
-              {/* 1만원 기준 */}
+              {/* 환율 기준 힌트 */}
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
-                💡 1만원 = {cur?.flag} {toForeign('10000', selectedCurrency)} {selectedCurrency}
+                💡 {cur?.flag} {(selectedCurrency === 'JPY' || selectedCurrency === 'IDR' || selectedCurrency === 'VND' || selectedCurrency === 'PHP') ? '100' : '1'} {selectedCurrency} = ₩{rates?.[selectedCurrency] ? Math.round((selectedCurrency === 'JPY' || selectedCurrency === 'IDR' || selectedCurrency === 'VND' || selectedCurrency === 'PHP' ? 100 : 1) / rates[selectedCurrency]).toLocaleString() : '-'}
               </div>
             </div>
 
