@@ -74,16 +74,6 @@ function LoginPage({ onLogin }) {
             </div>
           </div>
 
-          {/* 유저 아바타 스택 */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {['#a78bfa','#34d399','#fbbf24','#60a5fa','#f472b6'].map((c, i) => (
-                <div key={i} style={{ width: 36, height: 36, borderRadius: '50%', background: c, border: '2.5px solid #FF5A5F', marginLeft: i === 0 ? 0 : -10, zIndex: 5 - i }} />
-              ))}
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>2.4만 명이 함께하고 있어요</div>
-          </div>
-
           {/* 미니 카드 프리뷰 */}
           <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 300 }}>
             {[
@@ -97,7 +87,7 @@ function LoginPage({ onLogin }) {
         </div>
 
         {/* 오른쪽: 로그인 폼 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: 'white', minHeight: '100vh' }}>
+        <div className="login-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: 'white', minHeight: '100vh' }}>
           <div style={{ marginBottom: 28 }}>
             <svg width="56" height="56" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
@@ -161,8 +151,25 @@ function LoginPage({ onLogin }) {
       {/* 모바일 대응 */}
       <style>{`
         @media (max-width: 640px) {
-          .login-grid { grid-template-columns: 1fr !important; }
+          .login-grid {
+            grid-template-columns: 1fr !important;
+            background: #f3f4f6 !important;
+            min-height: 100vh;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 24px 20px !important;
+          }
           .login-left { display: none !important; }
+          .login-right {
+            min-height: unset !important;
+            background: white !important;
+            border-radius: 20px !important;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
+            padding: 36px 28px !important;
+            width: 100% !important;
+            max-width: 360px !important;
+          }
         }
       `}</style>
     </div>
