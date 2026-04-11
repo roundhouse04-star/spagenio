@@ -65,6 +65,8 @@ public class User {
     @CollectionTable(name = "user_preferred_styles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "style")
     private List<String> preferredStyles = new ArrayList<>();
+    private String nationality = "KR";
+    private String wishCountries = "[]";
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -106,4 +108,8 @@ public class User {
     public void setBadges(List<String> badges) { this.badges = badges; }
     public List<String> getPreferredStyles() { return preferredStyles; }
     public void setPreferredStyles(List<String> preferredStyles) { this.preferredStyles = preferredStyles; }
+    public String getNationality() { return nationality; }
+    public void setNationality(String nationality) { this.nationality = nationality; }
+    public String getWishCountries() { return wishCountries; }
+    public void setWishCountries(String wishCountries) { this.wishCountries = wishCountries; }
 }

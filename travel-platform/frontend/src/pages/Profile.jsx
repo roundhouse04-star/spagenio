@@ -52,7 +52,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [modalUsers, setModalUsers] = useState([]);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '', preferredStyles: [] });
+  const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '', preferredStyles: [], nationality: 'KR', wishCountries: [] });
   const [imagePreview, setImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [profileTab, setProfileTab] = useState('posts'); // posts | saved | badges
@@ -125,11 +125,15 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     if (!editData.nickname.trim()) return;
     setSaving(true);
     try {
-      const payload = { nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles };
+      const payload = { nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) };
       if (editData.profileImage) payload.profileImage = editData.profileImage;
       await api.updateUser(userId, payload);
-      setUser(prev => ({ ...prev, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) }));
-      onChangeUser?.({ ...currentUser, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) });
+      const updated = { ...currentUser, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries), ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) };
+      setUser(prev => ({ ...prev, ...updated }));
+      onChangeUser?.(updated);
+      // sessionStorage 업데이트
+      const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
+      sessionStorage.setItem('auth_user', JSON.stringify({ ...savedUser, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) }));
       setEditing(false);
       setImagePreview('');
     } catch (e) { alert('저장 실패: ' + e.message); }
@@ -192,6 +196,55 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                   })}
                 </div>
               </div>
+
+              {/* 국적 */}
+              <div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>🌏 국적</div>
+                <select value={editData.nationality} onChange={e => setEditData(p => ({ ...p, nationality: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', background: 'white' }}>
+                  <option value="KR">🇰🇷 대한민국</option>
+                  <option value="JP">🇯🇵 일본</option>
+                  <option value="US">🇺🇸 미국</option>
+                  <option value="EU">🇪🇺 유럽 (유로)</option>
+                  <option value="TH">🇹🇭 태국</option>
+                  <option value="CN">🇨🇳 중국</option>
+                  <option value="GB">🇬🇧 영국</option>
+                  <option value="AU">🇦🇺 호주</option>
+                  <option value="SG">🇸🇬 싱가포르</option>
+                  <option value="MY">🇲🇾 말레이시아</option>
+                  <option value="VN">🇻🇳 베트남</option>
+                  <option value="ID">🇮🇩 인도네시아</option>
+                  <option value="PH">🇵🇭 필리핀</option>
+                </select>
+              </div>
+
+              {/* 가고싶은 나라 */}
+              <div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ fontWeight: 400 }}>(복수 선택)</span></div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {[
+                    { code: 'JP', label: '🇯🇵 일본' }, { code: 'US', label: '🇺🇸 미국' },
+                    { code: 'FR', label: '🇫🇷 프랑스' }, { code: 'IT', label: '🇮🇹 이탈리아' },
+                    { code: 'TH', label: '🇹🇭 태국' }, { code: 'ID', label: '🇮🇩 발리' },
+                    { code: 'ES', label: '🇪🇸 스페인' }, { code: 'GB', label: '🇬🇧 영국' },
+                    { code: 'AU', label: '🇦🇺 호주' }, { code: 'SG', label: '🇸🇬 싱가포르' },
+                    { code: 'VN', label: '🇻🇳 베트남' }, { code: 'CN', label: '🇨🇳 중국' },
+                    { code: 'HK', label: '🇭🇰 홍콩' }, { code: 'TR', label: '🇹🇷 터키' },
+                    { code: 'MA', label: '🇲🇦 모로코' }, { code: 'MX', label: '🇲🇽 멕시코' },
+                    { code: 'CZ', label: '🇨🇿 체코' }, { code: 'NL', label: '🇳🇱 네덜란드' },
+                    { code: 'AE', label: '🇦🇪 두바이' }, { code: 'HW', label: '🌺 하와이' },
+                  ].map(c => {
+                    const selected = (editData.wishCountries || []).includes(c.code);
+                    return (
+                      <button key={c.code} type="button"
+                        onClick={() => setEditData(p => ({ ...p, wishCountries: selected ? p.wishCountries.filter(x => x !== c.code) : [...(p.wishCountries || []), c.code] }))}
+                        style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${selected ? '#4f46e5' : '#eee'}`, background: selected ? '#eef2ff' : 'white', color: selected ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveProfile} disabled={saving}
                   style={{ flex: 1, padding: '9px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -208,7 +261,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div className="profile-name">{user.nickname}</div>
                 {isMe && (
-                  <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '', preferredStyles: user.preferredStyles || [] }); setImagePreview(''); }}
+                  <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '', preferredStyles: user.preferredStyles || [], nationality: user.nationality || 'KR', wishCountries: JSON.parse(user.wishCountries || '[]') }); setImagePreview(''); }}
                     style={{ padding: '5px 12px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
                     ✏️ 편집
                   </button>

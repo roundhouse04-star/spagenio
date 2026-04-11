@@ -28,6 +28,8 @@ public class TravelService {
         if (user.getBio() != null) existing.setBio(user.getBio());
         if (user.getProfileImage() != null) existing.setProfileImage(user.getProfileImage());
         if (user.getPreferredStyles() != null) existing.setPreferredStyles(user.getPreferredStyles());
+        if (user.getNationality() != null) existing.setNationality(user.getNationality());
+        if (user.getWishCountries() != null) existing.setWishCountries(user.getWishCountries());
         return repo.saveUser(existing);
     }
     public User follow(String userId, String targetId) { return repo.followUser(userId, targetId); }
