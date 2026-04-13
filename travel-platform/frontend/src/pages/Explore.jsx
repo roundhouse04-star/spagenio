@@ -23,7 +23,8 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
   const [keyword, setKeyword] = useState('');
   const [city, setCity] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('전체');
-  const [selectedStyle, setSelectedStyle] = useState(''); // 여행 스타일 필터
+  const [selectedStyle, setSelectedStyle] = useState('');
+  const [showFilter, setShowFilter] = useState(false); // 여행 스타일 필터
 
   useEffect(() => {
     if (searchTag) {
@@ -107,7 +108,15 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
         </div>
       </div>
 
+      {/* 필터 토글 버튼 */}
+      <button onClick={() => setShowFilter(!showFilter)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 14, border: '1px solid #eee', background: showFilter ? '#fff5f5' : 'white', color: showFilter ? '#FF5A5F' : '#9ca3af', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        {showFilter ? '🔼 필터 접기' : '🔽 스타일 · 검색 필터'}
+        {(selectedStyle || keyword || city) && <span style={{ background: '#FF5A5F', color: 'white', borderRadius: 10, padding: '1px 8px', fontSize: 11 }}>ON</span>}
+      </button>
+
       {/* 여행 스타일 필터 */}
+      {showFilter && <>
       <div style={{ background: 'white', borderRadius: 18, border: '1px solid #eee', padding: '16px 20px' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12, letterSpacing: '0.04em' }}>
           여행 스타일
@@ -150,6 +159,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
             onChange={e => setCity(e.target.value)} style={{ flex: 1 }} />
         </div>
       </div>
+      </>}
 
       {/* 결과 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
@@ -180,7 +190,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
           <div style={{ fontSize: 13 }}>다른 필터로 검색해보세요!</div>
         </div>
       ) : (
-        <div className="feed">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, maxWidth: '100%' }}>
           {posts.map(post => (
             <PostCard key={post.id} post={post} currentUserId={currentUser?.id}
               onOpen={onOpenPost} onProfile={onProfile} onLike={handleLike}
