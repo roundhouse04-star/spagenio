@@ -328,7 +328,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const feedItems = buildFeedItems(posts, promotions.filter(p => p.active));
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
+    <div style={{ width: 500, margin: '0 auto', maxWidth: '100%' }}>
 
       {/* 탭 — 전체 / 팔로잉 */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
