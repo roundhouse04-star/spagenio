@@ -41,7 +41,11 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
 
       {/* 이미지 - 다크 */}
       <div className="post-image-wrap" onClick={() => onOpen?.(post)}>
-        {mainImg ? (
+        {mainImg?.endsWith('.mp4') ? (
+          <video src={mainImg} poster={mainImg.replace('_video.mp4', '_thumb.jpg')} muted playsInline loop
+            onMouseEnter={e => e.target.play()} onMouseLeave={e => e.target.pause()}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : mainImg ? (
           <img src={mainImg} alt={post.title} />
         ) : (
           <div className="post-image-placeholder" />
