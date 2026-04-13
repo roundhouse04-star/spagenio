@@ -313,7 +313,7 @@ export default function Transit() {
 
   const S = {
     wrap: { maxWidth: 680, margin: '0 auto', padding: '0 0 80px' },
-    cityTabs: { display: 'flex', gap: 8, overflowX: 'auto', padding: '16px 16px 0', scrollbarWidth: 'none' },
+    cityTabs: { display: 'flex', gap: 8, overflowX: 'auto', padding: '16px 16px 8px', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' },
     cityBtn: (active) => ({
       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
       padding: '8px 14px', borderRadius: 20, border: '1.5px solid ' + (active ? '#FF5A5F' : '#eee'),
