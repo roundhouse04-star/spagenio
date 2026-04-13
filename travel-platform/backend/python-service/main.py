@@ -48,7 +48,7 @@ verify_store: dict = {}
 UPLOAD_DIR = HOME / "projects/spagenio/travel-platform/uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 BASE_URL = os.getenv("BASE_URL", "https://travel.spagenio.com")
-MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20MB
+MAX_UPLOAD_SIZE = 30 * 1024 * 1024  # 20MB
 ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"}
 
 # 이미지 사이즈 설정
@@ -288,7 +288,7 @@ async def upload_image(file: UploadFile = File(...)):
     # 크기 검증
     image_bytes = await file.read()
     if len(image_bytes) > MAX_UPLOAD_SIZE:
-        raise HTTPException(400, "파일 크기는 20MB 이하여야 합니다.")
+        raise HTTPException(400, "파일 크기는 30MB 이하여야 합니다.")
 
     # 날짜별 폴더
     date_dir = time.strftime("%Y/%m/%d")
