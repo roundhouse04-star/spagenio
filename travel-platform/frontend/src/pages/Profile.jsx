@@ -112,7 +112,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert('이미지 크기는 2MB 이하여야 해요.'); return; }
+    if (file.size > 30 * 1024 * 1024) { alert('이미지 크기는 30MB 이하여야 해요.'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setImagePreview(ev.target.result);
@@ -166,7 +166,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                   </div>
                   <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
                 </label>
-                <span style={{ fontSize: 11, color: '#9ca3af' }}>JPG, PNG / 2MB 이하</span>
+                <span style={{ fontSize: 11, color: '#9ca3af' }}>JPG, PNG / 30MB 이하</span>
               </div>
 
               <input value={editData.nickname} onChange={e => setEditData(p => ({ ...p, nickname: e.target.value }))}
