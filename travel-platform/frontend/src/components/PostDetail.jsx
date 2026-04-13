@@ -95,12 +95,27 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
         <div className="post-detail-images card">
           {post.images?.length > 0 ? (
             <>
-              <img className="post-detail-main-img" src={post.images[activeImg]} alt={post.title} />
+              {post.images[activeImg]?.endsWith('.mp4') ? (
+                <video className="post-detail-main-img" src={post.images[activeImg]} controls playsInline preload="metadata" style={{ background: '#000' }} />
+              ) : (
+                <img className="post-detail-main-img" src={post.images[activeImg]} alt={post.title} />
+              )}
               {post.images.length > 1 && (
                 <div className="post-detail-thumbs">
                   {post.images.map((img, i) => (
-                    <img key={i} className={`post-detail-thumb${i === activeImg ? ' active' : ''}`}
-                      src={img} alt="" onClick={() => setActiveImg(i)} />
+                    img.endsWith('.mp4') ? (
+                      <div key={i} className={'post-detail-thumb' + (i === activeImg ? ' active' : '')}
+                        onClick={() => setActiveImg(i)}
+                        style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden' }}>
+                        <img src={img.replace('_video.mp4', '_thumb.jpg')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
+                          <span style={{ fontSize: 20, color: 'white' }}>▶</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <img key={i} className={'post-detail-thumb' + (i === activeImg ? ' active' : '')}
+                        src={img} alt="" onClick={() => setActiveImg(i)} />
+                    )
                   ))}
                 </div>
               )}

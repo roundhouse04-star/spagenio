@@ -47,8 +47,11 @@ verify_store: dict = {}
 # ── 업로드 설정 ──────────────────────────────────────────
 UPLOAD_DIR = HOME / "projects/spagenio/travel-platform/uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-BASE_URL = os.getenv("BASE_URL", "https://travel.spagenio.com")
+BASE_URL = os.getenv("BASE_URL", "")
 MAX_UPLOAD_SIZE = 30 * 1024 * 1024  # 20MB
+MAX_VIDEO_UPLOAD_SIZE = 500 * 1024 * 1024  # 500MB
+MAX_VIDEO_OUTPUT_SIZE = 50 * 1024 * 1024   # 50MB
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm", "video/3gpp", "video/mpeg"}
 ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"}
 
 # 이미지 사이즈 설정
@@ -317,6 +320,123 @@ async def upload_image(file: UploadFile = File(...)):
         "feed": urls["feed"],
         "detail": urls["detail"],
         "original": urls["original"],
+    }
+
+
+# ── 동영상 업로드 ────────────────────────────────
+@app.post("/api/upload/video")
+async def upload_video(file: UploadFile = File(...)):
+    import subprocess, shutil
+    
+    # 타입 검증
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_VIDEO_TYPES and not content_type.startswith("video/"):
+        raise HTTPException(400, "동영상 파일만 업로드 가능합니다. (MP4, MOV, AVI, WebM)")
+    
+    # 크기 검증 (500MB)
+    video_bytes = await file.read()
+    if len(video_bytes) > MAX_VIDEO_UPLOAD_SIZE:
+        raise HTTPException(400, "동영상 크기는 500MB 이하여야 합니다.")
+    
+    # 날짜별 폴더
+    date_dir = time.strftime("%Y/%m/%d")
+    save_dir = UPLOAD_DIR / date_dir
+    save_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 고유 ID
+    file_id = str(uuid.uuid4()).replace("-", "")[:16]
+    ext = Path(file.filename).suffix.lower() if file.filename else ".mp4"
+    
+    # 원본 임시 저장
+    temp_path = save_dir / f"{file_id}_temp{ext}"
+    temp_path.write_bytes(video_bytes)
+    
+    # FFmpeg으로 MP4 H.264 720p 변환
+    output_path = save_dir / f"{file_id}_video.mp4"
+    thumb_path = save_dir / f"{file_id}_thumb.jpg"
+    
+    try:
+        # 동영상 변환 (720p, H.264, AAC, 50MB 이하)
+        cmd = [
+            "ffmpeg", "-i", str(temp_path),
+            "-vf", "scale=-2:720",           # 720p (가로 자동)
+            "-c:v", "libx264",                # H.264 코덱
+            "-preset", "medium",              # 인코딩 속도/품질 균형
+            "-crf", "28",                     # 품질 (낮을수록 좋음, 28은 적당)
+            "-c:a", "aac",                    # AAC 오디오
+            "-b:a", "128k",                   # 오디오 비트레이트
+            "-movflags", "+faststart",        # 웹 스트리밍 최적화
+            "-y",                             # 덮어쓰기
+            str(output_path)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            # CRF 높여서 재시도 (더 압축)
+            cmd[cmd.index("28")] = "32"
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        
+        # 변환 후 크기 확인, 50MB 초과시 더 압축
+        if output_path.exists() and output_path.stat().st_size > MAX_VIDEO_OUTPUT_SIZE:
+            cmd[cmd.index("32") if "32" in cmd else cmd.index("28")] = "35"
+            subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        
+        # 썸네일 생성 (첫 번째 프레임)
+        thumb_cmd = [
+            "ffmpeg", "-i", str(output_path),
+            "-ss", "00:00:01",                # 1초 시점
+            "-vframes", "1",                  # 1프레임
+            "-vf", "scale=480:-2",            # 480px 너비
+            "-q:v", "3",                      # JPEG 품질
+            "-y",
+            str(thumb_path)
+        ]
+        subprocess.run(thumb_cmd, capture_output=True, text=True, timeout=30)
+        
+        # 동영상 정보 가져오기
+        probe_cmd = [
+            "ffprobe", "-v", "quiet",
+            "-print_format", "json",
+            "-show_format", "-show_streams",
+            str(output_path)
+        ]
+        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=10)
+        duration = 0
+        try:
+            import json as jsonlib
+            probe_data = jsonlib.loads(probe_result.stdout)
+            duration = float(probe_data.get("format", {}).get("duration", 0))
+        except:
+            pass
+        
+    except subprocess.TimeoutExpired:
+        # 임시 파일 정리
+        temp_path.unlink(missing_ok=True)
+        output_path.unlink(missing_ok=True)
+        raise HTTPException(500, "동영상 변환 시간이 초과되었습니다. 더 짧은 영상을 올려주세요.")
+    except Exception as e:
+        temp_path.unlink(missing_ok=True)
+        output_path.unlink(missing_ok=True)
+        raise HTTPException(500, f"동영상 변환 실패: {str(e)}")
+    finally:
+        # 임시 원본 삭제
+        temp_path.unlink(missing_ok=True)
+    
+    if not output_path.exists():
+        raise HTTPException(500, "동영상 변환에 실패했습니다.")
+    
+    file_size = output_path.stat().st_size
+    
+    video_url = f"{BASE_URL}/uploads/{date_dir}/{file_id}_video.mp4"
+    thumb_url = f"{BASE_URL}/uploads/{date_dir}/{file_id}_thumb.jpg" if thumb_path.exists() else ""
+    
+    return {
+        "url": video_url,
+        "thumb": thumb_url,
+        "type": "video",
+        "duration": round(duration, 1),
+        "size": file_size,
+        "originalSize": len(video_bytes),
     }
 
 @app.post("/api/upload/multiple")

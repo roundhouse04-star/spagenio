@@ -55,40 +55,57 @@ export default function Write({ currentUser, onDone, draft }) {
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    if (form.images.length + files.length > 10) { setError('사진은 최대 10장까지 추가할 수 있어요.'); return; }
 
-    // 파일 크기 검증
-    const overSize = files.filter(f => f.size > 5 * 1024 * 1024);
-    if (overSize.length > 0) {
-      setError(`${overSize.map(f => f.name).join(', ')} 파일이 5MB를 초과합니다.`);
-      e.target.value = '';
-      return;
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    const videoFiles = files.filter(f => f.type.startsWith('video/'));
+
+    if (form.images.length + imageFiles.length > 10) { setError('사진은 최대 10장까지 추가할 수 있어요.'); return; }
+
+    const overImg = imageFiles.filter(f => f.size > 30 * 1024 * 1024);
+    if (overImg.length > 0) {
+      setError(overImg.map(f => f.name).join(', ') + ' 파일이 30MB를 초과합니다.');
+      e.target.value = ''; return;
+    }
+    const overVid = videoFiles.filter(f => f.size > 500 * 1024 * 1024);
+    if (overVid.length > 0) {
+      setError(overVid.map(f => f.name).join(', ') + ' 동영상이 500MB를 초과합니다.');
+      e.target.value = ''; return;
     }
 
     setUploading(true); setError('');
 
-    // EXIF GPS 추출
-    const gpsResults = [];
-    for (const file of files) {
-      const gps = await extractGPS(file);
-      if (gps) gpsResults.push({ filename: file.name, ...gps });
-    }
-    if (gpsResults.length > 0) {
-      autoApplyGPS(gpsResults);
+    if (imageFiles.length > 0) {
+      const gpsResults = [];
+      for (const file of imageFiles) {
+        const gps = await extractGPS(file);
+        if (gps) gpsResults.push({ filename: file.name, ...gps });
+      }
+      if (gpsResults.length > 0) autoApplyGPS(gpsResults);
+      try {
+        const formData = new FormData();
+        imageFiles.forEach(f => formData.append('files', f));
+        const res = await fetch('/api/upload/multiple', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          setForm(p => ({ ...p, images: [...p.images, ...data.urls] }));
+        } else { setError(data.error || '이미지 업로드 실패'); }
+      } catch (err) { setError('이미지 업로드 중 오류가 발생했습니다.'); }
     }
 
-    // 업로드
-    try {
-      const formData = new FormData();
-      files.forEach(f => formData.append('files', f));
-      const res = await fetch('/api/upload/multiple', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (res.ok) {
-        setForm(p => ({ ...p, images: [...p.images, ...data.urls] }));
-      } else {
-        setError(data.error || '업로드 실패');
-      }
-    } catch (e) { setError('업로드 중 오류가 발생했습니다.'); }
+    for (const vf of videoFiles) {
+      try {
+        setError('동영상 변환 중... (최대 5분 소요)');
+        const vFormData = new FormData();
+        vFormData.append('file', vf);
+        const vRes = await fetch('/api/upload/video', { method: 'POST', body: vFormData });
+        const vData = await vRes.json();
+        if (vRes.ok) {
+          setForm(p => ({ ...p, images: [...p.images, vData.url] }));
+          setError('');
+        } else { setError(vData.detail || '동영상 업로드 실패'); }
+      } catch (err) { setError('동영상 업로드 실패: ' + vf.name); }
+    }
+
     setUploading(false);
     e.target.value = '';
   };
@@ -268,9 +285,9 @@ export default function Write({ currentUser, onDone, draft }) {
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 16px' }}
               onClick={() => fileRef.current?.click()} disabled={uploading}>
-              {uploading ? '업로드 중...' : '📁 사진 파일 선택'}
+              {uploading ? '업로드 중...' : '📁 사진/동영상 선택'}
             </button>
-            <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
+            <input ref={fileRef} type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
           </div>
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -279,7 +296,7 @@ export default function Write({ currentUser, onDone, draft }) {
               onKeyDown={e => e.key === 'Enter' && addUrl()} />
             <button className="btn-secondary" style={{ fontSize: 13, padding: '11px 16px', flexShrink: 0 }} onClick={addUrl}>추가</button>
           </div>
-          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>jpg, png, gif, webp / 파일당 최대 5MB / 최대 10장</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>jpg, png, gif, webp / 파일당 최대 30MB / 최대 10장</div>
         </div>
 
         {/* GPS 자동 적용 완료 알림 */}

@@ -5,6 +5,54 @@ import { TRAVEL_STYLES } from '../travelStyles';
 
 const PAGE_SIZE = 8;
 
+// 자동재생 비디오 (스크롤 시 재생/정지, 음소거 토글)
+function AutoPlayVideo({ src, poster }) {
+  const videoRef = React.useRef(null);
+  const [muted, setMuted] = React.useState(true);
+  const [playing, setPlaying] = React.useState(false);
+
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+          setPlaying(true);
+        } else {
+          video.pause();
+          setPlaying(false);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div style={{ position: 'relative', lineHeight: 0 }} onClick={e => e.stopPropagation()}>
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        muted={muted}
+        playsInline
+        loop
+        preload="metadata"
+        style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#000' }}
+      />
+      <button
+        onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}
+        style={{ position: 'absolute', bottom: 14, right: 14, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <span style={{ fontSize: 16, color: 'white' }}>{muted ? '🔇' : '🔊'}</span>
+      </button>
+    </div>
+  );
+}
+
+
+
 // 프로모션 카드
 function PromoCard({ promo }) {
   const typeColor = promo.type === 'ad'
@@ -64,9 +112,21 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#374151', letterSpacing: 2, padding: '4px 6px' }}>···</button>
       </div>
 
-      {/* 이미지 (정사각형 풀너비) */}
-      <div onClick={() => onOpen?.(post)} style={{ cursor: 'pointer', lineHeight: 0 }}>
-        {post.images?.[0]
+      {/* 이미지 또는 동영상 */}
+      <div onClick={() => !post.videos?.length && onOpen?.(post)} style={{ cursor: 'pointer', lineHeight: 0 }}>
+        {post.videos?.[0]?.url ? (
+          <video
+            src={post.videos[0].url}
+            poster={post.videos[0].thumb}
+            controls
+            playsInline
+            preload="metadata"
+            style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#000' }}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : post.images?.[0]?.endsWith('.mp4')
+          ? <AutoPlayVideo src={post.images[0]} poster={post.images[0].replace('_video.mp4', '_thumb.jpg')} />
+          : post.images?.[0]
           ? <img src={post.images[0]} alt={post.title} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
           : <div style={{ width: '100%', aspectRatio: '1/1', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 64 }}>✈️</span>
