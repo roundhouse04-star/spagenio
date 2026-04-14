@@ -99,18 +99,33 @@ export default function FeedScreen({ user }) {
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState('all'); // all | following | popular
   const [allPosts, setAllPosts] = useState([]);
-  const [allPosts, setAllPosts] = useState([]);
 
+  const applyFilter = (data, t) => {
+    if (t === "following" && user?.id) {
+      const fIds = user.followingIds || [];
+      setPosts(fIds.length > 0 ? data.filter(p => fIds.includes(p.userId) && p.userId !== user.id) : []);
+    } else if (t === "popular") {
+      const now = Date.now();
+      const week = 7 * 24 * 60 * 60 * 1000;
+      const recent = data.filter(p => (now - new Date(p.createdAt).getTime()) < week);
+      const scored = recent.map(p => ({ ...p, _s: (p.likedUserIds?.length || 0) * 3 + (p.comments?.length || 0) * 2 }));
+      setPosts(scored.sort((a, b) => b._s - a._s));
+    } else { setPosts(data); }
+  };
   const load = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/posts`);
-      if (res.ok) setPosts(await res.json());
+      const res = await fetch(API_BASE + "/api/posts?offset=0&limit=100");
+      if (res.ok) {
+        const data = await res.json();
+        setAllPosts(data);
+        applyFilter(data, tab);
+      }
     } catch (e) {}
     setLoading(false);
     setRefreshing(false);
   };
-
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (allPosts.length > 0) applyFilter(allPosts, tab); }, [tab]);
 
   const handleLike = async (postId) => {
     if (!user) return;
