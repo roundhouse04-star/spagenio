@@ -342,6 +342,9 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
             setPosts(unique);
             setAllPosts(unique);
             tabCache.current['following'] = unique; cacheTime.current['following'] = Date.now();
+          } else {
+            setPosts([]);
+            tabCache.current['following'] = []; cacheTime.current['following'] = Date.now();
           }
         }
         setHasMore(false);
