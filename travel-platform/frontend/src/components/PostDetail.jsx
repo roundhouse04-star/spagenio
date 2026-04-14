@@ -13,11 +13,17 @@ function timeAgo(dateStr) {
   return `${Math.floor(h / 24)}일 전`;
 }
 
-const TABS = [
-  { key: 'info',     label: '게시물' },
-  { key: 'map',      label: '🗺️ 여행정보' },
-  { key: 'comments', label: '💬 댓글' },
-];
+const getTabs = (post) => {
+  const tabs = [
+    { key: 'info', label: '게시물' },
+  ];
+  if (post?.places && post.places.length > 0) {
+    tabs.push({ key: 'course', label: '📍 코스 ' + post.places.length });
+  }
+  tabs.push({ key: 'map', label: '🗺️ 여행정보' });
+  tabs.push({ key: 'comments', label: '💬 댓글' });
+  return tabs;
+};
 
 export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark }) {
   const [post, setPost] = useState(initialPost);
@@ -187,7 +193,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
             <>
               {/* 탭 */}
               <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4 }}>
-                {TABS.map(t => (
+                {getTabs(post).map(t => (
                   <button key={t.key} onClick={() => setTab(t.key)}
                     style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: tab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
                     {t.label}
@@ -280,7 +286,67 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
               )}
 
               {/* 여행정보 탭 */}
-              {tab === 'map' && (
+        
+      {tab === 'course' && (
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {post.places && post.places.length > 0 ? (
+            <>
+              {/* 지도 */}
+              <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+                <iframe
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                    Math.min(...post.places.map(p => p.lng)) - 0.01},${
+                    Math.min(...post.places.map(p => p.lat)) - 0.005},${
+                    Math.max(...post.places.map(p => p.lng)) + 0.01},${
+                    Math.max(...post.places.map(p => p.lat)) + 0.005
+                  }&layer=mapnik`}
+                  style={{ width: '100%', height: 250, border: 'none' }}
+                  loading="lazy"
+                />
+              </div>
+              {/* 코스 리스트 */}
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>📍 코스 ({post.places.length}곳)</div>
+              {post.places.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((place, i) => (
+                <div key={place.id || i} style={{ display: 'flex', gap: 12, padding: 14, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#FF5A5F', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
+                    {i + 1}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 2 }}>{place.name}</div>
+                    {place.category && (
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: '#fff5f5', color: '#FF5A5F', fontWeight: 600 }}>{place.category}</span>
+                    )}
+                    {place.tip && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>💡 {place.tip}</div>}
+                    {place.howToGet && (
+                      <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        🚇 {place.howToGet}
+                      </div>
+                    )}
+                    {place.lat && place.lng && (
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`}
+                        target="_blank" rel="noreferrer"
+                        style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, display: 'inline-block', textDecoration: 'none' }}>
+                        📍 지도에서 보기 →
+                      </a>
+                    )}
+                  </div>
+                  {i < post.places.length - 1 && (
+                    <div style={{ position: 'absolute', left: 28, bottom: -8, fontSize: 16, color: '#d1d5db' }}>↓</div>
+                  )}
+                </div>
+              ))}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📍</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>등록된 코스가 없어요</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>이 게시물에는 장소 정보가 없습니다</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'map' && (
                 <MapView lat={gpsLat} lng={gpsLng} placeName={firstPlace?.name || post.title}
                   places={post.places || []} onAddToPlanner={(planId, place) => onAddToPlanner?.(planId, place, post)} plans={plans} />
               )}

@@ -268,6 +268,8 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [feedAd, setFeedAd] = useState(null);
+  const tabCache = useRef({});
+  const cacheTime = useRef({});
   const [tab, setTab] = useState('all');
   const sentinelRef = useRef(null);
   const observerRef = useRef(null);
@@ -314,14 +316,62 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   };
 
   const load = async () => {
-    setLoading(true);
     setPage(0);
+    if (tabCache.current[tab] && cacheTime.current[tab] && (Date.now() - cacheTime.current[tab]) < 60000) {
+      setPosts(tabCache.current[tab]);
+      setAllPosts(tabCache.current[tab]);
+      return;
+    }
+    setLoading(true);
+    setPosts([]);
+    setAllPosts([]);
     try {
-      const data = await api.getPosts({ offset: 0, limit: PAGE_SIZE });
-      const sorted = sortByPreference(data || [], currentUser?.preferredStyles);
-      setAllPosts(sorted);
-      setPosts(sorted);
-      setHasMore(sorted.length >= PAGE_SIZE);
+      if (tab === 'following' && currentUser?.id) {
+        const meRes = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('auth_token') } });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          const fIds = meData.followingIds || [];
+          if (fIds.length > 0) {
+            const data = await api.getPosts({ offset: 0, limit: 100 });
+            const fPosts = (data || []).filter(p => fIds.includes(p.userId));
+            const now = Date.now();
+            const cutoff = 48 * 60 * 60 * 1000;
+            const recent = fPosts.filter(p => (now - new Date(p.createdAt).getTime()) < cutoff);
+            const seen = new Set();
+            const unique = recent.filter(p => { if (seen.has(p.userId)) return false; seen.add(p.userId); return true; });
+            setPosts(unique);
+            setAllPosts(unique);
+            tabCache.current['following'] = unique; cacheTime.current['following'] = Date.now();
+          }
+        }
+        setHasMore(false);
+      } else if (tab === 'popular') {
+        const data = await api.getPosts({ offset: 0, limit: 100 });
+        const now = Date.now();
+        const weekAgo = 7 * 24 * 60 * 60 * 1000;
+        // 7일 이내 게시물만
+        const recent = (data || []).filter(p => (now - new Date(p.createdAt).getTime()) < weekAgo);
+        // 복합 점수: 좋아요x3 + 댓글x2 + 시간 가중치
+        const scored = recent.map(p => {
+          const likes = (p.likedUserIds?.length || 0) * 3;
+          const comments = (p.comments?.length || 0) * 2;
+          const hoursAgo = (now - new Date(p.createdAt).getTime()) / (1000 * 60 * 60);
+          const timeBoost = Math.max(0, 10 - hoursAgo * 0.1);
+          return { ...p, _score: likes + comments + timeBoost };
+        });
+        const sorted = scored.sort((a, b) => b._score - a._score);
+        setPosts(sorted);
+        setAllPosts(sorted);
+        setHasMore(false);
+        tabCache.current['popular'] = sorted; cacheTime.current['popular'] = Date.now();
+      } else {
+        const data = await api.getPosts({ offset: 0, limit: PAGE_SIZE });
+        const sorted = sortByPreference(data || [], currentUser?.preferredStyles);
+        setPosts(sorted);
+        setAllPosts(sorted);
+        setHasMore(sorted.length >= PAGE_SIZE);
+        tabCache.current['all'] = sorted; cacheTime.current['all'] = Date.now();
+      }
       try {
         const promos = await api.getPromotions();
         setPromotions(promos || []);
@@ -330,7 +380,8 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [tab, currentUser?.id]);
+  useEffect(() => { load(); }, [tab]);
+  useEffect(() => { load(); }, [currentUser?.id]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -343,8 +394,8 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
       if (sorted.length === 0) {
         setHasMore(false);
       } else {
-        setPosts(prev => [...prev, ...sorted]);
         setAllPosts(prev => [...prev, ...sorted]);
+        setPosts(prev => [...prev, ...sorted]);
         setPage(nextPage);
         setHasMore(sorted.length >= PAGE_SIZE);
       }
@@ -391,13 +442,13 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const feedItems = buildFeedItems(posts, promotions.filter(p => p.active));
 
   return (
-    <div style={{ width: 500, margin: '0 auto', maxWidth: '100%' }}>
+    <div style={{ width: 680, margin: '0 auto', maxWidth: '100%' }}>
 
       {/* 탭 — 전체 / 팔로잉 */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
-        {[['all', '전체'], ['following', '팔로잉']].map(([key, label]) => (
+        {[['all', '📍 근처'], ['following', '👤 팔로잉'], ['popular', '🔥 인기']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: tab === key ? 700 : 500, color: tab === key ? '#4f46e5' : '#9ca3af', borderBottom: tab === key ? '2px solid #4f46e5' : '2px solid transparent' }}>
+            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: tab === key ? 700 : 500, color: tab === key ? '#FF5A5F' : '#9ca3af', borderBottom: tab === key ? '2px solid #FF5A5F' : '2px solid transparent' }}>
             {label}
           </button>
         ))}

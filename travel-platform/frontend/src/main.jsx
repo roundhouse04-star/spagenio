@@ -1,3 +1,8 @@
+// 광고 페이지 리다이렉트
+if (window.location.pathname === '/ads' || window.location.pathname === '/ads/') {
+  window.location.href = '/ads/index.html';
+}
+
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles.css';
@@ -38,7 +43,8 @@ function LoginPage({ onLogin }) {
       const data = await res.json();
       if (res.ok) {
         sessionStorage.setItem('auth_token', data.token);
-        sessionStorage.setItem('auth_user', JSON.stringify(data.user));
+        const userData = { ...data.user, followingIds: data.user.followingIds || data.followingIds || [] };
+        sessionStorage.setItem('auth_user', JSON.stringify(userData));
         onLogin(data.user);
       } else {
         setError(data.error || '이메일 또는 비밀번호가 올바르지 않습니다.');

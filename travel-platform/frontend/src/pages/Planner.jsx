@@ -493,7 +493,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   // 아코디언 상태
   const [openTransport, setOpenTransport] = useState(false);
   const [openPlace, setOpenPlace] = useState(false);
+  const [openCourse, setOpenCourse] = useState(false);
+  const [courseQuery, setCourseQuery] = useState('');
   // 장소 검색 상태
+  const [recommendedCourses, setRecommendedCourses] = useState([]);
+  const [courseLoading, setCourseLoading] = useState(false);
   const [placeQuery, setPlaceQuery] = useState('');
   const [placeResults, setPlaceResults] = useState([]);
   const [placeSearching, setPlaceSearching] = useState(false);
@@ -511,7 +515,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   const pollRef = React.useRef(null);
 
   useEffect(() => { if (currentUser) load(); }, [currentUser]);
-  useEffect(() => { if (plans?.length > 0 && !selected) setSelected(plans[0]); }, [plans]);
+  useEffect(() => {
+    const timer = setTimeout(() => { loadRecommendedCourses(newPlan.to); }, 500);
+    return () => clearTimeout(timer);
+  }, [newPlan.to]);
+  // 자동 선택 제거 - 클릭 시에만 상세 표시
 
   useEffect(() => {
     if (selected && viewMode === 'chat') {
@@ -535,7 +543,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       const allPlans = [...(owned || []), ...(membered || [])];
       onUpdatePlans?.(owned || []);
       setMemberPlans(membered || []);
-      if (allPlans.length > 0) setSelected(allPlans[0]);
+      // 자동 선택 제거 - 리스트만 표시
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -676,6 +684,50 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       { type: 'train', icon: '🚄', name: '신칸센 노조미 (도쿄→오사카)', tag: '추천', tagColor: '#4f46e5', time: '2시간 30분', price: '약 14,720엔 (132,000원)', priceNum: 132000, steps: ['도쿄역 출발 (노조미)', '나고야 경유', '신오사카역 도착'], links: [{ t: 'JR패스', u: 'https://www.jrpass.com' }] },
       { type: 'bus', icon: '🚌', name: '야간버스 (도쿄→오사카)', tag: '최저가', tagColor: '#f59e0b', time: '약 8시간', price: '약 3,000~8,000엔 (27,000~72,000원)', priceNum: 48000, steps: ['신주쿠역 출발 (야간)', '오사카 난바 도착'], links: [{ t: '버스예약', u: 'https://www.bushikaku.net' }] },
     ],
+  };
+
+
+  // ── 인기 코스 추천 ──
+  const loadRecommendedCourses = async (city) => {
+    if (!city || city.length < 2) { setRecommendedCourses([]); return; }
+    setCourseLoading(true);
+    try {
+      const res = await fetch('/api/posts?keyword=' + encodeURIComponent(city) + '&limit=20');
+      if (res.ok) {
+        const posts = await res.json();
+        // places가 있는 게시물만 (코스가 있는 것)
+        const withCourse = [];
+        for (const post of (posts || [])) {
+          try {
+            const pRes = await fetch('/api/posts/' + post.id);
+            if (pRes.ok) {
+              const pData = await pRes.json();
+              if (pData.places && pData.places.length > 0) {
+                withCourse.push(pData);
+              }
+            }
+          } catch(e) {}
+          if (withCourse.length >= 5) break;
+        }
+        setRecommendedCourses(withCourse);
+      }
+    } catch(e) { console.error(e); }
+    setCourseLoading(false);
+  };
+
+  // 코스를 내 일정에 추가
+  const addCourseToPlaces = (course) => {
+    if (!course.places) return;
+    const newPlaces = course.places.map(p => ({
+      name: p.name,
+      lat: p.lat || 0,
+      lng: p.lng || 0,
+      fullName: p.address || '',
+      category: p.category || 'attraction',
+      date: newPlan.startDate || '',
+      memo: [p.tip, p.howToGet].filter(Boolean).join(' | '),
+    }));
+    setAddedPlaces(prev => [...prev, ...newPlaces]);
   };
 
   const searchRoutes = async () => {
@@ -1110,6 +1162,43 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             )}
           </div>
 
+          {/* ── 🔥 인기 코스 추천 (아코디언) ── */}
+          <div style={{ border: '1px solid #eee', borderRadius: 12, overflow: 'hidden' }}>
+            <button onClick={() => { if (!openCourse) loadRecommendedCourses(courseQuery || newPlan.to || newPlan.title); setOpenCourse(v => !v); }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openCourse ? '#fff5f5' : '#f9fafb', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openCourse ? '#FF5A5F' : '#1a1a2e' }}>
+              <span>🔥 인기 코스</span>
+              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openCourse ? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
+            </button>
+            {openCourse && (
+              <div style={{ padding: '14px 16px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="도시명 (예: 도쿄, 파리, 서울)" value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadRecommendedCourses(courseQuery)} />
+                  <button onClick={() => loadRecommendedCourses(courseQuery)} disabled={courseLoading || !courseQuery.trim()} style={{ padding: '8px 16px', background: courseQuery.trim() ? '#FF5A5F' : '#e5e7eb', color: courseQuery.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>{courseLoading ? '검색중...' : '검색'}</button>
+                </div>
+                {courseLoading && <div style={{ textAlign: 'center', padding: 12, color: '#9ca3af', fontSize: 12 }}>코스 검색 중...</div>}
+                {!courseLoading && recommendedCourses.length === 0 && courseQuery && <div style={{ textAlign: 'center', padding: 16, color: '#9ca3af', fontSize: 12 }}>이 도시의 추천 코스가 아직 없어요</div>}
+                {recommendedCourses.map(course => (
+                  <div key={course.id} style={{ background: 'white', borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{course.title}</div><div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>📍 {course.places?.length || 0}곳</div></div>
+                      <button onClick={() => addCourseToPlaces(course)} style={{ padding: '6px 14px', borderRadius: 8, background: '#FF5A5F', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ 전체 추가</button>
+                    </div>
+                    <div style={{ padding: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {course.places?.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((p, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#f9fafb', borderRadius: 8, fontSize: 12 }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#FF5A5F', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                          <div style={{ flex: 1 }}><span style={{ fontWeight: 600, color: '#1a1a2e' }}>{p.name}</span></div>
+                          {p.howToGet && <span style={{ fontSize: 10, color: '#3b82f6', flexShrink: 0 }}>🚇 {(p.howToGet || '').substring(0, 20)}</span>}
+                          <button onClick={(e) => { e.stopPropagation(); setAddedPlaces(prev => [...prev, { name: p.name, lat: p.lat || 0, lng: p.lng || 0, fullName: '', category: p.category || 'attraction', date: newPlan.startDate || '', memo: [p.tip, p.howToGet].filter(Boolean).join(' | ') }]); }} style={{ padding: '3px 8px', borderRadius: 6, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>+ 추가</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 공유 설정 */}
           <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>🔗 공유 설정</div>
@@ -1208,6 +1297,43 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                 onChange={e => setEditPlan(p => ({ ...p, endDate: e.target.value }))} />
             </div>
           </div>
+          {/* ── 🔥 인기 코스 추천 (아코디언) ── */}
+          <div style={{ border: '1px solid #eee', borderRadius: 12, overflow: 'hidden' }}>
+            <button onClick={() => { if (!openCourse) loadRecommendedCourses(courseQuery || newPlan.to || newPlan.title); setOpenCourse(v => !v); }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openCourse ? '#fff5f5' : '#f9fafb', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openCourse ? '#FF5A5F' : '#1a1a2e' }}>
+              <span>🔥 인기 코스</span>
+              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openCourse ? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
+            </button>
+            {openCourse && (
+              <div style={{ padding: '14px 16px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="도시명 (예: 도쿄, 파리, 서울)" value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadRecommendedCourses(courseQuery)} />
+                  <button onClick={() => loadRecommendedCourses(courseQuery)} disabled={courseLoading || !courseQuery.trim()} style={{ padding: '8px 16px', background: courseQuery.trim() ? '#FF5A5F' : '#e5e7eb', color: courseQuery.trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>{courseLoading ? '검색중...' : '검색'}</button>
+                </div>
+                {courseLoading && <div style={{ textAlign: 'center', padding: 12, color: '#9ca3af', fontSize: 12 }}>코스 검색 중...</div>}
+                {!courseLoading && recommendedCourses.length === 0 && courseQuery && <div style={{ textAlign: 'center', padding: 16, color: '#9ca3af', fontSize: 12 }}>이 도시의 추천 코스가 아직 없어요</div>}
+                {recommendedCourses.map(course => (
+                  <div key={course.id} style={{ background: 'white', borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{course.title}</div><div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>📍 {course.places?.length || 0}곳</div></div>
+                      <button onClick={() => addCourseToPlaces(course)} style={{ padding: '6px 14px', borderRadius: 8, background: '#FF5A5F', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ 전체 추가</button>
+                    </div>
+                    <div style={{ padding: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {course.places?.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((p, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#f9fafb', borderRadius: 8, fontSize: 12 }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#FF5A5F', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                          <div style={{ flex: 1 }}><span style={{ fontWeight: 600, color: '#1a1a2e' }}>{p.name}</span></div>
+                          {p.howToGet && <span style={{ fontSize: 10, color: '#3b82f6', flexShrink: 0 }}>🚇 {(p.howToGet || '').substring(0, 20)}</span>}
+                          <button onClick={(e) => { e.stopPropagation(); setAddedPlaces(prev => [...prev, { name: p.name, lat: p.lat || 0, lng: p.lng || 0, fullName: '', category: p.category || 'attraction', date: newPlan.startDate || '', memo: [p.tip, p.howToGet].filter(Boolean).join(' | ') }]); }} style={{ padding: '3px 8px', borderRadius: 6, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>+ 추가</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 공유 설정 */}
           <div style={{ background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>🔗 공유 설정</div>

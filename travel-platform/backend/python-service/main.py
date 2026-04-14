@@ -788,7 +788,11 @@ def login(req: LoginReq):
             "user": {"id": user["id"], "nickname": user["nickname"],
                      "profileImage": user.get("profileImage", ""), "bio": user.get("bio", ""),
                      "nationality": user.get("nationality", "KR"),
-                     "wishCountries": user.get("wish_countries", "[]")}}
+                     "wishCountries": user.get("wish_countries", "[]"),
+                     "followingIds": user.get("followingIds", []),
+                     "preferredStyles": user.get("preferredStyles", []),
+                     "badgeType": user.get("badge_type", "none"),
+                     "accountType": user.get("account_type", "personal")}}
 
 @app.post("/api/admin/login")
 def admin_login(req: AdminLoginReq):
@@ -859,7 +863,10 @@ def get_me(payload: dict = Depends(get_current_user)):
         if not row: raise HTTPException(404, "사용자를 찾을 수 없습니다.")
         user = row_to_user(row, conn)
     return {"id": user["id"], "nickname": user["nickname"], "email": user["email"],
-            "profileImage": user.get("profileImage", ""), "bio": user.get("bio", "")}
+            "profileImage": user.get("profileImage", ""), "bio": user.get("bio", ""),
+            "followingIds": user.get("followingIds", []),
+            "preferredStyles": user.get("preferredStyles", []),
+            "badgeType": user.get("badge_type", "none")}
 
 @app.get("/api/admin/users")
 def admin_get_users(page: int = 1, limit: int = 20, search: str = "", payload: dict = Depends(require_admin)):

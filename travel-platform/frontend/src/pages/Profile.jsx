@@ -285,8 +285,8 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 </button>
               </div>
 
-              {/* ── 계정 유형 관리 ── */}
-              <div style={{ marginTop: 8, padding: 16, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
+              {/* ── 계정 유형 관리 (PC만) ── */}
+              <div className="business-section" style={{ marginTop: 8, padding: 16, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 8 }}>🏢 계정 유형</div>
                 
                 {bizAccount ? (

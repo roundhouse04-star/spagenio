@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travellog Ads - 광고 플랫폼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --coral: #FF5A5F;
+  --coral-light: #fff5f5;
+  --dark: #1a1a2e;
+  --gray: #6b7280;
+  --light-gray: #9ca3af;
+  --border: #e5e7eb;
+  --bg: #f8f9fb;
+  --white: #ffffff;
+  --green: #10b981;
+  --blue: #3b82f6;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--dark); min-height: 100vh; min-width: 1024px; }
+
+/* ── 헤더 ── */
+.header { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+.header-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.header-logo svg { width: 32; height: 32; }
+.header-logo-text { font-size: 18px; font-weight: 900; color: var(--coral); letter-spacing: -0.5px; }
+.header-logo-sub { font-size: 12px; color: var(--light-gray); font-weight: 500; margin-left: 8px; padding: 2px 10px; background: var(--coral-light); border-radius: 8px; }
+.header-nav { display: flex; align-items: center; gap: 16px; }
+.header-btn { padding: 8px 18px; border-radius: 10px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.header-btn-outline { background: var(--white); color: var(--coral); border: 1.5px solid var(--coral); }
+.header-btn-primary { background: var(--coral); color: var(--white); }
+.header-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.header-user { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--dark); }
+
+/* ── 레이아웃 ── */
+.layout { display: flex; min-height: calc(100vh - 60px); }
+.sidebar { width: 240px; background: var(--white); border-right: 1px solid var(--border); padding: 20px 0; flex-shrink: 0; }
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 11px 24px; font-size: 13px; font-weight: 500; color: var(--gray); cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; }
+.sidebar-item:hover { background: var(--bg); color: var(--dark); }
+.sidebar-item.active { background: var(--coral-light); color: var(--coral); font-weight: 700; border-left-color: var(--coral); }
+.sidebar-item .icon { font-size: 18px; width: 24px; text-align: center; }
+.main { flex: 1; padding: 28px 40px; max-width: 1200px; }
+
+/* ── 카드 ── */
+.card { background: var(--white); border-radius: 16px; border: 1px solid var(--border); padding: 28px; margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+.card-desc { font-size: 12px; color: var(--light-gray); }
+
+/* ── 스탯 그리드 ── */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card { background: var(--white); border-radius: 14px; border: 1px solid var(--border); padding: 18px; text-align: center; }
+.stat-value { font-size: 28px; font-weight: 900; }
+.stat-label { font-size: 11px; color: var(--light-gray); margin-top: 4px; }
+
+/* ── 폼 ── */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+.form-sub { font-size: 11px; color: var(--light-gray); font-weight: 400; margin-left: 4px; }
+.form-input, .form-select, .form-textarea { width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 14px; font-family: inherit; color: var(--dark); background: var(--bg); outline: none; transition: border 0.2s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--coral); background: var(--white); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-row { display: flex; gap: 14px; }
+.form-row > * { flex: 1; }
+
+/* ── 버튼 ── */
+.btn { padding: 11px 24px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-coral { background: var(--coral); color: var(--white); }
+.btn-outline { background: var(--white); color: var(--coral); border: 1.5px solid var(--coral); }
+.btn-gray { background: var(--bg); color: var(--gray); border: 1px solid var(--border); }
+.btn-green { background: var(--green); color: var(--white); }
+.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; }
+
+/* ── 배지 ── */
+.badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+
+/* ── 테이블 ── */
+.ad-list-item { display: flex; gap: 14px; padding: 16px; border-bottom: 1px solid #f5f5f5; align-items: center; cursor: pointer; transition: background 0.15s; }
+.ad-list-item:hover { background: var(--bg); }
+.ad-list-item:last-child { border-bottom: none; }
+.ad-thumb { width: 90px; height: 60px; object-fit: cover; border-radius: 10px; flex-shrink: 0; background: #f0f0f0; }
+.ad-info { flex: 1; min-width: 0; }
+.ad-title { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 2px; }
+.ad-meta { font-size: 11px; color: var(--light-gray); display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ── 카테고리 그리드 ── */
+.cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.cat-item { padding: 14px 8px; border-radius: 14px; border: 1.5px solid var(--border); text-align: center; cursor: pointer; transition: all 0.2s; background: var(--white); }
+.cat-item:hover { border-color: var(--coral); }
+.cat-item.selected { border-color: var(--coral); background: var(--coral-light); }
+.cat-item .emoji { font-size: 28px; margin-bottom: 4px; }
+.cat-item .label { font-size: 11px; font-weight: 600; color: var(--gray); }
+.cat-item.selected .label { color: var(--coral); font-weight: 700; }
+
+/* ── CTA 버튼 선택 ── */
+.cta-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.cta-btn { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); color: var(--gray); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.cta-btn.selected { border-color: var(--coral); background: var(--coral-light); color: var(--coral); font-weight: 700; }
+
+/* ── 미리보기 ── */
+.preview-card { background: var(--bg); border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+.preview-header { padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+.preview-ad-badge { width: 24px; height: 24px; border-radius: 12px; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 900; }
+.preview-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: var(--light-gray); }
+.preview-body { padding: 12px 14px; }
+
+/* ── 랜딩 ── */
+.landing { max-width: 900px; margin: 0 auto; padding: 60px 20px; text-align: center; }
+.landing-title { font-size: 36px; font-weight: 900; color: var(--dark); margin-bottom: 12px; line-height: 1.3; }
+.landing-title span { color: var(--coral); }
+.landing-sub { font-size: 16px; color: var(--gray); margin-bottom: 40px; line-height: 1.6; }
+.feature-cards { display: flex; gap: 16px; margin-bottom: 40px; text-align: left; }
+.feature-card { flex: 1; padding: 20px; border-radius: 16px; border: 1px solid var(--border); background: var(--white); }
+.feature-icon { font-size: 32px; margin-bottom: 10px; }
+.feature-title { font-size: 14px; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+.feature-desc { font-size: 12px; color: var(--light-gray); line-height: 1.5; }
+
+/* ── 로그인/회원가입 ── */
+.auth-wrap { max-width: 500px; margin: 60px auto; padding: 0 20px; }
+.auth-card { background: var(--white); border-radius: 20px; border: 1px solid var(--border); padding: 36px; }
+.auth-title { font-size: 22px; font-weight: 900; color: var(--dark); margin-bottom: 6px; text-align: center; }
+.auth-sub { font-size: 13px; color: var(--light-gray); margin-bottom: 24px; text-align: center; }
+.auth-link { color: var(--coral); font-weight: 600; cursor: pointer; text-decoration: none; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--light-gray); font-size: 12px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.error-msg { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--red); font-weight: 600; margin-bottom: 16px; text-align: center; }
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { padding: 16px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .cat-grid { grid-template-columns: repeat(2, 1fr); }
+  .feature-cards { flex-direction: column; }
+  .form-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<style>
+.mobile-block { display: none; position: fixed; inset: 0; background: white; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; }
+@media (max-width: 768px) {
+  .mobile-block { display: flex !important; }
+  #app { display: none !important; }
+}
+</style>
+<div class="mobile-block">
+  <div style="font-size: 64px; margin-bottom: 20px;">💻</div>
+  <div style="font-size: 20px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px;">PC에서 이용해주세요</div>
+  <div style="font-size: 14px; color: #9ca3af; line-height: 1.6;">광고 관리는 PC 환경에서만<br/>이용 가능합니다.</div>
+  <a href="https://travel.spagenio.com" style="margin-top: 24px; padding: 12px 24px; background: #FF5A5F; color: white; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">Travellog로 돌아가기</a>
+</div>
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const API = '';  // 같은 도메인
+
+const CATEGORIES = [
+  { key: 'restaurant', icon: '🍽️', label: '음식점/카페' },
+  { key: 'hotel', icon: '🏨', label: '숙소' },
+  { key: 'tour', icon: '🎒', label: '투어/액티비티' },
+  { key: 'city', icon: '🏙️', label: '도시/관광청' },
+  { key: 'transport', icon: '✈️', label: '교통/항공' },
+  { key: 'shopping', icon: '🛍️', label: '쇼핑' },
+  { key: 'personal', icon: '👤', label: '개인 홍보' },
+  { key: 'other', icon: '📢', label: '기타' },
+];
+
+const COUNTRIES = ['전체','한국','일본','프랑스','이탈리아','태국','미국','스페인','영국','독일','홍콩','싱가포르','인도네시아','체코','터키','네덜란드','UAE'];
+
+const STATUS = {
+  draft: { label: '초안', color: '#9ca3af', bg: '#f3f4f6', icon: '📝' },
+  pending: { label: '심사 중', color: '#f59e0b', bg: '#fffbeb', icon: '⏳' },
+  approved: { label: '승인', color: '#3b82f6', bg: '#eff6ff', icon: '✅' },
+  active: { label: '운영 중', color: '#10b981', bg: '#ecfdf5', icon: '🟢' },
+  paused: { label: '일시정지', color: '#f59e0b', bg: '#fffbeb', icon: '⏸' },
+  ended: { label: '종료', color: '#6b7280', bg: '#f3f4f6', icon: '⏹' },
+  rejected: { label: '거절', color: '#ef4444', bg: '#fef2f2', icon: '❌' },
+};
+
+// ── 로고 SVG ──
+function Logo() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 96 96" fill="none">
+      <rect width="96" height="96" rx="24" fill="#FF5A5F"/>
+      <circle cx="48" cy="38" r="22" fill="white"/>
+      <circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
+      <path d="M36 58 Q48 80 60 58" fill="white"/>
+    </svg>
+  );
+}
+
+// ── 메인 앱 ──
+function App() {
+  const [user, setUser] = useState(null);        // 광고 계정
+  const [page, setPage] = useState('landing');    // landing, login, register, dashboard, create, stats
+  const [ads, setAds] = useState([]);
+  const [selectedAd, setSelectedAd] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // 로컬스토리지에서 세션 복원
+  useEffect(() => {
+    const saved = localStorage.getItem('travellog_ad_user');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setUser(parsed);
+      setPage('dashboard');
+    }
+  }, []);
+
+  const logout = () => {
+    localStorage.removeItem('travellog_ad_user');
+    setUser(null);
+    setPage('landing');
+  };
+
+  return (
+    <div>
+      {/* 헤더 */}
+      <div className="header">
+        <a className="header-logo" href="#" onClick={() => setPage(user ? 'dashboard' : 'landing')}>
+          <Logo />
+          <span className="header-logo-text">Travellog</span>
+          <span className="header-logo-sub">Ads</span>
+        </a>
+        <div className="header-nav">
+          {user ? (
+            <>
+              <span className="header-user">🏢 {user.company_name}</span>
+              <button className="header-btn header-btn-outline" onClick={logout}>로그아웃</button>
+            </>
+          ) : (
+            <>
+              <button className="header-btn header-btn-outline" onClick={() => setPage('login')}>로그인</button>
+              <button className="header-btn header-btn-primary" onClick={() => setPage('register')}>광고 시작하기</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 페이지 라우팅 */}
+      {page === 'landing' && <LandingPage onStart={() => setPage('register')} onLogin={() => setPage('login')} />}
+      {page === 'login' && <LoginPage onLogin={(u) => { setUser(u); localStorage.setItem('travellog_ad_user', JSON.stringify(u)); setPage('dashboard'); }} onRegister={() => setPage('register')} />}
+      {page === 'register' && <RegisterPage onDone={(u) => { setUser(u); localStorage.setItem('travellog_ad_user', JSON.stringify(u)); setPage('dashboard'); }} onLogin={() => setPage('login')} />}
+      {(page === 'dashboard' || page === 'create' || page === 'stats') && user && (
+        <div className="layout">
+          <div className="sidebar">
+            <div className="sidebar-item" style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>{user.company_name}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>{user.contact_email}</div>
+              </div>
+            </div>
+            <div className={`sidebar-item ${page === 'dashboard' ? 'active' : ''}`} onClick={() => setPage('dashboard')}>
+              <span className="icon">📊</span> 대시보드
+            </div>
+            <div className={`sidebar-item ${page === 'create' ? 'active' : ''}`} onClick={() => setPage('create')}>
+              <span className="icon">✨</span> 새 광고 만들기
+            </div>
+            <div className="sidebar-item" onClick={() => window.open('https://travel.spagenio.com', '_blank')}>
+              <span className="icon">🌍</span> Travellog 방문
+            </div>
+            <div className="sidebar-item" onClick={logout} style={{ marginTop: 'auto' }}>
+              <span className="icon">🚪</span> 로그아웃
+            </div>
+          </div>
+          <div className="main">
+            {page === 'dashboard' && <DashboardPage user={user} ads={ads} setAds={setAds} onCreateAd={() => setPage('create')} onSelectAd={(ad) => { setSelectedAd(ad); setPage('stats'); }} />}
+            {page === 'create' && <CreateAdPage user={user} onDone={() => { setPage('dashboard'); }} />}
+            {page === 'stats' && selectedAd && <StatsPage ad={selectedAd} onBack={() => setPage('dashboard')} />}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 랜딩 페이지 ──
+function LandingPage({ onStart, onLogin }) {
+  return (
+    <div className="landing">
+      <div style={{ fontSize: 64, marginBottom: 20 }}>📢</div>
+      <div className="landing-title">
+        전 세계 여행자에게<br/><span>당신의 서비스</span>를 알리세요
+      </div>
+      <div className="landing-sub">
+        음식점, 숙소, 투어, 도시 관광청부터 개인 블로거까지.<br/>
+        Travellog 광고 플랫폼에서 쉽고 빠르게 광고를 시작하세요.
+      </div>
+
+      <div className="feature-cards">
+        <div className="feature-card">
+          <div className="feature-icon">💰</div>
+          <div className="feature-title">하루 1,000원부터</div>
+          <div className="feature-desc">소액으로 시작 가능. 일일 예산과 총 예산을 자유롭게 설정하세요.</div>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">🎯</div>
+          <div className="feature-title">정확한 타겟팅</div>
+          <div className="feature-desc">국가, 도시, 여행 스타일별로 딱 맞는 여행자에게 도달합니다.</div>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">📊</div>
+          <div className="feature-title">실시간 성과 분석</div>
+          <div className="feature-desc">노출, 클릭, CTR을 실시간 대시보드에서 확인하세요.</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 40 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 16 }}>이런 분들이 광고합니다</div>
+        <div className="cat-grid" style={{ maxWidth: 500, margin: '0 auto' }}>
+          {CATEGORIES.map(cat => (
+            <div key={cat.key} className="cat-item">
+              <div className="emoji">{cat.icon}</div>
+              <div className="label">{cat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button className="btn btn-coral" style={{ fontSize: 18, padding: '16px 48px' }} onClick={onStart}>
+        🚀 무료로 시작하기
+      </button>
+      <div style={{ marginTop: 16, fontSize: 13, color: '#9ca3af' }}>
+        이미 계정이 있나요? <span className="auth-link" onClick={onLogin}>로그인</span>
+      </div>
+    </div>
+  );
+}
+
+// ── 로그인 ──
+function LoginPage({ onLogin, onRegister }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) { setError('이메일과 비밀번호를 입력해주세요.'); return; }
+    setLoading(true); setError('');
+    try {
+      // 광고 계정 로그인 (일반 로그인 API 사용)
+      const res = await fetch(API + '/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // 광고주 정보 확인
+        const advRes = await fetch(API + '/api/advertisers');
+        const advData = await advRes.json();
+        const myAdv = advData.find(a => a.user_id === data.user.id);
+        if (myAdv) {
+          onLogin({ ...myAdv, userId: data.user.id, token: data.token });
+        } else {
+          setError('광고주 계정이 없습니다. 먼저 광고주 등록을 해주세요.');
+        }
+      } else {
+        setError(data.detail || '로그인 실패');
+      }
+    } catch(e) { setError('서버 연결 오류'); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div style={{ textAlign: 'center', marginBottom: 20 }}><Logo /></div>
+        <div className="auth-title">광고 계정 로그인</div>
+        <div className="auth-sub">Travellog Ads Manager</div>
+        {error && <div className="error-msg">{error}</div>}
+        <div className="form-group">
+          <label className="form-label">이메일</label>
+          <input className="form-input" type="email" placeholder="광고 계정 이메일" value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">비밀번호</label>
+          <input className="form-input" type="password" placeholder="비밀번호" value={password} onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+        </div>
+        <button className="btn btn-coral" style={{ width: '100%', marginTop: 8 }} onClick={handleLogin} disabled={loading}>
+          {loading ? '로그인 중...' : '로그인'}
+        </button>
+        <div className="auth-divider">또는</div>
+        <button className="btn btn-outline" style={{ width: '100%' }} onClick={onRegister}>
+          광고 계정 만들기
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 회원가입 (광고주 등록) ──
+function RegisterPage({ onDone, onLogin }) {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ email: '', password: '', password2: '', company_name: '', contact_phone: '', website: '', category: 'restaurant' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleRegister = async () => {
+    if (!form.email || !form.password) { setError('이메일과 비밀번호를 입력해주세요.'); return; }
+    if (form.password !== form.password2) { setError('비밀번호가 일치하지 않습니다.'); return; }
+    if (!form.company_name) { setError('업체명을 입력해주세요.'); return; }
+    setLoading(true); setError('');
+    try {
+      // 1. 일반 계정 생성 (간소화 — 인증코드 스킵)
+      // 실제로는 인증 절차 필요하지만 데모용으로 직접 등록
+      const loginRes = await fetch(API + '/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+
+      let userId, token;
+      if (loginRes.ok) {
+        const loginData = await loginRes.json();
+        userId = loginData.user.id;
+        token = loginData.token;
+      } else {
+        setError('먼저 Travellog 계정을 만들어주세요. (travel.spagenio.com에서 회원가입)');
+        setLoading(false);
+        return;
+      }
+
+      // 2. 광고주 등록
+      const advRes = await fetch(API + '/api/advertisers', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId, company_name: form.company_name,
+          contact_email: form.email, contact_phone: form.contact_phone, website: form.website,
+        }),
+      });
+      if (advRes.ok) {
+        const advData = await advRes.json();
+        onDone({ ...advData, company_name: form.company_name, contact_email: form.email, userId, token });
+      } else {
+        setError('광고주 등록 실패');
+      }
+    } catch(e) { setError('서버 연결 오류'); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div style={{ textAlign: 'center', marginBottom: 20 }}><Logo /></div>
+        <div className="auth-title">광고 계정 만들기</div>
+        <div className="auth-sub">Travellog에서 광고를 시작하세요</div>
+        {error && <div className="error-msg">{error}</div>}
+
+        {step === 1 && (
+          <>
+            <div className="form-group">
+              <label className="form-label">광고 카테고리</label>
+              <div className="cat-grid">
+                {CATEGORIES.map(cat => (
+                  <div key={cat.key} className={`cat-item ${form.category === cat.key ? 'selected' : ''}`}
+                    onClick={() => update('category', cat.key)}>
+                    <div className="emoji">{cat.icon}</div>
+                    <div className="label">{cat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">업체명/이름 *</label>
+              <input className="form-input" placeholder="예: 도쿄라멘하우스, 방콕투어가이드" value={form.company_name} onChange={e => update('company_name', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">웹사이트 <span className="form-sub">(선택)</span></label>
+              <input className="form-input" placeholder="https://" value={form.website} onChange={e => update('website', e.target.value)} />
+            </div>
+            <button className="btn btn-coral" style={{ width: '100%' }} onClick={() => {
+              if (!form.company_name) { setError('업체명을 입력해주세요.'); return; }
+              setError(''); setStep(2);
+            }}>다음 →</button>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div className="form-group">
+              <label className="form-label">Travellog 계정 이메일 *</label>
+              <input className="form-input" type="email" placeholder="가입한 이메일" value={form.email} onChange={e => update('email', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">비밀번호 *</label>
+              <input className="form-input" type="password" placeholder="Travellog 비밀번호" value={form.password} onChange={e => update('password', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">비밀번호 확인 *</label>
+              <input className="form-input" type="password" placeholder="비밀번호 다시 입력" value={form.password2} onChange={e => update('password2', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">전화번호 <span className="form-sub">(선택)</span></label>
+              <input className="form-input" placeholder="연락 가능한 번호" value={form.contact_phone} onChange={e => update('contact_phone', e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-gray" onClick={() => setStep(1)}>← 이전</button>
+              <button className="btn btn-coral" style={{ flex: 1 }} onClick={handleRegister} disabled={loading}>
+                {loading ? '등록 중...' : '🚀 광고 계정 만들기'}
+              </button>
+            </div>
+          </>
+        )}
+
+        <div className="auth-divider">또는</div>
+        <div style={{ textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>
+          이미 광고 계정이 있나요? <span className="auth-link" onClick={onLogin}>로그인</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 대시보드 ──
+function DashboardPage({ user, ads, setAds, onCreateAd, onSelectAd }) {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAds();
+  }, []);
+
+  const loadAds = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API + '/api/ads?advertiser_id=' + user.id);
+      const data = await res.json();
+      setAds(data);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  const toggleAd = async (adId, status) => {
+    const next = status === 'active' ? 'paused' : 'active';
+    await fetch(API + `/api/ads/${adId}/status?status=${next}`, { method: 'PUT' });
+    loadAds();
+  };
+
+  const totalImpressions = ads.reduce((s, a) => s + (a.impressions || 0), 0);
+  const totalClicks = ads.reduce((s, a) => s + (a.clicks || 0), 0);
+  const totalCTR = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00';
+  const activeCount = ads.filter(a => a.status === 'active').length;
+
+  return (
+    <>
+      <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 20 }}>📊 대시보드</h2>
+
+      <div className="stats-grid">
+        <div className="stat-card"><div className="stat-value" style={{ color: '#10b981' }}>{activeCount}</div><div className="stat-label">운영 중 광고</div></div>
+        <div className="stat-card"><div className="stat-value" style={{ color: '#3b82f6' }}>{totalImpressions.toLocaleString()}</div><div className="stat-label">총 노출</div></div>
+        <div className="stat-card"><div className="stat-value" style={{ color: '#f59e0b' }}>{totalClicks.toLocaleString()}</div><div className="stat-label">총 클릭</div></div>
+        <div className="stat-card"><div className="stat-value" style={{ color: '#FF5A5F' }}>{totalCTR}%</div><div className="stat-label">평균 CTR</div></div>
+      </div>
+
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="card-title">내 광고 ({ads.length}개)</div>
+          <button className="btn btn-coral btn-sm" onClick={onCreateAd}>+ 새 광고</button>
+        </div>
+
+        {loading ? <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>로딩 중...</div> :
+         ads.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>📢</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>아직 광고가 없어요</div>
+            <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 4, marginBottom: 16 }}>첫 번째 광고를 만들어보세요!</div>
+            <button className="btn btn-coral" onClick={onCreateAd}>✨ 광고 만들기</button>
+          </div>
+        ) : (
+          ads.map(ad => {
+            const st = STATUS[ad.status] || STATUS.draft;
+            return (
+              <div key={ad.id} className="ad-list-item">
+                {ad.image_url ? <img className="ad-thumb" src={ad.image_url} alt="" /> : <div className="ad-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#d1d5db' }}>📢</div>}
+                <div className="ad-info" onClick={() => onSelectAd(ad)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="ad-title">{ad.title}</span>
+                    <span className="badge" style={{ background: st.bg, color: st.color }}>{st.icon} {st.label}</span>
+                  </div>
+                  <div className="ad-meta">
+                    <span>🌍 {ad.target_country || '전체'}</span>
+                    <span>👁 {(ad.impressions || 0).toLocaleString()}</span>
+                    <span>👆 {ad.clicks || 0}</span>
+                    <span>📊 CTR {ad.ctr || 0}%</span>
+                    <span>💰 ₩{(ad.budget_daily || 0).toLocaleString()}/일</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  {(ad.status === 'active' || ad.status === 'paused') && (
+                    <button className="btn btn-sm btn-gray" onClick={() => toggleAd(ad.id, ad.status)}>
+                      {ad.status === 'active' ? '⏸' : '▶'}
+                    </button>
+                  )}
+                  <button className="btn btn-sm btn-gray" onClick={() => onSelectAd(ad)}>📊</button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── 광고 만들기 ──
+function CreateAdPage({ user, onDone }) {
+  const [form, setForm] = useState({
+    title: '', description: '', image_url: '', link_url: '', cta_text: '자세히 보기',
+    target_country: '', target_city: '', budget_daily: 10000, budget_total: 300000,
+    cost_per_click: 100, cost_per_impression: 10, start_date: '', end_date: '',
+  });
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const uploadImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(API + '/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) update('image_url', data.feed || data.url);
+    } catch(e) {}
+    setUploading(false);
+  };
+
+  const submit = async () => {
+    if (!form.title || !form.link_url) { setError('제목과 링크를 입력해주세요.'); return; }
+    setSubmitting(true); setError('');
+    try {
+      const res = await fetch(API + '/api/ads', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, advertiser_id: user.id }),
+      });
+      if (res.ok) {
+        alert('광고가 등록되었습니다! 관리자 심사 후 활성화됩니다.');
+        onDone();
+      } else { setError('등록 실패'); }
+    } catch(e) { setError('서버 오류'); }
+    setSubmitting(false);
+  };
+
+  return (
+    <>
+      <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 20 }}>✨ 새 광고 만들기</h2>
+
+      <div style={{ display: 'flex', gap: 24 }}>
+        {/* 왼쪽: 폼 */}
+        <div style={{ flex: 1 }}>
+          {error && <div className="error-msg">{error}</div>}
+          <div className="card">
+            <div className="card-title">📝 기본 정보</div>
+            <div style={{ marginTop: 16 }}>
+              <div className="form-group">
+                <label className="form-label">광고 제목 *</label>
+                <input className="form-input" placeholder="예: 도쿄 시부야 인기 라멘집 20% 할인" value={form.title} onChange={e => update('title', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">설명</label>
+                <textarea className="form-textarea" placeholder="광고 내용을 간단히 설명해주세요" value={form.description} onChange={e => update('description', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">광고 이미지</label>
+                {form.image_url ? (
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <img src={form.image_url} alt="" style={{ width: 200, height: 120, objectFit: 'cover', borderRadius: 10 }} />
+                    <button onClick={() => update('image_url', '')} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 12 }}>✕</button>
+                  </div>
+                ) : (
+                  <div>
+                    <input type="file" accept="image/*" id="ad-img" style={{ display: 'none' }} onChange={uploadImage} />
+                    <label htmlFor="ad-img" className="btn btn-gray btn-sm" style={{ cursor: 'pointer' }}>{uploading ? '업로드 중...' : '📁 이미지 선택'}</label>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>권장: 1200x628px (16:9)</div>
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label className="form-label">링크 URL *</label>
+                <input className="form-input" placeholder="https://your-website.com" value={form.link_url} onChange={e => update('link_url', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">버튼 텍스트</label>
+                <div className="cta-options">
+                  {['자세히 보기','예약하기','둘러보기','지금 구매','더 알아보기','방문하기'].map(t => (
+                    <div key={t} className={`cta-btn ${form.cta_text === t ? 'selected' : ''}`} onClick={() => update('cta_text', t)}>{t}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-title">🎯 타겟팅</div>
+            <div style={{ marginTop: 16 }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">타겟 국가</label>
+                  <select className="form-select" value={form.target_country} onChange={e => update('target_country', e.target.value)}>
+                    <option value="">전체 국가</option>
+                    {COUNTRIES.filter(c => c !== '전체').map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">타겟 도시</label>
+                  <input className="form-input" placeholder="비워두면 전체" value={form.target_city} onChange={e => update('target_city', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-title">💰 예산</div>
+            <div style={{ marginTop: 16 }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">일일 예산 (원)</label>
+                  <input className="form-input" type="number" min="1000" step="1000" value={form.budget_daily} onChange={e => update('budget_daily', parseInt(e.target.value) || 0)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">총 예산 (원)</label>
+                  <input className="form-input" type="number" min="10000" step="10000" value={form.budget_total} onChange={e => update('budget_total', parseInt(e.target.value) || 0)} />
+                </div>
+              </div>
+              <div style={{ background: '#f9fafb', borderRadius: 10, padding: 14, fontSize: 12, color: '#6b7280', display: 'flex', gap: 20 }}>
+                <span>📊 예상 노출: <b>{Math.floor(form.budget_daily / 10).toLocaleString()}회/일</b></span>
+                <span>👆 예상 클릭: <b>{Math.floor(form.budget_daily / 100).toLocaleString()}회/일</b></span>
+                <span>📅 운영: <b>{form.budget_daily > 0 ? Math.floor(form.budget_total / form.budget_daily) : 0}일</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-title">📅 기간</div>
+            <div style={{ marginTop: 16 }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">시작일</label>
+                  <input className="form-input" type="date" value={form.start_date} onChange={e => update('start_date', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">종료일</label>
+                  <input className="form-input" type="date" value={form.end_date} onChange={e => update('end_date', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button className="btn btn-coral" style={{ width: '100%', fontSize: 16, padding: '14px' }} onClick={submit} disabled={submitting}>
+            {submitting ? '등록 중...' : '🚀 광고 등록하기'}
+          </button>
+        </div>
+
+        {/* 오른쪽: 미리보기 */}
+        <div style={{ width: 360, flexShrink: 0, position: 'sticky', top: 80, alignSelf: 'flex-start' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 10 }}>📱 피드 미리보기</div>
+          <div className="preview-card">
+            <div className="preview-header">
+              <div className="preview-ad-badge">AD</div>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Sponsored</span>
+              <span style={{ fontSize: 9, color: '#d1d5db', marginLeft: 'auto', background: '#f3f4f6', padding: '1px 6px', borderRadius: 6 }}>광고</span>
+            </div>
+            {form.image_url ? (
+              <img src={form.image_url} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
+            ) : (
+              <div className="preview-img">이미지 미리보기</div>
+            )}
+            <div className="preview-body">
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 2 }}>{form.title || '광고 제목'}</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>{form.description || '광고 설명이 여기에 표시됩니다'}</div>
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#9ca3af' }}>{form.target_country || '전체'} · {form.target_city || '전체'}</span>
+                <span style={{ padding: '5px 14px', borderRadius: 8, background: '#FF5A5F', color: 'white', fontSize: 11, fontWeight: 700 }}>{form.cta_text}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── 통계 페이지 ──
+function StatsPage({ ad, onBack }) {
+  const st = STATUS[ad.status] || STATUS.draft;
+  const spend = (ad.impressions || 0) * (ad.cost_per_impression || 10) + (ad.clicks || 0) * (ad.cost_per_click || 100);
+
+  return (
+    <>
+      <button className="btn btn-gray btn-sm" onClick={onBack} style={{ marginBottom: 16 }}>← 뒤로</button>
+      <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 20 }}>📊 {ad.title}</h2>
+
+      <div className="stats-grid">
+        <div className="stat-card"><div className="stat-value" style={{ color: '#3b82f6' }}>{(ad.impressions || 0).toLocaleString()}</div><div className="stat-label">👁 총 노출</div></div>
+        <div className="stat-card"><div className="stat-value" style={{ color: '#10b981' }}>{ad.clicks || 0}</div><div className="stat-label">👆 총 클릭</div></div>
+        <div className="stat-card"><div className="stat-value" style={{ color: '#f59e0b' }}>{ad.ctr || 0}%</div><div className="stat-label">📊 CTR</div></div>
+        <div className="stat-card"><div className="stat-value" style={{ color: '#FF5A5F' }}>₩{spend.toLocaleString()}</div><div className="stat-label">💰 소진액</div></div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">광고 정보</div>
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13, color: '#6b7280' }}>
+          <div>상태: <span className="badge" style={{ background: st.bg, color: st.color }}>{st.icon} {st.label}</span></div>
+          <div>타겟: {ad.target_country || '전체'} {ad.target_city ? `> ${ad.target_city}` : ''}</div>
+          <div>일일 예산: ₩{(ad.budget_daily || 0).toLocaleString()}</div>
+          <div>총 예산: ₩{(ad.budget_total || 0).toLocaleString()}</div>
+          <div>CPC: ₩{ad.cost_per_click || 0} / CPM: ₩{((ad.cost_per_impression || 0) * 1000).toLocaleString()}</div>
+          <div>기간: {ad.start_date || '미설정'} ~ {ad.end_date || '미설정'}</div>
+          <div>링크: <a href={ad.link_url} target="_blank" rel="noreferrer" style={{ color: '#3b82f6' }}>{ad.link_url}</a></div>
+          {ad.reject_reason && <div style={{ color: '#ef4444' }}>거절 사유: {ad.reject_reason}</div>}
+        </div>
+      </div>
+
+      {ad.image_url && (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <img src={ad.image_url} alt="" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('app'));
+</script>
+</body>
+</html>

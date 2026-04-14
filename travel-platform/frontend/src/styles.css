@@ -1477,3 +1477,7 @@ img {
     font-size: 13px;
   }
 }
+/* 비즈니스 전환 - PC만 */
+@media (max-width: 768px) {
+  .business-section { display: none !important; }
+}
