@@ -12,6 +12,23 @@ function timeAgo(dateStr) {
   return `${Math.floor(h / 24)}일 전`;
 }
 
+
+function BadgeIcon({ type, size = 14 }) {
+  if (!type || type === 'none') return null;
+  const badges = {
+    verified: { icon: '✓', bg: '#3b82f6', color: 'white', title: '인증된 계정' },
+    official: { icon: '★', bg: '#f59e0b', color: 'white', title: '공식 계정' },
+    premium: { icon: '♦', bg: '#8b5cf6', color: 'white', title: '프리미엄' },
+  };
+  const b = badges[type];
+  if (!b) return null;
+  return (
+    <span title={b.title} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: '50%', background: b.bg, color: b.color, fontSize: size * 0.6, fontWeight: 900, marginLeft: 4, flexShrink: 0 }}>
+      {b.icon}
+    </span>
+  );
+}
+
 export default function PostCard({ post, currentUserId, onOpen, onProfile, onLike, onTagClick, onReport }) {
   const liked = post.likedUserIds?.includes(currentUserId);
   const mainImg = post.images?.[0];
@@ -29,7 +46,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
               alt={post.userNickname} />
           </div>
           <div>
-            <div className="post-user-name" onClick={() => onProfile?.(post.userId)}>{post.userNickname}</div>
+            <div className="post-user-name" onClick={() => onProfile?.(post.userId)}>{post.userNickname}<BadgeIcon type={post.badgeType} /></div>
             <div className="post-meta">{locationText && `${locationText} · `}{timeAgo(post.createdAt)}</div>
           </div>
         </div>

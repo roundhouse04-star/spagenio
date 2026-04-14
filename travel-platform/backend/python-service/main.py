@@ -452,6 +452,284 @@ async def upload_multiple(files: list[UploadFile] = File(...)):
         "details": results,
     }
 
+
+# ── 광고 시스템 API ─────────────────────────────
+from pydantic import BaseModel as PydanticBase
+import random
+
+class AdCreate(PydanticBase):
+    advertiser_id: str = ""
+    title: str
+    description: str = ""
+    image_url: str = ""
+    link_url: str
+    cta_text: str = "자세히 보기"
+    ad_type: str = "feed"
+    target_country: str = ""
+    target_city: str = ""
+    target_style: str = ""
+    budget_daily: int = 0
+    budget_total: int = 0
+    cost_per_click: int = 100
+    cost_per_impression: int = 10
+    start_date: str = ""
+    end_date: str = ""
+
+class AdvertiserCreate(PydanticBase):
+    user_id: str = ""
+    company_name: str
+    contact_email: str
+    contact_phone: str = ""
+    website: str = ""
+
+@app.post("/api/advertisers")
+def create_advertiser(req: AdvertiserCreate):
+    with get_db() as conn:
+        import uuid
+        aid = "adv_" + uuid.uuid4().hex[:12]
+        conn.execute("INSERT INTO advertisers (id, user_id, company_name, contact_email, contact_phone, website, status) VALUES (?,?,?,?,?,?,?)",
+                     (aid, req.user_id, req.company_name, req.contact_email, req.contact_phone, req.website, 'approved'))
+        return {"id": aid, "status": "approved"}
+
+@app.get("/api/advertisers")
+def get_advertisers():
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM advertisers ORDER BY created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+
+@app.post("/api/ads")
+def create_ad(req: AdCreate):
+    with get_db() as conn:
+        c = conn.execute("""INSERT INTO ads (advertiser_id, title, description, image_url, link_url, cta_text, ad_type,
+                           target_country, target_city, target_style, budget_daily, budget_total,
+                           cost_per_click, cost_per_impression, start_date, end_date, status)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        (req.advertiser_id, req.title, req.description, req.image_url, req.link_url, req.cta_text, req.ad_type,
+                         req.target_country, req.target_city, req.target_style, req.budget_daily, req.budget_total,
+                         req.cost_per_click, req.cost_per_impression, req.start_date, req.end_date, 'pending'))
+        return {"id": c.lastrowid, "status": "pending"}
+
+@app.get("/api/ads")
+def get_ads(advertiser_id: str = "", status: str = ""):
+    with get_db() as conn:
+        query = "SELECT * FROM ads WHERE 1=1"
+        params = []
+        if advertiser_id:
+            query += " AND advertiser_id = ?"
+            params.append(advertiser_id)
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        query += " ORDER BY created_at DESC"
+        rows = conn.execute(query, params).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            d['impressions'] = conn.execute("SELECT COUNT(*) FROM ad_impressions WHERE ad_id=?", (d['id'],)).fetchone()[0]
+            d['clicks'] = conn.execute("SELECT COUNT(*) FROM ad_clicks WHERE ad_id=?", (d['id'],)).fetchone()[0]
+            d['ctr'] = round(d['clicks'] / d['impressions'] * 100, 2) if d['impressions'] > 0 else 0
+            result.append(d)
+        return result
+
+@app.get("/api/ads/feed")
+def get_feed_ad(country: str = "", city: str = "", style: str = "", user_id: str = ""):
+    """피드에 표시할 광고 1개 반환"""
+    with get_db() as conn:
+        today = time.strftime("%Y-%m-%d")
+        query = """SELECT * FROM ads WHERE status = 'active'
+                   AND (start_date IS NULL OR start_date = '' OR start_date <= ?)
+                   AND (end_date IS NULL OR end_date = '' OR end_date >= ?)"""
+        params = [today, today]
+        rows = conn.execute(query, params).fetchall()
+        if not rows:
+            return None
+        # 타겟 매칭 점수 계산
+        scored = []
+        for r in rows:
+            d = dict(r)
+            score = d.get('priority', 0)
+            if country and d.get('target_country') and country in d['target_country']:
+                score += 3
+            if city and d.get('target_city') and city in d['target_city']:
+                score += 2
+            if style and d.get('target_style') and style in d['target_style']:
+                score += 1
+            # 예산 확인
+            today_spend = conn.execute("SELECT COALESCE(SUM(spend),0) FROM ad_daily_stats WHERE ad_id=? AND date=?", (d['id'], today)).fetchone()[0]
+            if d.get('budget_daily', 0) > 0 and today_spend >= d['budget_daily']:
+                continue  # 일일 예산 초과
+            scored.append((score, d))
+        if not scored:
+            return None
+        # 점수 기반 가중 랜덤 선택
+        scored.sort(key=lambda x: -x[0])
+        top = scored[:5]
+        weights = [s[0] + 1 for s in top]
+        selected = random.choices(top, weights=weights, k=1)[0][1]
+        # 노출 기록
+        conn.execute("INSERT INTO ad_impressions (ad_id, user_id) VALUES (?,?)", (selected['id'], user_id))
+        conn.execute("""INSERT INTO ad_daily_stats (ad_id, date, impressions, spend)
+                       VALUES (?, ?, 1, ?)
+                       ON CONFLICT(ad_id, date) DO UPDATE SET impressions = impressions + 1, spend = spend + ?""",
+                    (selected['id'], today, selected.get('cost_per_impression', 10), selected.get('cost_per_impression', 10)))
+        return selected
+
+@app.post("/api/ads/{ad_id}/click")
+def record_click(ad_id: int, user_id: str = ""):
+    with get_db() as conn:
+        ad = conn.execute("SELECT * FROM ads WHERE id=?", (ad_id,)).fetchone()
+        if not ad:
+            raise HTTPException(404, "광고를 찾을 수 없습니다")
+        conn.execute("INSERT INTO ad_clicks (ad_id, user_id) VALUES (?,?)", (ad_id, user_id))
+        today = time.strftime("%Y-%m-%d")
+        cpc = dict(ad).get('cost_per_click', 100)
+        conn.execute("""INSERT INTO ad_daily_stats (ad_id, date, clicks, spend)
+                       VALUES (?, ?, 1, ?)
+                       ON CONFLICT(ad_id, date) DO UPDATE SET clicks = clicks + 1, spend = spend + ?""",
+                    (ad_id, today, cpc, cpc))
+        return {"status": "ok"}
+
+@app.put("/api/ads/{ad_id}/status")
+def update_ad_status(ad_id: int, status: str = "", reject_reason: str = ""):
+    with get_db() as conn:
+        if status not in ('approved', 'active', 'paused', 'ended', 'rejected', 'draft', 'pending'):
+            raise HTTPException(400, "유효하지 않은 상태입니다")
+        conn.execute("UPDATE ads SET status=?, reject_reason=?, updated_at=datetime('now') WHERE id=?",
+                    (status, reject_reason, ad_id))
+        return {"id": ad_id, "status": status}
+
+@app.get("/api/ads/{ad_id}/stats")
+def get_ad_stats(ad_id: int):
+    with get_db() as conn:
+        ad = conn.execute("SELECT * FROM ads WHERE id=?", (ad_id,)).fetchone()
+        if not ad:
+            raise HTTPException(404, "광고를 찾을 수 없습니다")
+        d = dict(ad)
+        d['total_impressions'] = conn.execute("SELECT COUNT(*) FROM ad_impressions WHERE ad_id=?", (ad_id,)).fetchone()[0]
+        d['total_clicks'] = conn.execute("SELECT COUNT(*) FROM ad_clicks WHERE ad_id=?", (ad_id,)).fetchone()[0]
+        d['total_spend'] = conn.execute("SELECT COALESCE(SUM(spend),0) FROM ad_daily_stats WHERE ad_id=?", (ad_id,)).fetchone()[0]
+        d['ctr'] = round(d['total_clicks'] / d['total_impressions'] * 100, 2) if d['total_impressions'] > 0 else 0
+        d['daily_stats'] = [dict(r) for r in conn.execute("SELECT * FROM ad_daily_stats WHERE ad_id=? ORDER BY date DESC LIMIT 30", (ad_id,)).fetchall()]
+        return d
+
+
+# ── 비즈니스 계정 / 오피셜 배지 API ─────────────────────────
+BUSINESS_CATEGORIES = [
+    {"key": "restaurant", "icon": "🍽️", "label": "음식점/카페"},
+    {"key": "hotel", "icon": "🏨", "label": "숙소"},
+    {"key": "tour", "icon": "🎒", "label": "투어/액티비티"},
+    {"key": "city", "icon": "🏙️", "label": "도시/관광청"},
+    {"key": "transport", "icon": "✈️", "label": "교통/항공"},
+    {"key": "shopping", "icon": "🛍️", "label": "쇼핑"},
+    {"key": "creator", "icon": "🎬", "label": "크리에이터"},
+    {"key": "other", "icon": "📢", "label": "기타"},
+]
+
+BADGE_TYPES = {
+    "none": {"icon": "", "label": "일반", "color": "#9ca3af"},
+    "verified": {"icon": "✓", "label": "인증됨", "color": "#3b82f6"},
+    "official": {"icon": "★", "label": "공식", "color": "#f59e0b"},
+    "premium": {"icon": "♦", "label": "프리미엄", "color": "#8b5cf6"},
+}
+
+@app.get("/api/business/categories")
+def get_business_categories():
+    return BUSINESS_CATEGORIES
+
+@app.get("/api/business/badges")
+def get_badge_types():
+    return BADGE_TYPES
+
+@app.post("/api/business/register")
+def register_business(
+    user_id: str = "",
+    category: str = "",
+    business_name: str = "",
+    business_description: str = "",
+    business_phone: str = "",
+    business_email: str = "",
+    business_website: str = "",
+    business_address: str = "",
+    business_country: str = "",
+    business_city: str = "",
+    business_document: str = "",
+):
+    if not user_id or not category or not business_name:
+        raise HTTPException(400, "필수 항목을 입력해주세요 (user_id, category, business_name)")
+    with get_db() as conn:
+        existing = conn.execute("SELECT id FROM business_accounts WHERE user_id=?", (user_id,)).fetchone()
+        if existing:
+            raise HTTPException(400, "이미 비즈니스 계정이 등록되어 있습니다")
+        conn.execute("""INSERT INTO business_accounts 
+            (user_id, category, business_name, business_description, business_phone, 
+             business_email, business_website, business_address, business_country, 
+             business_city, business_document, status, badge_type)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (user_id, category, business_name, business_description, business_phone,
+             business_email, business_website, business_address, business_country,
+             business_city, business_document, 'pending', 'none'))
+        conn.execute("UPDATE users SET account_type='business', business_category=? WHERE id=?", (category, user_id))
+        return {"status": "pending", "message": "비즈니스 계정 심사가 접수되었습니다"}
+
+@app.get("/api/business/{user_id}")
+def get_business_account(user_id: str):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM business_accounts WHERE user_id=?", (user_id,)).fetchone()
+        if not row:
+            return None
+        return dict(row)
+
+@app.get("/api/business")
+def get_all_business_accounts(status: str = ""):
+    with get_db() as conn:
+        if status:
+            rows = conn.execute("SELECT b.*, u.nickname, u.email FROM business_accounts b JOIN users u ON b.user_id = u.id WHERE b.status=? ORDER BY b.created_at DESC", (status,)).fetchall()
+        else:
+            rows = conn.execute("SELECT b.*, u.nickname, u.email FROM business_accounts b JOIN users u ON b.user_id = u.id ORDER BY b.created_at DESC").fetchall()
+        return [dict(r) for r in rows]
+
+@app.put("/api/business/{user_id}/approve")
+def approve_business(user_id: str, badge_type: str = "verified"):
+    with get_db() as conn:
+        conn.execute("UPDATE business_accounts SET status='approved', badge_type=?, verified_at=datetime('now'), updated_at=datetime('now') WHERE user_id=?", (badge_type, user_id))
+        conn.execute("UPDATE users SET account_type='business', badge_type=? WHERE id=?", (badge_type, user_id))
+        return {"status": "approved", "badge_type": badge_type}
+
+@app.put("/api/business/{user_id}/reject")
+def reject_business(user_id: str, reason: str = ""):
+    with get_db() as conn:
+        conn.execute("UPDATE business_accounts SET status='rejected', reject_reason=?, updated_at=datetime('now') WHERE user_id=?", (reason, user_id))
+        conn.execute("UPDATE users SET account_type='personal', badge_type='none' WHERE id=?", (user_id,))
+        return {"status": "rejected"}
+
+@app.put("/api/business/{user_id}/badge")
+def update_badge(user_id: str, badge_type: str = "verified"):
+    if badge_type not in BADGE_TYPES:
+        raise HTTPException(400, "유효하지 않은 배지 타입입니다")
+    with get_db() as conn:
+        conn.execute("UPDATE business_accounts SET badge_type=?, updated_at=datetime('now') WHERE user_id=?", (badge_type, user_id))
+        conn.execute("UPDATE users SET badge_type=? WHERE id=?", (badge_type, user_id))
+        return {"badge_type": badge_type}
+
+@app.put("/api/business/{user_id}/official")
+def grant_official(user_id: str):
+    with get_db() as conn:
+        conn.execute("UPDATE business_accounts SET account_type='official', badge_type='official', status='approved', verified_at=datetime('now'), updated_at=datetime('now') WHERE user_id=?", (user_id,))
+        conn.execute("UPDATE users SET account_type='official', badge_type='official' WHERE id=?", (user_id,))
+        return {"status": "official", "badge_type": "official"}
+
+@app.get("/api/business/{user_id}/stats")
+def get_business_stats(user_id: str):
+    with get_db() as conn:
+        stats = conn.execute("SELECT * FROM business_stats WHERE user_id=? ORDER BY date DESC LIMIT 30", (user_id,)).fetchall()
+        total = conn.execute("""SELECT 
+            COALESCE(SUM(profile_views),0) as total_views,
+            COALESCE(SUM(post_impressions),0) as total_impressions,
+            COALESCE(SUM(link_clicks),0) as total_clicks,
+            COALESCE(SUM(followers_gained),0) as total_followers
+            FROM business_stats WHERE user_id=?""", (user_id,)).fetchone()
+        return {"daily": [dict(r) for r in stats], "total": dict(total)}
+
 @app.post("/api/register/send-code")
 def register_send_code(req: SendCodeReq):
     with get_db() as conn:

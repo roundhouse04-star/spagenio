@@ -42,11 +42,80 @@ const NAV = [
   { key: 'notices', icon: '📢', label: '공지사항' },
   { key: 'promotions', icon: '📣', label: '프로모션' },
   { key: 'menus', icon: '🗂️', label: '메뉴 관리' },
+  { key: 'ads', icon: '📢', label: '광고 관리' },
+  { key: 'business', icon: '🏢', label: '비즈니스/오피셜' },
 ];
 
 export default function Admin() {
   const [token, setToken] = useState(sessionStorage.getItem('admin_token') || '');
   const [page, setPage] = useState('dashboard');
+
+  // ── 광고 관리 ──
+  const [adsList, setAdsList] = useState([]);
+  const [adAdvertisers, setAdAdvertisers] = useState([]);
+  const [adsLoading, setAdsLoading] = useState(false);
+
+  const loadAds = async () => {
+    setAdsLoading(true);
+    try {
+      const [adsRes, advRes] = await Promise.all([
+        fetch('/api/ads'),
+        fetch('/api/advertisers')
+      ]);
+      setAdsList(await adsRes.json());
+      setAdAdvertisers(await advRes.json());
+    } catch(e) {}
+    setAdsLoading(false);
+  };
+
+  const updateAdStatus = async (adId, status, reason = '') => {
+    await fetch('/api/ads/' + adId + '/status?status=' + status + '&reject_reason=' + encodeURIComponent(reason), { method: 'PUT' });
+    loadAds();
+  };
+
+  useEffect(() => { if (page === 'ads' && token) loadAds(); }, [page]);
+
+  // ── 비즈니스/오피셜 관리 ──
+  const [bizAccounts, setBizAccounts] = useState([]);
+  const [bizLoading, setBizLoading] = useState(false);
+
+  const loadBizAccounts = async () => {
+    setBizLoading(true);
+    try {
+      const res = await fetch('/api/business');
+      setBizAccounts(await res.json());
+    } catch(e) {}
+    setBizLoading(false);
+  };
+
+  const approveBiz = async (userId, badgeType) => {
+    await fetch('/api/business/' + userId + '/approve?badge_type=' + badgeType, { method: 'PUT' });
+    loadBizAccounts();
+  };
+
+  const rejectBiz = async (userId) => {
+    const reason = prompt('거절 사유:');
+    if (!reason) return;
+    await fetch('/api/business/' + userId + '/reject?reason=' + encodeURIComponent(reason), { method: 'PUT' });
+    loadBizAccounts();
+  };
+
+  const grantOfficial = async (userId) => {
+    if (!confirm('이 계정에 공식(Official) 배지를 부여합니까?')) return;
+    await fetch('/api/business/' + userId + '/official', { method: 'PUT' });
+    loadBizAccounts();
+  };
+
+  const changeBadge = async (userId, badgeType) => {
+    await fetch('/api/business/' + userId + '/badge?badge_type=' + badgeType, { method: 'PUT' });
+    loadBizAccounts();
+  };
+
+  useEffect(() => { if (page === 'business' && token) loadBizAccounts(); }, [page]);
+
+
+
+
   const [userStats, setUserStats] = useState(null);
   const [postStats, setPostStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -645,7 +714,223 @@ export default function Admin() {
             </>
           )}
           {/* ── 메뉴 관리 ── */}
-          {page === 'menus' && (
+    
+
+      {page === 'business' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={S.tableWrap}>
+            <div style={S.tableHeader}>
+              <div style={S.tableTitle}>🏢 비즈니스 / 오피셜 관리</div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 12, color: '#9ca3af' }}>
+                <span>전체 {bizAccounts.length}</span>
+                <span>| 심사 대기 {bizAccounts.filter(b => b.status === 'pending').length}</span>
+                <span>| 승인 {bizAccounts.filter(b => b.status === 'approved').length}</span>
+                <span>| 오피셜 {bizAccounts.filter(b => b.account_type === 'official').length}</span>
+              </div>
+            </div>
+
+            {/* 배지 설명 */}
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid #f0f0f0', background: '#fafafa', display: 'flex', gap: 16, fontSize: 12 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#3b82f6', color: 'white', fontSize: 10, fontWeight: 900 }}>✓</span>
+                인증됨 (비즈니스 확인)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#f59e0b', color: 'white', fontSize: 10, fontWeight: 900 }}>★</span>
+                공식 (Official)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#8b5cf6', color: 'white', fontSize: 10, fontWeight: 900 }}>♦</span>
+                프리미엄
+              </span>
+            </div>
+
+            {bizLoading ? <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>로딩 중...</div> :
+              bizAccounts.length === 0 ? <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>등록된 비즈니스 계정이 없어요</div> :
+              bizAccounts.map(biz => {
+                const catIcons = { restaurant: '🍽️', hotel: '🏨', tour: '🎒', city: '🏙️', transport: '✈️', shopping: '🛍️', creator: '🎬', other: '📢' };
+                const statusColors = { pending: { color: '#f59e0b', bg: '#fffbeb', label: '심사 중' }, approved: { color: '#10b981', bg: '#ecfdf5', label: '승인' }, rejected: { color: '#ef4444', bg: '#fef2f2', label: '거절' }, suspended: { color: '#6b7280', bg: '#f3f4f6', label: '정지' } };
+                const badgeColors = { none: { color: '#9ca3af', label: '없음' }, verified: { color: '#3b82f6', label: '✓ 인증' }, official: { color: '#f59e0b', label: '★ 공식' }, premium: { color: '#8b5cf6', label: '♦ 프리미엄' } };
+                const st = statusColors[biz.status] || statusColors.pending;
+                const bd = badgeColors[biz.badge_type] || badgeColors.none;
+                return (
+                  <div key={biz.id} style={{ padding: '14px 20px', borderBottom: '1px solid #f5f5f5' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <span style={{ fontSize: 28 }}>{catIcons[biz.category] || '📢'}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{biz.business_name}</span>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: st.bg, color: st.color, fontWeight: 700 }}>{st.label}</span>
+                          {biz.badge_type !== 'none' && (
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: bd.color + '20', color: bd.color, fontWeight: 700 }}>{bd.label}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>@{biz.nickname} · {biz.email}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          {biz.business_country && <span>🌍 {biz.business_country} {biz.business_city}</span>}
+                          {biz.business_website && <span>🔗 {biz.business_website}</span>}
+                          {biz.business_phone && <span>📞 {biz.business_phone}</span>}
+                          <span>📅 {biz.created_at?.split('T')[0]}</span>
+                        </div>
+                        {biz.business_description && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{biz.business_description}</div>}
+                        {biz.reject_reason && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>거절 사유: {biz.reject_reason}</div>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginLeft: 40 }}>
+                      {biz.status === 'pending' && (
+                        <>
+                          <button onClick={() => approveBiz(biz.user_id, 'verified')} style={{ padding: '5px 12px', borderRadius: 8, background: '#3b82f6', color: 'white', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>✓ 인증 승인</button>
+                          <button onClick={() => rejectBiz(biz.user_id)} style={{ padding: '5px 12px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>❌ 거절</button>
+                        </>
+                      )}
+                      {biz.status === 'approved' && biz.badge_type !== 'official' && (
+                        <button onClick={() => grantOfficial(biz.user_id)} style={{ padding: '5px 12px', borderRadius: 8, background: '#f59e0b', color: 'white', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>★ 공식 배지 부여</button>
+                      )}
+                      {biz.status === 'approved' && (
+                        <select onChange={(e) => changeBadge(biz.user_id, e.target.value)} value={biz.badge_type}
+                          style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid #eee', fontSize: 11, cursor: 'pointer' }}>
+                          <option value="none">배지 없음</option>
+                          <option value="verified">✓ 인증</option>
+                          <option value="official">★ 공식</option>
+                          <option value="premium">♦ 프리미엄</option>
+                        </select>
+                      )}
+                      {biz.business_document && (
+                        <a href={biz.business_document} target="_blank" rel="noreferrer" style={{ padding: '5px 12px', borderRadius: 8, background: '#f3f4f6', color: '#6b7280', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>📄 서류 확인</a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+      )}
+
+      {page === 'ads' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={S.tableWrap}>
+            <div style={S.tableHeader}>
+              <div style={S.tableTitle}>📢 광고 관리</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                  전체 {adsList.length}개 | 운영 중 {adsList.filter(a => a.status === 'active').length}개 | 심사 대기 {adsList.filter(a => a.status === 'pending').length}개
+                </span>
+              </div>
+            </div>
+
+            {/* 통계 */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#FF5A5F' }}>{adsList.length}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>전체 광고</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981' }}>{adsList.filter(a => a.status === 'active').length}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>운영 중</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>{adsList.reduce((s, a) => s + (a.impressions || 0), 0).toLocaleString()}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>총 노출</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#f59e0b' }}>{adsList.reduce((s, a) => s + (a.clicks || 0), 0)}</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>총 클릭</div>
+              </div>
+            </div>
+
+            {/* 광고주 목록 */}
+            {adAdvertisers.length > 0 && (
+              <div style={{ padding: '12px 20px', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#9ca3af', marginBottom: 8 }}>등록된 광고주 ({adAdvertisers.length})</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {adAdvertisers.map(adv => (
+                    <span key={adv.id} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 8, background: 'white', border: '1px solid #eee', color: '#374151' }}>
+                      🏢 {adv.company_name} ({adv.contact_email})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 광고 목록 */}
+            {adsLoading ? <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>로딩 중...</div> :
+              adsList.length === 0 ? <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>등록된 광고가 없어요</div> :
+              adsList.map(ad => {
+                const statusMap = {
+                  draft: { label: '초안', color: '#9ca3af', bg: '#f3f4f6' },
+                  pending: { label: '심사 중', color: '#f59e0b', bg: '#fffbeb' },
+                  active: { label: '운영 중', color: '#10b981', bg: '#ecfdf5' },
+                  paused: { label: '일시정지', color: '#f59e0b', bg: '#fffbeb' },
+                  ended: { label: '종료', color: '#6b7280', bg: '#f3f4f6' },
+                  rejected: { label: '거절', color: '#ef4444', bg: '#fef2f2' },
+                };
+                const st = statusMap[ad.status] || statusMap.draft;
+                const adv = adAdvertisers.find(a => a.id === ad.advertiser_id);
+                return (
+                  <div key={ad.id} style={{ padding: '14px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 14, alignItems: 'center' }}>
+                    {ad.image_url ? (
+                      <img src={ad.image_url} alt="" style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 90, height: 60, borderRadius: 10, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#d1d5db', flexShrink: 0 }}>📢</div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{ad.title}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 8, background: st.bg, color: st.color }}>{st.label}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>{ad.description}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <span>🏢 {adv?.company_name || '-'}</span>
+                        <span>🌍 {ad.target_country || '전체'}{ad.target_city ? ' > ' + ad.target_city : ''}</span>
+                        <span>👁 {(ad.impressions || 0).toLocaleString()}</span>
+                        <span>👆 {ad.clicks || 0}</span>
+                        <span>📊 CTR {ad.ctr || 0}%</span>
+                        <span>💰 ₩{(ad.budget_daily || 0).toLocaleString()}/일</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                      {ad.status === 'pending' && (
+                        <>
+                          <button onClick={() => updateAdStatus(ad.id, 'active')}
+                            style={{ padding: '5px 12px', borderRadius: 8, background: '#10b981', color: 'white', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            ✅ 승인
+                          </button>
+                          <button onClick={() => { const r = prompt('거절 사유:'); if (r) updateAdStatus(ad.id, 'rejected', r); }}
+                            style={{ padding: '5px 12px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                            ❌ 거절
+                          </button>
+                        </>
+                      )}
+                      {ad.status === 'active' && (
+                        <button onClick={() => updateAdStatus(ad.id, 'paused')}
+                          style={{ padding: '5px 12px', borderRadius: 8, background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                          ⏸ 정지
+                        </button>
+                      )}
+                      {ad.status === 'paused' && (
+                        <button onClick={() => updateAdStatus(ad.id, 'active')}
+                          style={{ padding: '5px 12px', borderRadius: 8, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                          ▶ 재개
+                        </button>
+                      )}
+                      {ad.reject_reason && (
+                        <span style={{ fontSize: 11, color: '#ef4444', fontStyle: 'italic' }}>사유: {ad.reject_reason}</span>
+                      )}
+                      <a href={ad.link_url} target="_blank" rel="noreferrer"
+                        style={{ padding: '5px 12px', borderRadius: 8, background: '#f3f4f6', color: '#6b7280', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
+                        🔗 링크
+                      </a>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+      )}
+
+      {page === 'menus' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={S.pageTitle}>🗂️ 메뉴 관리</div>

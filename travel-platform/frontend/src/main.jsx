@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import Planner from './pages/Planner';
 import Write from './pages/Write';
 import PostDetail from './components/PostDetail';
+import AdminAds from './components/AdminAds';
 import Admin from './pages/Admin';
 import Share from './pages/Share';
 import Exchange from './pages/Exchange';

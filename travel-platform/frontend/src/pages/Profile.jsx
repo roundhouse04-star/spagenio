@@ -55,7 +55,36 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '', preferredStyles: [], nationality: 'KR', wishCountries: [] });
   const [imagePreview, setImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
-  const [profileTab, setProfileTab] = useState('posts'); // posts | saved | badges
+  const [profileTab, setProfileTab] = useState('posts');
+  const [bizAccount, setBizAccount] = useState(null);
+  const [bizLoading, setBizLoading] = useState(false);
+  const [showBizForm, setShowBizForm] = useState(false);
+  
+  const loadBizAccount = async (uid) => {
+    try {
+      const res = await fetch('/api/business/' + uid);
+      if (res.ok) { const data = await res.json(); setBizAccount(data); }
+    } catch(e) {}
+  };
+
+  const registerBusiness = async () => {
+    if (!bizForm.business_name) { alert('업체명을 입력해주세요.'); return; }
+    setBizLoading(true);
+    try {
+      const res = await fetch('/api/business/register?' + new URLSearchParams({ ...bizForm, user_id: user.id }), { method: 'POST' });
+      if (res.ok) {
+        alert('비즈니스 계정 신청이 완료되었습니다! 관리자 심사 후 승인됩니다.');
+        loadBizAccount(user.id);
+        setShowBizForm(false);
+      } else {
+        const data = await res.json();
+        alert(data.detail || '등록 실패');
+      }
+    } catch(e) { alert('서버 오류'); }
+    setBizLoading(false);
+  };
+
+  const [bizForm, setBizForm] = useState({ category: 'restaurant', business_name: '', business_description: '', business_phone: '', business_email: '', business_website: '', business_country: '', business_city: '', business_document: '' }); // posts | saved | badges
 
   useEffect(() => { load(); }, [userId]);
 
@@ -255,6 +284,86 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                   취소
                 </button>
               </div>
+
+              {/* ── 계정 유형 관리 ── */}
+              <div style={{ marginTop: 8, padding: 16, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 8 }}>🏢 계정 유형</div>
+                
+                {bizAccount ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                        {bizAccount.account_type === 'official' ? '★ 공식 계정' : bizAccount.badge_type === 'verified' ? '✓ 인증된 비즈니스' : bizAccount.badge_type === 'premium' ? '♦ 프리미엄' : '🏢 비즈니스'}
+                      </span>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8,
+                        background: bizAccount.status === 'approved' ? '#ecfdf5' : bizAccount.status === 'pending' ? '#fffbeb' : '#fef2f2',
+                        color: bizAccount.status === 'approved' ? '#10b981' : bizAccount.status === 'pending' ? '#f59e0b' : '#ef4444',
+                        fontWeight: 700 }}>
+                        {bizAccount.status === 'approved' ? '승인됨' : bizAccount.status === 'pending' ? '심사 중' : '거절'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>
+                      <div>{bizAccount.business_name}</div>
+                      {bizAccount.business_description && <div style={{ marginTop: 2 }}>{bizAccount.business_description}</div>}
+                      {bizAccount.reject_reason && <div style={{ color: '#ef4444', marginTop: 4 }}>거절 사유: {bizAccount.reject_reason}</div>}
+                    </div>
+                  </div>
+                ) : showBizForm ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>카테고리 선택</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {[
+                        { key: 'restaurant', icon: '🍽️', label: '음식점' },
+                        { key: 'hotel', icon: '🏨', label: '숙소' },
+                        { key: 'tour', icon: '🎒', label: '투어' },
+                        { key: 'city', icon: '🏙️', label: '관광청' },
+                        { key: 'transport', icon: '✈️', label: '교통' },
+                        { key: 'shopping', icon: '🛍️', label: '쇼핑' },
+                        { key: 'creator', icon: '🎬', label: '크리에이터' },
+                        { key: 'other', icon: '📢', label: '기타' },
+                      ].map(cat => (
+                        <button key={cat.key} type="button" onClick={() => setBizForm(p => ({ ...p, category: cat.key }))}
+                          style={{ padding: '5px 10px', borderRadius: 10, border: bizForm.category === cat.key ? '1.5px solid #FF5A5F' : '1px solid #eee',
+                            background: bizForm.category === cat.key ? '#fff5f5' : 'white', color: bizForm.category === cat.key ? '#FF5A5F' : '#9ca3af',
+                            fontSize: 11, fontWeight: bizForm.category === cat.key ? 700 : 500, cursor: 'pointer' }}>
+                          {cat.icon} {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    <input placeholder="업체명/이름 *" value={bizForm.business_name} onChange={e => setBizForm(p => ({ ...p, business_name: e.target.value }))}
+                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                    <textarea placeholder="소개 (선택)" rows={2} value={bizForm.business_description} onChange={e => setBizForm(p => ({ ...p, business_description: e.target.value }))}
+                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical' }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input placeholder="국가" value={bizForm.business_country} onChange={e => setBizForm(p => ({ ...p, business_country: e.target.value }))}
+                        style={{ flex: 1, padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                      <input placeholder="도시" value={bizForm.business_city} onChange={e => setBizForm(p => ({ ...p, business_city: e.target.value }))}
+                        style={{ flex: 1, padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                    </div>
+                    <input placeholder="웹사이트 (선택)" value={bizForm.business_website} onChange={e => setBizForm(p => ({ ...p, business_website: e.target.value }))}
+                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                    <input placeholder="연락처 (선택)" value={bizForm.business_phone} onChange={e => setBizForm(p => ({ ...p, business_phone: e.target.value }))}
+                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={registerBusiness} disabled={bizLoading}
+                        style={{ flex: 1, padding: '9px', background: '#FF5A5F', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        {bizLoading ? '신청 중...' : '🚀 비즈니스 신청'}
+                      </button>
+                      <button onClick={() => setShowBizForm(false)}
+                        style={{ padding: '9px 16px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>취소</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8 }}>일반 계정입니다. 비즈니스 계정으로 전환하면 인증 배지와 통계 기능을 사용할 수 있어요.</div>
+                    <button onClick={() => setShowBizForm(true)}
+                      style={{ padding: '8px 16px', background: '#FF5A5F', color: 'white', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      🏢 비즈니스 계정으로 전환
+                    </button>
+                  </div>
+                )}
+              </div>
+
             </div>
           ) : (
             <>

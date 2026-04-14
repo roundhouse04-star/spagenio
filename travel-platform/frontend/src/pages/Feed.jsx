@@ -5,6 +5,68 @@ import { TRAVEL_STYLES } from '../travelStyles';
 
 const PAGE_SIZE = 8;
 
+// ── 스폰서 광고 컴포넌트 ──
+function SponsoredAd({ ad, currentUser }) {
+  const [visible, setVisible] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !visible) { setVisible(true); }
+    }, { threshold: 0.5 });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const handleClick = async () => {
+    try {
+      await fetch('/api/ads/' + ad.id + '/click?user_id=' + (currentUser?.id || ''), { method: 'POST' });
+    } catch(e) {}
+    window.open(ad.link_url, '_blank');
+  };
+
+  if (!ad) return null;
+
+  return (
+    <div ref={ref} style={{ background: 'white', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 14, background: '#FF5A5F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 12, color: 'white', fontWeight: 800 }}>AD</span>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e' }}>Sponsored</div>
+            <div style={{ fontSize: 10, color: '#9ca3af' }}>{ad.target_country || '전체'} · {ad.target_city || '전체'}</div>
+          </div>
+        </div>
+        <span style={{ fontSize: 10, color: '#d1d5db', background: '#f9fafb', padding: '2px 8px', borderRadius: 8 }}>광고</span>
+      </div>
+      <div onClick={handleClick} style={{ cursor: 'pointer', position: 'relative' }}>
+        {ad.image_url && (
+          <img src={ad.image_url} alt={ad.title}
+            style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+        )}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '40px 16px 16px',
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'white', marginBottom: 4 }}>{ad.title}</div>
+          {ad.description && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{ad.description}</div>}
+        </div>
+      </div>
+      <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 12, color: '#9ca3af' }}>{ad.description?.slice(0, 40)}</div>
+        <button onClick={handleClick}
+          style={{ padding: '6px 16px', borderRadius: 8, background: '#FF5A5F', color: 'white',
+            fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+          {ad.cta_text || '자세히 보기'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+
 // 자동재생 비디오 (스크롤 시 재생/정지, 음소거 토글)
 function AutoPlayVideo({ src, poster }) {
   const videoRef = React.useRef(null);
@@ -205,6 +267,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [feedAd, setFeedAd] = useState(null);
   const [tab, setTab] = useState('all');
   const sentinelRef = useRef(null);
   const observerRef = useRef(null);
