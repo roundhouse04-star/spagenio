@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Travellog",
+    "slug": "travellog",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4f46e5"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.travellog.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4f46e5"
+      },
+      "package": "com.travellog.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "054f3525-74ba-4b93-91c4-a071bcb117c8"
+      }
+    },
+    "owner": "hynn_lth"
+  }
+}
