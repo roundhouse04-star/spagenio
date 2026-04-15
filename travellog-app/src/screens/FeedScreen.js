@@ -1,9 +1,25 @@
 import { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useVideoPlayer, VideoView } from 'expo-video';
 
+
+const toFullUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith("http")) return url;
+  return API_BASE + url;
+};
 const API_BASE = 'https://travel.spagenio.com';
 const { width } = Dimensions.get('window');
+
+function VideoCard({ uri, style }) {
+  const player = useVideoPlayer(uri, p => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+  return <VideoView player={player} style={style} contentFit="cover" nativeControls={false} />;
+}
 
 function PostCard({ post, user, onLike, onPress }) {
   const liked = (post.likedUserIds || []).includes(user?.id);
@@ -31,7 +47,11 @@ function PostCard({ post, user, onLike, onPress }) {
       {/* ── 이미지 (정사각형) ── */}
       <TouchableOpacity onPress={() => onPress(post)} activeOpacity={0.97}>
         {post.images?.[0] ? (
-          <Image source={{ uri: post.images[0] }} style={S.cardImage} />
+          toFullUrl(post.images[0])?.endsWith('.mp4') ? (
+            <VideoCard uri={toFullUrl(post.images[0])} style={S.cardImage} />
+          ) : (
+            <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.cardImage} />
+          )
         ) : (
           <View style={[S.cardImage, S.noImage]}>
             <Text style={S.noImageIcon}>✈️</Text>
