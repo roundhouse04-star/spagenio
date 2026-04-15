@@ -169,7 +169,7 @@ export default function FeedScreen({ user }) {
   const handleLike = async (postId) => {
     if (!user) return;
     try {
-      const res = await fetch(`${API_BASE}/api/posts/${postId}/like/${user.id}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/posts/${postId}/like`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) });
       if (res.ok) {
         const updated = await res.json();
         setPosts(prev => prev.map(p => p.id === postId ? updated : p));
