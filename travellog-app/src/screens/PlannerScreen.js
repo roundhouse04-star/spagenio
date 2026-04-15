@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = '@travellog_plans';
+const API_BASE = 'https://travel.spagenio.com';
 
 export default function PlannerScreen({ user }) {
   const [plans, setPlans] = useState([]);
@@ -14,68 +13,59 @@ export default function PlannerScreen({ user }) {
   useEffect(() => { loadPlans(); }, []);
 
   const loadPlans = async () => {
+    if (!user) { setLoading(false); return; }
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
-      if (data) setPlans(JSON.parse(data));
+      const res = await fetch(API_BASE + '/api/users/' + user.id + '/plans');
+      if (res.ok) setPlans(await res.json());
     } catch (e) {}
     setLoading(false);
   };
 
-  const savePlans = async (updated) => {
-    setPlans(updated);
-    try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
-  };
-
-  const createPlan = () => {
+  const createPlan = async () => {
     if (!newPlan.title.trim()) { Alert.alert('알림', '제목을 입력해주세요'); return; }
-    const plan = {
-      id: Date.now().toString(),
-      title: newPlan.title,
-      startDate: newPlan.startDate || new Date().toISOString().split('T')[0],
-      endDate: newPlan.endDate || '',
-      places: [],
-      createdAt: new Date().toISOString(),
-    };
-    savePlans([plan, ...plans]);
-    setNewPlan({ title: '', startDate: '', endDate: '' });
-    setShowNew(false);
+    try {
+      const res = await fetch(API_BASE + '/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          title: newPlan.title,
+          startDate: newPlan.startDate || new Date().toISOString().split('T')[0],
+          endDate: newPlan.endDate || '',
+          shareType: 'public',
+          shareSchedule: true,
+          sharePlaces: true,
+        }),
+      });
+      if (res.ok) {
+        setNewPlan({ title: '', startDate: '', endDate: '' });
+        setShowNew(false);
+        loadPlans();
+      }
+    } catch (e) { Alert.alert('오류', '일정 생성에 실패했어요'); }
   };
 
   const deletePlan = (planId) => {
     Alert.alert('삭제', '일정을 삭제할까요?', [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: () => savePlans(plans.filter(p => p.id !== planId)) },
+      { text: '삭제', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(API_BASE + '/api/plans/' + planId, { method: 'DELETE' });
+          loadPlans();
+          if (selected?.id === planId) setSelected(null);
+        } catch (e) {}
+      }},
     ]);
-  };
-
-  const addPlace = (planId) => {
-    Alert.prompt?.('장소 추가', '장소 이름을 입력하세요', (name) => {
-      if (!name?.trim()) return;
-      const updated = plans.map(p => {
-        if (p.id === planId) {
-          return { ...p, places: [...(p.places || []), { name: name.trim(), id: Date.now().toString() }] };
-        }
-        return p;
-      });
-      savePlans(updated);
-      setSelected(updated.find(p => p.id === planId));
-    }) || (() => {
-      // Fallback for Android (no Alert.prompt)
-      const name = '새 장소';
-      const updated = plans.map(p => {
-        if (p.id === planId) {
-          return { ...p, places: [...(p.places || []), { name, id: Date.now().toString() }] };
-        }
-        return p;
-      });
-      savePlans(updated);
-      setSelected(updated.find(p => p.id === planId));
-    })();
   };
 
   const isPast = (endDate) => {
     if (!endDate) return false;
     return new Date(endDate) < new Date();
+  };
+
+  const getCategoryIcon = (cat) => {
+    const icons = { airplane: '✈️', train: '🚄', bus: '🚌', walk: '🚶', attraction: '📍', food: '🍜', hotel: '🏨', shopping: '🛍️' };
+    return icons[cat] || '📍';
   };
 
   if (loading) return (
@@ -110,7 +100,8 @@ export default function PlannerScreen({ user }) {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[S.planCard, isPast(item.endDate) && S.pastCard]}
-              onPress={() => setSelected(selected?.id === item.id ? null : item)}>
+              onPress={() => setSelected(selected?.id === item.id ? null : item)}
+              activeOpacity={0.8}>
               <View style={S.planHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={S.planTitle}>{item.title}</Text>
@@ -130,27 +121,31 @@ export default function PlannerScreen({ user }) {
                 </View>
               </View>
 
-              {item.places?.length > 0 && (
-                <Text style={S.planPlaces}>📍 {item.places.length}개 장소</Text>
+              {item.items?.length > 0 && (
+                <Text style={S.planPlaces}>📍 {item.items.length}개 장소</Text>
               )}
 
               {selected?.id === item.id && (
                 <View style={S.detailWrap}>
-                  {item.places?.length > 0 ? (
-                    item.places.map((place, i) => (
+                  {item.items?.length > 0 ? (
+                    item.items.map((place, i) => (
                       <View key={place.id || i} style={S.placeItem}>
                         <View style={S.placeNum}>
                           <Text style={S.placeNumText}>{i + 1}</Text>
                         </View>
-                        <Text style={S.placeName}>{place.name}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={S.placeName}>{getCategoryIcon(place.category)} {place.placeName}</Text>
+                          {place.address ? <Text style={S.placeAddr} numberOfLines={1}>{place.address}</Text> : null}
+                          {place.howToGet ? <Text style={S.placeHow}>🚇 {place.howToGet}</Text> : null}
+                          {place.tip ? <Text style={S.placeTip}>💡 {place.tip}</Text> : null}
+                          {place.memo ? <Text style={S.placeMemo}>📝 {place.memo}</Text> : null}
+                          {place.date ? <Text style={S.placeDate}>📅 {place.date}</Text> : null}
+                        </View>
                       </View>
                     ))
                   ) : (
                     <Text style={S.noPlaces}>아직 장소가 없어요</Text>
                   )}
-                  <TouchableOpacity style={S.addPlaceBtn} onPress={() => addPlace(item.id)}>
-                    <Text style={S.addPlaceBtnText}>+ 장소 추가</Text>
-                  </TouchableOpacity>
                 </View>
               )}
             </TouchableOpacity>
@@ -218,14 +213,17 @@ const S = StyleSheet.create({
   badgeActive: { backgroundColor: '#fff5f5' },
   badgePast: { backgroundColor: '#f3f4f6' },
   badgeText: { fontSize: 11, fontWeight: '700', color: '#FF5A5F' },
-  detailWrap: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 12, gap: 8 },
-  placeItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  placeNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FF5A5F', justifyContent: 'center', alignItems: 'center' },
+  detailWrap: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 12, gap: 12 },
+  placeItem: { flexDirection: 'row', gap: 10 },
+  placeNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FF5A5F', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   placeNumText: { color: 'white', fontSize: 11, fontWeight: '800' },
-  placeName: { fontSize: 14, fontWeight: '600', color: '#1a1a2e' },
+  placeName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  placeAddr: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
+  placeHow: { fontSize: 11, color: '#3b82f6', marginTop: 2 },
+  placeTip: { fontSize: 11, color: '#f59e0b', marginTop: 2 },
+  placeMemo: { fontSize: 11, color: '#6b7280', marginTop: 2 },
+  placeDate: { fontSize: 11, color: '#10b981', marginTop: 2 },
   noPlaces: { fontSize: 13, color: '#9ca3af', textAlign: 'center', paddingVertical: 10 },
-  addPlaceBtn: { backgroundColor: '#f3f4f6', borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginTop: 4 },
-  addPlaceBtnText: { fontSize: 13, color: '#FF5A5F', fontWeight: '700' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
   input: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 14, fontSize: 14, color: '#1a1a2e' },
