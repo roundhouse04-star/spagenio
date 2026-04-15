@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 
+import { useVideoPlayer, VideoView } from 'expo-video';
+
 const API_BASE = 'https://travel.spagenio.com';
 
 const toFullUrl = (url) => {
@@ -8,6 +10,21 @@ const toFullUrl = (url) => {
   if (url.startsWith('http')) return url;
   return API_BASE + url;
 };
+
+function DetailVideo({ uri }) {
+  const player = useVideoPlayer(uri, p => {
+    p.loop = true;
+    p.muted = false;
+  });
+  return (
+    <VideoView
+      player={player}
+      style={{ width: '100%', height: 300 }}
+      contentFit="cover"
+      nativeControls={true}
+    />
+  );
+}
 
 export default function PostDetailScreen({ route, navigation }) {
   const { post: initialPost, user } = route.params;
@@ -98,7 +115,11 @@ export default function PostDetailScreen({ route, navigation }) {
         <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
           {/* 이미지 */}
           {post.images?.[0] && (
-            <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.image} />
+            toFullUrl(post.images[0])?.endsWith('.mp4') ? (
+              <DetailVideo uri={toFullUrl(post.images[0])} />
+            ) : (
+              <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.image} />
+            )
           )}
 
           <View style={S.body}>
