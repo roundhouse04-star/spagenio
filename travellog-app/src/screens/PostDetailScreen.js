@@ -42,7 +42,14 @@ export default function PostDetailScreen({ route, navigation }) {
     if (!user) return;
     try {
       const res = await fetch(`${API_BASE}/api/posts/${post.id}/like/${user.id}`, { method: 'POST' });
-      if (res.ok) setPost(await res.json());
+      if (res.ok) {
+        setPost(await res.json());
+        fetch(`${API_BASE}/api/push/notify-like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postId: post.id, likerId: user.id, likerNickname: user.nickname }),
+        }).catch(() => {});
+      }
     } catch (e) {}
   };
 
@@ -82,6 +89,11 @@ export default function PostDetailScreen({ route, navigation }) {
       if (res.ok) {
         const updated = await res.json();
         setPost(updated);
+        fetch(`${API_BASE}/api/push/notify-comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postId: post.id, commenterId: user.id, commenterNickname: user.nickname, commentText: comment.trim() }),
+        }).catch(() => {});
         setComment('');
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
       }
