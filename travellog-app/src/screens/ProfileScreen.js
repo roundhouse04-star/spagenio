@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import { Switch } from 'react-native';
+import { registerForPush, updatePushConsent, getPushStatus } from '../utils/pushUtils';
 
 const API_BASE = 'https://travel.spagenio.com';
 
@@ -24,6 +26,7 @@ const TRAVEL_STYLES = [
 export default function ProfileScreen({ user, onLogout }) {
   const navigation = useNavigation();
   const [posts, setPosts] = useState([]);
+  const [pushConsent, setPushConsent] = useState(false);
   const [userData, setUserData] = useState(user);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ nickname: '', bio: '', preferredStyles: [] });
@@ -44,6 +47,20 @@ export default function ProfileScreen({ user, onLogout }) {
         setUserData(data);
       }
     } catch (e) {}
+    // Load push status
+    try {
+      const pushStatus = await getPushStatus(user.id);
+      setPushConsent(pushStatus.pushConsent);
+    } catch (e) {}
+  };
+
+  const togglePush = async (value) => {
+    setPushConsent(value);
+    if (value) {
+      await registerForPush(user.id);
+    } else {
+      await updatePushConsent(user.id, false);
+    }
   };
 
   const openEdit = () => {
@@ -113,7 +130,7 @@ export default function ProfileScreen({ user, onLogout }) {
         <View style={S.profileCard}>
           <View style={S.avatarWrap}>
             {userData?.profileImage
-              ? <Image source={{ uri: toFullUrl(userData.profileImage) }} style={S.avatar} />
+              ? <Image source={{ uri: userData.profileImage }} style={S.avatar} />
               : <View style={[S.avatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                   <Text style={{ fontSize: 28, color: 'white', fontWeight: '800' }}>
                     {userData?.nickname?.[0]?.toUpperCase()}
@@ -153,6 +170,20 @@ export default function ProfileScreen({ user, onLogout }) {
           <TouchableOpacity style={S.editBtn} onPress={openEdit}>
             <Text style={S.editBtnText}>✏️ 프로필 편집</Text>
           </TouchableOpacity>
+
+          {/* 푸시 알림 동의 */}
+          <View style={S.pushRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={S.pushLabel}>🔔 푸시 알림</Text>
+              <Text style={S.pushDesc}>좋아요, 댓글, 팔로우 알림 받기</Text>
+            </View>
+            <Switch
+              value={pushConsent}
+              onValueChange={togglePush}
+              trackColor={{ false: '#d1d5db', true: '#fecaca' }}
+              thumbColor={pushConsent ? '#FF5A5F' : '#f4f3f4'}
+            />
+          </View>
         </View>
 
         {/* 내 게시물 */}
@@ -194,7 +225,7 @@ export default function ProfileScreen({ user, onLogout }) {
             {/* 프로필 사진 */}
             <TouchableOpacity style={S.photoBtn} onPress={pickProfileImage}>
               {editForm.profileImage
-                ? <Image source={{ uri: toFullUrl(editForm.profileImage) }} style={S.editAvatar} />
+                ? <Image source={{ uri: editForm.profileImage }} style={S.editAvatar} />
                 : <View style={[S.editAvatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                     <Text style={{ fontSize: 24, color: 'white', fontWeight: '800' }}>
                       {userData?.nickname?.[0]?.toUpperCase()}
@@ -275,4 +306,7 @@ const S = StyleSheet.create({
   styleBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f3f4f6' },
   styleBtnActive: { backgroundColor: '#eef2ff' },
   styleBtnText: { fontSize: 13, color: '#6b7280', fontWeight: '600' },
+  pushRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  pushLabel: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  pushDesc: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
 });

@@ -30,6 +30,9 @@
         "projectId": "054f3525-74ba-4b93-91c4-a071bcb117c8"
       }
     },
-    "owner": "hynn_lth"
+    "owner": "hynn_lth",
+    "plugins": [
+      "expo-video"
+    ]
   }
 }
