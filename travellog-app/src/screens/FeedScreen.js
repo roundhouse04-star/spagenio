@@ -163,7 +163,7 @@ export default function FeedScreen({ user }) {
     setRefreshing(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); const interval = setInterval(load, 60000); return () => clearInterval(interval); }, []);
   useEffect(() => { if (allPosts.length > 0) applyFilter(allPosts, tab); }, [tab]);
 
   const handleLike = async (postId) => {
