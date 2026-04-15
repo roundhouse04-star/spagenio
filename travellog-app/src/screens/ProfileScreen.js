@@ -27,12 +27,50 @@ export default function ProfileScreen({ user, onLogout }) {
   const navigation = useNavigation();
   const [posts, setPosts] = useState([]);
   const [pushConsent, setPushConsent] = useState(false);
+  const [followModal, setFollowModal] = useState(null);
+  const [followList, setFollowList] = useState([]);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followModal, setFollowModal] = useState(null);
+  const [followList, setFollowList] = useState([]);
+  const [followLoading, setFollowLoading] = useState(false);
   const [userData, setUserData] = useState(user);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ nickname: '', bio: '', preferredStyles: [] });
+  const [editForm, setEditForm] = useState({ nickname: '', bio: '', preferredStyles: []   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, minHeight: 300 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e' },
+  modalClose: { fontSize: 22, color: '#9ca3af', padding: 4 },
+  followItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12, borderBottomWidth: 0.5, borderBottomColor: '#f5f5f5' },
+  followAvatar: { width: 44, height: 44, borderRadius: 22 },
+  followName: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  followBio: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
+  emptyText: { textAlign: 'center', color: '#9ca3af', marginTop: 30, fontSize: 14 },
+});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadData(); }, []);
+
+  const openFollowModal = async (type) => {
+    setFollowModal(type);
+    setFollowLoading(true);
+    try {
+      const endpoint = type === '팔로워' ? 'followers' : 'followings';
+      const res = await fetch(\`\${API_BASE}/api/users/\${user.id}/\${endpoint}\`);
+      if (res.ok) setFollowList(await res.json());
+    } catch (e) {}
+    setFollowLoading(false);
+  };
+
+  const openFollowModal = async (type) => {
+    setFollowModal(type);
+    setFollowLoading(true);
+    try {
+      const endpoint = type === '\ud314\ub85c\uc6cc' ? 'followers' : 'followings';
+      const res = await fetch(API_BASE + '/api/users/' + user.id + '/' + endpoint);
+      if (res.ok) setFollowList(await res.json());
+    } catch (e) {}
+    setFollowLoading(false);
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -159,10 +197,10 @@ export default function ProfileScreen({ user, onLogout }) {
           {/* 통계 */}
           <View style={S.statsRow}>
             {[['게시물', posts.length], ['팔로워', userData?.followerIds?.length || 0], ['팔로잉', userData?.followingIds?.length || 0]].map(([label, count]) => (
-              <View key={label} style={S.statItem}>
-                <Text style={S.statCount}>{count}</Text>
+              <TouchableOpacity key={label} style={S.statItem} onPress={() => label !== '게시물' && openFollowModal(label)}>
+              <Text style={S.statCount}>{count}</Text>
                 <Text style={S.statLabel}>{label}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -267,6 +305,43 @@ export default function ProfileScreen({ user, onLogout }) {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+    
+      <Modal visible={!!followModal} animationType="slide" transparent>
+        <View style={S.modalOverlay}>
+          <View style={S.modalContent}>
+            <View style={S.modalHeader}>
+              <Text style={S.modalTitle}>{followModal}</Text>
+              <TouchableOpacity onPress={() => { setFollowModal(null); setFollowList([]); }}>
+                <Text style={S.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {followLoading ? (
+              <ActivityIndicator color="#FF5A5F" style={{ marginTop: 30 }} />
+            ) : followList.length === 0 ? (
+              <Text style={S.emptyText}>{followModal}가 없습니다.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {followList.map(u => (
+                  <View key={u.id} style={S.followItem}>
+                    {u.profileImage ? (
+                      <Image source={{ uri: toFullUrl(u.profileImage) }} style={S.followAvatar} />
+                    ) : (
+                      <View style={[S.followAvatar, { backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Text style={{ fontSize: 16, color: '#4f46e5', fontWeight: '700' }}>{(u.nickname || '?')[0].toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={S.followName}>{u.nickname}</Text>
+                      {u.bio ? <Text style={S.followBio} numberOfLines={1}>{u.bio}</Text> : null}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
