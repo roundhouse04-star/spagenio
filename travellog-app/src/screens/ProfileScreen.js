@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
 
 const API_BASE = 'https://travel.spagenio.com';
+
+const toFullUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith('http')) return url;
+  return API_BASE + url;
+};
 const TRAVEL_STYLES = [
   { key: 'food', icon: '🍜', label: '맛집' },
   { key: 'culture', icon: '🏛️', label: '문화' },
@@ -15,6 +22,7 @@ const TRAVEL_STYLES = [
 ];
 
 export default function ProfileScreen({ user, onLogout }) {
+  const navigation = useNavigation();
   const [posts, setPosts] = useState([]);
   const [userData, setUserData] = useState(user);
   const [editing, setEditing] = useState(false);
@@ -105,7 +113,7 @@ export default function ProfileScreen({ user, onLogout }) {
         <View style={S.profileCard}>
           <View style={S.avatarWrap}>
             {userData?.profileImage
-              ? <Image source={{ uri: userData.profileImage }} style={S.avatar} />
+              ? <Image source={{ uri: toFullUrl(userData.profileImage) }} style={S.avatar} />
               : <View style={[S.avatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                   <Text style={{ fontSize: 28, color: 'white', fontWeight: '800' }}>
                     {userData?.nickname?.[0]?.toUpperCase()}
@@ -153,9 +161,10 @@ export default function ProfileScreen({ user, onLogout }) {
           ? <Text style={S.empty}>아직 게시물이 없어요. 첫 여행 이야기를 올려보세요!</Text>
           : <View style={S.grid}>
               {posts.map(post => (
-                <TouchableOpacity key={post.id} style={S.gridItem} activeOpacity={0.9}>
+                <TouchableOpacity key={post.id} style={S.gridItem} activeOpacity={0.9}
+                onPress={() => navigation.navigate('PostDetail', { post, user })}>
                   {post.images?.[0]
-                    ? <Image source={{ uri: post.images[0] }} style={S.gridImage} />
+                    ? <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.gridImage} />
                     : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
                         <Text style={{ fontSize: 28 }}>✈️</Text>
                       </View>
@@ -185,7 +194,7 @@ export default function ProfileScreen({ user, onLogout }) {
             {/* 프로필 사진 */}
             <TouchableOpacity style={S.photoBtn} onPress={pickProfileImage}>
               {editForm.profileImage
-                ? <Image source={{ uri: editForm.profileImage }} style={S.editAvatar} />
+                ? <Image source={{ uri: toFullUrl(editForm.profileImage) }} style={S.editAvatar} />
                 : <View style={[S.editAvatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                     <Text style={{ fontSize: 24, color: 'white', fontWeight: '800' }}>
                       {userData?.nickname?.[0]?.toUpperCase()}

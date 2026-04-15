@@ -3,6 +3,12 @@ import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaVi
 
 const API_BASE = 'https://travel.spagenio.com';
 
+const toFullUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith('http')) return url;
+  return API_BASE + url;
+};
+
 export default function PostDetailScreen({ route, navigation }) {
   const { post: initialPost, user } = route.params;
   const [post, setPost] = useState(initialPost);
@@ -92,7 +98,7 @@ export default function PostDetailScreen({ route, navigation }) {
         <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
           {/* 이미지 */}
           {post.images?.[0] && (
-            <Image source={{ uri: post.images[0] }} style={S.image} />
+            <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.image} />
           )}
 
           <View style={S.body}>

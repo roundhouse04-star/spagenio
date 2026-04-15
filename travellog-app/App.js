@@ -45,6 +45,15 @@ function NearbyStack({ user }) {
   );
 }
 
+function ProfileStack({ user, onLogout }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain">{() => <ProfileStack user={user} onLogout={onLogout} />}</Stack.Screen>
+      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} />}</Stack.Screen>
+    </Stack.Navigator>
+  );
+}
+
 function TabNavigator({ user, onLogout }) {
   return (
     <Tab.Navigator screenOptions={{
@@ -67,7 +76,7 @@ function TabNavigator({ user, onLogout }) {
         {() => <WriteScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen name="프로필" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>👤</Text> }}>
-        {() => <ProfileScreen user={user} onLogout={onLogout} />}
+        {() => <ProfileStack user={user} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
   );

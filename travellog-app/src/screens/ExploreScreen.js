@@ -3,6 +3,12 @@ import { View, Text, TextInput, FlatList, Image, TouchableOpacity, StyleSheet, A
 import { useNavigation } from '@react-navigation/native';
 
 const API_BASE = 'https://travel.spagenio.com';
+
+const toFullUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith('http')) return url;
+  return API_BASE + url;
+};
 const STYLES = [
   { key: 'food', icon: '🍜', label: '맛집' },
   { key: 'culture', icon: '🏛️', label: '문화' },
@@ -70,7 +76,7 @@ export default function ExploreScreen({ user }) {
             <TouchableOpacity style={S.gridCard} activeOpacity={0.9}
               onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
               {item.images?.[0]
-                ? <Image source={{ uri: item.images[0] }} style={S.gridImage} />
+                ? <Image source={{ uri: toFullUrl(item.images[0]) }} style={S.gridImage} />
                 : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
                     <Text style={{ fontSize: 32 }}>✈️</Text>
                   </View>
