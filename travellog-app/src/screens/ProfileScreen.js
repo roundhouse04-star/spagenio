@@ -8,7 +8,7 @@ import { registerForPush, updatePushConsent, getPushStatus } from '../utils/push
 const API_BASE = 'https://travel.spagenio.com';
 
 const toFullUrl = (url) => {
-  if (!url) return url;
+  if (!url || url.trim() === '') return null;
   if (url.startsWith('http')) return url;
   return API_BASE + url;
 };
@@ -142,7 +142,7 @@ export default function ProfileScreen({ user, onLogout }) {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={S.profileCard}>
           <View style={S.avatarWrap}>
-            {userData?.profileImage
+            {userData?.profileImage && userData.profileImage.trim() !== ''
               ? <Image source={{ uri: toFullUrl(userData.profileImage) }} style={S.avatar} />
               : <View style={[S.avatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                   <Text style={{ fontSize: 28, color: 'white', fontWeight: '800' }}>
