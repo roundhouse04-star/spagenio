@@ -164,7 +164,7 @@ export default function ProfileScreen({ user, onLogout }) {
                 <TouchableOpacity key={post.id} style={S.gridItem} activeOpacity={0.9}
                 onPress={() => navigation.navigate('PostDetail', { post, user })}>
                   {post.images?.[0]
-                    ? <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.gridImage} />
+                    ? <Image source={{ uri: toFullUrl(post.images[0].endsWith('.mp4') ? post.images[0].replace('_video.mp4', '_thumb.jpg') : post.images[0]) }} style={S.gridImage} />
                     : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
                         <Text style={{ fontSize: 28 }}>✈️</Text>
                       </View>
