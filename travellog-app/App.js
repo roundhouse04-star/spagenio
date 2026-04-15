@@ -11,11 +11,14 @@ import WriteScreen from './src/screens/WriteScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import NearbyScreen from './src/screens/NearbyScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
+import MoreScreen from './src/screens/MoreScreen';
+import PlannerScreen from './src/screens/PlannerScreen';
+import TransitScreen from './src/screens/TransitScreen';
+import ExchangeScreen from './src/screens/ExchangeScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// 피드 스택 (피드 → 게시물 상세)
 function FeedStack({ user }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -25,7 +28,6 @@ function FeedStack({ user }) {
   );
 }
 
-// 탐색 스택 (탐색 → 게시물 상세)
 function ExploreStack({ user }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -35,21 +37,23 @@ function ExploreStack({ user }) {
   );
 }
 
-// 내 주변 스택 (내 주변 → 게시물 상세)
-function NearbyStack({ user }) {
+function ProfileStack({ user, onLogout }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="NearbyMain">{() => <NearbyScreen user={user} />}</Stack.Screen>
+      <Stack.Screen name="ProfileMain">{() => <ProfileScreen user={user} onLogout={onLogout} />}</Stack.Screen>
       <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} />}</Stack.Screen>
     </Stack.Navigator>
   );
 }
 
-function ProfileStack({ user, onLogout }) {
+function MoreStack({ user }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProfileMain">{() => <ProfileStack user={user} onLogout={onLogout} />}</Stack.Screen>
-      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} />}</Stack.Screen>
+      <Stack.Screen name="MoreMain">{() => <MoreScreen user={user} />}</Stack.Screen>
+      <Stack.Screen name="NearbyPage">{() => <NearbyScreen user={user} />}</Stack.Screen>
+      <Stack.Screen name="PlannerPage">{() => <PlannerScreen user={user} />}</Stack.Screen>
+      <Stack.Screen name="TransitPage" component={TransitScreen} />
+      <Stack.Screen name="ExchangePage" component={ExchangeScreen} />
     </Stack.Navigator>
   );
 }
@@ -59,21 +63,21 @@ function TabNavigator({ user, onLogout }) {
     <Tab.Navigator screenOptions={{
       headerShown: false,
       tabBarStyle: { height: 82, paddingBottom: 22, paddingTop: 8, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-      tabBarActiveTintColor: '#4f46e5',
+      tabBarActiveTintColor: '#FF5A5F',
       tabBarInactiveTintColor: '#9ca3af',
       tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
     }}>
-      <Tab.Screen name="홈" options={{ tabBarIcon: ({ focused }) => <Text style={{ fontSize: 22 }}>{focused ? '🏠' : '🏠'}</Text> }}>
+      <Tab.Screen name="홈" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>🏠</Text> }}>
         {() => <FeedStack user={user} />}
-      </Tab.Screen>
-      <Tab.Screen name="내 주변" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>📍</Text> }}>
-        {() => <NearbyStack user={user} />}
       </Tab.Screen>
       <Tab.Screen name="탐색" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>🔍</Text> }}>
         {() => <ExploreStack user={user} />}
       </Tab.Screen>
-      <Tab.Screen name="글쓰기" options={{ tabBarIcon: () => <Text style={{ fontSize: 26, color: '#4f46e5' }}>✏️</Text> }}>
+      <Tab.Screen name="글쓰기" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>📝</Text> }}>
         {() => <WriteScreen user={user} />}
+      </Tab.Screen>
+      <Tab.Screen name="더보기" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>☰</Text> }}>
+        {() => <MoreStack user={user} />}
       </Tab.Screen>
       <Tab.Screen name="프로필" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>👤</Text> }}>
         {() => <ProfileStack user={user} onLogout={onLogout} />}
@@ -84,14 +88,12 @@ function TabNavigator({ user, onLogout }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
-
   if (!user) return (
     <>
       <StatusBar style="dark" />
       <LoginScreen onLogin={setUser} />
     </>
   );
-
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
