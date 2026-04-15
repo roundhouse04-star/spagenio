@@ -15,6 +15,7 @@ function DetailVideo({ uri }) {
   const player = useVideoPlayer(uri, p => {
     p.loop = true;
     p.muted = false;
+    p.play();
   });
   return (
     <VideoView
