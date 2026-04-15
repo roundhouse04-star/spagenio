@@ -39,11 +39,10 @@ export default function TransitScreen() {
     setSelectedCity(city);
     setLines([]);
     try {
-      const res = await fetch(`${API_BASE}/api/transit/cities`);
+      const res = await fetch(API_BASE + '/api/transit/lines?city=' + encodeURIComponent(city.name));
       if (res.ok) {
         const data = await res.json();
-        const found = data.find(c => c.name === city.name);
-        if (found) setLines(found.lines || []);
+        setLines(data || []);
       }
     } catch (e) {}
   };
