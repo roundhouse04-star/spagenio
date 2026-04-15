@@ -47,7 +47,7 @@ verify_store: dict = {}
 # ── 업로드 설정 ──────────────────────────────────────────
 UPLOAD_DIR = HOME / "projects/spagenio/travel-platform/uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-BASE_URL = os.getenv("BASE_URL", "")
+BASE_URL = os.getenv("BASE_URL", "https://travel.spagenio.com")
 MAX_UPLOAD_SIZE = 30 * 1024 * 1024  # 20MB
 MAX_VIDEO_UPLOAD_SIZE = 500 * 1024 * 1024  # 500MB
 MAX_VIDEO_OUTPUT_SIZE = 50 * 1024 * 1024   # 50MB
