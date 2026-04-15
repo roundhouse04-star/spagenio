@@ -30,9 +30,6 @@ export default function ProfileScreen({ user, onLogout }) {
   const [followModal, setFollowModal] = useState(null);
   const [followList, setFollowList] = useState([]);
   const [followLoading, setFollowLoading] = useState(false);
-  const [followModal, setFollowModal] = useState(null);
-  const [followList, setFollowList] = useState([]);
-  const [followLoading, setFollowLoading] = useState(false);
   const [userData, setUserData] = useState(user);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ nickname: '', bio: '', preferredStyles: []   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
