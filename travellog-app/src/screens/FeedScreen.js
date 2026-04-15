@@ -31,7 +31,7 @@ function PostCard({ post, user, onLike, onPress }) {
       {/* ── 이미지 (정사각형) ── */}
       <TouchableOpacity onPress={() => onPress(post)} activeOpacity={0.97}>
         {post.images?.[0] ? (
-          <Image source={{ uri: post.images[0] }} style={S.cardImage} />
+          <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.cardImage} />
         ) : (
           <View style={[S.cardImage, S.noImage]}>
             <Text style={S.noImageIcon}>✈️</Text>
