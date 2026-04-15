@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as Location from 'expo-location';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -130,6 +131,7 @@ export default function FeedScreen({ user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState('all');
+  const [myLocation, setMyLocation] = useState(null);
   const [allPosts, setAllPosts] = useState([]);
 
   const applyFilter = (data, t) => {
@@ -145,6 +147,16 @@ export default function FeedScreen({ user }) {
         _s: (p.likedUserIds?.length || 0) * 3 + (p.comments?.length || 0) * 2
       }));
       setPosts(scored.sort((a, b) => b._s - a._s));
+    } else if (t === 'all' && myLocation) {
+      const nearby = data.filter(p => {
+        if (!p.latitude || !p.longitude) return false;
+        const dist = Math.sqrt(
+          Math.pow((p.latitude - myLocation.latitude) * 111, 2) +
+          Math.pow((p.longitude - myLocation.longitude) * 111 * Math.cos(myLocation.latitude * Math.PI / 180), 2)
+        );
+        return dist < 50;
+      });
+      setPosts(nearby.length > 0 ? nearby : data);
     } else {
       setPosts(data);
     }
@@ -163,8 +175,19 @@ export default function FeedScreen({ user }) {
     setRefreshing(false);
   };
 
-  useEffect(() => { load(); const interval = setInterval(load, 60000); return () => clearInterval(interval); }, []);
-  useEffect(() => { if (allPosts.length > 0) applyFilter(allPosts, tab); }, [tab]);
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        setMyLocation(loc.coords);
+      }
+    })();
+    load();
+    const interval = setInterval(load, 60000);
+    return () => clearInterval(interval);
+  }, []);
+  useEffect(() => { if (allPosts.length > 0) applyFilter(allPosts, tab); }, [tab, myLocation]);
 
   const handleLike = async (postId) => {
     if (!user) return;
