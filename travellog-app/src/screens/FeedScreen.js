@@ -1,24 +1,21 @@
 import { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import Svg, { Circle, Path } from 'react-native-svg';
+import { Video } from 'expo-av';
 
-
-const toFullUrl = (url) => {
-  if (!url) return url;
-  if (url.startsWith("http")) return url;
-  return API_BASE + url;
-};
 const API_BASE = 'https://travel.spagenio.com';
 const { width } = Dimensions.get('window');
 
-function VideoCard({ uri, style }) {
-  const player = useVideoPlayer(uri, p => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-  return <VideoView player={player} style={style} contentFit="cover" nativeControls={false} />;
+function LogoIcon() {
+  return (
+    <Svg width={36} height={36} viewBox="0 0 96 96" fill="none">
+      <Circle cx="48" cy="48" r="48" fill="#FF5A5F"/>
+      <Circle cx="48" cy="38" r="18" fill="white"/>
+      <Circle cx="48" cy="38" r="8" fill="#FF5A5F"/>
+      <Path d="M36 58 Q48 76 60 58" fill="white"/>
+    </Svg>
+  );
 }
 
 function PostCard({ post, user, onLike, onPress }) {
@@ -47,11 +44,14 @@ function PostCard({ post, user, onLike, onPress }) {
       {/* ── 이미지 (정사각형) ── */}
       <TouchableOpacity onPress={() => onPress(post)} activeOpacity={0.97}>
         {post.images?.[0] ? (
-          toFullUrl(post.images[0])?.endsWith('.mp4') ? (
-            <VideoCard uri={toFullUrl(post.images[0])} style={S.cardImage} />
+          {toFullUrl(post.images[0])?.endsWith('.mp4') ? (
+            <Video source={{ uri: toFullUrl(post.images[0]) }} style={S.cardImage}
+              resizeMode='cover' shouldPlay={false} isMuted={true}
+              posterSource={{ uri: toFullUrl(post.images[0].replace('_video.mp4', '_thumb.jpg')) }}
+              usePoster={true} />
           ) : (
             <Image source={{ uri: toFullUrl(post.images[0]) }} style={S.cardImage} />
-          )
+          )}
         ) : (
           <View style={[S.cardImage, S.noImage]}>
             <Text style={S.noImageIcon}>✈️</Text>
@@ -162,7 +162,7 @@ export default function FeedScreen({ user }) {
     <SafeAreaView style={S.container}>
       {/* ── 헤더 ── */}
       <View style={S.header}>
-        <Text style={S.logo}>✈ Travellog</Text>
+        <LogoIcon />
         <View style={S.headerRight}>
           <TouchableOpacity style={S.headerBtn}>
             <Text style={S.headerBtnText}>🔔</Text>
