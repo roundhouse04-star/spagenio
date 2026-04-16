@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { TRAVEL_STYLES } from '../travelStyles';
 
+const getThumbUrl = (url) => {
+  if (!url) return url;
+  if (url.endsWith('.mp4')) {
+    return url.replace('_video.mp4', '_thumb.jpg').replace(/_video\.mp4$/, '_thumb.jpg');
+  }
+  return url;
+};
+
 // 팔로워/팔로잉 목록 모달
 function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow }) {
   return (
@@ -480,7 +488,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
             {visiblePosts.map(post => (
               <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
                 {post.images?.[0]
-                  ? <img src={post.images[0]} alt={post.title} />
+                  ? <img src={getThumbUrl(post.images[0])} alt={post.title} />
                   : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
                 }
                 {post.visibility === 'private' && (
@@ -530,7 +538,7 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
       {savedPosts.map(post => (
         <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
           {post.images?.[0]
-            ? <img src={post.images[0]} alt={post.title} />
+            ? <img src={getThumbUrl(post.images[0])} alt={post.title} />
             : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
           }
         </div>
