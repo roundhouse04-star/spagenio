@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, Modal, Alert, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { Settings, LogOut, Edit2, X } from 'lucide-react-native';
+import { Settings, LogOut, Edit2, X, Play } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
@@ -193,15 +193,28 @@ export default function ProfileScreen({ user, onLogout }) {
           <Text style={S.empty}>NO POSTS YET</Text>
         ) : (
           <View style={S.grid}>
-            {posts.map(item => (
-              <TouchableOpacity key={item.id} style={S.gridCell} activeOpacity={0.9}
-                onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
-                {item.images?.[0]
-                  ? <Image source={{ uri: toFullUrl(item.images[0].endsWith('.mp4') ? item.images[0].replace('_video.mp4', '_thumb.jpg') : item.images[0]) }} style={S.gridImg} />
-                  : <View style={[S.gridImg, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}><Text>✈</Text></View>
-                }
-              </TouchableOpacity>
-            ))}
+            {posts.map(item => {
+              const firstImg = item.images?.[0];
+              const isVideo = firstImg?.endsWith('.mp4');
+              const thumbUrl = isVideo ? firstImg.replace('_video.mp4', '_thumb.jpg') : firstImg;
+              return (
+                <TouchableOpacity key={item.id} style={S.gridCell} activeOpacity={0.9}
+                  onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
+                  {firstImg ? (
+                    <>
+                      <Image source={{ uri: toFullUrl(thumbUrl) }} style={S.gridImg} />
+                      {isVideo && (
+                        <View style={S.videoIcon}>
+                          <Play size={14} color="white" fill="white" strokeWidth={1.5} />
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <View style={[S.gridImg, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}><Text>✈</Text></View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -313,6 +326,7 @@ const S = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
   gridCell: { width: '33.2%', aspectRatio: 1 },
   gridImg: { width: '100%', height: '100%' },
+  videoIcon: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(30,42,58,0.7)', justifyContent: 'center', alignItems: 'center' },
   empty: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 2, color: colors.textTertiary, textAlign: 'center', marginTop: 60 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
   modalTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2.5, color: colors.primary },
