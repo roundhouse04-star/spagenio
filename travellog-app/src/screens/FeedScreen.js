@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
+import { MapPin, Bell, MessageCircle, Heart, MessageSquare, Send } from 'lucide-react-native';
+import { colors } from '../theme/colors';
+import { typography } from '../theme/fonts';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions , Modal , ScrollView , TextInput , KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -16,7 +19,17 @@ const toFullUrl = (url) => {
 
 function LogoIcon() {
   return (
-    <Svg width={36} height={36} viewBox="0 0 96 96" fill="none">
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ width: 30, height: 30, backgroundColor: colors.primary, borderRadius: 7, justifyContent: 'center', alignItems: 'center' }}>
+        <MapPin size={16} color="white" strokeWidth={1.8} />
+      </View>
+      <View>
+        <Text style={{ fontFamily: 'PlayfairDisplay_500Medium', fontSize: 19, color: colors.primary, letterSpacing: -0.5, lineHeight: 22 }}>Spagenio</Text>
+        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 8, letterSpacing: 3, color: colors.textTertiary, marginTop: 1 }}>TRAVEL</Text>
+      </View>
+    </View>
+  );
+} viewBox="0 0 96 96" fill="none">
       <Circle cx="48" cy="48" r="48" fill="#FF5A5F"/>
       <Circle cx="48" cy="38" r="18" fill="white"/>
       <Circle cx="48" cy="38" r="8" fill="#FF5A5F"/>
@@ -50,7 +63,7 @@ function PostCard({ post, user, onLike, onPress }) {
           <View>
             <Text style={S.nickname}>{post.userNickname}</Text>
             {(post.city || post.country) && (
-              <Text style={S.location}>📍 {[post.city, post.country].filter(Boolean).join(', ')}</Text>
+              <Text style={S.location}>{[post.city, post.country].filter(Boolean).join(' · ')}</Text>
             )}
           </View>
         </TouchableOpacity>
@@ -76,23 +89,23 @@ function PostCard({ post, user, onLike, onPress }) {
       <View style={S.actions}>
         <View style={S.actionsLeft}>
           <TouchableOpacity style={S.actionBtn} onPress={() => onLike(post.id)}>
-            <Text style={S.actionIcon}>{liked ? '❤️' : '🤍'}</Text>
+            <Heart size={20} color={liked ? colors.accent : colors.primary} fill={liked ? colors.accent : 'none'} strokeWidth={1.5} />
           </TouchableOpacity>
           <TouchableOpacity style={S.actionBtn} onPress={() => onPress(post)}>
-            <Text style={S.actionIcon}>💬</Text>
+            <MessageSquare size={20} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
           <TouchableOpacity style={S.actionBtn}>
-            <Text style={S.actionIcon}>✈️</Text>
+            <Send size={20} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
         <TouchableOpacity>
-          <Text style={S.actionIcon}>🔖</Text>
+          <Text style={[S.actionIcon, { fontSize: 18 }]}>🔖</Text>
         </TouchableOpacity>
       </View>
 
       {/* ── 좋아요 수 ── */}
       {likeCount > 0 && (
-        <Text style={S.likeCount}>좋아요 {likeCount}개</Text>
+        <Text style={S.likeCount}>{likeCount} {likeCount === 1 ? 'LIKE' : 'LIKES'}</Text>
       )}
 
       {/* ── 캡션 ── */}
@@ -314,10 +327,10 @@ export default function FeedScreen({ user }) {
         <LogoIcon />
         <View style={S.headerRight}>
           <TouchableOpacity style={S.headerBtn} onPress={() => navigation.navigate('더보기', { screen: 'NearbyPage' })}>
-            <Text style={S.headerBtnText}>📍</Text>
+            <MapPin size={18} color={colors.primary} strokeWidth={1.5} />
           </TouchableOpacity>
           <TouchableOpacity style={S.headerBtn} onPress={openNotifModal}>
-            <Text style={S.headerBtnText}>🔔</Text>
+            <Bell size={18} color={colors.primary} strokeWidth={1.5} />
             {unreadCount > 0 && (
               <View style={S.badge}>
                 <Text style={S.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
@@ -325,7 +338,7 @@ export default function FeedScreen({ user }) {
             )}
           </TouchableOpacity>
           <TouchableOpacity style={S.headerBtn} onPress={openDmModal}>
-            <Text style={S.headerBtnText}>💬</Text>
+            <MessageCircle size={18} color={colors.primary} strokeWidth={1.5} />
             {dmUnread > 0 && (
               <View style={S.badge}>
                 <Text style={S.badgeText}>{dmUnread > 99 ? '99+' : dmUnread}</Text>
@@ -338,13 +351,13 @@ export default function FeedScreen({ user }) {
       {/* ── 탭 ── */}
       <View style={S.tabs}>
         <TouchableOpacity style={[S.tab, tab === 'all' && S.tabActive]} onPress={() => setTab('all')}>
-          <Text style={[S.tabText, tab === 'all' && S.tabTextActive]}>📍 근처</Text>
+          <Text style={[S.tabText, tab === 'all' && S.tabTextActive]}>NEAR</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[S.tab, tab === 'following' && S.tabActive]} onPress={() => setTab('following')}>
-          <Text style={[S.tabText, tab === 'following' && S.tabTextActive]}>👤 팔로잉</Text>
+          <Text style={[S.tabText, tab === 'following' && S.tabTextActive]}>FOLLOW</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[S.tab, tab === 'popular' && S.tabActive]} onPress={() => setTab('popular')}>
-          <Text style={[S.tabText, tab === 'popular' && S.tabTextActive]}>🔥 인기</Text>
+          <Text style={[S.tabText, tab === 'popular' && S.tabTextActive]}>POPULAR</Text>
         </TouchableOpacity>
       </View>
 
@@ -518,18 +531,18 @@ const S = StyleSheet.create({
   convoLast: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
   convoBadge: { backgroundColor: '#FF5A5F', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   convoBadgeText: { color: 'white', fontSize: 11, fontWeight: '700' },
-  tabs: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: '#FF5A5F' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
-  tabTextActive: { color: '#FF5A5F', fontWeight: '700' },
+  tabs: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: colors.borderLight, paddingHorizontal: 16 },
+  tab: { paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: colors.primary },
+  tabText: { fontFamily: 'Inter_500Medium', fontSize: 10, color: colors.textTertiary, letterSpacing: 2 },
+  tabTextActive: { fontFamily: 'Inter_600SemiBold', color: colors.primary },
   card: { backgroundColor: 'white' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FF5A5F', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fecaca' },
-  avatarText: { color: 'white', fontWeight: '800', fontSize: 14 },
-  nickname: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  location: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { color: colors.primary, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  nickname: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: colors.primary },
+  location: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 2, textTransform: 'uppercase' },
   moreBtn: { fontSize: 18, color: '#374151', letterSpacing: 1 },
   cardImage: { width: width, height: width, resizeMode: 'cover' },
   noImage: { backgroundColor: '#fff5f5', justifyContent: 'center', alignItems: 'center' },
@@ -538,11 +551,11 @@ const S = StyleSheet.create({
   actionsLeft: { flexDirection: 'row', gap: 4 },
   actionBtn: { padding: 4 },
   actionIcon: { fontSize: 24 },
-  likeCount: { paddingHorizontal: 14, fontSize: 13, fontWeight: '700', color: '#1a1a2e', marginBottom: 4 },
-  caption: { paddingHorizontal: 14, marginBottom: 4 },
-  captionText: { fontSize: 14, color: '#1a1a2e', lineHeight: 20 },
-  captionNick: { fontWeight: '800' },
-  captionContent: { fontSize: 13, color: '#6b7280', marginTop: 2, lineHeight: 18 },
+  likeCount: { paddingHorizontal: 16, fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary, marginBottom: 6 },
+  caption: { paddingHorizontal: 16, marginBottom: 6 },
+  captionText: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 15, color: colors.primary, lineHeight: 20, letterSpacing: -0.3 },
+  captionNick: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  captionContent: { fontFamily: 'Inter_400Regular', fontSize: 12, color: colors.textSecondary, marginTop: 3, lineHeight: 18 },
   commentPreview: { paddingHorizontal: 14, fontSize: 13, color: '#9ca3af', marginBottom: 4 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingHorizontal: 14, paddingBottom: 10 },
   tag: { fontSize: 13, color: '#FF5A5F' },
