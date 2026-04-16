@@ -283,15 +283,33 @@ function App() {
   }, [currentUser?.id]);
 
   const openNotifModal = async () => {
-    await loadNotifications();
-    setShowNotifModal(true);
-    if (currentUser?.id) {
-      await fetch('/api/notifications/read-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id }),
-      });
-      setUnreadCount(0);
+    if (!currentUser?.id) return;
+    try {
+      // 1. 알림 조회
+      const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
+      if (!res.ok) {
+        setServerNotifs([]);
+        setShowNotifModal(true);
+        return;
+      }
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setServerNotifs(list);
+      setShowNotifModal(true);
+      // 2. 알림이 있으면 읽음 처리
+      if (list.length > 0 && list.some(n => !n.isRead)) {
+        try {
+          await fetch('/api/notifications/read-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id }),
+          });
+          setUnreadCount(0);
+        } catch (e) {}
+      }
+    } catch (e) {
+      setServerNotifs([]);
+      setShowNotifModal(true);
     }
   };
 
