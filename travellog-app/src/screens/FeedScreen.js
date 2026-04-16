@@ -470,7 +470,8 @@ export default function FeedScreen({ user }) {
                 )}
               </>
             )}
-          </SafeAreaView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
