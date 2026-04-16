@@ -199,6 +199,12 @@ function App() {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [serverNotifs, setServerNotifs] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showDmModal, setShowDmModal] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [activeConvo, setActiveConvo] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msgInput, setMsgInput] = useState('');
+  const [dmUnread, setDmUnread] = useState(0);
   const [showNotif, setShowNotif] = useState(false); // 알림 패널
   const [writeDraft, setWriteDraft] = useState(null); // 글쓰기 초안
 
@@ -281,6 +287,67 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [currentUser?.id]);
+
+  const loadConversations = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch(`/api/dm/conversations?userId=${currentUser.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(Array.isArray(data) ? data : []);
+      }
+      const ur = await fetch(`/api/dm/unread-count?userId=${currentUser.id}`);
+      if (ur.ok) { const d = await ur.json(); setDmUnread(d.count || 0); }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      loadConversations();
+      const interval = setInterval(loadConversations, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser?.id]);
+
+  const openDmModal = async () => {
+    await loadConversations();
+    setShowDmModal(true);
+  };
+
+  const openConversation = async (convo) => {
+    setActiveConvo(convo);
+    setMessages([]);
+    try {
+      const res = await fetch(`/api/dm/conversations/${convo.id}/messages`);
+      if (res.ok) setMessages(await res.json());
+      // 읽음 처리
+      await fetch(`/api/dm/conversations/${convo.id}/read?userId=${currentUser.id}`, { method: 'POST' });
+      loadConversations();
+    } catch (e) {}
+  };
+
+  const sendMessage = async () => {
+    const text = msgInput.trim();
+    if (!text || !activeConvo) return;
+    setMsgInput('');
+    try {
+      const res = await fetch('/api/dm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId: currentUser.id, receiverId: activeConvo.otherUserId, content: text }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) {
+          // 메시지 다시 로드
+          const mRes = await fetch(`/api/dm/conversations/${activeConvo.id}/messages`);
+          if (mRes.ok) setMessages(await mRes.json());
+        } else {
+          alert(data.message || '전송 실패');
+        }
+      }
+    } catch (e) {}
+  };
 
   const openNotifModal = async () => {
     if (!currentUser?.id) return;
@@ -567,7 +634,14 @@ function App() {
                     </span>
                   )}
                 </button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>💬</button>
+                <button onClick={openDmModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4, position: 'relative' }}>
+                  💬
+                  {dmUnread > 0 && (
+                    <span style={{ position: 'absolute', top: 0, right: 0, background: '#FF5A5F', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>
+                      {dmUnread > 99 ? '99+' : dmUnread}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
             {showNotifModal && (
@@ -621,6 +695,68 @@ function App() {
                       })
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+            {showDmModal && (
+              <div onClick={() => { setShowDmModal(false); setActiveConvo(null); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, width: '90%', maxWidth: 500, height: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  {activeConvo ? (
+                    <>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <button onClick={() => setActiveConvo(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>←</button>
+                        <img src={activeConvo.otherProfileImage || `https://ui-avatars.com/api/?name=${activeConvo.otherNickname}&background=4f46e5&color=fff&size=32`}
+                          style={{ width: 32, height: 32, borderRadius: 16 }} alt="" />
+                        <div style={{ fontSize: 14, fontWeight: 700, flex: 1 }}>{activeConvo.otherNickname}</div>
+                        <button onClick={() => { setShowDmModal(false); setActiveConvo(null); }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9ca3af' }}>✕</button>
+                      </div>
+                      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {messages.length === 0 ? (
+                          <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: 40, fontSize: 13 }}>대화를 시작해보세요!</div>
+                        ) : messages.map(m => {
+                          const isMine = m.senderId === currentUser.id;
+                          return (
+                            <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                              <div style={{ maxWidth: '70%', padding: '8px 14px', borderRadius: 16, background: isMine ? '#4f46e5' : '#f3f4f6', color: isMine ? 'white' : '#1a1a2e', fontSize: 13, lineHeight: 1.4 }}>
+                                {m.content}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ padding: 12, borderTop: '1px solid #f0f0f0', display: 'flex', gap: 8 }}>
+                        <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                          placeholder="메시지 입력..."
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none' }} />
+                        <button onClick={sendMessage} style={{ padding: '8px 16px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>전송</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: 16, fontWeight: 800 }}>💬 메시지</div>
+                        <button onClick={() => setShowDmModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#9ca3af', cursor: 'pointer' }}>✕</button>
+                      </div>
+                      <div style={{ flex: 1, overflowY: 'auto' }}>
+                        {conversations.length === 0 ? (
+                          <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>아직 대화가 없어요.<br/>친구 프로필에서 메시지를 시작해보세요!</div>
+                        ) : conversations.map(c => (
+                          <div key={c.id} onClick={() => openConversation(c)} style={{ padding: '12px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }}>
+                            <img src={c.otherProfileImage || `https://ui-avatars.com/api/?name=${c.otherNickname}&background=4f46e5&color=fff&size=44`}
+                              style={{ width: 44, height: 44, borderRadius: 22 }} alt="" />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{c.otherNickname}</div>
+                              <div style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.lastMessage || '(메시지 없음)'}</div>
+                            </div>
+                            {c.unreadCount > 0 && (
+                              <span style={{ background: '#FF5A5F', color: 'white', fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{c.unreadCount}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
