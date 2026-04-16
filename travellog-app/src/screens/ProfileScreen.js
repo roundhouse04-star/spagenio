@@ -101,18 +101,38 @@ export default function ProfileScreen({ user, onLogout }) {
   const saveProfile = async () => {
     setSaving(true);
     try {
+      let profileImageUrl = editForm.profileImage;
+      // 로컬 파일이면 업로드
+      if (profileImageUrl && profileImageUrl.startsWith('file://')) {
+        const formData = new FormData();
+        const filename = profileImageUrl.split('/').pop();
+        const ext = filename.split('.').pop().toLowerCase();
+        const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+        formData.append('file', { uri: profileImageUrl, name: filename, type: mime });
+        const upRes = await fetch(API_BASE + '/api/upload', { method: 'POST', body: formData });
+        if (upRes.ok) {
+          const upData = await upRes.json();
+          profileImageUrl = upData.feed || upData.url;
+        } else {
+          throw new Error('이미지 업로드 실패');
+        }
+      }
+
+      const payload = { ...editForm, profileImage: profileImageUrl };
       const res = await fetch(API_BASE + '/api/users/' + user.id, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         const updated = await res.json();
         setUserData(updated);
         setEditing(false);
         Alert.alert('완료!', '프로필이 저장됐어요.');
+      } else {
+        throw new Error('프로필 저장 실패');
       }
-    } catch (e) { Alert.alert('오류', '저장에 실패했어요.'); }
+    } catch (e) { Alert.alert('오류', e.message || '저장에 실패했어요.'); }
     setSaving(false);
   };
 
