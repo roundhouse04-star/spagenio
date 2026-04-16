@@ -1077,10 +1077,13 @@ async def get_messages(conv_id: str, limit: int = 50):
 @app.post("/api/dm/send")
 async def send_message(req: Request):
     """메시지 전송 - 상호 팔로우한 친구에게만"""
-    data = await req.json()
-    sender_id = data.get("senderId")
-    receiver_id = data.get("receiverId")
-    content = data.get("content", "").strip()
+    try:
+        data = await req.json()
+    except Exception as e:
+        return {"ok": False, "error": f"json_parse: {str(e)}"}
+    sender_id = (data or {}).get("senderId")
+    receiver_id = (data or {}).get("receiverId")
+    content = ((data or {}).get("content", "") or "").strip()
     if not sender_id or not receiver_id or not content:
         return {"ok": False, "error": "missing_fields"}
     # 상호 팔로우 확인
