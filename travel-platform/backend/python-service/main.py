@@ -942,55 +942,50 @@ from datetime import datetime as dt_now
 
 @app.get("/api/notifications")
 async def get_notifications(userId: str, unreadOnly: bool = False):
-    conn = get_db()
-    query = "SELECT id, user_id, actor_id, actor_nickname, actor_profile_image, type, post_id, post_title, message, is_read, created_at FROM notifications WHERE user_id=?"
-    params = [userId]
-    if unreadOnly:
-        query += " AND is_read=0"
-    query += " ORDER BY created_at DESC LIMIT 50"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return [{
-        "id": r[0], "userId": r[1], "actorId": r[2], "actorNickname": r[3],
-        "actorProfileImage": r[4], "type": r[5], "postId": r[6], "postTitle": r[7],
-        "message": r[8], "isRead": bool(r[9]), "createdAt": r[10]
-    } for r in rows]
+    with get_db() as conn:
+        query = "SELECT id, user_id, actor_id, actor_nickname, actor_profile_image, type, post_id, post_title, message, is_read, created_at FROM notifications WHERE user_id=?"
+        params = [userId]
+        if unreadOnly:
+            query += " AND is_read=0"
+        query += " ORDER BY created_at DESC LIMIT 50"
+        rows = conn.execute(query, params).fetchall()
+        return [{
+            "id": r[0], "userId": r[1], "actorId": r[2], "actorNickname": r[3],
+            "actorProfileImage": r[4], "type": r[5], "postId": r[6], "postTitle": r[7],
+            "message": r[8], "isRead": bool(r[9]), "createdAt": r[10]
+        } for r in rows]
 
 @app.post("/api/notifications")
 async def create_notification(req: Request):
     data = await req.json()
     nid = uuid_lib.uuid4().hex[:16]
-    conn = get_db()
-    conn.execute("""INSERT INTO notifications (id, user_id, actor_id, actor_nickname, actor_profile_image, type, post_id, post_title, message, is_read, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""",
-                 (nid, data.get("userId"), data.get("actorId"), data.get("actorNickname", ""),
-                  data.get("actorProfileImage", ""), data.get("type"), data.get("postId", ""),
-                  data.get("postTitle", ""), data.get("message", ""), dt_now.now().isoformat()))
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        conn.execute("""INSERT INTO notifications (id, user_id, actor_id, actor_nickname, actor_profile_image, type, post_id, post_title, message, is_read, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""",
+                     (nid, data.get("userId"), data.get("actorId"), data.get("actorNickname", ""),
+                      data.get("actorProfileImage", ""), data.get("type"), data.get("postId", ""),
+                      data.get("postTitle", ""), data.get("message", ""), dt_now.now().isoformat()))
+        conn.commit()
     return {"ok": True, "id": nid}
 
 @app.post("/api/notifications/{notif_id}/read")
 async def mark_read(notif_id: str):
-    conn = get_db()
-    conn.execute("UPDATE notifications SET is_read=1 WHERE id=?", (notif_id,))
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        conn.execute("UPDATE notifications SET is_read=1 WHERE id=?", (notif_id,))
+        conn.commit()
     return {"ok": True}
 
 @app.post("/api/notifications/read-all")
 async def mark_all_read(req: Request):
     data = await req.json()
     user_id = data.get("userId")
-    conn = get_db()
-    conn.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (user_id,))
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        conn.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (user_id,))
+        conn.commit()
     return {"ok": True}
 
 @app.get("/api/notifications/unread-count")
 async def unread_count(userId: str):
-    conn = get_db()
-    row = conn.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (userId,)).fetchone()
-    conn.close()
-    return {"count": row[0] if row else 0}
+    with get_db() as conn:
+        row = conn.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (userId,)).fetchone()
+        return {"count": row[0] if row else 0}
