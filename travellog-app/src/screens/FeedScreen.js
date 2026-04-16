@@ -245,7 +245,7 @@ export default function FeedScreen({ user }) {
       <View style={S.header}>
         <LogoIcon />
         <View style={S.headerRight}>
-          <TouchableOpacity style={S.headerBtn}>
+          <TouchableOpacity style={S.headerBtn} onPress={() => navigation.navigate('NearbyPage')}>
             <Text style={S.headerBtnText}>📍</Text>
           </TouchableOpacity>
           <TouchableOpacity style={S.headerBtn} onPress={openNotifModal}>
