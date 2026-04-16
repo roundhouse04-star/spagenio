@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 const CITIES = [
   { id: 'seoul', name: '서울', flag: '🇰🇷', country: '한국' },
   { id: 'tokyo', name: '도쿄', flag: '🇯🇵', country: '일본' },
+  { id: 'osaka', name: '오사카', flag: '🇯🇵', country: '일본' },
   { id: 'bangkok', name: '방콕', flag: '🇹🇭', country: '태국' },
   { id: 'singapore', name: '싱가포르', flag: '🇸🇬', country: '싱가포르' },
   { id: 'hongkong', name: '홍콩', flag: '🇭🇰', country: '홍콩' },
@@ -139,6 +140,7 @@ function FullMapView({ cityId }) {
   const MAP_INFO = {
     seoul: { name: '서울교통공사', url: 'https://www.seoulmetro.co.kr/kr/cyberStation.do', desc: '서울 지하철 1~9호선 전체 노선도' },
     tokyo: { name: 'Tokyo Metro', url: 'https://www.tokyometro.jp/en/subwaymap/index.html', desc: '도쿄 메트로 전체 노선도 (영문)' },
+    osaka: { name: 'Osaka Metro', url: 'https://subway.osakametro.co.jp/guide/file/rosen_english.pdf', desc: '오사카 메트로 전체 노선도 (영문)' },
     bangkok: { name: 'BTS / MRT', url: 'https://www.bts.co.th/eng/routemap.html', desc: 'BTS 스카이트레인 + MRT 노선도' },
     singapore: { name: 'LTA Singapore', url: 'https://www.lta.gov.sg/content/ltagov/en/getting_around/public_transport/rail_network.html', desc: '싱가포르 MRT/LRT 전체 노선도' },
     hongkong: { name: 'MTR', url: 'https://www.mtr.com.hk/en/customer/services/system_map.html', desc: '홍콩 MTR 전체 노선도 (영문)' },
