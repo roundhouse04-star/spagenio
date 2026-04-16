@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
+import { Plus, Trash2 } from 'lucide-react-native';
+import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
 
@@ -46,9 +48,9 @@ export default function PlannerScreen({ user }) {
   };
 
   const deletePlan = (planId) => {
-    Alert.alert('삭제', '일정을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => {
+    Alert.alert('Delete', 'Delete this plan?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await fetch(API_BASE + '/api/plans/' + planId, { method: 'DELETE' });
           loadPlans();
@@ -63,89 +65,75 @@ export default function PlannerScreen({ user }) {
     return new Date(endDate) < new Date();
   };
 
-  const getCategoryIcon = (cat) => {
-    const icons = { airplane: '✈️', train: '🚄', bus: '🚌', walk: '🚶', attraction: '📍', food: '🍜', hotel: '🏨', shopping: '🛍️' };
-    return icons[cat] || '📍';
-  };
-
   if (loading) return (
     <SafeAreaView style={S.container}>
-      <ActivityIndicator size="large" color="#FF5A5F" style={{ marginTop: 60 }} />
+      <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
     </SafeAreaView>
   );
 
   return (
     <SafeAreaView style={S.container}>
       <View style={S.header}>
-        <Text style={S.title}>🗺️ 내 일정</Text>
+        <View>
+          <Text style={S.title}>Planner</Text>
+          <Text style={S.subtitle}>CREATE YOUR JOURNEY</Text>
+        </View>
         <TouchableOpacity style={S.addBtn} onPress={() => setShowNew(true)}>
-          <Text style={S.addBtnText}>+ 새 일정</Text>
+          <Plus size={14} color="white" strokeWidth={2} />
+          <Text style={S.addBtnText}>NEW</Text>
         </TouchableOpacity>
       </View>
 
       {plans.length === 0 ? (
         <View style={S.empty}>
-          <Text style={{ fontSize: 48 }}>🗺️</Text>
-          <Text style={S.emptyTitle}>등록된 일정이 없어요</Text>
-          <Text style={S.emptyDesc}>새 일정을 만들어 여행을 계획하세요</Text>
+          <Text style={S.emptyTitle}>NO PLANS YET</Text>
+          <Text style={S.emptyDesc}>START PLANNING YOUR NEXT JOURNEY</Text>
           <TouchableOpacity style={S.emptyBtn} onPress={() => setShowNew(true)}>
-            <Text style={S.emptyBtnText}>+ 새 일정 만들기</Text>
+            <Text style={S.emptyBtnText}>CREATE NEW PLAN</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={plans}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 30 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 30 }}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[S.planCard, isPast(item.endDate) && S.pastCard]}
               onPress={() => setSelected(selected?.id === item.id ? null : item)}
-              activeOpacity={0.8}>
+              activeOpacity={0.9}>
               <View style={S.planHeader}>
                 <View style={{ flex: 1 }}>
+                  <Text style={[S.planStatus, isPast(item.endDate) && { color: colors.textTertiary }]}>
+                    {isPast(item.endDate) ? 'COMPLETED' : 'UPCOMING'}
+                  </Text>
                   <Text style={S.planTitle}>{item.title}</Text>
                   <Text style={S.planDate}>
-                    {item.startDate}{item.endDate ? ' ~ ' + item.endDate : ''}
+                    {item.startDate}{item.endDate ? ` — ${item.endDate}` : ''}
                   </Text>
                 </View>
-                <View style={S.planActions}>
-                  <View style={[S.badge, isPast(item.endDate) ? S.badgePast : S.badgeActive]}>
-                    <Text style={[S.badgeText, isPast(item.endDate) && { color: '#9ca3af' }]}>
-                      {isPast(item.endDate) ? '완료' : '예정'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => deletePlan(item.id)}>
-                    <Text style={{ fontSize: 16 }}>🗑️</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity onPress={() => deletePlan(item.id)} style={{ padding: 8 }}>
+                  <Trash2 size={16} color={colors.textTertiary} strokeWidth={1.5} />
+                </TouchableOpacity>
               </View>
 
               {item.items?.length > 0 && (
-                <Text style={S.planPlaces}>📍 {item.items.length}개 장소</Text>
+                <Text style={S.planPlaces}>{item.items.length} PLACES</Text>
               )}
 
-              {selected?.id === item.id && (
+              {selected?.id === item.id && item.items?.length > 0 && (
                 <View style={S.detailWrap}>
-                  {item.items?.length > 0 ? (
-                    item.items.map((place, i) => (
-                      <View key={place.id || i} style={S.placeItem}>
-                        <View style={S.placeNum}>
-                          <Text style={S.placeNumText}>{i + 1}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={S.placeName}>{getCategoryIcon(place.category)} {place.placeName}</Text>
-                          {place.address ? <Text style={S.placeAddr} numberOfLines={1}>{place.address}</Text> : null}
-                          {place.howToGet ? <Text style={S.placeHow}>🚇 {place.howToGet}</Text> : null}
-                          {place.tip ? <Text style={S.placeTip}>💡 {place.tip}</Text> : null}
-                          {place.memo ? <Text style={S.placeMemo}>📝 {place.memo}</Text> : null}
-                          {place.date ? <Text style={S.placeDate}>📅 {place.date}</Text> : null}
-                        </View>
+                  {item.items.map((place, i) => (
+                    <View key={place.id || i} style={S.placeItem}>
+                      <Text style={S.placeNum}>{String(i + 1).padStart(2, '0')}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={S.placeName}>{place.placeName}</Text>
+                        {place.address ? <Text style={S.placeAddr} numberOfLines={1}>{place.address}</Text> : null}
+                        {place.memo ? <Text style={S.placeMemo}>{place.memo}</Text> : null}
+                        {place.date ? <Text style={S.placeDate}>{place.date.toUpperCase()}</Text> : null}
                       </View>
-                    ))
-                  ) : (
-                    <Text style={S.noPlaces}>아직 장소가 없어요</Text>
-                  )}
+                    </View>
+                  ))}
                 </View>
               )}
             </TouchableOpacity>
@@ -153,35 +141,34 @@ export default function PlannerScreen({ user }) {
         />
       )}
 
-      {/* 새 일정 모달 */}
       <Modal visible={showNew} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
           <View style={S.modalHeader}>
             <TouchableOpacity onPress={() => setShowNew(false)}>
-              <Text style={{ fontSize: 15, color: '#9ca3af' }}>취소</Text>
+              <Text style={S.modalCancel}>CANCEL</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a1a2e' }}>새 일정</Text>
+            <Text style={S.modalTitle}>NEW PLAN</Text>
             <TouchableOpacity onPress={createPlan}>
-              <Text style={{ fontSize: 15, color: '#FF5A5F', fontWeight: '700' }}>저장</Text>
+              <Text style={S.modalSave}>SAVE</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          <ScrollView contentContainerStyle={{ padding: 24, gap: 20 }}>
             <View>
-              <Text style={S.label}>여행 제목</Text>
-              <TextInput style={S.input} placeholder="예: 도쿄 3박 4일"
-                placeholderTextColor="#9ca3af" value={newPlan.title}
+              <Text style={S.label}>TITLE</Text>
+              <TextInput style={S.input} placeholder="e.g. Tokyo Adventure"
+                placeholderTextColor={colors.textMuted} value={newPlan.title}
                 onChangeText={t => setNewPlan(p => ({ ...p, title: t }))} />
             </View>
             <View>
-              <Text style={S.label}>출발일</Text>
+              <Text style={S.label}>START DATE</Text>
               <TextInput style={S.input} placeholder="2026-04-20"
-                placeholderTextColor="#9ca3af" value={newPlan.startDate}
+                placeholderTextColor={colors.textMuted} value={newPlan.startDate}
                 onChangeText={t => setNewPlan(p => ({ ...p, startDate: t }))} />
             </View>
             <View>
-              <Text style={S.label}>귀국일</Text>
+              <Text style={S.label}>END DATE</Text>
               <TextInput style={S.input} placeholder="2026-04-24"
-                placeholderTextColor="#9ca3af" value={newPlan.endDate}
+                placeholderTextColor={colors.textMuted} value={newPlan.endDate}
                 onChangeText={t => setNewPlan(p => ({ ...p, endDate: t }))} />
             </View>
           </ScrollView>
@@ -192,39 +179,35 @@ export default function PlannerScreen({ user }) {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  header: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  title: { fontSize: 20, fontWeight: '900', color: '#1a1a2e' },
-  addBtn: { backgroundColor: '#FF5A5F', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  addBtnText: { color: 'white', fontSize: 13, fontWeight: '700' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#374151' },
-  emptyDesc: { fontSize: 13, color: '#9ca3af' },
-  emptyBtn: { backgroundColor: '#FF5A5F', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, marginTop: 10 },
-  emptyBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
-  planCard: { backgroundColor: 'white', borderRadius: 16, padding: 16, borderLeftWidth: 4, borderLeftColor: '#FF5A5F' },
-  pastCard: { borderLeftColor: '#d1d5db', opacity: 0.7 },
-  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  planTitle: { fontSize: 16, fontWeight: '800', color: '#1a1a2e' },
-  planDate: { fontSize: 12, color: '#9ca3af', marginTop: 4 },
-  planActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  planPlaces: { fontSize: 12, color: '#FF5A5F', fontWeight: '600', marginTop: 8 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  badgeActive: { backgroundColor: '#fff5f5' },
-  badgePast: { backgroundColor: '#f3f4f6' },
-  badgeText: { fontSize: 11, fontWeight: '700', color: '#FF5A5F' },
-  detailWrap: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 12, gap: 12 },
-  placeItem: { flexDirection: 'row', gap: 10 },
-  placeNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FF5A5F', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
-  placeNumText: { color: 'white', fontSize: 11, fontWeight: '800' },
-  placeName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  placeAddr: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
-  placeHow: { fontSize: 11, color: '#3b82f6', marginTop: 2 },
-  placeTip: { fontSize: 11, color: '#f59e0b', marginTop: 2 },
-  placeMemo: { fontSize: 11, color: '#6b7280', marginTop: 2 },
-  placeDate: { fontSize: 11, color: '#10b981', marginTop: 2 },
-  noPlaces: { fontSize: 13, color: '#9ca3af', textAlign: 'center', paddingVertical: 10 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
-  input: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 14, fontSize: 14, color: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 26, color: colors.primary, letterSpacing: -0.8, marginBottom: 2 },
+  subtitle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, textTransform: 'uppercase' },
+  addBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 8 },
+  addBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.5, color: 'white' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2, color: colors.textSecondary },
+  emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 11, color: colors.textTertiary, letterSpacing: 1 },
+  emptyBtn: { backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, marginTop: 14 },
+  emptyBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: 'white' },
+  planCard: { marginBottom: 24, paddingBottom: 20, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  pastCard: { opacity: 0.55 },
+  planHeader: { flexDirection: 'row', alignItems: 'flex-start' },
+  planStatus: { fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 2, color: colors.primary, marginBottom: 4 },
+  planTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 18, color: colors.primary, letterSpacing: -0.3 },
+  planDate: { fontFamily: 'Inter_400Regular', fontSize: 12, color: colors.textTertiary, marginTop: 4, letterSpacing: 0.5 },
+  planPlaces: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.5, color: colors.textSecondary, marginTop: 8 },
+  detailWrap: { marginTop: 14, paddingTop: 14, borderTopWidth: 0.5, borderTopColor: colors.borderLight, gap: 12 },
+  placeItem: { flexDirection: 'row', gap: 12 },
+  placeNum: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 14, color: colors.textTertiary, width: 24 },
+  placeName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 14, color: colors.primary, lineHeight: 18 },
+  placeAddr: { fontFamily: 'Inter_400Regular', fontSize: 11, color: colors.textTertiary, marginTop: 2 },
+  placeMemo: { fontFamily: 'Inter_400Regular', fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  placeDate: { fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 1.5, color: colors.primary, marginTop: 4 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  modalTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2.5, color: colors.primary },
+  modalCancel: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
+  modalSave: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.5, color: colors.primary },
+  label: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, marginBottom: 6 },
+  input: { fontFamily: 'Inter_400Regular', fontSize: 14, color: colors.textPrimary, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border },
 });

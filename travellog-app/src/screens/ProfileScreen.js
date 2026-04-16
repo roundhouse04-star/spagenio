@@ -1,390 +1,329 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, Modal, Alert, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { Switch } from 'react-native';
-import { registerForPush, updatePushConsent, getPushStatus } from '../utils/pushUtils';
+import { Settings, LogOut, Edit2, X } from 'lucide-react-native';
+import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
 
 const toFullUrl = (url) => {
-  if (!url || typeof url !== 'string' || url.trim() === '') return '';
+  if (!url) return url;
   if (url.startsWith('http')) return url;
   return API_BASE + url;
 };
 
-const TRAVEL_STYLES = [
-  { key: 'food', icon: '🍜', label: '맛집' },
-  { key: 'culture', icon: '🏛️', label: '문화' },
-  { key: 'nature', icon: '🌿', label: '자연' },
-  { key: 'photo', icon: '📸', label: '포토' },
-  { key: 'activity', icon: '🏄', label: '액티비티' },
-  { key: 'shopping', icon: '🛍️', label: '쇼핑' },
-  { key: 'longstay', icon: '🏠', label: '장기체류' },
-  { key: 'market', icon: '🏪', label: '시장' },
-];
-
 export default function ProfileScreen({ user, onLogout }) {
   const navigation = useNavigation();
+  const [profile, setProfile] = useState(user);
   const [posts, setPosts] = useState([]);
-  const [pushConsent, setPushConsent] = useState(false);
-  const [followModal, setFollowModal] = useState(null);
-  const [followList, setFollowList] = useState([]);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [userData, setUserData] = useState(user);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ nickname: '', bio: '', preferredStyles: [] });
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => { loadData(); }, []);
-
-  const openFollowModal = async (type) => {
-    setFollowModal(type);
-    setFollowLoading(true);
-    try {
-      const endpoint = type === '팔로워' ? 'followers' : 'followings';
-      const res = await fetch(API_BASE + '/api/users/' + user.id + '/' + endpoint);
-      if (res.ok) setFollowList(await res.json());
-    } catch (e) {}
-    setFollowLoading(false);
-  };
+  const [editForm, setEditForm] = useState({ nickname: '', bio: '', profileImage: '' });
+  const [followModal, setFollowModal] = useState(null);
+  const [followUsers, setFollowUsers] = useState([]);
+  const [pushConsent, setPushConsent] = useState(user?.pushConsent !== false);
 
   const loadData = async () => {
     if (!user) return;
+    setLoading(true);
     try {
-      const [postsRes, userRes] = await Promise.all([
-        fetch(API_BASE + '/api/posts?userId=' + user.id),
-        fetch(API_BASE + '/api/users/' + user.id),
+      const [userRes, postsRes] = await Promise.all([
+        fetch(`${API_BASE}/api/users/${user.id}`),
+        fetch(`${API_BASE}/api/users/${user.id}/posts`),
       ]);
-      if (postsRes.ok) setPosts(await postsRes.json());
       if (userRes.ok) {
-        const data = await userRes.json();
-        setUserData(data);
+        const u = await userRes.json();
+        setProfile(u);
+        setPushConsent(u.pushConsent !== false);
       }
+      if (postsRes.ok) setPosts(await postsRes.json());
     } catch (e) {}
-    try {
-      const pushStatus = await getPushStatus(user.id);
-      setPushConsent(pushStatus.pushConsent);
-    } catch (e) {}
+    setLoading(false);
   };
 
-  const togglePush = async (value) => {
-    setPushConsent(value);
-    if (value) {
-      await registerForPush(user.id);
-    } else {
-      await updatePushConsent(user.id, false);
-    }
-  };
+  useEffect(() => { loadData(); }, []);
 
   const openEdit = () => {
     setEditForm({
-      nickname: userData.nickname || '',
-      bio: userData.bio || '',
-      preferredStyles: userData.preferredStyles || [],
-      profileImage: userData.profileImage || '',
+      nickname: profile.nickname || '',
+      bio: profile.bio || '',
+      profileImage: profile.profileImage || '',
     });
     setEditing(true);
   };
 
-  const pickProfileImage = async () => {
+  const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('권한 필요', '갤러리 접근 권한이 필요해요.'); return; }
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '갤러리 접근 권한이 필요해요.');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [1, 1], quality: 0.7,
+      allowsEditing: true, aspect: [1, 1], quality: 0.8,
     });
-    if (!result.canceled) {
-      setEditForm(p => ({ ...p, profileImage: result.assets[0].uri }));
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      try {
+        const formData = new FormData();
+        const uri = asset.uri;
+        const name = uri.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(name);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+        formData.append('file', { uri, name, type });
+        const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          setEditForm(f => ({ ...f, profileImage: data.url }));
+        }
+      } catch (e) {
+        Alert.alert('오류', '이미지 업로드 실패');
+      }
     }
   };
 
   const saveProfile = async () => {
-    setSaving(true);
     try {
-      let profileImageUrl = editForm.profileImage;
-      // 로컬 파일이면 업로드
-      if (profileImageUrl && profileImageUrl.startsWith('file://')) {
-        const formData = new FormData();
-        const rawName = profileImageUrl.split('/').pop() || 'photo.jpg';
-        const dotIdx = rawName.lastIndexOf('.');
-        let ext = dotIdx >= 0 ? rawName.substring(dotIdx + 1).toLowerCase() : 'jpg';
-        // HEIC 등 비지원 확장자 jpg로 통일
-        if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) ext = 'jpg';
-        const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-        const safeName = 'profile_' + Date.now() + '.' + ext;
-        formData.append('file', { uri: profileImageUrl, name: safeName, type: mime });
-        const upRes = await fetch(API_BASE + '/api/upload', { method: 'POST', body: formData });
-        if (upRes.ok) {
-          const upData = await upRes.json();
-          profileImageUrl = upData.feed || upData.url;
-        } else {
-          const errText = await upRes.text();
-          throw new Error('업로드 실패 (' + upRes.status + '): ' + errText.substring(0, 120));
-        }
-      }
-
-      const payload = { ...editForm, profileImage: profileImageUrl };
-      const res = await fetch(API_BASE + '/api/users/' + user.id, {
+      const res = await fetch(`${API_BASE}/api/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(editForm),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setUserData(updated);
         setEditing(false);
-        Alert.alert('완료!', '프로필이 저장됐어요.');
-      } else {
-        throw new Error('프로필 저장 실패');
+        loadData();
       }
-    } catch (e) { Alert.alert('오류', e.message || '저장에 실패했어요.'); }
-    setSaving(false);
+    } catch (e) {
+      Alert.alert('오류', '저장 실패');
+    }
   };
 
-  const toggleStyle = (key) => {
-    setEditForm(p => ({
-      ...p,
-      preferredStyles: p.preferredStyles.includes(key)
-        ? p.preferredStyles.filter(k => k !== key)
-        : [...p.preferredStyles, key],
-    }));
+  const openFollowModal = async (type) => {
+    try {
+      const ids = type === 'followers' ? profile.followerIds : profile.followingIds;
+      if (!ids?.length) {
+        setFollowUsers([]);
+        setFollowModal(type);
+        return;
+      }
+      const users = await Promise.all(ids.map(id => fetch(`${API_BASE}/api/users/${id}`).then(r => r.ok ? r.json() : null)));
+      setFollowUsers(users.filter(Boolean));
+      setFollowModal(type);
+    } catch (e) {}
   };
 
-  const logout = () => Alert.alert('로그아웃', '로그아웃 하시겠어요?', [
-    { text: '취소', style: 'cancel' },
-    { text: '로그아웃', style: 'destructive', onPress: onLogout },
-  ]);
+  const togglePushConsent = async () => {
+    const newVal = !pushConsent;
+    setPushConsent(newVal);
+    try {
+      await fetch(`${API_BASE}/api/push/consent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, consent: newVal }),
+      });
+    } catch (e) {}
+  };
+
+  if (loading) return (
+    <SafeAreaView style={S.container}>
+      <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={S.container}>
-      <View style={S.header}>
-        <Text style={S.title}>👤 프로필</Text>
-        <TouchableOpacity onPress={logout}>
-          <Text style={S.logoutBtn}>로그아웃</Text>
-        </TouchableOpacity>
+      <View style={S.topBar}>
+        <Text style={S.topTitle}>PROFILE</Text>
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          <TouchableOpacity onPress={openEdit}>
+            <Edit2 size={18} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onLogout}>
+            <LogOut size={18} color={colors.primary} strokeWidth={1.5} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={S.profileCard}>
-          <View style={S.avatarWrap}>
-            {userData?.profileImage && typeof userData.profileImage === 'string' && userData.profileImage.trim() !== '' && toFullUrl(userData.profileImage)
-              ? <Image source={{ uri: toFullUrl(userData.profileImage) }} style={S.avatar} />
-              : <View style={[S.avatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
-                  <Text style={{ fontSize: 28, color: 'white', fontWeight: '800' }}>
-                    {userData?.nickname?.[0]?.toUpperCase()}
-                  </Text>
-                </View>
-            }
+      <ScrollView>
+        <View style={S.profileWrap}>
+          <View style={S.avatarBig}>
+            {profile.profileImage ? (
+              <Image source={{ uri: toFullUrl(profile.profileImage) }} style={S.avatarImg} />
+            ) : (
+              <Text style={S.avatarBigText}>{profile.nickname?.[0]?.toUpperCase()}</Text>
+            )}
           </View>
-          <Text style={S.nickname}>{userData?.nickname}</Text>
-          {userData?.bio ? <Text style={S.bio}>{userData.bio}</Text> : null}
-
-          {userData?.preferredStyles?.length > 0 && (
-            <View style={S.styleTags}>
-              {userData.preferredStyles.map(key => {
-                const s = TRAVEL_STYLES.find(t => t.key === key);
-                if (!s) return null;
-                return (
-                  <View key={key} style={S.styleTag}>
-                    <Text style={S.styleTagText}>{s.icon} {s.label}</Text>
-                  </View>
-                );
-              })}
-            </View>
+          <Text style={S.nickname}>{profile.nickname}</Text>
+          {profile.bio ? (
+            <Text style={S.bio}>{profile.bio}</Text>
+          ) : (
+            <Text style={S.bioEmpty}>TRAVELER</Text>
           )}
 
-          <View style={S.statsRow}>
-            {[['게시물', posts.length], ['팔로워', userData?.followerIds?.length || 0], ['팔로잉', userData?.followingIds?.length || 0]].map(([label, count]) => (
-              <TouchableOpacity key={label} style={S.statItem} onPress={() => label !== '게시물' && openFollowModal(label)}>
-                <Text style={S.statCount}>{count}</Text>
-                <Text style={S.statLabel}>{label}</Text>
+          <View style={S.stats}>
+            <View style={S.statItem}>
+              <Text style={S.statNum}>{posts.length}</Text>
+              <Text style={S.statLabel}>POSTS</Text>
+            </View>
+            <View style={S.statDivider} />
+            <TouchableOpacity style={S.statItem} onPress={() => openFollowModal('followers')}>
+              <Text style={S.statNum}>{profile.followerIds?.length || 0}</Text>
+              <Text style={S.statLabel}>FOLLOWERS</Text>
+            </TouchableOpacity>
+            <View style={S.statDivider} />
+            <TouchableOpacity style={S.statItem} onPress={() => openFollowModal('following')}>
+              <Text style={S.statNum}>{profile.followingIds?.length || 0}</Text>
+              <Text style={S.statLabel}>FOLLOWING</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={S.pushToggle} onPress={togglePushConsent}>
+            <Text style={S.pushLabel}>PUSH NOTIFICATIONS</Text>
+            <View style={[S.switch, pushConsent && S.switchOn]}>
+              <View style={[S.switchDot, pushConsent && S.switchDotOn]} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={S.sectionLabel}>POSTS</Text>
+
+        {posts.length === 0 ? (
+          <Text style={S.empty}>NO POSTS YET</Text>
+        ) : (
+          <View style={S.grid}>
+            {posts.map(item => (
+              <TouchableOpacity key={item.id} style={S.gridCell} activeOpacity={0.9}
+                onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
+                {item.images?.[0]
+                  ? <Image source={{ uri: toFullUrl(item.images[0].endsWith('.mp4') ? item.images[0].replace('_video.mp4', '_thumb.jpg') : item.images[0]) }} style={S.gridImg} />
+                  : <View style={[S.gridImg, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}><Text>✈</Text></View>
+                }
               </TouchableOpacity>
             ))}
           </View>
-
-          <TouchableOpacity style={S.editBtn} onPress={openEdit}>
-            <Text style={S.editBtnText}>✏️ 프로필 편집</Text>
-          </TouchableOpacity>
-
-          <View style={S.pushRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={S.pushLabel}>🔔 푸시 알림</Text>
-              <Text style={S.pushDesc}>좋아요, 댓글, 팔로우 알림 받기</Text>
-            </View>
-            <Switch
-              value={pushConsent}
-              onValueChange={togglePush}
-              trackColor={{ false: '#d1d5db', true: '#fecaca' }}
-              thumbColor={pushConsent ? '#FF5A5F' : '#f4f3f4'}
-            />
-          </View>
-        </View>
-
-        <Text style={S.sectionTitle}>내 게시물 ({posts.length})</Text>
-        {posts.length === 0
-          ? <Text style={S.empty}>아직 게시물이 없어요. 첫 여행 이야기를 올려보세요!</Text>
-          : <View style={S.grid}>
-              {posts.map(post => (
-                <TouchableOpacity key={post.id} style={S.gridItem} activeOpacity={0.9}
-                  onPress={() => navigation.navigate('PostDetail', { post, user })}>
-                  {(() => {
-                    const raw = post.images?.[0];
-                    const img = raw && typeof raw === 'string' && raw.trim() !== '' ? toFullUrl(raw.endsWith('.mp4') ? raw.replace('_video.mp4', '_thumb.jpg') : raw) : '';
-                    return img ? <Image source={{ uri: img }} style={S.gridImage} />
-                      : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
-                          <Text style={{ fontSize: 28 }}>✈️</Text>
-                        </View>;
-                  })()}
-                  <Text style={S.gridTitle} numberOfLines={1}>{post.title}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-        }
-        <View style={{ height: 20 }} />
+        )}
       </ScrollView>
 
-      {/* 프로필 편집 모달 */}
+      {/* Edit Modal */}
       <Modal visible={editing} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-          <View style={S.editModalHeader}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
+          <View style={S.modalHeader}>
             <TouchableOpacity onPress={() => setEditing(false)}>
-              <Text style={{ fontSize: 15, color: '#9ca3af' }}>취소</Text>
+              <Text style={S.modalCancel}>CANCEL</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a1a2e' }}>프로필 편집</Text>
-            <TouchableOpacity onPress={saveProfile} disabled={saving}>
-              {saving ? <ActivityIndicator color="#4f46e5" /> : <Text style={{ fontSize: 15, color: '#4f46e5', fontWeight: '700' }}>저장</Text>}
+            <Text style={S.modalTitle}>EDIT PROFILE</Text>
+            <TouchableOpacity onPress={saveProfile}>
+              <Text style={S.modalSave}>SAVE</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-            <TouchableOpacity style={S.photoBtn} onPress={pickProfileImage}>
-              {editForm.profileImage
-                ? <Image source={{ uri: editForm.profileImage.startsWith('file://') ? editForm.profileImage : toFullUrl(editForm.profileImage) }} style={S.editAvatar} />
-                : <View style={[S.editAvatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
-                    <Text style={{ fontSize: 24, color: 'white', fontWeight: '800' }}>
-                      {userData?.nickname?.[0]?.toUpperCase()}
-                    </Text>
-                  </View>
-              }
-              <Text style={S.photoBtnText}>사진 변경</Text>
+          <ScrollView contentContainerStyle={{ padding: 24 }}>
+            <TouchableOpacity onPress={pickImage} style={S.editAvatarWrap}>
+              {editForm.profileImage ? (
+                <Image source={{ uri: toFullUrl(editForm.profileImage) }} style={S.editAvatar} />
+              ) : (
+                <View style={[S.editAvatar, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}>
+                  <Text style={S.avatarBigText}>{editForm.nickname?.[0]?.toUpperCase()}</Text>
+                </View>
+              )}
+              <Text style={S.changePhoto}>CHANGE PHOTO</Text>
             </TouchableOpacity>
-            <View>
-              <Text style={S.editLabel}>닉네임</Text>
-              <TextInput style={S.editInput} value={editForm.nickname}
-                onChangeText={t => setEditForm(p => ({ ...p, nickname: t }))} />
+
+            <View style={{ marginTop: 24 }}>
+              <Text style={S.inputLabel}>NICKNAME</Text>
+              <TextInput style={S.input} value={editForm.nickname}
+                onChangeText={t => setEditForm(f => ({ ...f, nickname: t }))}
+                placeholderTextColor={colors.textMuted} />
             </View>
-            <View>
-              <Text style={S.editLabel}>소개</Text>
-              <TextInput style={[S.editInput, { height: 80, textAlignVertical: 'top' }]}
-                value={editForm.bio} onChangeText={t => setEditForm(p => ({ ...p, bio: t }))}
-                multiline placeholder="여행에 대한 소개를 써주세요" placeholderTextColor="#9ca3af" />
-            </View>
-            <View>
-              <Text style={S.editLabel}>여행 성향</Text>
-              <View style={S.styleGrid}>
-                {TRAVEL_STYLES.map(s => {
-                  const active = editForm.preferredStyles.includes(s.key);
-                  return (
-                    <TouchableOpacity key={s.key} onPress={() => toggleStyle(s.key)}
-                      style={[S.styleBtn, active && S.styleBtnActive]}>
-                      <Text style={[S.styleBtnText, active && { color: '#4f46e5' }]}>
-                        {s.icon} {s.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+
+            <View style={{ marginTop: 18 }}>
+              <Text style={S.inputLabel}>BIO</Text>
+              <TextInput style={[S.input, { height: 80, textAlignVertical: 'top' }]} value={editForm.bio}
+                onChangeText={t => setEditForm(f => ({ ...f, bio: t }))}
+                placeholder="Tell us about yourself..."
+                placeholderTextColor={colors.textMuted}
+                multiline />
             </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
 
-      {/* 팔로워/팔로잉 모달 */}
-      <Modal visible={!!followModal} animationType="slide" transparent>
-        <View style={S.modalOverlay}>
-          <View style={S.modalContent}>
-            <View style={S.followModalHeader}>
-              <Text style={S.modalTitle}>{followModal}</Text>
-              <TouchableOpacity onPress={() => { setFollowModal(null); setFollowList([]); }}>
-                <Text style={S.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {followLoading ? (
-              <ActivityIndicator color="#FF5A5F" style={{ marginTop: 30 }} />
-            ) : followList.length === 0 ? (
-              <Text style={S.emptyText}>{followModal}가 없습니다.</Text>
-            ) : (
-              <ScrollView style={{ maxHeight: 400 }}>
-                {followList.map(u => (
-                  <View key={u.id} style={S.followItem}>
-                    {u.profileImage && typeof u.profileImage === 'string' && u.profileImage.trim() !== '' ? (
-                      <Image source={{ uri: toFullUrl(u.profileImage) }} style={S.followAvatar} />
-                    ) : (
-                      <View style={[S.followAvatar, { backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' }]}>
-                        <Text style={{ fontSize: 16, color: '#4f46e5', fontWeight: '700' }}>{(u.nickname || '?')[0].toUpperCase()}</Text>
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={S.followName}>{u.nickname}</Text>
-                      {u.bio ? <Text style={S.followBio} numberOfLines={1}>{u.bio}</Text> : null}
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
+      {/* Followers/Following Modal */}
+      <Modal visible={!!followModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFollowModal(null)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
+          <View style={S.modalHeader}>
+            <View style={{ width: 60 }} />
+            <Text style={S.modalTitle}>{followModal === 'followers' ? 'FOLLOWERS' : 'FOLLOWING'}</Text>
+            <TouchableOpacity onPress={() => setFollowModal(null)}>
+              <X size={20} color={colors.primary} strokeWidth={1.5} />
+            </TouchableOpacity>
           </View>
-        </View>
+          {followUsers.length === 0 ? (
+            <Text style={S.empty}>NO USERS</Text>
+          ) : (
+            <FlatList data={followUsers} keyExtractor={u => u.id}
+              contentContainerStyle={{ padding: 16 }}
+              renderItem={({ item }) => (
+                <View style={S.userRow}>
+                  {item.profileImage ? (
+                    <Image source={{ uri: toFullUrl(item.profileImage) }} style={S.userAvatar} />
+                  ) : (
+                    <View style={[S.userAvatar, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}>
+                      <Text style={{ fontFamily: 'Inter_600SemiBold', color: colors.primary }}>{item.nickname?.[0]?.toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.userName}>{item.nickname}</Text>
+                    {item.bio && <Text style={S.userBio} numberOfLines={1}>{item.bio}</Text>}
+                  </View>
+                </View>
+              )}
+            />
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  header: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  title: { fontSize: 20, fontWeight: '900', color: '#1a1a2e' },
-  logoutBtn: { fontSize: 13, color: '#ef4444', fontWeight: '600' },
-  profileCard: { backgroundColor: 'white', margin: 16, borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  avatarWrap: { marginBottom: 14 },
-  avatar: { width: 80, height: 80, borderRadius: 40 },
-  nickname: { fontSize: 20, fontWeight: '800', color: '#1a1a2e', marginBottom: 4 },
-  bio: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  styleTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 14 },
-  styleTag: { backgroundColor: '#eef2ff', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  styleTagText: { fontSize: 11, color: '#4f46e5', fontWeight: '700' },
-  statsRow: { flexDirection: 'row', width: '100%', borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 16, marginTop: 8, marginBottom: 16 },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  topTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2.5, color: colors.primary },
+  profileWrap: { alignItems: 'center', padding: 24, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  avatarBig: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: colors.primary, overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
+  avatarBigText: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 32, color: colors.primary },
+  nickname: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 22, color: colors.primary, letterSpacing: -0.5, marginBottom: 4 },
+  bio: { fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, textAlign: 'center', lineHeight: 18, maxWidth: 280 },
+  bioEmpty: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary },
+  stats: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, paddingTop: 20, borderTopWidth: 0.5, borderTopColor: colors.borderLight, width: '100%' },
   statItem: { flex: 1, alignItems: 'center' },
-  statCount: { fontSize: 20, fontWeight: '800', color: '#1a1a2e' },
-  statLabel: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
-  editBtn: { backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 },
-  editBtnText: { fontSize: 14, fontWeight: '700', color: '#374151' },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1a1a2e', marginHorizontal: 16, marginBottom: 10 },
-  empty: { textAlign: 'center', color: '#9ca3af', fontSize: 13, paddingVertical: 30, lineHeight: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 8 },
-  gridItem: { width: '47%', backgroundColor: 'white', borderRadius: 12, overflow: 'hidden' },
-  gridImage: { width: '100%', height: 120, resizeMode: 'cover' },
-  gridTitle: { padding: 8, fontSize: 12, fontWeight: '600', color: '#1a1a2e' },
-  editModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  photoBtn: { alignItems: 'center', gap: 8 },
-  editAvatar: { width: 80, height: 80, borderRadius: 40 },
-  photoBtnText: { fontSize: 14, color: '#4f46e5', fontWeight: '600' },
-  editLabel: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
-  editInput: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 14, fontSize: 14, color: '#1a1a2e' },
-  styleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  styleBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f3f4f6' },
-  styleBtnActive: { backgroundColor: '#eef2ff' },
-  styleBtnText: { fontSize: 13, color: '#6b7280', fontWeight: '600' },
-  pushRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  pushLabel: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  pushDesc: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, minHeight: 300 },
-  followModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e' },
-  modalClose: { fontSize: 22, color: '#9ca3af', padding: 4 },
-  followItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12, borderBottomWidth: 0.5, borderBottomColor: '#f5f5f5' },
-  followAvatar: { width: 44, height: 44, borderRadius: 22 },
-  followName: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
-  followBio: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  emptyText: { textAlign: 'center', color: '#9ca3af', marginTop: 30, fontSize: 14 },
+  statDivider: { width: 0.5, height: 32, backgroundColor: colors.borderLight },
+  statNum: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 20, color: colors.primary, marginBottom: 2 },
+  statLabel: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary },
+  pushToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 8, marginTop: 20, borderTopWidth: 0.5, borderTopColor: colors.borderLight, width: '100%' },
+  pushLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textSecondary },
+  switch: { width: 36, height: 20, borderRadius: 10, backgroundColor: colors.border, padding: 2 },
+  switchOn: { backgroundColor: colors.primary },
+  switchDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'white' },
+  switchDotOn: { marginLeft: 16 },
+  sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2 },
+  gridCell: { width: '33.2%', aspectRatio: 1 },
+  gridImg: { width: '100%', height: '100%' },
+  empty: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 2, color: colors.textTertiary, textAlign: 'center', marginTop: 60 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  modalTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2.5, color: colors.primary },
+  modalCancel: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
+  modalSave: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.5, color: colors.primary },
+  editAvatarWrap: { alignItems: 'center' },
+  editAvatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 10, overflow: 'hidden' },
+  changePhoto: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary },
+  inputLabel: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, marginBottom: 6 },
+  input: { fontFamily: 'Inter_400Regular', fontSize: 14, color: colors.textPrimary, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border },
+  userRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  userAvatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
+  userName: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: colors.primary },
+  userBio: { fontFamily: 'Inter_400Regular', fontSize: 11, color: colors.textTertiary, marginTop: 2 },
 });

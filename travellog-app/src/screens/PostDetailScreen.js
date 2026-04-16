@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { ArrowLeft, Heart, MessageSquare, Send, Bookmark, Play } from 'lucide-react-native';
+import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
 
@@ -20,7 +21,7 @@ function DetailVideo({ uri }) {
   return (
     <VideoView
       player={player}
-      style={{ width: '100%', height: 300 }}
+      style={{ width: '100%', height: 340 }}
       contentFit="cover"
       nativeControls={true}
     />
@@ -115,18 +116,16 @@ export default function PostDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={S.container}>
-      {/* 헤더 */}
       <View style={S.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={S.backBtn}>
-          <Text style={S.backIcon}>←</Text>
+          <ArrowLeft size={20} color={colors.primary} strokeWidth={1.5} />
         </TouchableOpacity>
-        <Text style={S.headerTitle} numberOfLines={1}>{post.title}</Text>
+        <Text style={S.headerTitle}>POST</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
         <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-          {/* 이미지 */}
           {post.images?.[0] && (
             toFullUrl(post.images[0])?.endsWith('.mp4') ? (
               <DetailVideo uri={toFullUrl(post.images[0])} />
@@ -136,63 +135,59 @@ export default function PostDetailScreen({ route, navigation }) {
           )}
 
           <View style={S.body}>
-            {/* 여행 스타일 */}
+            {(post.country || post.city) && (
+              <Text style={S.location}>{[post.city, post.country].filter(Boolean).join(' · ').toUpperCase()}</Text>
+            )}
+
+            <Text style={S.title}>{post.title}</Text>
+
+            <View style={S.authorRow}>
+              <View style={S.avatar}>
+                <Text style={S.avatarText}>{post.userNickname?.[0]?.toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={S.authorName}>{post.userNickname}</Text>
+                <Text style={S.authorDate}>{new Date(post.createdAt || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}</Text>
+              </View>
+            </View>
+
             {post.travelStyles?.length > 0 && (
               <View style={S.tags}>
                 {post.travelStyles.map((s, i) => (
                   <View key={`style-${i}`} style={S.tag}>
-                    <Text style={S.tagText}>{s}</Text>
+                    <Text style={S.tagText}>{s.toUpperCase()}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            {/* 제목 */}
-            <Text style={S.title}>{post.title}</Text>
-
-            {/* 작성자 */}
-            <View style={S.authorRow}>
-              <View style={S.avatar}>
-                <Text style={{ color: 'white', fontWeight: '800', fontSize: 14 }}>
-                  {post.userNickname?.[0]?.toUpperCase()}
-                </Text>
-              </View>
-              <View>
-                <Text style={S.authorName}>@{post.userNickname}</Text>
-                {(post.country || post.city) && (
-                  <Text style={S.location}>📍 {[post.city, post.country].filter(Boolean).join(', ')}</Text>
-                )}
-              </View>
-            </View>
-
-            {/* 내용 */}
             <Text style={S.content}>{post.content}</Text>
 
-            {/* 장소 */}
             {post.places?.length > 0 && (
               <View style={S.placesWrap}>
-                <Text style={S.placesTitle}>📍 방문 장소</Text>
+                <Text style={S.sectionLabel}>PLACES VISITED</Text>
                 {post.places.map((p, i) => (
                   <View key={i} style={S.placeItem}>
-                    <Text style={S.placeName}>{p.name}</Text>
-                    {p.address && <Text style={S.placeAddr}>{p.address}</Text>}
+                    <Text style={S.placeNum}>{String(i + 1).padStart(2, '0')}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={S.placeName}>{p.name}</Text>
+                      {p.address && <Text style={S.placeAddr}>{p.address}</Text>}
+                    </View>
                   </View>
                 ))}
               </View>
             )}
 
-            {/* 유튜브 링크 */}
             {post.youtubeUrl && (
               <View style={S.youtubeWrap}>
-                <Text style={S.youtubeIcon}>▶</Text>
+                <Play size={18} color={colors.primary} strokeWidth={1.5} fill={colors.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={S.youtubeLabel}>유튜브 영상</Text>
+                  <Text style={S.youtubeLabel}>VIDEO</Text>
                   {post.youtubeTitle && <Text style={S.youtubeTitle} numberOfLines={1}>{post.youtubeTitle}</Text>}
                 </View>
               </View>
             )}
 
-            {/* 태그 */}
             {post.tags?.length > 0 && (
               <View style={S.hashTags}>
                 {[...new Set(post.tags)].map((t, i) => (
@@ -201,42 +196,38 @@ export default function PostDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* 액션 버튼 */}
             <View style={S.actions}>
               <TouchableOpacity style={S.actionBtn} onPress={handleLike}>
-                <Text style={S.actionIcon}>{liked ? '❤️' : '🤍'}</Text>
-                <Text style={[S.actionText, liked && { color: '#ef4444' }]}>{post.likedUserIds?.length || 0}</Text>
+                <Heart size={22} color={liked ? colors.accent : colors.primary} fill={liked ? colors.accent : 'none'} strokeWidth={1.5} />
+                <Text style={S.actionCount}>{post.likedUserIds?.length || 0}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={S.actionBtn} onPress={handleWishlist}>
-                <Text style={S.actionIcon}>✈️</Text>
-                <Text style={[S.actionText, wishlisted && { color: '#4f46e5' }]}>{wishlisted ? '가고싶다✓' : '가고싶다'}</Text>
+                <Send size={22} color={wishlisted ? colors.primary : colors.textTertiary} strokeWidth={1.5} />
+                <Text style={S.actionLabel}>{wishlisted ? 'WISHED' : 'WISH'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={S.actionBtn} onPress={handleBookmark}>
-                <Text style={S.actionIcon}>{bookmarked ? '🔖' : '🔖'}</Text>
-                <Text style={[S.actionText, bookmarked && { color: '#4f46e5' }]}>{bookmarked ? '저장됨' : '저장'}</Text>
+                <Bookmark size={22} color={bookmarked ? colors.primary : colors.textTertiary} fill={bookmarked ? colors.primary : 'none'} strokeWidth={1.5} />
+                <Text style={S.actionLabel}>{bookmarked ? 'SAVED' : 'SAVE'}</Text>
               </TouchableOpacity>
             </View>
 
-            {/* 댓글 목록 */}
             <View style={S.commentsWrap}>
-              <Text style={S.commentsTitle}>💬 댓글 {post.comments?.length || 0}개</Text>
+              <Text style={S.sectionLabel}>COMMENTS ({post.comments?.length || 0})</Text>
               {post.comments?.length === 0 && (
-                <Text style={S.emptyComment}>첫 번째 댓글을 남겨보세요!</Text>
+                <Text style={S.emptyComment}>BE THE FIRST TO COMMENT</Text>
               )}
               {post.comments?.map((c, i) => (
                 <View key={`comment-${i}`} style={S.commentItem}>
                   <View style={S.commentAvatar}>
-                    <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>
-                      {c.userNickname?.[0]?.toUpperCase()}
-                    </Text>
+                    <Text style={S.commentAvatarText}>{c.userNickname?.[0]?.toUpperCase()}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={S.commentUser}>@{c.userNickname}</Text>
+                    <Text style={S.commentUser}>{c.userNickname}</Text>
                     <Text style={S.commentContent}>{c.content}</Text>
                   </View>
                   {c.userId === user?.id && (
-                    <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ padding: 4 }}>
-                      <Text style={{ fontSize: 12, color: '#ef4444' }}>삭제</Text>
+                    <TouchableOpacity onPress={() => deleteComment(c.id)}>
+                      <Text style={S.deleteBtn}>DELETE</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -245,18 +236,15 @@ export default function PostDetailScreen({ route, navigation }) {
           </View>
         </ScrollView>
 
-        {/* 댓글 입력창 */}
         <View style={S.commentInput}>
           <View style={S.commentAvatar}>
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: '700' }}>
-              {user?.nickname?.[0]?.toUpperCase()}
-            </Text>
+            <Text style={S.commentAvatarText}>{user?.nickname?.[0]?.toUpperCase()}</Text>
           </View>
-          <TextInput style={S.commentBox} placeholder="댓글을 입력하세요..." placeholderTextColor="#9ca3af"
+          <TextInput style={S.commentBox} placeholder="Add a comment..." placeholderTextColor={colors.textMuted}
             value={comment} onChangeText={setComment} multiline maxLength={200} />
           <TouchableOpacity style={[S.sendBtn, !comment.trim() && { opacity: 0.4 }]}
             onPress={submitComment} disabled={!comment.trim() || submitting}>
-            <Text style={S.sendText}>전송</Text>
+            <Text style={S.sendText}>SEND</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -265,46 +253,48 @@ export default function PostDetailScreen({ route, navigation }) {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  backIcon: { fontSize: 22, color: '#4f46e5', fontWeight: '700' },
-  headerTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1a1a2e', textAlign: 'center' },
-  image: { width: '100%', height: 280, resizeMode: 'cover' },
-  body: { padding: 18 },
-  tags: { flexDirection: 'row', gap: 6, marginBottom: 10, flexWrap: 'wrap' },
-  tag: { backgroundColor: '#eef2ff', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  tagText: { fontSize: 11, color: '#4f46e5', fontWeight: '700' },
-  title: { fontSize: 22, fontWeight: '900', color: '#1a1a2e', marginBottom: 14, lineHeight: 28 },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' },
-  authorName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  location: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  content: { fontSize: 15, color: '#374151', lineHeight: 24, marginBottom: 20 },
-  placesWrap: { backgroundColor: '#f9fafb', borderRadius: 14, padding: 14, marginBottom: 16 },
-  placesTitle: { fontSize: 13, fontWeight: '800', color: '#1a1a2e', marginBottom: 10 },
-  placeItem: { paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  placeName: { fontSize: 13, fontWeight: '700', color: '#374151' },
-  placeAddr: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
-  youtubeWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fef2f2', borderRadius: 12, padding: 12, marginBottom: 14 },
-  youtubeIcon: { fontSize: 20, color: '#dc2626' },
-  youtubeLabel: { fontSize: 11, fontWeight: '700', color: '#dc2626' },
-  youtubeTitle: { fontSize: 12, color: '#6b7280' },
-  hashTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 20 },
-  hashTag: { fontSize: 13, color: '#4f46e5', fontWeight: '600' },
-  actions: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#f0f0f0', marginBottom: 24 },
-  actionBtn: { alignItems: 'center', gap: 4 },
-  actionIcon: { fontSize: 24 },
-  actionText: { fontSize: 11, color: '#9ca3af', fontWeight: '600' },
-  commentsWrap: { gap: 14, paddingBottom: 20 },
-  commentsTitle: { fontSize: 15, fontWeight: '800', color: '#1a1a2e' },
-  emptyComment: { fontSize: 13, color: '#9ca3af', textAlign: 'center', paddingVertical: 20 },
-  commentItem: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  commentUser: { fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 2 },
-  commentContent: { fontSize: 13, color: '#6b7280', lineHeight: 18 },
-  commentInput: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0', backgroundColor: 'white' },
-  commentBox: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 14, color: '#1a1a2e', maxHeight: 80 },
-  sendBtn: { backgroundColor: '#4f46e5', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
-  sendText: { color: 'white', fontSize: 13, fontWeight: '700' },
+  headerTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2.5, color: colors.primary },
+  image: { width: '100%', height: 340, resizeMode: 'cover' },
+  body: { padding: 20 },
+  location: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary, marginBottom: 8 },
+  title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 24, color: colors.primary, letterSpacing: -0.5, lineHeight: 30, marginBottom: 18 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 14, paddingBottom: 14, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: colors.borderLight, marginBottom: 18 },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: colors.primary },
+  authorName: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: colors.primary },
+  authorDate: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 2 },
+  tags: { flexDirection: 'row', gap: 6, marginBottom: 14, flexWrap: 'wrap' },
+  tag: { borderWidth: 0.5, borderColor: colors.primary, paddingHorizontal: 8, paddingVertical: 3 },
+  tagText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 1.5, color: colors.primary },
+  content: { fontFamily: 'Inter_400Regular', fontSize: 14, color: colors.textPrimary, lineHeight: 24, marginBottom: 20 },
+  sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary, marginBottom: 12 },
+  placesWrap: { borderTopWidth: 0.5, borderTopColor: colors.borderLight, paddingTop: 18, marginBottom: 20 },
+  placeItem: { flexDirection: 'row', gap: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  placeNum: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 16, color: colors.textTertiary, width: 24 },
+  placeName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 14, color: colors.primary, lineHeight: 18 },
+  placeAddr: { fontFamily: 'Inter_400Regular', fontSize: 11, color: colors.textTertiary, marginTop: 2 },
+  youtubeWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 0.5, borderColor: colors.borderLight, padding: 12, marginBottom: 16 },
+  youtubeLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 2, color: colors.primary },
+  youtubeTitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  hashTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+  hashTag: { fontFamily: 'Inter_400Regular', fontSize: 12, color: colors.primary },
+  actions: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 18, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: colors.borderLight, marginBottom: 24 },
+  actionBtn: { alignItems: 'center', gap: 6 },
+  actionCount: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: colors.primary },
+  actionLabel: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary },
+  commentsWrap: { paddingBottom: 20 },
+  emptyComment: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary, textAlign: 'center', paddingVertical: 24 },
+  commentItem: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  commentAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  commentAvatarText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: colors.primary },
+  commentUser: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: colors.primary, marginBottom: 2 },
+  commentContent: { fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+  deleteBtn: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.accent },
+  commentInput: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderTopWidth: 0.5, borderTopColor: colors.borderLight, backgroundColor: colors.bgPrimary },
+  commentBox: { flex: 1, backgroundColor: colors.bgTertiary, borderRadius: 3, paddingHorizontal: 14, paddingVertical: 10, fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textPrimary, maxHeight: 80 },
+  sendBtn: { backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 3 },
+  sendText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: 'white' },
 });

@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { RefreshCw } from 'lucide-react-native';
+import { colors } from '../theme/colors';
 
 const CURRENCIES = [
-  { code: 'USD', name: '미국 달러', flag: '🇺🇸' },
-  { code: 'JPY', name: '일본 엔', flag: '🇯🇵' },
-  { code: 'EUR', name: '유로', flag: '🇪🇺' },
-  { code: 'CNY', name: '중국 위안', flag: '🇨🇳' },
-  { code: 'GBP', name: '영국 파운드', flag: '🇬🇧' },
-  { code: 'THB', name: '태국 바트', flag: '🇹🇭' },
-  { code: 'VND', name: '베트남 동', flag: '🇻🇳' },
-  { code: 'TWD', name: '대만 달러', flag: '🇹🇼' },
-  { code: 'SGD', name: '싱가포르 달러', flag: '🇸🇬' },
-  { code: 'AUD', name: '호주 달러', flag: '🇦🇺' },
-  { code: 'HKD', name: '홍콩 달러', flag: '🇭🇰' },
+  { code: 'USD', name: 'US Dollar', flag: '🇺🇸' },
+  { code: 'JPY', name: 'Japanese Yen', flag: '🇯🇵' },
+  { code: 'EUR', name: 'Euro', flag: '🇪🇺' },
+  { code: 'CNY', name: 'Chinese Yuan', flag: '🇨🇳' },
+  { code: 'GBP', name: 'British Pound', flag: '🇬🇧' },
+  { code: 'THB', name: 'Thai Baht', flag: '🇹🇭' },
+  { code: 'VND', name: 'Vietnamese Dong', flag: '🇻🇳' },
+  { code: 'TWD', name: 'Taiwan Dollar', flag: '🇹🇼' },
+  { code: 'SGD', name: 'Singapore Dollar', flag: '🇸🇬' },
+  { code: 'AUD', name: 'Australian Dollar', flag: '🇦🇺' },
+  { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰' },
 ];
 
 export default function ExchangeScreen() {
   const [amount, setAmount] = useState('10000');
-  const [from, setFrom] = useState('KRW');
   const [rates, setRates] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,36 +47,39 @@ export default function ExchangeScreen() {
     const rate = rates.rates[code];
     if (!rate) return '';
     const krwPer1 = (1 / rate).toFixed(2);
-    return `1 ${code} = ${Math.round(krwPer1).toLocaleString()}원`;
+    return `1 ${code} = ${Math.round(krwPer1).toLocaleString()} KRW`;
   };
 
   return (
     <SafeAreaView style={S.container}>
       <View style={S.header}>
-        <Text style={S.title}>💱 환율 계산</Text>
+        <View>
+          <Text style={S.title}>Exchange</Text>
+          <Text style={S.subtitle}>CURRENCY RATES</Text>
+        </View>
         <TouchableOpacity onPress={loadRates}>
-          <Text style={S.refresh}>🔄</Text>
+          <RefreshCw size={18} color={colors.primary} strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
 
       <View style={S.inputWrap}>
-        <Text style={S.inputLabel}>🇰🇷 원화 (KRW)</Text>
+        <Text style={S.inputLabel}>🇰🇷 KRW · SOUTH KOREAN WON</Text>
         <TextInput style={S.input} value={amount} onChangeText={setAmount}
-          keyboardType="numeric" placeholder="금액 입력"
-          placeholderTextColor="#9ca3af" />
+          keyboardType="numeric" placeholder="Enter amount"
+          placeholderTextColor={colors.textMuted} />
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#FF5A5F" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={S.list} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           {CURRENCIES.map(cur => (
             <View key={cur.code} style={S.rateCard}>
               <View style={S.rateLeft}>
                 <Text style={S.rateFlag}>{cur.flag}</Text>
                 <View>
                   <Text style={S.rateName}>{cur.code}</Text>
-                  <Text style={S.rateFullName}>{cur.name}</Text>
+                  <Text style={S.rateFullName}>{cur.name.toUpperCase()}</Text>
                 </View>
               </View>
               <View style={S.rateRight}>
@@ -91,20 +95,19 @@ export default function ExchangeScreen() {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  header: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  title: { fontSize: 20, fontWeight: '900', color: '#1a1a2e' },
-  refresh: { fontSize: 22 },
-  inputWrap: { backgroundColor: 'white', padding: 16, margin: 16, borderRadius: 16 },
-  inputLabel: { fontSize: 13, fontWeight: '700', color: '#6b7280', marginBottom: 8 },
-  input: { fontSize: 28, fontWeight: '800', color: '#1a1a2e', borderBottomWidth: 2, borderBottomColor: '#FF5A5F', paddingBottom: 8 },
-  list: { padding: 16, gap: 8, paddingBottom: 30 },
-  rateCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', borderRadius: 14, padding: 16 },
-  rateLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 26, color: colors.primary, letterSpacing: -0.8, marginBottom: 2 },
+  subtitle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, textTransform: 'uppercase' },
+  inputWrap: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  inputLabel: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, marginBottom: 8 },
+  input: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 32, color: colors.primary, letterSpacing: -0.8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.primary },
+  rateCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  rateLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   rateFlag: { fontSize: 28 },
-  rateName: { fontSize: 15, fontWeight: '800', color: '#1a1a2e' },
-  rateFullName: { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  rateName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 18, color: colors.primary, letterSpacing: -0.3 },
+  rateFullName: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 2 },
   rateRight: { alignItems: 'flex-end' },
-  rateValue: { fontSize: 17, fontWeight: '800', color: '#FF5A5F' },
-  rateInfo: { fontSize: 10, color: '#9ca3af', marginTop: 2 },
+  rateValue: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 18, color: colors.primary },
+  rateInfo: { fontFamily: 'Inter_400Regular', fontSize: 10, color: colors.textTertiary, marginTop: 2 },
 });

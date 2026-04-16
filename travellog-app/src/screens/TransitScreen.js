@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
 
 const CITIES = [
-  { name: '서울', id: 'seoul', flag: '🇰🇷' },
-  { name: '도쿄', id: 'tokyo', flag: '🇯🇵' },
-  { name: '오사카', id: 'osaka', flag: '🇯🇵' },
-  { name: '방콕', id: 'bangkok', flag: '🇹🇭' },
-  { name: '싱가포르', id: 'singapore', flag: '🇸🇬' },
-  { name: '홍콩', id: 'hongkong', flag: '🇭🇰' },
-  { name: '파리', id: 'paris', flag: '🇫🇷' },
-  { name: '런던', id: 'london', flag: '🇬🇧' },
-  { name: '뉴욕', id: 'newyork', flag: '🇺🇸' },
-  { name: '바르셀로나', id: 'barcelona', flag: '🇪🇸' },
+  { name: 'Seoul', id: 'seoul', flag: '🇰🇷' },
+  { name: 'Tokyo', id: 'tokyo', flag: '🇯🇵' },
+  { name: 'Osaka', id: 'osaka', flag: '🇯🇵' },
+  { name: 'Bangkok', id: 'bangkok', flag: '🇹🇭' },
+  { name: 'Singapore', id: 'singapore', flag: '🇸🇬' },
+  { name: 'Hong Kong', id: 'hongkong', flag: '🇭🇰' },
+  { name: 'Paris', id: 'paris', flag: '🇫🇷' },
+  { name: 'London', id: 'london', flag: '🇬🇧' },
+  { name: 'New York', id: 'newyork', flag: '🇺🇸' },
+  { name: 'Barcelona', id: 'barcelona', flag: '🇪🇸' },
 ];
 
 export default function TransitScreen() {
@@ -23,7 +24,7 @@ export default function TransitScreen() {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedLine, setExpandedLine] = useState(null);
-  const [tab, setTab] = useState('lines');
+  const [tab, setTab] = useState('route');
   const [fromText, setFromText] = useState('');
   const [toText, setToText] = useState('');
   const [routeResult, setRouteResult] = useState(null);
@@ -84,323 +85,228 @@ export default function TransitScreen() {
     );
 
     if (!fromStation || !toStation) {
-      setRouteResult({ error: true, message: '역을 찾을 수 없어요.' });
+      setRouteResult({ error: 'STATION NOT FOUND' });
       setSearching(false);
       return;
     }
 
-    // BFS with line tracking
-    const queue = [{ stationId: fromStation.id, path: [{ stationId: fromStation.id, lineId: null }] }];
-    const visited = new Set([fromStation.id]);
-    let found = null;
+    const graph = {};
+    connections.forEach(c => {
+      if (!graph[c.fromStationId]) graph[c.fromStationId] = [];
+      if (!graph[c.toStationId]) graph[c.toStationId] = [];
+      graph[c.fromStationId].push({ to: c.toStationId, lineId: c.lineId, time: c.travelTime || 2 });
+      graph[c.toStationId].push({ to: c.fromStationId, lineId: c.lineId, time: c.travelTime || 2 });
+    });
 
-    while (queue.length > 0 && !found) {
-      const { stationId, path } = queue.shift();
-      if (stationId === toStation.id) { found = path; break; }
+    const distances = {};
+    const prev = {};
+    const pq = [{ station: fromStation.id, dist: 0 }];
+    distances[fromStation.id] = 0;
 
-      const neighbors = connections.filter(c => c.fromStationId === stationId && !c.isTransfer);
-      for (const n of neighbors) {
-        if (!visited.has(n.toStationId)) {
-          visited.add(n.toStationId);
-          queue.push({
-            stationId: n.toStationId,
-            path: [...path, { stationId: n.toStationId, lineId: n.lineId }],
-          });
+    while (pq.length > 0) {
+      pq.sort((a, b) => a.dist - b.dist);
+      const current = pq.shift();
+      if (current.station === toStation.id) break;
+      (graph[current.station] || []).forEach(neighbor => {
+        const newDist = current.dist + neighbor.time;
+        if (!distances[neighbor.to] || newDist < distances[neighbor.to]) {
+          distances[neighbor.to] = newDist;
+          prev[neighbor.to] = { from: current.station, lineId: neighbor.lineId };
+          pq.push({ station: neighbor.to, dist: newDist });
         }
-      }
-      // Also check transfer connections
-      const transfers = connections.filter(c => c.fromStationId === stationId && c.isTransfer);
-      for (const t of transfers) {
-        if (!visited.has(t.toStationId)) {
-          visited.add(t.toStationId);
-          queue.push({
-            stationId: t.toStationId,
-            path: [...path, { stationId: t.toStationId, lineId: t.lineId, isTransfer: true }],
-          });
-        }
-      }
-    }
-
-    if (found) {
-      // Build segments grouped by line
-      const segments = [];
-      let currentSeg = null;
-      for (let i = 0; i < found.length; i++) {
-        const step = found[i];
-        const station = stationMap[step.stationId];
-        if (i === 0) {
-          currentSeg = { lineId: found[1]?.lineId, stations: [station] };
-          continue;
-        }
-        if (step.isTransfer || (currentSeg && step.lineId !== currentSeg.lineId)) {
-          segments.push(currentSeg);
-          if (step.isTransfer) {
-            segments.push({ isTransfer: true, station: stationMap[found[i - 1]?.stationId] });
-          }
-          currentSeg = { lineId: step.lineId, stations: [station] };
-        } else {
-          currentSeg.stations.push(station);
-        }
-      }
-      if (currentSeg) segments.push(currentSeg);
-
-      let totalTime = 0;
-      let transfers = 0;
-      for (let i = 1; i < found.length; i++) {
-        const conn = connections.find(c =>
-          c.fromStationId === found[i - 1].stationId && c.toStationId === found[i].stationId
-        );
-        if (conn) totalTime += conn.travelTime || 2;
-        if (found[i].isTransfer) transfers++;
-      }
-
-      setRouteResult({
-        from: stationMap[fromStation.id],
-        to: stationMap[toStation.id],
-        totalTime,
-        transfers,
-        totalStops: found.length,
-        segments,
-        lineMap,
       });
-    } else {
-      setRouteResult({ error: true, message: '경로를 찾을 수 없어요.' });
     }
+
+    if (!distances[toStation.id]) {
+      setRouteResult({ error: 'NO ROUTE FOUND' });
+      setSearching(false);
+      return;
+    }
+
+    const path = [];
+    let curr = toStation.id;
+    while (curr) {
+      path.unshift({ stationId: curr, ...(prev[curr] || {}) });
+      curr = prev[curr]?.from;
+    }
+
+    setRouteResult({
+      totalTime: distances[toStation.id],
+      path,
+      stationMap,
+      lineMap,
+      from: fromStation,
+      to: toStation,
+    });
     setSearching(false);
-  };
-
-  const getLineColor = (lineId) => {
-    const line = lines.find(l => l.id === lineId);
-    return line?.color || '#6b7280';
-  };
-
-  const getLineName = (lineId) => {
-    const line = lines.find(l => l.id === lineId);
-    return line?.nameKo || lineId;
   };
 
   return (
     <SafeAreaView style={S.container}>
       <View style={S.header}>
-        <Text style={S.title}>🚇 교통</Text>
+        <Text style={S.title}>Transit</Text>
+        <Text style={S.subtitle}>METRO · SUBWAY</Text>
       </View>
 
-      <ScrollView contentContainerStyle={S.content} showsVerticalScrollIndicator={false}>
-        {/* 도시 선택 */}
-        <View style={S.citySection}>
-          <View style={S.cityGrid}>
-            {CITIES.map(city => (
-              <TouchableOpacity key={city.id} style={[S.cityBtn, selectedCity?.id === city.id && S.cityBtnActive]}
-                onPress={() => loadCity(city)}>
-                <Text style={S.cityFlag}>{city.flag}</Text>
-                <Text style={[S.cityName, selectedCity?.id === city.id && S.cityNameActive]}>{city.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={S.cities}>
+        {CITIES.map(city => (
+          <TouchableOpacity key={city.id}
+            style={[S.cityBtn, selectedCity?.id === city.id && S.cityBtnActive]}
+            onPress={() => loadCity(city)}>
+            <Text style={{ fontSize: 16 }}>{city.flag}</Text>
+            <Text style={[S.cityText, selectedCity?.id === city.id && S.cityTextActive]}>
+              {city.name.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {!selectedCity ? (
+        <View style={S.empty}>
+          <Text style={S.emptyTitle}>SELECT A CITY</Text>
+          <Text style={S.emptyDesc}>CHOOSE YOUR DESTINATION</Text>
         </View>
+      ) : loading ? (
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
+      ) : (
+        <>
+          <View style={S.tabs}>
+            <TouchableOpacity style={[S.tab, tab === 'route' && S.tabActive]} onPress={() => setTab('route')}>
+              <Text style={[S.tabText, tab === 'route' && S.tabTextActive]}>ROUTE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[S.tab, tab === 'lines' && S.tabActive]} onPress={() => setTab('lines')}>
+              <Text style={[S.tabText, tab === 'lines' && S.tabTextActive]}>LINES</Text>
+            </TouchableOpacity>
+          </View>
 
-        {loading && <ActivityIndicator color="#FF5A5F" size="large" style={{ marginTop: 20 }} />}
-
-        {selectedCity && !loading && (
-          <>
-            {/* 탭 */}
-            <View style={S.tabs}>
-              <TouchableOpacity style={[S.tabBtn, tab === 'search' && S.tabBtnActive]}
-                onPress={() => setTab('search')}>
-                <Text style={[S.tabText, tab === 'search' && S.tabTextActive]}>🔍 경로 찾기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[S.tabBtn, tab === 'lines' && S.tabBtnActive]}
-                onPress={() => setTab('lines')}>
-                <Text style={[S.tabText, tab === 'lines' && S.tabTextActive]}>🚇 노선별</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 경로 검색 */}
-            {tab === 'search' && (
-              <View style={S.searchCard}>
-                <View style={S.searchRow}>
-                  <View style={S.inputWrap}>
-                    <Text style={S.inputLabel}>출발</Text>
-                    <TextInput style={S.searchInput} placeholder="출발역"
-                      placeholderTextColor="#9ca3af" value={fromText} onChangeText={setFromText} />
-                  </View>
-                  <Text style={S.arrowIcon}>→</Text>
-                  <View style={S.inputWrap}>
-                    <Text style={S.inputLabel}>도착</Text>
-                    <TextInput style={S.searchInput} placeholder="도착역"
-                      placeholderTextColor="#9ca3af" value={toText} onChangeText={setToText} />
-                  </View>
+          {tab === 'route' && (
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              <Text style={S.sectionLabel}>{selectedCity.name.toUpperCase()} · FIND ROUTE</Text>
+              <View style={{ gap: 12, marginTop: 14 }}>
+                <View>
+                  <Text style={S.fieldLabel}>FROM</Text>
+                  <TextInput style={S.input} value={fromText}
+                    onChangeText={setFromText}
+                    placeholder="Departure station"
+                    placeholderTextColor={colors.textMuted} />
                 </View>
-                <TouchableOpacity style={S.searchBtn} onPress={searchRoute}
-                  disabled={!fromText.trim() || !toText.trim() || searching}>
+                <View>
+                  <Text style={S.fieldLabel}>TO</Text>
+                  <TextInput style={S.input} value={toText}
+                    onChangeText={setToText}
+                    placeholder="Arrival station"
+                    placeholderTextColor={colors.textMuted} />
+                </View>
+                <TouchableOpacity style={S.searchBtn} onPress={searchRoute} disabled={searching}>
                   {searching
                     ? <ActivityIndicator color="white" />
-                    : <Text style={S.searchBtnText}>경로 검색</Text>
-                  }
+                    : <Text style={S.searchBtnText}>FIND ROUTE</Text>}
                 </TouchableOpacity>
+              </View>
 
-                {routeResult && (
-                  <View style={S.routeResult}>
-                    {routeResult.error ? (
-                      <Text style={S.errorText}>{routeResult.message}</Text>
-                    ) : (
-                      <>
-                        <View style={S.routeSummary}>
-                          <View style={S.summaryTag}>
-                            <Text style={S.summaryTagText}>⏱ {routeResult.totalTime}분</Text>
-                          </View>
-                          <View style={S.summaryTag}>
-                            <Text style={S.summaryTagText}>🔄 환승 {routeResult.transfers}회</Text>
-                          </View>
-                          <View style={S.summaryTag}>
-                            <Text style={S.summaryTagText}>🚉 {routeResult.totalStops}정거장</Text>
+              {routeResult?.error && (
+                <Text style={S.errorText}>{routeResult.error}</Text>
+              )}
+
+              {routeResult && !routeResult.error && (
+                <View style={S.resultWrap}>
+                  <Text style={S.resultTime}>{routeResult.totalTime} MIN</Text>
+                  <Text style={S.resultSub}>{routeResult.path.length - 1} STOPS</Text>
+                  <View style={S.routeList}>
+                    {routeResult.path.map((p, i) => {
+                      const st = routeResult.stationMap[p.stationId];
+                      const ln = p.lineId ? routeResult.lineMap[p.lineId] : null;
+                      return (
+                        <View key={p.stationId} style={S.routeStep}>
+                          <View style={S.routeDot} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={S.routeStation}>{st?.nameKo || st?.nameEn || p.stationId}</Text>
+                            {ln && <Text style={S.routeLine}>{ln.nameKo || ln.nameEn}</Text>}
                           </View>
                         </View>
-
-                        <Text style={S.routeTitle}>상세 경로</Text>
-                        {routeResult.segments.map((seg, i) => {
-                          if (seg.isTransfer) {
-                            return (
-                              <View key={'t' + i} style={S.transferRow}>
-                                <Text style={S.transferText}>🔄 환승</Text>
-                              </View>
-                            );
-                          }
-                          const color = getLineColor(seg.lineId);
-                          return (
-                            <View key={i} style={S.segmentWrap}>
-                              <View style={S.segmentHeader}>
-                                <View style={[S.segLineBadge, { backgroundColor: color }]}>
-                                  <Text style={S.segLineName}>{getLineName(seg.lineId)}</Text>
-                                </View>
-                                <Text style={S.segStopCount}>{seg.stations?.length || 0}정거장</Text>
-                              </View>
-                              <View style={S.segStations}>
-                                {seg.stations?.map((st, j) => (
-                                  <View key={j} style={S.segStationRow}>
-                                    <View style={[S.segDot, { backgroundColor: color }]} />
-                                    {j < seg.stations.length - 1 && (
-                                      <View style={[S.segLine, { backgroundColor: color }]} />
-                                    )}
-                                    <Text style={[S.segStationName,
-                                      (j === 0 || j === seg.stations.length - 1) && S.segStationBold
-                                    ]}>
-                                      {st?.nameKo || st?.name}
-                                    </Text>
-                                    {st?.isTransfer === 1 && <Text style={S.transferBadge}>환승</Text>}
-                                  </View>
-                                ))}
-                              </View>
-                            </View>
-                          );
-                        })}
-                      </>
-                    )}
+                      );
+                    })}
                   </View>
-                )}
-              </View>
-            )}
+                </View>
+              )}
+            </ScrollView>
+          )}
 
-            {/* 노선별 */}
-            {tab === 'lines' && (
-              <View style={S.lineSection}>
-                <Text style={S.sectionTitle}>{selectedCity.flag} {selectedCity.name} 노선 ({lines.length}개)</Text>
-                {lines.map((line, i) => {
-                  const lineId = line.id;
-                  const lineStations = getLineStations(lineId);
-                  const isOpen = expandedLine === lineId;
-                  const color = line.color || '#6b7280';
-                  return (
-                    <View key={i}>
-                      <TouchableOpacity style={[S.lineCard, { borderLeftWidth: 4, borderLeftColor: color }]}
-                        onPress={() => setExpandedLine(isOpen ? null : lineId)}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={S.lineName}>{line.nameKo || line.name}</Text>
-                          <Text style={S.lineStationsText}>{lineStations.length}개 역</Text>
-                        </View>
-                        <Text style={{ fontSize: 16, color: '#9ca3af' }}>{isOpen ? '▲' : '▼'}</Text>
-                      </TouchableOpacity>
-                      {isOpen && lineStations.length > 0 && (
-                        <View style={S.stationList}>
-                          {lineStations.map((st, j) => (
-                            <View key={j} style={S.stationItem}>
-                              <View style={[S.stationDot, { backgroundColor: color }]} />
-                              {j < lineStations.length - 1 && (
-                                <View style={[S.stationLine, { backgroundColor: color }]} />
-                              )}
-                              <Text style={S.stationName}>{st.nameKo || st.name}</Text>
-                              {st.isTransfer === 1 && (
-                                <Text style={S.transferBadge}>환승</Text>
-                              )}
-                            </View>
-                          ))}
-                        </View>
-                      )}
+          {tab === 'lines' && (
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              {lines.map(line => {
+                const expanded = expandedLine === line.id;
+                const lineStations = expanded ? getLineStations(line.id) : [];
+                return (
+                  <TouchableOpacity key={line.id} style={S.lineCard} activeOpacity={0.9}
+                    onPress={() => setExpandedLine(expanded ? null : line.id)}>
+                    <View style={S.lineHeader}>
+                      <View style={[S.lineBadge, { backgroundColor: line.color || colors.primary }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={S.lineName}>{line.nameKo || line.nameEn}</Text>
+                        {line.nameEn && line.nameKo && <Text style={S.lineNameEn}>{line.nameEn.toUpperCase()}</Text>}
+                      </View>
+                      <Text style={S.chevron}>{expanded ? '−' : '+'}</Text>
                     </View>
-                  );
-                })}
-              </View>
-            )}
-          </>
-        )}
-      </ScrollView>
+                    {expanded && (
+                      <View style={S.stationList}>
+                        {lineStations.map(s => (
+                          <Text key={s.id} style={S.stationName}>
+                            {s.nameKo || s.nameEn}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </>
+      )}
     </SafeAreaView>
   );
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  header: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  title: { fontSize: 20, fontWeight: '900', color: '#1a1a2e' },
-  content: { padding: 16, gap: 12, paddingBottom: 30 },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1a1a2e', marginBottom: 12 },
-  citySection: { backgroundColor: 'white', borderRadius: 16, padding: 16 },
-  cityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  cityBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f3f4f6', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cityBtnActive: { backgroundColor: '#fff5f5', borderWidth: 1.5, borderColor: '#FF5A5F' },
-  cityFlag: { fontSize: 18 },
-  cityName: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
-  cityNameActive: { color: '#FF5A5F', fontWeight: '700' },
-  tabs: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 12, padding: 4 },
-  tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  tabBtnActive: { backgroundColor: '#fff5f5' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#9ca3af' },
-  tabTextActive: { color: '#FF5A5F', fontWeight: '700' },
-  searchCard: { backgroundColor: 'white', borderRadius: 16, padding: 16 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  inputWrap: { flex: 1 },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: '#FF5A5F', marginBottom: 4 },
-  searchInput: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 12, fontSize: 14, color: '#1a1a2e' },
-  arrowIcon: { fontSize: 18, color: '#FF5A5F', fontWeight: '700', marginTop: 16 },
-  searchBtn: { backgroundColor: '#FF5A5F', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 12 },
-  searchBtnText: { color: 'white', fontSize: 15, fontWeight: '800' },
-  routeResult: { marginTop: 16 },
-  routeSummary: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  summaryTag: { backgroundColor: '#fff5f5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  summaryTagText: { fontSize: 12, fontWeight: '700', color: '#FF5A5F' },
-  routeTitle: { fontSize: 14, fontWeight: '800', color: '#1a1a2e', marginBottom: 12 },
-  segmentWrap: { marginBottom: 12 },
-  segmentHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  segLineBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  segLineName: { fontSize: 12, fontWeight: '800', color: 'white' },
-  segStopCount: { fontSize: 11, color: '#9ca3af' },
-  segStations: { paddingLeft: 8 },
-  segStationRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, position: 'relative' },
-  segDot: { width: 10, height: 10, borderRadius: 5, zIndex: 1 },
-  segLine: { position: 'absolute', left: 4, top: 14, width: 2, height: 20 },
-  segStationName: { fontSize: 13, color: '#6b7280' },
-  segStationBold: { fontWeight: '700', color: '#1a1a2e' },
-  transferRow: { paddingVertical: 8, paddingLeft: 8, marginBottom: 4 },
-  transferText: { fontSize: 12, color: '#FF5A5F', fontWeight: '700' },
-  errorText: { fontSize: 13, color: '#ef4444', textAlign: 'center', paddingVertical: 16 },
-  lineSection: { backgroundColor: 'white', borderRadius: 16, padding: 16 },
-  lineCard: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingLeft: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  lineName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  lineStationsText: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
-  stationList: { paddingLeft: 24, paddingBottom: 12 },
-  stationItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, position: 'relative' },
-  stationDot: { width: 10, height: 10, borderRadius: 5, zIndex: 1 },
-  stationLine: { position: 'absolute', left: 4, top: 15, width: 2, height: 20 },
-  stationName: { fontSize: 13, color: '#374151' },
-  transferBadge: { fontSize: 10, color: '#FF5A5F', fontWeight: '700', backgroundColor: '#fff5f5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 26, color: colors.primary, letterSpacing: -0.8, marginBottom: 2 },
+  subtitle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, textTransform: 'uppercase' },
+  cities: { paddingHorizontal: 20, paddingVertical: 14, gap: 10 },
+  cityBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: colors.border },
+  cityBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  cityText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
+  cityTextActive: { color: 'white' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2, color: colors.textSecondary },
+  emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 11, color: colors.textTertiary, letterSpacing: 1 },
+  tabs: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 4, gap: 20, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  tab: { paddingVertical: 10 },
+  tabActive: { borderBottomWidth: 1, borderBottomColor: colors.primary },
+  tabText: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
+  tabTextActive: { fontFamily: 'Inter_600SemiBold', color: colors.primary },
+  sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary },
+  fieldLabel: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, marginBottom: 4 },
+  input: { fontFamily: 'Inter_400Regular', fontSize: 14, color: colors.textPrimary, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border },
+  searchBtn: { backgroundColor: colors.primary, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
+  searchBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 3, color: 'white' },
+  errorText: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.accent, textAlign: 'center', marginTop: 20 },
+  resultWrap: { marginTop: 24, paddingTop: 24, borderTopWidth: 0.5, borderTopColor: colors.borderLight },
+  resultTime: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 36, color: colors.primary, letterSpacing: -1 },
+  resultSub: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.textTertiary, marginTop: 4 },
+  routeList: { marginTop: 20, gap: 14 },
+  routeStep: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  routeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 5 },
+  routeStation: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 14, color: colors.primary },
+  routeLine: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1, color: colors.textTertiary, marginTop: 2 },
+  lineCard: { marginBottom: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  lineHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lineBadge: { width: 8, height: 24 },
+  lineName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 15, color: colors.primary },
+  lineNameEn: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 2 },
+  chevron: { fontFamily: 'Inter_400Regular', fontSize: 20, color: colors.textTertiary },
+  stationList: { marginTop: 12, paddingLeft: 20, gap: 8 },
+  stationName: { fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary },
 });

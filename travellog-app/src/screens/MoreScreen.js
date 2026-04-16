@@ -1,11 +1,13 @@
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Compass, Calendar, Train, Coins, ChevronRight } from 'lucide-react-native';
+import { colors } from '../theme/colors';
 
 const MENU_ITEMS = [
-  { key: 'NearbyPage', icon: '📍', label: '내 주변', desc: '주변 게시물 & 저장 장소 알림' },
-  { key: 'PlannerPage', icon: '🗺️', label: '일정', desc: '여행 일정 관리 & 코스 추천' },
-  { key: 'TransitPage', icon: '🚇', label: '교통', desc: '지하철 노선도 & 경로 검색' },
-  { key: 'ExchangePage', icon: '💱', label: '환율', desc: '실시간 환율 계산' },
+  { key: 'NearbyPage', Icon: Compass, label: 'Nearby', desc: 'DISCOVER AROUND YOU' },
+  { key: 'PlannerPage', Icon: Calendar, label: 'Planner', desc: 'CREATE YOUR JOURNEY' },
+  { key: 'TransitPage', Icon: Train, label: 'Transit', desc: 'METRO · SUBWAY' },
+  { key: 'ExchangePage', Icon: Coins, label: 'Exchange', desc: 'CURRENCY RATES' },
 ];
 
 export default function MoreScreen({ user }) {
@@ -14,27 +16,27 @@ export default function MoreScreen({ user }) {
   return (
     <SafeAreaView style={S.container}>
       <View style={S.header}>
-        <Text style={S.title}>더보기</Text>
+        <Text style={S.title}>More</Text>
+        <Text style={S.subtitle}>TOOLS & UTILITIES</Text>
       </View>
-      <ScrollView contentContainerStyle={S.list}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8 }}>
         {MENU_ITEMS.map(item => (
           <TouchableOpacity key={item.key} style={S.menuItem} activeOpacity={0.7}
             onPress={() => navigation.navigate(item.key)}>
-            <View style={S.menuIcon}>
-              <Text style={{ fontSize: 24 }}>{item.icon}</Text>
-            </View>
+            <item.Icon size={20} color={colors.primary} strokeWidth={1.5} />
             <View style={S.menuText}>
               <Text style={S.menuLabel}>{item.label}</Text>
               <Text style={S.menuDesc}>{item.desc}</Text>
             </View>
-            <Text style={S.arrow}>›</Text>
+            <ChevronRight size={16} color={colors.textTertiary} strokeWidth={1.5} />
           </TouchableOpacity>
         ))}
 
         <View style={S.appInfo}>
-          <Text style={S.appName}>Travellog</Text>
-          <Text style={S.appVersion}>v1.0.0</Text>
-          <Text style={S.appCopy}>일상이 여행이다.</Text>
+          <Text style={S.appName}>Spagenio</Text>
+          <Text style={S.appTag}>TRAVEL</Text>
+          <Text style={S.appVersion}>VERSION 1.0.0</Text>
+          <Text style={S.appCopy}>EVERY DAY IS A JOURNEY</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -42,18 +44,17 @@ export default function MoreScreen({ user }) {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  header: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  title: { fontSize: 20, fontWeight: '900', color: '#1a1a2e' },
-  list: { padding: 16, gap: 8 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 14, padding: 16, gap: 14 },
-  menuIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff5f5', justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 26, color: colors.primary, letterSpacing: -0.8, marginBottom: 2 },
+  subtitle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, textTransform: 'uppercase' },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18, gap: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
   menuText: { flex: 1 },
-  menuLabel: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
-  menuDesc: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
-  arrow: { fontSize: 20, color: '#d1d5db' },
-  appInfo: { alignItems: 'center', paddingTop: 30, gap: 4 },
-  appName: { fontSize: 16, fontWeight: '800', color: '#FF5A5F' },
-  appVersion: { fontSize: 12, color: '#9ca3af' },
-  appCopy: { fontSize: 11, color: '#d1d5db', marginTop: 4 },
+  menuLabel: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 16, color: colors.primary, letterSpacing: -0.3 },
+  menuDesc: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 2 },
+  appInfo: { alignItems: 'center', paddingVertical: 48, gap: 4 },
+  appName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 22, color: colors.primary, letterSpacing: -0.5 },
+  appTag: { fontFamily: 'Inter_600SemiBold', fontSize: 9, letterSpacing: 3, color: colors.primary, marginTop: 2 },
+  appVersion: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 14 },
+  appCopy: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textMuted, marginTop: 6 },
 });

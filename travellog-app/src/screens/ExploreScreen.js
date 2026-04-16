@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Search } from 'lucide-react-native';
+import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
 
@@ -9,13 +11,14 @@ const toFullUrl = (url) => {
   if (url.startsWith('http')) return url;
   return API_BASE + url;
 };
+
 const STYLES = [
-  { key: 'food', icon: '🍜', label: '맛집' },
-  { key: 'culture', icon: '🏛️', label: '문화' },
-  { key: 'nature', icon: '🌿', label: '자연' },
-  { key: 'photo', icon: '📸', label: '포토' },
-  { key: 'activity', icon: '🏄', label: '액티비티' },
-  { key: 'shopping', icon: '🛍️', label: '쇼핑' },
+  { key: 'food', label: 'FOOD' },
+  { key: 'culture', label: 'CULTURE' },
+  { key: 'nature', label: 'NATURE' },
+  { key: 'photo', label: 'PHOTO' },
+  { key: 'activity', label: 'ACTIVITY' },
+  { key: 'shopping', label: 'SHOPPING' },
 ];
 
 export default function ExploreScreen({ user }) {
@@ -41,12 +44,14 @@ export default function ExploreScreen({ user }) {
   return (
     <SafeAreaView style={S.container}>
       <View style={S.header}>
-        <Text style={S.title}>🔍 탐색</Text>
+        <Text style={S.title}>Explore</Text>
+        <Text style={S.subtitle}>DISCOVER THE WORLD</Text>
       </View>
 
       <View style={S.searchWrap}>
-        <TextInput style={S.searchInput} placeholder="여행지, 제목 검색..."
-          placeholderTextColor="#9ca3af" value={keyword}
+        <Search size={14} color={colors.textTertiary} strokeWidth={1.5} />
+        <TextInput style={S.searchInput} placeholder="Search destinations, tags..."
+          placeholderTextColor={colors.textMuted} value={keyword}
           onChangeText={setKeyword} onSubmitEditing={() => search()}
           returnKeyType="search" />
       </View>
@@ -54,43 +59,40 @@ export default function ExploreScreen({ user }) {
       <View style={S.filters}>
         <TouchableOpacity style={[S.filter, !styleFilter && S.filterActive]}
           onPress={() => { setStyleFilter(''); search(keyword, ''); }}>
-          <Text style={[S.filterText, !styleFilter && S.filterTextActive]}>전체</Text>
+          <Text style={[S.filterText, !styleFilter && S.filterTextActive]}>ALL</Text>
         </TouchableOpacity>
         {STYLES.map(s => (
           <TouchableOpacity key={s.key}
             style={[S.filter, styleFilter === s.key && S.filterActive]}
             onPress={() => { setStyleFilter(s.key); search(keyword, s.key); }}>
-            <Text style={[S.filterText, styleFilter === s.key && S.filterTextActive]}>
-              {s.icon} {s.label}
-            </Text>
+            <Text style={[S.filterText, styleFilter === s.key && S.filterTextActive]}>{s.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {loading ? <ActivityIndicator color="#4f46e5" style={{ marginTop: 40 }} /> : (
+      {loading ? <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} /> : (
         <FlatList data={posts} keyExtractor={i => i.id}
-          numColumns={2} columnWrapperStyle={{ gap: 10 }}
-          contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: 20 }}
+          numColumns={2} columnWrapperStyle={{ gap: 2 }}
+          contentContainerStyle={{ padding: 2, gap: 2, paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity style={S.gridCard} activeOpacity={0.9}
               onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
               {item.images?.[0]
                 ? <Image source={{ uri: toFullUrl(item.images[0].endsWith('.mp4') ? item.images[0].replace('_video.mp4', '_thumb.jpg') : item.images[0]) }} style={S.gridImage} />
-                : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
-                    <Text style={{ fontSize: 32 }}>✈️</Text>
+                : <View style={[S.gridImage, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ fontSize: 24 }}>✈</Text>
                   </View>
               }
-              <View style={S.gridBody}>
-                <Text style={S.gridTitle} numberOfLines={2}>{item.title}</Text>
-                <Text style={S.gridUser}>@{item.userNickname}</Text>
-                {item.travelStyles?.length > 0 && (
-                  <Text style={S.gridStyle}>{item.travelStyles[0]}</Text>
+              <View style={S.gridOverlay}>
+                {(item.city || item.country) && (
+                  <Text style={S.gridLocation}>{[item.city, item.country].filter(Boolean).join(' · ').toUpperCase()}</Text>
                 )}
+                <Text style={S.gridTitle} numberOfLines={2}>{item.title}</Text>
               </View>
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#9ca3af', marginTop: 60, fontSize: 14 }}>검색 결과가 없어요</Text>}
+          ListEmptyComponent={<Text style={S.empty}>NO RESULTS FOUND</Text>}
         />
       )}
     </SafeAreaView>
@@ -98,20 +100,21 @@ export default function ExploreScreen({ user }) {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6f8' },
-  header: { backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  title: { fontSize: 20, fontWeight: '900', color: '#1a1a2e' },
-  searchWrap: { backgroundColor: 'white', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  searchInput: { backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#1a1a2e' },
-  filters: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, gap: 6, flexWrap: 'wrap', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  filter: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f3f4f6', borderWidth: 1.5, borderColor: '#eee' },
-  filterActive: { backgroundColor: '#eef2ff', borderColor: '#4f46e5' },
-  filterText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
-  filterTextActive: { color: '#4f46e5' },
-  gridCard: { flex: 1, backgroundColor: 'white', borderRadius: 14, overflow: 'hidden' },
-  gridImage: { width: '100%', height: 130, resizeMode: 'cover' },
-  gridBody: { padding: 10, gap: 3 },
-  gridTitle: { fontSize: 13, fontWeight: '700', color: '#1a1a2e' },
-  gridUser: { fontSize: 11, color: '#9ca3af' },
-  gridStyle: { fontSize: 10, color: '#4f46e5', fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 26, color: colors.primary, letterSpacing: -0.8, marginBottom: 2 },
+  subtitle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, textTransform: 'uppercase' },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.bgTertiary, marginHorizontal: 16, marginTop: 14, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 2 },
+  searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textPrimary, padding: 0 },
+  filters: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14, gap: 18, flexWrap: 'wrap' },
+  filter: { paddingBottom: 4 },
+  filterActive: { borderBottomWidth: 1, borderBottomColor: colors.primary },
+  filterText: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
+  filterTextActive: { fontFamily: 'Inter_600SemiBold', color: colors.primary },
+  gridCard: { flex: 1, aspectRatio: 1, position: 'relative', overflow: 'hidden' },
+  gridImage: { width: '100%', height: '100%' },
+  gridOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10, backgroundColor: 'rgba(30,42,58,0.5)' },
+  gridLocation: { fontFamily: 'Inter_600SemiBold', fontSize: 8, letterSpacing: 1.5, color: 'white', marginBottom: 2 },
+  gridTitle: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 12, color: 'white', lineHeight: 14 },
+  empty: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 2, color: colors.textTertiary, marginTop: 60 },
 });
