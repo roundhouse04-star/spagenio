@@ -82,7 +82,14 @@ public class AuthProxyController {
         String auth = request.getHeader("Authorization");
         if (auth != null) headers.set("Authorization", auth);
 
-        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        // body가 null이고 POST/PUT/PATCH면 request에서 직접 읽기
+        if (body == null && (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH)) {
+            try {
+                body = request.getReader().lines().collect(java.util.stream.Collectors.joining("\n"));
+            } catch (Exception e) {}
+        }
+
+        HttpEntity<String> entity = new HttpEntity<>(body != null ? body : "", headers);
 
         try {
             return restTemplate.exchange(url, method, entity, String.class);
