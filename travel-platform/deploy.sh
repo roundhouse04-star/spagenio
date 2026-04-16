@@ -39,6 +39,9 @@ add_ignore "travel-platform/frontend/vite.config.js"
 
 # 런타임 데이터
 add_ignore "travel-platform/backend/data/"
+add_ignore "travel-platform/data/*.db"
+add_ignore "travel-platform/data/*.db-shm"
+add_ignore "travel-platform/data/*.db-wal"
 add_ignore "travel-platform/logs/"
 add_ignore "travel-platform/.run/"
 
