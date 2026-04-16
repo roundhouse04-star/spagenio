@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions , Modal , ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -133,6 +133,9 @@ export default function FeedScreen({ user }) {
   const [tab, setTab] = useState('all');
   const [myLocation, setMyLocation] = useState(null);
   const [allPosts, setAllPosts] = useState([]);
+  const [notifModalVisible, setNotifModalVisible] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const applyFilter = (data, t) => {
     if (t === 'following' && user?.id) {
@@ -190,6 +193,41 @@ export default function FeedScreen({ user }) {
   }, []);
   useEffect(() => { if (allPosts.length > 0) applyFilter(allPosts, tab); }, [tab, myLocation]);
 
+  const loadNotifications = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/notifications?userId=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(Array.isArray(data) ? data : []);
+      }
+      const cRes = await fetch(`${API_BASE}/api/notifications/unread-count?userId=${user.id}`);
+      if (cRes.ok) {
+        const d = await cRes.json();
+        setUnreadCount(d.count || 0);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
+
+  const openNotifModal = async () => {
+    await loadNotifications();
+    setNotifModalVisible(true);
+    if (user?.id && unreadCount > 0) {
+      try {
+        await fetch(`${API_BASE}/api/notifications/read-all?userId=${user.id}`, { method: 'POST' });
+        setUnreadCount(0);
+      } catch (e) {}
+    }
+  };
+
   const handleLike = async (postId) => {
     if (!user) return;
     try {
@@ -208,7 +246,15 @@ export default function FeedScreen({ user }) {
         <LogoIcon />
         <View style={S.headerRight}>
           <TouchableOpacity style={S.headerBtn}>
+            <Text style={S.headerBtnText}>📍</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={S.headerBtn} onPress={openNotifModal}>
             <Text style={S.headerBtnText}>🔔</Text>
+            {unreadCount > 0 && (
+              <View style={S.badge}>
+                <Text style={S.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity style={S.headerBtn}>
             <Text style={S.headerBtnText}>💬</Text>
@@ -252,6 +298,36 @@ export default function FeedScreen({ user }) {
           }
         />
       )}
+          <Modal visible={notifModalVisible} transparent animationType="fade" onRequestClose={() => setNotifModalVisible(false)}>
+        <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={() => setNotifModalVisible(false)}>
+          <TouchableOpacity style={S.modalContent} activeOpacity={1}>
+            <View style={S.modalHeader}>
+              <Text style={S.modalTitle}>🔔 알림</Text>
+              <TouchableOpacity onPress={() => setNotifModalVisible(false)}>
+                <Text style={S.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {notifications.length === 0 ? (
+              <Text style={S.notifEmpty}>아직 알림이 없어요</Text>
+            ) : (
+              <ScrollView>
+                {notifications.map(n => {
+                  const icons = { like: '❤️', comment: '💬', follow: '👤' };
+                  return (
+                    <View key={n.id} style={[S.notifItem, !n.isRead && { backgroundColor: '#fef5f5' }]}>
+                      <Text style={S.notifIcon}>{icons[n.type] || '🔔'}</Text>
+                      <View style={S.notifContent}>
+                        <Text style={S.notifText}><Text style={{ fontWeight: '700' }}>{n.actorNickname}</Text>님이 {n.message}</Text>
+                        <Text style={S.notifTime}>{new Date(n.createdAt).toLocaleString('ko-KR')}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -262,6 +338,19 @@ const S = StyleSheet.create({
   headerRight: { flexDirection: 'row', gap: 4 },
   headerBtn: { padding: 6 },
   headerBtnText: { fontSize: 22 },
+  badge: { position: 'absolute', top: 2, right: 0, backgroundColor: '#FF5A5F', borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  badgeText: { color: 'white', fontSize: 10, fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-start', paddingTop: 80 },
+  modalContent: { backgroundColor: 'white', borderRadius: 16, marginHorizontal: 20, maxHeight: '70%', overflow: 'hidden' },
+  modalHeader: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modalTitle: { fontSize: 16, fontWeight: '800', color: '#1a1a2e' },
+  modalClose: { fontSize: 20, color: '#9ca3af' },
+  notifItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5', flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  notifIcon: { fontSize: 22 },
+  notifContent: { flex: 1 },
+  notifText: { fontSize: 13, color: '#1a1a2e', lineHeight: 18 },
+  notifTime: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
+  notifEmpty: { padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 },
   tabs: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: '#FF5A5F' },
