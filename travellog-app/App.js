@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
-import { View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { Home, Search, PenLine, Menu, User } from 'lucide-react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -64,24 +65,24 @@ function TabNavigator({ user, onLogout }) {
   return (
     <Tab.Navigator screenOptions={{
       headerShown: false,
-      tabBarStyle: { height: 82, paddingBottom: 22, paddingTop: 8, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-      tabBarActiveTintColor: '#FF5A5F',
+      tabBarStyle: { height: 82, paddingBottom: 22, paddingTop: 8, backgroundColor: 'white', borderTopWidth: 0.5, borderTopColor: '#f0f0f0' },
+      tabBarActiveTintColor: '#1E2A3A',
       tabBarInactiveTintColor: '#9ca3af',
-      tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+      tabBarLabelStyle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5 },
     }}>
-      <Tab.Screen name="홈" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>🏠</Text> }}>
+      <Tab.Screen name="HOME" options={{ tabBarIcon: ({ focused }) => <Home size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
         {() => <FeedStack user={user} />}
       </Tab.Screen>
-      <Tab.Screen name="탐색" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>🔍</Text> }}>
+      <Tab.Screen name="EXPLORE" options={{ tabBarIcon: ({ focused }) => <Search size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
         {() => <ExploreStack user={user} />}
       </Tab.Screen>
-      <Tab.Screen name="글쓰기" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>📝</Text> }}>
+      <Tab.Screen name="WRITE" options={{ tabBarIcon: ({ focused }) => <PenLine size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
         {() => <WriteScreen user={user} />}
       </Tab.Screen>
-      <Tab.Screen name="더보기" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>☰</Text> }}>
+      <Tab.Screen name="MORE" options={{ tabBarIcon: ({ focused }) => <Menu size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
         {() => <MoreStack user={user} />}
       </Tab.Screen>
-      <Tab.Screen name="프로필" options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>👤</Text> }}>
+      <Tab.Screen name="PROFILE" options={{ tabBarIcon: ({ focused }) => <User size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
         {() => <ProfileStack user={user} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
