@@ -1085,8 +1085,8 @@ async def send_message(req: Request):
         return {"ok": False, "error": "missing_fields"}
     # 상호 팔로우 확인
     with get_db() as conn:
-        i_follow = conn.execute("SELECT 1 FROM user_following WHERE id=? AND following_id=?", (sender_id, receiver_id)).fetchone()
-        they_follow = conn.execute("SELECT 1 FROM user_following WHERE id=? AND following_id=?", (receiver_id, sender_id)).fetchone()
+        i_follow = conn.execute("SELECT 1 FROM user_following WHERE user_id=? AND following_id=?", (sender_id, receiver_id)).fetchone()
+        they_follow = conn.execute("SELECT 1 FROM user_following WHERE user_id=? AND following_id=?", (receiver_id, sender_id)).fetchone()
         if not i_follow or not they_follow:
             return {"ok": False, "error": "not_friends", "message": "상호 팔로우한 친구에게만 메시지를 보낼 수 있어요"}
     conv_id = get_conversation(sender_id, receiver_id)
