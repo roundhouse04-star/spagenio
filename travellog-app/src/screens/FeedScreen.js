@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions , Modal , ScrollView , TextInput } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions , Modal , ScrollView , TextInput , KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -399,9 +399,13 @@ export default function FeedScreen({ user }) {
         </TouchableOpacity>
       </Modal>
 
-      <Modal visible={dmModalVisible} transparent animationType="slide" onRequestClose={() => { setDmModalVisible(false); setActiveConvo(null); }}>
-        <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={() => { setDmModalVisible(false); setActiveConvo(null); }}>
-          <TouchableOpacity style={S.dmContainer} activeOpacity={1}>
+      <Modal visible={dmModalVisible} animationType="slide" onRequestClose={() => { setDmModalVisible(false); setActiveConvo(null); }}>
+        <SafeAreaView style={S.dmContainer}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={0}
+          >
             {activeConvo ? (
               <>
                 <View style={S.dmHeader}>
@@ -466,8 +470,7 @@ export default function FeedScreen({ user }) {
                 )}
               </>
             )}
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -492,7 +495,7 @@ const S = StyleSheet.create({
   notifText: { fontSize: 13, color: '#1a1a2e', lineHeight: 18 },
   notifTime: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
   notifEmpty: { padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 },
-  dmContainer: { backgroundColor: 'white', borderRadius: 16, marginHorizontal: 20, height: '80%', overflow: 'hidden', flex: 1 },
+  dmContainer: { backgroundColor: 'white', flex: 1, overflow: 'hidden' },
   dmHeader: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', alignItems: 'center', gap: 10 },
   dmHeaderAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' },
   dmHeaderName: { fontSize: 14, fontWeight: '700', flex: 1, color: '#1a1a2e' },
