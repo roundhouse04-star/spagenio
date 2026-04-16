@@ -239,27 +239,39 @@ export default function TransitScreen() {
               {lines.map(line => {
                 const expanded = expandedLine === line.id;
                 const lineStations = expanded ? getLineStations(line.id) : [];
+                const bgColor = line.color || colors.primary;
                 return (
-                  <TouchableOpacity key={line.id} style={S.lineCard} activeOpacity={0.9}
-                    onPress={() => setExpandedLine(expanded ? null : line.id)}>
-                    <View style={S.lineHeader}>
-                      <View style={[S.lineBadge, { backgroundColor: line.color || colors.primary }]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={S.lineName}>{line.nameKo || line.nameEn}</Text>
-                        {line.nameEn && line.nameKo && <Text style={S.lineNameEn}>{line.nameEn.toUpperCase()}</Text>}
+                  <View key={line.id} style={S.lineWrap}>
+                    <TouchableOpacity activeOpacity={0.85}
+                      onPress={() => setExpandedLine(expanded ? null : line.id)}
+                      style={[S.lineHeader, { backgroundColor: bgColor }]}>
+                      <View style={S.lineNumBadge}>
+                        <Text style={S.lineNumText}>{line.lineNumber || line.nameKo?.replace(/[^0-9]/g, '') || '?'}</Text>
                       </View>
-                      <Text style={S.chevron}>{expanded ? '−' : '+'}</Text>
-                    </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={S.lineNameWhite}>{line.nameKo || line.nameEn}</Text>
+                        {line.nameEn && line.nameKo && <Text style={S.lineNameEnWhite}>{line.nameEn}</Text>}
+                      </View>
+                      <Text style={S.chevronWhite}>{expanded ? '▲' : '▼'}</Text>
+                    </TouchableOpacity>
                     {expanded && (
-                      <View style={S.stationList}>
-                        {lineStations.map(s => (
-                          <Text key={s.id} style={S.stationName}>
-                            {s.nameKo || s.nameEn}
-                          </Text>
-                        ))}
+                      <View style={S.stationBox}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={S.stationScroll}>
+                          {lineStations.map((s, i) => (
+                            <View key={s.id} style={S.stationCol}>
+                              {i > 0 && <View style={[S.stationLine, { backgroundColor: bgColor }]} />}
+                              <View style={[S.stationDot, { borderColor: bgColor }]} />
+                              <Text style={S.stationNameVert}>
+                                {(s.nameKo || s.nameEn || '').split('').join('\n')}
+                              </Text>
+                            </View>
+                          ))}
+                        </ScrollView>
+                        <Text style={S.stationCount}>총 {lineStations.length}개 역</Text>
                       </View>
                     )}
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </ScrollView>
@@ -302,12 +314,18 @@ const S = StyleSheet.create({
   routeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 5 },
   routeStation: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 14, color: colors.primary },
   routeLine: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1, color: colors.textTertiary, marginTop: 2 },
-  lineCard: { marginBottom: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
-  lineHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  lineBadge: { width: 8, height: 24 },
-  lineName: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 15, color: colors.primary },
-  lineNameEn: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 2 },
-  chevron: { fontFamily: 'Inter_400Regular', fontSize: 20, color: colors.textTertiary },
-  stationList: { marginTop: 12, paddingLeft: 20, gap: 8 },
-  stationName: { fontFamily: 'Inter_400Regular', fontSize: 13, color: colors.textSecondary },
+  lineWrap: { marginBottom: 12 },
+  lineHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 3 },
+  lineNumBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'white' },
+  lineNumText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: 'white' },
+  lineNameWhite: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 16, color: 'white' },
+  lineNameEnWhite: { fontFamily: 'Inter_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  chevronWhite: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: 'white' },
+  stationBox: { backgroundColor: colors.bgSecondary, padding: 16, paddingBottom: 10 },
+  stationScroll: { alignItems: 'flex-start', paddingVertical: 8 },
+  stationCol: { alignItems: 'center', position: 'relative', width: 38 },
+  stationLine: { position: 'absolute', top: 8, left: -19, width: 38, height: 2 },
+  stationDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, backgroundColor: 'white', marginBottom: 6 },
+  stationNameVert: { fontFamily: 'Inter_500Medium', fontSize: 10, color: colors.primary, textAlign: 'center', lineHeight: 12 },
+  stationCount: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary, marginTop: 10, textAlign: 'right' },
 });
