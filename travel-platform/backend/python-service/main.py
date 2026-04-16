@@ -1074,16 +1074,19 @@ async def get_messages(conv_id: str, limit: int = 50):
             "content": r[3], "createdAt": r[4], "isRead": bool(r[5])
         } for r in rows]
 
+from pydantic import BaseModel
+
+class DMSendRequest(BaseModel):
+    senderId: str
+    receiverId: str
+    content: str
+
 @app.post("/api/dm/send")
-async def send_message(req: Request):
+async def send_message(data: DMSendRequest):
     """메시지 전송 - 상호 팔로우한 친구에게만"""
-    try:
-        data = await req.json()
-    except Exception as e:
-        return {"ok": False, "error": f"json_parse: {str(e)}"}
-    sender_id = (data or {}).get("senderId")
-    receiver_id = (data or {}).get("receiverId")
-    content = ((data or {}).get("content", "") or "").strip()
+    sender_id = data.senderId
+    receiver_id = data.receiverId
+    content = (data.content or "").strip()
     if not sender_id or not receiver_id or not content:
         return {"ok": False, "error": "missing_fields"}
     # 상호 팔로우 확인
