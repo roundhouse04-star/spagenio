@@ -268,7 +268,7 @@ function App() {
     if (!currentUser?.id) return;
     try {
       const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
-      if (res.ok) setServerNotifs(await res.json());
+      if (res.ok) { const data = await res.json(); setServerNotifs(Array.isArray(data) ? data : []); }
       const cRes = await fetch(`/api/notifications/unread-count?userId=${currentUser.id}`);
       if (cRes.ok) { const d = await cRes.json(); setUnreadCount(d.count || 0); }
     } catch (e) {}
