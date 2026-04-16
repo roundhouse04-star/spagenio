@@ -142,7 +142,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 해요.'); return; }
+    if (file.size > 30 * 1024 * 1024) { alert('이미지 크기는 30MB 이하여야 해요.'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
