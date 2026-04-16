@@ -583,8 +583,32 @@ function App() {
                     ) : (
                       serverNotifs.map(n => {
                         const icons = { like: '❤️', comment: '💬', follow: '👤' };
+                        const handleClick = async () => {
+                          // 읽음 처리
+                          if (!n.isRead) {
+                            try {
+                              await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
+                              setServerNotifs(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+                              setUnreadCount(prev => Math.max(0, prev - 1));
+                            } catch (e) {}
+                          }
+                          // 게시물 상세로 이동
+                          if (n.postId && (n.type === 'like' || n.type === 'comment')) {
+                            setShowNotifModal(false);
+                            try {
+                              const res = await fetch(`/api/posts/${n.postId}`);
+                              if (res.ok) {
+                                const post = await res.json();
+                                handleOpenPost(post);
+                              }
+                            } catch (e) {}
+                          } else if (n.type === 'follow' && n.actorId) {
+                            setShowNotifModal(false);
+                            handleProfile(n.actorId);
+                          }
+                        };
                         return (
-                          <div key={n.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'white' : '#fef5f5' }}>
+                          <div key={n.id} onClick={handleClick} style={{ cursor: 'pointer', padding: '12px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'white' : '#fef5f5' }}>
                             <div style={{ fontSize: 24 }}>{icons[n.type] || '🔔'}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, color: '#1a1a2e', lineHeight: 1.4 }}>
