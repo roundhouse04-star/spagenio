@@ -23,7 +23,29 @@ import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 
-// ── 로그인 페이지 (인스타 레이아웃 + 여행 지도 일러스트) ──
+// ── SVG 로고 컴포넌트 ──
+function LogoSvg({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="#1E2A3A" />
+      <path d="M20 10C16.13 10 13 13.13 13 17C13 22.25 20 30 20 30C20 30 27 22.25 27 17C27 13.13 23.87 10 20 10ZM20 19.5C18.62 19.5 17.5 18.38 17.5 17C17.5 15.62 18.62 14.5 20 14.5C21.38 14.5 22.5 15.62 22.5 17C22.5 18.38 21.38 19.5 20 19.5Z" fill="white"/>
+    </svg>
+  );
+}
+
+function LogoFull({ onClick }) {
+  return (
+    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }} onClick={onClick}>
+      <LogoSvg size={28} />
+      <div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 19, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.5, lineHeight: '22px' }}>Spagenio</div>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 8, fontWeight: 500, letterSpacing: 3, color: '#8A919C', marginTop: 1 }}>TRAVEL</div>
+      </div>
+    </div>
+  );
+}
+
+// ── 로그인 페이지 ──
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,136 +77,73 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'stretch' }}>
-      <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr' }} className="login-grid">
-
-        {/* 왼쪽: 코랄 패널 */}
-        <div className="login-left" style={{ background: '#FF5A5F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', gap: 28, minHeight: '100vh' }}>
-          {/* 로고 */}
-          <svg width="72" height="72" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="96" height="96" rx="24" fill="rgba(255,255,255,0.15)" />
-            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.3" />
-            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.3" />
-            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3" />
-            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3" />
-            <circle cx="48" cy="38" r="22" fill="white" />
-            <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
-            <path d="M36 58 Q48 80 60 58" fill="white" />
-          </svg>
-
-          {/* 카피 */}
+    <div className="login-container">
+      <div className="login-grid">
+        {/* 왼쪽: Ink Navy 패널 */}
+        <div className="login-left">
+          <LogoSvg size={56} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 30, fontWeight: 700, color: 'white', lineHeight: 1.3, letterSpacing: -0.5 }}>
-              당신의 순간을<br />세상과 나눠요
-            </div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 12, lineHeight: 1.7 }}>
-              사진 한 장, 짧은 글 하나로<br />새로운 연결이 시작돼요
-            </div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 500, letterSpacing: 3, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>TRAVEL</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 42, fontWeight: 500, color: 'white', letterSpacing: -1.5, lineHeight: 1.1 }}>Spagenio</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, letterSpacing: 2.5, color: 'rgba(255,255,255,0.5)', marginTop: 18 }}>TRAVEL · SHARE · DISCOVER</div>
           </div>
-
-          {/* 미니 카드 프리뷰 */}
-          <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 300 }}>
-            {[
-              { bg: 'rgba(255,255,255,0.2)', h: 80 },
-              { bg: 'rgba(255,255,255,0.15)', h: 80 },
-              { bg: 'rgba(255,255,255,0.1)', h: 80 },
-            ].map((c, i) => (
-              <div key={i} style={{ flex: 1, height: c.h, borderRadius: 12, background: c.bg }} />
+          <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 280, marginTop: 20 }}>
+            {[0.12, 0.08, 0.06].map((o, i) => (
+              <div key={i} style={{ flex: 1, height: 60, background: `rgba(255,255,255,${o})` }} />
             ))}
           </div>
         </div>
 
         {/* 오른쪽: 로그인 폼 */}
-        <div className="login-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 40px', background: 'white', minHeight: '100vh' }}>
-          <div style={{ marginBottom: 28 }}>
-            <svg width="56" height="56" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="96" height="96" rx="24" fill="#FF5A5F" />
-              <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18" />
-              <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18" />
-              <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
-              <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
-              <circle cx="15" cy="15" r="4" fill="white" opacity="0.22" />
-              <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22" />
-              <circle cx="20" cy="74" r="3" fill="white" opacity="0.18" />
-              <circle cx="48" cy="38" r="22" fill="white" />
-              <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
-              <path d="M36 58 Q48 80 60 58" fill="white" />
-            </svg>
+        <div className="login-right">
+          <div style={{ marginBottom: 36, textAlign: 'center' }}>
+            <LogoSvg size={48} />
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 500, color: '#1E2A3A', letterSpacing: -1, marginTop: 16 }}>Spagenio</div>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 500, letterSpacing: 2.5, color: '#8A919C', marginTop: 6 }}>SIGN IN TO YOUR ACCOUNT</div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#111', marginBottom: 4 }}>로그인</div>
-          <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 24 }}>계정에 접속하세요</div>
 
           {error && (
-            <div style={{ width: '100%', maxWidth: 320, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14, fontWeight: 600 }}>
+            <div style={{ width: '100%', maxWidth: 320, background: '#fef2f2', border: '0.5px solid #fecaca', color: '#dc2626', padding: '10px 14px', fontSize: 12, marginBottom: 14, fontWeight: 500, letterSpacing: 0.5 }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={submit} style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <input type="email" placeholder="이메일 주소" value={email} onChange={e => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '13px 16px', border: '1px solid #e0e0e0', borderBottom: 'none', borderRadius: '12px 12px 0 0', fontSize: 14, outline: 'none', background: '#fafafa', color: '#1a1a2e' }} />
-            <input type="password" placeholder="비밀번호" value={password} onChange={e => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '13px 16px', border: '1px solid #e0e0e0', borderRadius: '0 0 12px 12px', fontSize: 14, outline: 'none', background: '#fafafa', color: '#1a1a2e' }} />
-            <button type="submit" disabled={loading}
-              style={{ width: '100%', marginTop: 12, padding: 14, borderRadius: 12, background: loading ? '#ffaaad' : '#FF5A5F', color: 'white', fontSize: 15, fontWeight: 700, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
-              {loading ? '로그인 중...' : '로그인'}
+          <form onSubmit={submit} style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <label className="login-label">Email</label>
+              <input type="email" placeholder="example@email.com" value={email} onChange={e => setEmail(e.target.value)} className="login-input" />
+            </div>
+            <div>
+              <label className="login-label">Password</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="login-input" />
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: 4, opacity: loading ? 0.5 : 1 }}>
+              {loading ? 'SIGNING IN...' : 'SIGN IN'}
             </button>
           </form>
 
-          <a href="/forgot-password" style={{ marginTop: 14, fontSize: 13, color: '#FF5A5F', fontWeight: 600, textDecoration: 'none' }}>
-            비밀번호를 잊으셨나요?
+          <a href="/forgot-password" style={{ marginTop: 16, fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: 1, color: '#1E2A3A', textDecoration: 'none' }}>
+            FORGOT PASSWORD?
           </a>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0', width: '100%', maxWidth: 320 }}>
-            <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
-            <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>또는</span>
-            <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0', width: '100%', maxWidth: 320 }}>
+            <div style={{ flex: 1, height: '0.5px', background: '#E2E0DC' }} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 500, letterSpacing: 2, color: '#8A919C' }}>OR</span>
+            <div style={{ flex: 1, height: '0.5px', background: '#E2E0DC' }} />
           </div>
 
-          <a href="/terms" style={{ display: 'block', width: '100%', maxWidth: 320, padding: 13, borderRadius: 12, border: '1.5px solid #FF5A5F', background: 'white', color: '#FF5A5F', fontSize: 14, fontWeight: 700, textAlign: 'center', textDecoration: 'none', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.target.style.background = '#fff5f5'}
-            onMouseLeave={e => e.target.style.background = 'white'}>
-            새 계정 만들기
+          <a href="/terms" className="btn-outline" style={{ width: '100%', maxWidth: 320, textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+            CREATE ACCOUNT
           </a>
 
-          <div style={{ marginTop: 28, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px 12px' }}>
-            {['서비스 약관', '개인정보처리방침', '도움말', '위치', 'API'].map(t => (
-              <span key={t} style={{ fontSize: 11, color: '#9ca3af', cursor: 'pointer' }}>{t}</span>
-            ))}
-          </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: '#d1d5db' }}>© 2026 Travellog</div>
+          <div style={{ marginTop: 32, fontSize: 9, fontWeight: 500, letterSpacing: 1.5, color: '#B8BCC4' }}>© 2026 TRAVEL SPAGENIO</div>
         </div>
       </div>
-
-      {/* 모바일 대응 */}
-      <style>{`
-        @media (max-width: 640px) {
-          .login-grid {
-            grid-template-columns: 1fr !important;
-            background: #f3f4f6 !important;
-            min-height: 100vh;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 24px 20px !important;
-          }
-          .login-left { display: none !important; }
-          .login-right {
-            min-height: unset !important;
-            background: white !important;
-            border-radius: 20px !important;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
-            padding: 36px 28px !important;
-            width: 100% !important;
-            max-width: 360px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
 
-// ── 메인 앱 ──────────────────────────────────────────────
+// ── 메인 앱 ──
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [page, setPage] = useState('feed');
@@ -194,8 +153,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
   const [searchTag, setSearchTag] = useState('');
-  const [feedKey, setFeedKey] = useState(0); // 피드 강제 새로고침용
-  const [notifications, setNotifications] = useState([]); // 알림 목록
+  const [feedKey, setFeedKey] = useState(0);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [serverNotifs, setServerNotifs] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -205,30 +164,24 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState('');
   const [dmUnread, setDmUnread] = useState(0);
-  const [showNotif, setShowNotif] = useState(false); // 알림 패널
-  const [writeDraft, setWriteDraft] = useState(null); // 글쓰기 초안
+  const [showNotif, setShowNotif] = useState(false);
+  const [writeDraft, setWriteDraft] = useState(null);
 
   useEffect(() => { init(); }, []);
 
-  // 로그인 상태에서 뒤로가기로 로그인 화면 접근 방지
   useEffect(() => {
     if (!currentUser) return;
-    const handlePopState = () => {
-      // 로그인된 상태에서 뒤로가기 시 현재 상태 유지
-      window.history.pushState(null, '', window.location.pathname);
-    };
+    const handlePopState = () => { window.history.pushState(null, '', window.location.pathname); };
     window.history.pushState(null, '', window.location.pathname);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentUser]);
 
   const init = async () => {
-    // 메뉴 설정 서버에서 로드
     try {
       const menus = await api.getMenus();
       if (menus?.length) setNavItems(menus.sort((a, b) => a.sortOrder - b.sortOrder));
-    } catch (e) { /* 기본값 유지 */ }
-
+    } catch (e) {}
     const savedUser = sessionStorage.getItem('auth_user');
     const token = sessionStorage.getItem('auth_token');
     if (savedUser && token) {
@@ -240,9 +193,7 @@ function App() {
           setCurrentUser(matched);
           const userPlans = await api.getUserPlans(matched.id);
           setPlans(userPlans || []);
-        } else {
-          setCurrentUser(parsed);
-        }
+        } else { setCurrentUser(parsed); }
       } catch (e) { console.error(e); }
     }
     setLoading(false);
@@ -256,7 +207,6 @@ function App() {
       setCurrentUser(finalUser);
       const userPlans = await api.getUserPlans(finalUser.id);
       setPlans(userPlans || []);
-      // 로그인 후 뒤로가기로 로그인 화면에 못 가도록 히스토리 교체
       window.history.replaceState(null, '', window.location.pathname);
     } catch (e) { setCurrentUser(user); }
   };
@@ -292,10 +242,7 @@ function App() {
     if (!currentUser?.id) return;
     try {
       const res = await fetch(`/api/dm/conversations?userId=${currentUser.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(Array.isArray(data) ? data : []);
-      }
+      if (res.ok) { const data = await res.json(); setConversations(Array.isArray(data) ? data : []); }
       const ur = await fetch(`/api/dm/unread-count?userId=${currentUser.id}`);
       if (ur.ok) { const d = await ur.json(); setDmUnread(d.count || 0); }
     } catch (e) {}
@@ -309,18 +256,13 @@ function App() {
     }
   }, [currentUser?.id]);
 
-  const openDmModal = async () => {
-    await loadConversations();
-    setShowDmModal(true);
-  };
+  const openDmModal = async () => { await loadConversations(); setShowDmModal(true); };
 
   const openConversation = async (convo) => {
-    setActiveConvo(convo);
-    setMessages([]);
+    setActiveConvo(convo); setMessages([]);
     try {
       const res = await fetch(`/api/dm/conversations/${convo.id}/messages`);
       if (res.ok) setMessages(await res.json());
-      // 읽음 처리
       await fetch(`/api/dm/conversations/${convo.id}/read?userId=${currentUser.id}`, { method: 'POST' });
       loadConversations();
     } catch (e) {}
@@ -339,12 +281,9 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         if (data.ok) {
-          // 메시지 다시 로드
           const mRes = await fetch(`/api/dm/conversations/${activeConvo.id}/messages`);
           if (mRes.ok) setMessages(await mRes.json());
-        } else {
-          alert(data.message || '전송 실패');
-        }
+        } else { alert(data.message || '전송 실패'); }
       }
     } catch (e) {}
   };
@@ -352,41 +291,24 @@ function App() {
   const openNotifModal = async () => {
     if (!currentUser?.id) return;
     try {
-      // 1. 알림 조회
       const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
-      if (!res.ok) {
-        setServerNotifs([]);
-        setShowNotifModal(true);
-        return;
-      }
+      if (!res.ok) { setServerNotifs([]); setShowNotifModal(true); return; }
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       setServerNotifs(list);
       setShowNotifModal(true);
-      // 2. 알림이 있으면 읽음 처리
       if (list.length > 0 && list.some(n => !n.isRead)) {
         try {
           await fetch(`/api/notifications/read-all?userId=${currentUser.id}`, { method: 'POST' });
           setUnreadCount(0);
         } catch (e) {}
       }
-    } catch (e) {
-      setServerNotifs([]);
-      setShowNotifModal(true);
-    }
+    } catch (e) { setServerNotifs([]); setShowNotifModal(true); }
   };
 
-  const addNotif = (notif) => {
-    setNotifications(prev => [{ id: Date.now(), ...notif, time: new Date() }, ...prev].slice(0, 30));
-  };
-
+  const addNotif = (notif) => { setNotifications(prev => [{ id: Date.now(), ...notif, time: new Date() }, ...prev].slice(0, 30)); };
   const handleOpenPost = (post) => setOpenedPost(post);
-
-  const handleProfile = (userId) => {
-    setProfileUserId(userId);
-    setPage('profile');
-    setOpenedPost(null);
-  };
+  const handleProfile = (userId) => { setProfileUserId(userId); setPage('profile'); setOpenedPost(null); };
 
   const handleLike = async (postId) => {
     if (!currentUser) return;
@@ -407,40 +329,19 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  const handleDeletePost = (postId) => {
-    setOpenedPost(null);
-    setFeedKey(k => k + 1);
-    addNotif({ type: 'delete', icon: '🗑', message: '게시물을 삭제했어요' });
-  };
-
-  const handleUpdatePost = (updated) => {
-    setOpenedPost(updated);
-    setFeedKey(k => k + 1);
-  };
-
-  const handleBookmark = (updatedUser) => {
-    setCurrentUser(prev => ({ ...prev, savedPostIds: updatedUser.savedPostIds }));
-    addNotif({ type: 'bookmark', icon: '🔖', message: '게시물을 저장했어요' });
-  };
-
-  const handleWishlist = (updatedUser) => {
-    setCurrentUser(prev => ({ ...prev, wishlistPostIds: updatedUser.wishlistPostIds }));
-    addNotif({ type: 'wishlist', icon: '✈️', message: '가고 싶다 목록에 추가했어요' });
-  };
+  const handleDeletePost = (postId) => { setOpenedPost(null); setFeedKey(k => k + 1); addNotif({ type: 'delete', icon: '🗑', message: '게시물을 삭제했어요' }); };
+  const handleUpdatePost = (updated) => { setOpenedPost(updated); setFeedKey(k => k + 1); };
+  const handleBookmark = (updatedUser) => { setCurrentUser(prev => ({ ...prev, savedPostIds: updatedUser.savedPostIds })); addNotif({ type: 'bookmark', icon: '🔖', message: '게시물을 저장했어요' }); };
+  const handleWishlist = (updatedUser) => { setCurrentUser(prev => ({ ...prev, wishlistPostIds: updatedUser.wishlistPostIds })); addNotif({ type: 'wishlist', icon: '✈️', message: '가고 싶다 목록에 추가했어요' }); };
 
   const handleConvertToPost = (plan) => {
-    // 완료된 일정을 글쓰기 페이지에 초안으로 전달
     const draft = {
       title: `[${plan.title}] 여행 후기`,
       content: `📅 ${plan.startDate} ~ ${plan.endDate}\n\n` +
         (plan.items || []).map((item, i) => `${i + 1}. ${item.placeName}${item.memo ? ' — ' + item.memo : ''}`).join('\n'),
-      country: '',
-      city: plan.title,
-      tags: ['여행후기'],
+      country: '', city: plan.title, tags: ['여행후기'],
     };
-    setWriteDraft(draft);
-    setPage('write');
-    setOpenedPost(null);
+    setWriteDraft(draft); setPage('write'); setOpenedPost(null);
     addNotif({ type: 'convert', icon: '✍️', message: '일정을 후기 초안으로 변환했어요' });
   };
 
@@ -459,39 +360,31 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  const handleTagClick = (tag) => {
-    setSearchTag(tag);
-    setPage('explore');
-    setOpenedPost(null);
-  };
+  const handleTagClick = (tag) => { setSearchTag(tag); setPage('explore'); setOpenedPost(null); };
 
   const goPage = (key) => {
-    if ((key === 'write' || key === 'planner') && !currentUser) {
-      alert('로그인이 필요합니다.');
-      return;
-    }
+    if ((key === 'write' || key === 'planner') && !currentUser) { alert('로그인이 필요합니다.'); return; }
     if (key !== 'explore') setSearchTag('');
-    setPage(key);
-    setOpenedPost(null);
-    setShowLogoutMenu(false);
+    setPage(key); setOpenedPost(null); setShowLogoutMenu(false);
     if (key === 'profile') setProfileUserId(currentUser?.id);
   };
 
   const [navItems, setNavItems] = useState([
-    { key: 'feed', icon: '🏠', label: '홈', visible: true, sortOrder: 0, requireLogin: false },
-    { key: 'nearby', icon: '📍', label: '내 주변', visible: true, sortOrder: 1, requireLogin: true },
-    { key: 'explore', icon: '🔍', label: '탐색', visible: true, sortOrder: 2, requireLogin: false },
-    { key: 'write', icon: '✏️', label: '글쓰기', visible: true, sortOrder: 3, requireLogin: true },
-    { key: 'planner', icon: '🗺️', label: '일정', visible: true, sortOrder: 4, requireLogin: true },
-    { key: 'share', icon: '🔗', label: '정보공유', visible: true, sortOrder: 5, requireLogin: true },
-    { key: 'exchange', icon: '💱', label: '환율', visible: true, sortOrder: 6, requireLogin: false },
-    { key: 'transit', icon: '🚇', label: '교통', visible: true, sortOrder: 7, requireLogin: false },
-    { key: 'profile', icon: '👤', label: '프로필', visible: true, sortOrder: 8, requireLogin: true },
+    { key: 'feed', icon: '🏠', label: 'HOME', visible: true, sortOrder: 0, requireLogin: false },
+    { key: 'nearby', icon: '📍', label: 'NEARBY', visible: true, sortOrder: 1, requireLogin: true },
+    { key: 'explore', icon: '🔍', label: 'EXPLORE', visible: true, sortOrder: 2, requireLogin: false },
+    { key: 'write', icon: '✏️', label: 'WRITE', visible: true, sortOrder: 3, requireLogin: true },
+    { key: 'planner', icon: '🗺️', label: 'PLANNER', visible: true, sortOrder: 4, requireLogin: true },
+    { key: 'share', icon: '🔗', label: 'SHARE', visible: true, sortOrder: 5, requireLogin: true },
+    { key: 'exchange', icon: '💱', label: 'EXCHANGE', visible: true, sortOrder: 6, requireLogin: false },
+    { key: 'transit', icon: '🚇', label: 'TRANSIT', visible: true, sortOrder: 7, requireLogin: false },
+    { key: 'profile', icon: '👤', label: 'PROFILE', visible: true, sortOrder: 8, requireLogin: true },
   ]);
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#bbb', fontSize: 16 }}>
-      불러오는 중...
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
+      <LogoSvg size={40} />
+      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 500, letterSpacing: 2, color: '#8A919C' }}>LOADING...</div>
     </div>
   );
 
@@ -500,20 +393,8 @@ function App() {
   return (
     <div className="app" onClick={() => showLogoutMenu && setShowLogoutMenu(false)}>
       <aside className="sidebar">
-        <div className="logo" style={{ cursor: 'pointer', padding: '4px 14px 22px' }} onClick={() => goPage('feed')}>
-          <svg width="44" height="44" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="96" height="96" rx="24" fill="#FF5A5F" />
-            <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18" />
-            <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18" />
-            <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
-            <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
-            <circle cx="15" cy="15" r="4" fill="white" opacity="0.22" />
-            <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22" />
-            <circle cx="20" cy="74" r="3" fill="white" opacity="0.18" />
-            <circle cx="48" cy="38" r="22" fill="white" />
-            <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
-            <path d="M36 58 Q48 80 60 58" fill="white" />
-          </svg>
+        <div className="logo" style={{ padding: '4px 14px 28px' }}>
+          <LogoFull onClick={() => goPage('feed')} />
         </div>
         {navItems.filter(item => item.visible !== false).map(item => (
           <div key={item.key}
@@ -528,38 +409,34 @@ function App() {
         <div style={{ position: 'relative' }}>
           <div className="nav-item" onClick={e => { e.stopPropagation(); setShowNotif(v => !v); setNotifications(prev => prev.map(n => ({ ...n, read: true }))); }}>
             <span className="nav-icon">🔔</span>
-            <span>알림</span>
+            <span>ALERTS</span>
             {notifications.filter(n => !n.read).length > 0 && (
-              <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, background: '#ef4444', borderRadius: 20, fontSize: 10, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, padding: '0 4px' }}>
+              <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, background: '#FF5A5F', borderRadius: 20, fontSize: 9, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, padding: '0 4px' }}>
                 {notifications.filter(n => !n.read).length}
               </span>
             )}
           </div>
           {showNotif && (
-            <div style={{ position: 'absolute', left: '110%', top: 0, width: 280, background: 'white', border: '1px solid #eee', borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 300, overflow: 'hidden' }}
+            <div style={{ position: 'absolute', left: '110%', top: 0, width: 300, background: 'white', border: '0.5px solid #E2E0DC', boxShadow: '0 8px 32px rgba(30,42,58,0.1)', zIndex: 300, overflow: 'hidden' }}
               onClick={e => e.stopPropagation()}>
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>🔔 알림</div>
-              {notifications.length === 0 ? (
-                <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 13, color: '#9ca3af' }}>아직 알림이 없어요</div>
-              ) : (
-                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-                  {notifications.map(n => (
-                    <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f9fafb', background: n.read ? 'white' : '#fafbff' }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{n.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, color: '#1a1a2e' }}>{n.message}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                          {Math.floor((Date.now() - new Date(n.time).getTime()) / 60000) < 1 ? '방금 전' : `${Math.floor((Date.now() - new Date(n.time).getTime()) / 60000)}분 전`}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ padding: '14px 16px', borderBottom: '0.5px solid #F0EEE9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: 2, color: '#1E2A3A' }}>NOTIFICATIONS</span>
+                <button onClick={() => setShowNotif(false)} style={{ fontSize: 16, color: '#8A919C', cursor: 'pointer' }}>✕</button>
+              </div>
+              <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: 30, textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: 10, letterSpacing: 1.5, color: '#8A919C' }}>NO NOTIFICATIONS</div>
+                ) : notifications.map(n => (
+                  <div key={n.id} style={{ padding: '10px 16px', borderBottom: '0.5px solid #F0EEE9', display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: '#4A5568' }}>
+                    <span style={{ fontSize: 16 }}>{n.icon}</span>
+                    <span>{n.message}</span>
+                  </div>
+                ))}
+              </div>
               {notifications.length > 0 && (
                 <button onClick={() => setNotifications([])}
-                  style={{ width: '100%', padding: '10px', border: 'none', borderTop: '1px solid #f3f4f6', background: '#f9fafb', fontSize: 12, color: '#9ca3af', cursor: 'pointer' }}>
-                  전체 삭제
+                  style={{ width: '100%', padding: 10, border: 'none', borderTop: '0.5px solid #F0EEE9', background: '#FAFAF8', fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 500, letterSpacing: 1.5, color: '#8A919C', cursor: 'pointer' }}>
+                  CLEAR ALL
                 </button>
               )}
             </div>
@@ -569,31 +446,31 @@ function App() {
         {/* 로그아웃 메뉴 */}
         <div style={{ marginTop: 'auto', position: 'relative' }}>
           {showLogoutMenu && (
-            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: 'white', border: '1px solid #eee', borderRadius: 14, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden', zIndex: 200 }}
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: 'white', border: '0.5px solid #E2E0DC', boxShadow: '0 8px 24px rgba(30,42,58,0.1)', overflow: 'hidden', zIndex: 200 }}
               onClick={e => e.stopPropagation()}>
               <button onClick={() => { goPage('profile'); setShowLogoutMenu(false); }}
-                style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 14, color: '#1a1a2e', fontWeight: 600, borderBottom: '1px solid #f0f0f0', background: 'none', cursor: 'pointer' }}>
-                👤 내 프로필
+                style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: 1, color: '#1E2A3A', borderBottom: '0.5px solid #F0EEE9', background: 'none', cursor: 'pointer' }}>
+                PROFILE
               </button>
               <button onClick={() => { window.location.href = '/change-password'; }}
-                style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 14, color: '#1a1a2e', fontWeight: 600, borderBottom: '1px solid #f0f0f0', background: 'none', cursor: 'pointer' }}>
-                🔒 비밀번호 변경
+                style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: 1, color: '#1E2A3A', borderBottom: '0.5px solid #F0EEE9', background: 'none', cursor: 'pointer' }}>
+                CHANGE PASSWORD
               </button>
               <button onClick={handleLogout}
-                style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 14, color: '#ef4444', fontWeight: 700, background: 'none', cursor: 'pointer' }}>
-                로그아웃
+                style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: 1, color: '#FF5A5F', background: 'none', cursor: 'pointer' }}>
+                SIGN OUT
               </button>
             </div>
           )}
           <div className="sidebar-user" onClick={e => { e.stopPropagation(); setShowLogoutMenu(v => !v); }}>
             <img className="avatar avatar-sm"
-              src={currentUser.profileImage || `https://ui-avatars.com/api/?name=${currentUser.nickname}&background=4f46e5&color=fff`}
+              src={currentUser.profileImage || `https://ui-avatars.com/api/?name=${currentUser.nickname}&background=1E2A3A&color=fff`}
               alt={currentUser.nickname} />
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">{currentUser.nickname}</div>
-              <div className="sidebar-user-sub">설정</div>
+              <div className="sidebar-user-sub">SETTINGS</div>
             </div>
-            <div style={{ fontSize: 16, color: '#bbb', marginLeft: 'auto' }}>⋯</div>
+            <div style={{ fontSize: 14, color: '#B8BCC4', marginLeft: 'auto' }}>⋯</div>
           </div>
         </div>
       </aside>
@@ -607,150 +484,131 @@ function App() {
             onBookmark={handleBookmark} onWishlist={handleWishlist} />
         ) : page === 'feed' ? (
           <>
-            {/* SNS 스타일 상단 헤더 (모바일 피드용) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: 'white', position: 'sticky', top: 0, zIndex: 10 }} className="mobile-feed-header">
-              <div style={{ cursor: 'pointer' }} onClick={() => goPage('feed')}>
-                <svg width="36" height="36" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="96" height="96" rx="24" fill="#FF5A5F" />
-                  <line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.18" />
-                  <line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.18" />
-                  <line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
-                  <line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.18" />
-                  <circle cx="15" cy="15" r="4" fill="white" opacity="0.22" />
-                  <circle cx="80" cy="78" r="3.5" fill="white" opacity="0.22" />
-                  <circle cx="20" cy="74" r="3" fill="white" opacity="0.18" />
-                  <circle cx="48" cy="38" r="22" fill="white" />
-                  <circle cx="48" cy="38" r="10" fill="#FF5A5F" />
-                  <path d="M36 58 Q48 80 60 58" fill="white" />
-                </svg>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => goPage('nearby')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>📍</button>
-                <button onClick={openNotifModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4, position: 'relative' }}>
+            {/* 모바일 피드 헤더 */}
+            <div className="mobile-feed-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '0.5px solid #F0EEE9', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
+              <LogoFull onClick={() => goPage('feed')} />
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={() => goPage('nearby')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 6 }}>📍</button>
+                <button onClick={openNotifModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 6, position: 'relative' }}>
                   🔔
                   {unreadCount > 0 && (
-                    <span style={{ position: 'absolute', top: 0, right: 0, background: '#FF5A5F', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>
+                    <span style={{ position: 'absolute', top: 2, right: 2, background: '#FF5A5F', color: 'white', fontSize: 8, fontWeight: 700, borderRadius: 10, padding: '1px 4px', minWidth: 14, textAlign: 'center' }}>
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
                 </button>
-                <button onClick={openDmModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4, position: 'relative' }}>
+                <button onClick={openDmModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 6, position: 'relative' }}>
                   💬
                   {dmUnread > 0 && (
-                    <span style={{ position: 'absolute', top: 0, right: 0, background: '#FF5A5F', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>
+                    <span style={{ position: 'absolute', top: 2, right: 2, background: '#FF5A5F', color: 'white', fontSize: 8, fontWeight: 700, borderRadius: 10, padding: '1px 4px', minWidth: 14, textAlign: 'center' }}>
                       {dmUnread > 99 ? '99+' : dmUnread}
                     </span>
                   )}
                 </button>
               </div>
             </div>
+            {/* 알림 모달 */}
             {showNotifModal && (
-              <div onClick={() => setShowNotifModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 60 }}>
-                <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, width: '90%', maxWidth: 420, maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e' }}>🔔 알림</div>
-                    <button onClick={() => setShowNotifModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#9ca3af', cursor: 'pointer' }}>✕</button>
+              <div onClick={() => setShowNotifModal(false)} className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: 60 }}>
+                <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 420, maxHeight: '70vh' }}>
+                  <div className="modal-header">
+                    <div className="modal-title">NOTIFICATIONS</div>
+                    <button onClick={() => setShowNotifModal(false)} style={{ fontSize: 18, color: '#8A919C', cursor: 'pointer' }}>✕</button>
                   </div>
                   <div style={{ overflowY: 'auto', flex: 1 }}>
                     {serverNotifs.length === 0 ? (
-                      <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>아직 알림이 없어요</div>
-                    ) : (
-                      serverNotifs.map(n => {
-                        const icons = { like: '❤️', comment: '💬', follow: '👤' };
-                        const handleClick = async () => {
-                          // 읽음 처리
-                          if (!n.isRead) {
-                            try {
-                              await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
-                              setServerNotifs(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x));
-                              setUnreadCount(prev => Math.max(0, prev - 1));
-                            } catch (e) {}
-                          }
-                          // 게시물 상세로 이동
-                          if (n.postId && (n.type === 'like' || n.type === 'comment')) {
-                            setShowNotifModal(false);
-                            try {
-                              const res = await fetch(`/api/posts/${n.postId}`);
-                              if (res.ok) {
-                                const post = await res.json();
-                                handleOpenPost(post);
-                              }
-                            } catch (e) {}
-                          } else if (n.type === 'follow' && n.actorId) {
-                            setShowNotifModal(false);
-                            handleProfile(n.actorId);
-                          }
-                        };
-                        return (
-                          <div key={n.id} onClick={handleClick} style={{ cursor: 'pointer', padding: '12px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'white' : '#fef5f5' }}>
-                            <div style={{ fontSize: 24 }}>{icons[n.type] || '🔔'}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, color: '#1a1a2e', lineHeight: 1.4 }}>
-                                <strong>{n.actorNickname}</strong>님이 {n.message}
-                              </div>
-                              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{new Date(n.createdAt).toLocaleString('ko-KR')}</div>
+                      <div style={{ padding: 40, textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: 10, letterSpacing: 1.5, color: '#8A919C' }}>NO NOTIFICATIONS YET</div>
+                    ) : serverNotifs.map(n => {
+                      const icons = { like: '❤️', comment: '💬', follow: '👤' };
+                      const handleClick = async () => {
+                        if (!n.isRead) {
+                          try {
+                            await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
+                            setServerNotifs(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+                            setUnreadCount(prev => Math.max(0, prev - 1));
+                          } catch (e) {}
+                        }
+                        if (n.postId && (n.type === 'like' || n.type === 'comment')) {
+                          setShowNotifModal(false);
+                          try {
+                            const res = await fetch(`/api/posts/${n.postId}`);
+                            if (res.ok) handleOpenPost(await res.json());
+                          } catch (e) {}
+                        } else if (n.type === 'follow' && n.actorId) {
+                          setShowNotifModal(false);
+                          handleProfile(n.actorId);
+                        }
+                      };
+                      return (
+                        <div key={n.id} onClick={handleClick} style={{ cursor: 'pointer', padding: '12px 20px', borderBottom: '0.5px solid #F0EEE9', display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'white' : '#FAFAF8' }}>
+                          <div style={{ fontSize: 18 }}>{icons[n.type] || '🔔'}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#1E2A3A', lineHeight: 1.4 }}>
+                              <strong>{n.actorNickname}</strong>님이 {n.message}
                             </div>
+                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#8A919C', marginTop: 2 }}>{new Date(n.createdAt).toLocaleString('ko-KR')}</div>
                           </div>
-                        );
-                      })
-                    )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             )}
+            {/* DM 모달 */}
             {showDmModal && (
-              <div onClick={() => { setShowDmModal(false); setActiveConvo(null); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, width: '90%', maxWidth: 500, height: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div onClick={() => { setShowDmModal(false); setActiveConvo(null); }} className="modal-overlay">
+                <div onClick={e => e.stopPropagation()} className="modal-content" style={{ height: '80vh' }}>
                   {activeConvo ? (
                     <>
-                      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <button onClick={() => setActiveConvo(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>←</button>
-                        <img src={activeConvo.otherProfileImage || `https://ui-avatars.com/api/?name=${activeConvo.otherNickname}&background=4f46e5&color=fff&size=32`}
-                          style={{ width: 32, height: 32, borderRadius: 16 }} alt="" />
-                        <div style={{ fontSize: 14, fontWeight: 700, flex: 1 }}>{activeConvo.otherNickname}</div>
-                        <button onClick={() => { setShowDmModal(false); setActiveConvo(null); }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9ca3af' }}>✕</button>
+                      <div style={{ padding: '12px 16px', borderBottom: '0.5px solid #F0EEE9', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <button onClick={() => setActiveConvo(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#1E2A3A' }}>←</button>
+                        <img src={activeConvo.otherProfileImage || `https://ui-avatars.com/api/?name=${activeConvo.otherNickname}&background=1E2A3A&color=fff&size=32`}
+                          style={{ width: 28, height: 28, borderRadius: 14 }} alt="" />
+                        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, flex: 1, color: '#1E2A3A' }}>{activeConvo.otherNickname}</div>
+                        <button onClick={() => { setShowDmModal(false); setActiveConvo(null); }} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#8A919C' }}>✕</button>
                       </div>
                       <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {messages.length === 0 ? (
-                          <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: 40, fontSize: 13 }}>대화를 시작해보세요!</div>
+                          <div style={{ textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: 10, letterSpacing: 1.5, color: '#8A919C', marginTop: 40 }}>START A CONVERSATION</div>
                         ) : messages.map(m => {
                           const isMine = m.senderId === currentUser.id;
                           return (
                             <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
-                              <div style={{ maxWidth: '70%', padding: '8px 14px', borderRadius: 16, background: isMine ? '#4f46e5' : '#f3f4f6', color: isMine ? 'white' : '#1a1a2e', fontSize: 13, lineHeight: 1.4 }}>
+                              <div style={{ maxWidth: '70%', padding: '8px 14px', background: isMine ? '#1E2A3A' : '#F5F4F0', color: isMine ? 'white' : '#1E2A3A', fontFamily: "'Inter', sans-serif", fontSize: 13, lineHeight: 1.4 }}>
                                 {m.content}
                               </div>
                             </div>
                           );
                         })}
                       </div>
-                      <div style={{ padding: 12, borderTop: '1px solid #f0f0f0', display: 'flex', gap: 8 }}>
+                      <div style={{ padding: 12, borderTop: '0.5px solid #F0EEE9', display: 'flex', gap: 8 }}>
                         <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && !e.repeat) { e.preventDefault(); sendMessage(); } }}
-                          placeholder="메시지 입력..."
-                          style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none' }} />
-                        <button onClick={sendMessage} style={{ padding: '8px 16px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>전송</button>
+                          placeholder="Type a message..."
+                          style={{ flex: 1, padding: '10px 14px', background: '#F5F4F0', border: 'none', fontFamily: "'Inter', sans-serif", fontSize: 13, outline: 'none', color: '#1E2A3A' }} />
+                        <button onClick={sendMessage} className="btn-primary" style={{ padding: '10px 16px' }}>SEND</button>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: 16, fontWeight: 800 }}>💬 메시지</div>
-                        <button onClick={() => setShowDmModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#9ca3af', cursor: 'pointer' }}>✕</button>
+                      <div className="modal-header">
+                        <div className="modal-title">MESSAGES</div>
+                        <button onClick={() => setShowDmModal(false)} style={{ fontSize: 16, color: '#8A919C', cursor: 'pointer' }}>✕</button>
                       </div>
                       <div style={{ flex: 1, overflowY: 'auto' }}>
                         {conversations.length === 0 ? (
-                          <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>아직 대화가 없어요.<br/>친구 프로필에서 메시지를 시작해보세요!</div>
+                          <div style={{ padding: 40, textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: 10, letterSpacing: 1.5, color: '#8A919C' }}>NO CONVERSATIONS YET</div>
                         ) : conversations.map(c => (
-                          <div key={c.id} onClick={() => openConversation(c)} style={{ padding: '12px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }}>
-                            <img src={c.otherProfileImage || `https://ui-avatars.com/api/?name=${c.otherNickname}&background=4f46e5&color=fff&size=44`}
-                              style={{ width: 44, height: 44, borderRadius: 22 }} alt="" />
+                          <div key={c.id} onClick={() => openConversation(c)} style={{ padding: '12px 20px', borderBottom: '0.5px solid #F0EEE9', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }}>
+                            <img src={c.otherProfileImage || `https://ui-avatars.com/api/?name=${c.otherNickname}&background=1E2A3A&color=fff&size=44`}
+                              style={{ width: 40, height: 40, borderRadius: 20 }} alt="" />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{c.otherNickname}</div>
-                              <div style={{ fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.lastMessage || '(메시지 없음)'}</div>
+                              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#1E2A3A' }}>{c.otherNickname}</div>
+                              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#8A919C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{c.lastMessage || '(메시지 없음)'}</div>
                             </div>
                             {c.unreadCount > 0 && (
-                              <span style={{ background: '#FF5A5F', color: 'white', fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{c.unreadCount}</span>
+                              <span style={{ background: '#FF5A5F', color: 'white', fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{c.unreadCount}</span>
                             )}
                           </div>
                         ))}
