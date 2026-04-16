@@ -29,6 +29,27 @@ public class AuthProxyController {
         return forward(request, body, url);
     }
 
+    // /api/notifications/** → Python
+    @RequestMapping("/api/notifications/**")
+    public ResponseEntity<String> proxyNotifications(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
+    @RequestMapping("/api/notifications")
+    public ResponseEntity<String> proxyNotificationsRoot(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
     // /api/admin/** → Python /api/admin/**
     @RequestMapping("/api/admin/**")
     public ResponseEntity<String> proxyAdmin(
