@@ -138,16 +138,23 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     } catch (e) { console.error(e); }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 30 * 1024 * 1024) { alert('이미지 크기는 30MB 이하여야 해요.'); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setImagePreview(ev.target.result);
-      setEditData(p => ({ ...p, profileImage: ev.target.result }));
-    };
+    reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('업로드 실패');
+      const data = await res.json();
+      setEditData(p => ({ ...p, profileImage: data.feed || data.url }));
+    } catch (err) {
+      alert('이미지 업로드 실패: ' + err.message);
+    }
   };
 
   const handleSaveProfile = async () => {
