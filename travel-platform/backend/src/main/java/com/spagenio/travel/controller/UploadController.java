@@ -21,7 +21,7 @@ public class UploadController {
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp");
-    private static final long MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final long MAX_SIZE = 30 * 1024 * 1024; // 30MB
 
     @PostMapping("/upload")
     public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) {
