@@ -226,14 +226,15 @@ export default function FeedScreen({ user }) {
   const openNotifModal = async () => {
     await loadNotifications();
     setNotifModalVisible(true);
-    if (user?.id && unreadCount > 0) {
-      try {
-        await fetch(`${API_BASE}/api/notifications/read-all?userId=${user.id}`, { method: 'POST' });
-        setUnreadCount(0);
-        // 바로 UI에 반영
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      } catch (e) {}
-    }
+  };
+
+  const markNotifRead = async (n) => {
+    if (n.isRead) return;
+    try {
+      await fetch(`${API_BASE}/api/notifications/${n.id}/read`, { method: 'POST' });
+      setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (e) {}
   };
 
   const loadConversations = async () => {
@@ -386,13 +387,13 @@ export default function FeedScreen({ user }) {
                 {notifications.map(n => {
                   const icons = { like: '❤️', comment: '💬', follow: '👤' };
                   return (
-                    <View key={n.id} style={[S.notifItem, !n.isRead && { backgroundColor: '#fef5f5' }]}>
+                    <TouchableOpacity key={n.id} onPress={() => markNotifRead(n)} style={[S.notifItem, !n.isRead && { backgroundColor: '#fef5f5' }]}>
                       <Text style={S.notifIcon}>{icons[n.type] || '🔔'}</Text>
                       <View style={S.notifContent}>
                         <Text style={S.notifText}><Text style={{ fontWeight: '700' }}>{n.actorNickname}</Text>님이 {n.message}</Text>
                         <Text style={S.notifTime}>{new Date(n.createdAt).toLocaleString('ko-KR')}</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </ScrollView>
