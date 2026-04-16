@@ -92,7 +92,7 @@ export default function ProfileScreen({ user, onLogout }) {
     if (status !== 'granted') { Alert.alert('권한 필요', '갤러리 접근 권한이 필요해요.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [1, 1], quality: 0.8,
+      allowsEditing: true, aspect: [1, 1], quality: 0.7,
     });
     if (!result.canceled) {
       setEditForm(p => ({ ...p, profileImage: result.assets[0].uri }));
@@ -106,16 +106,21 @@ export default function ProfileScreen({ user, onLogout }) {
       // 로컬 파일이면 업로드
       if (profileImageUrl && profileImageUrl.startsWith('file://')) {
         const formData = new FormData();
-        const filename = profileImageUrl.split('/').pop();
-        const ext = filename.split('.').pop().toLowerCase();
-        const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-        formData.append('file', { uri: profileImageUrl, name: filename, type: mime });
+        const rawName = profileImageUrl.split('/').pop() || 'photo.jpg';
+        const dotIdx = rawName.lastIndexOf('.');
+        let ext = dotIdx >= 0 ? rawName.substring(dotIdx + 1).toLowerCase() : 'jpg';
+        // HEIC 등 비지원 확장자 jpg로 통일
+        if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) ext = 'jpg';
+        const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+        const safeName = 'profile_' + Date.now() + '.' + ext;
+        formData.append('file', { uri: profileImageUrl, name: safeName, type: mime });
         const upRes = await fetch(API_BASE + '/api/upload', { method: 'POST', body: formData });
         if (upRes.ok) {
           const upData = await upRes.json();
           profileImageUrl = upData.feed || upData.url;
         } else {
-          throw new Error('이미지 업로드 실패');
+          const errText = await upRes.text();
+          throw new Error('업로드 실패 (' + upRes.status + '): ' + errText.substring(0, 120));
         }
       }
 

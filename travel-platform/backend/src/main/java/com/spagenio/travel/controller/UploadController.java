@@ -20,8 +20,7 @@ public class UploadController {
     private String baseUrl;
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
-        "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
-    );
+            "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp");
     private static final long MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
     @PostMapping("/upload")
@@ -78,7 +77,8 @@ public class UploadController {
     }
 
     private String getExtension(String filename) {
-        if (filename == null) return ".jpg";
+        if (filename == null)
+            return ".jpg";
         int dot = filename.lastIndexOf('.');
         return dot >= 0 ? filename.substring(dot).toLowerCase() : ".jpg";
     }
