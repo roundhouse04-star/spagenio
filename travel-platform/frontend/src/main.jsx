@@ -299,11 +299,7 @@ function App() {
       // 2. 알림이 있으면 읽음 처리
       if (list.length > 0 && list.some(n => !n.isRead)) {
         try {
-          await fetch('/api/notifications/read-all', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.id }),
-          });
+          await fetch(`/api/notifications/read-all?userId=${currentUser.id}`, { method: 'POST' });
           setUnreadCount(0);
         } catch (e) {}
       }
