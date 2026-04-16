@@ -283,7 +283,7 @@ function App() {
   useEffect(() => {
     if (currentUser?.id) {
       loadNotifications();
-      const interval = setInterval(loadNotifications, 30000);
+      const interval = setInterval(loadNotifications, 60000);
       return () => clearInterval(interval);
     }
   }, [currentUser?.id]);
