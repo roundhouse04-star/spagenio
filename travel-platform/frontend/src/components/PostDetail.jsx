@@ -127,7 +127,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
               )}
             </>
           ) : (
-            <div style={{ height: 300, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>사진 없음</div>
+            <div style={{ height: 300, background: '#F5F4F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>사진 없음</div>
           )}
         </div>
 
@@ -136,7 +136,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           {/* 작성자 + 메뉴 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img className="avatar avatar-md" style={{ cursor: 'pointer' }}
-              src={post.userProfileImage || `https://ui-avatars.com/api/?name=${post.userNickname}&background=4f46e5&color=fff`}
+              src={post.userProfileImage || `https://ui-avatars.com/api/?name=${post.userNickname}&background=1E2A3A&color=fff`}
               alt={post.userNickname} onClick={() => onProfile?.(post.userId)} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, cursor: 'pointer' }} onClick={() => onProfile?.(post.userId)}>{post.userNickname}</div>
@@ -148,12 +148,12 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
             {isMyPost && (
               <div style={{ position: 'relative' }}>
                 <button onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
-                  style={{ background: 'none', border: 'none', fontSize: 18, color: '#9ca3af', cursor: 'pointer', padding: '4px 8px' }}>⋯</button>
+                  style={{ background: 'none', border: 'none', fontSize: 18, color: '#8A919C', cursor: 'pointer', padding: '4px 8px' }}>⋯</button>
                 {showMenu && (
-                  <div style={{ position: 'absolute', right: 0, top: '100%', background: 'white', border: '1px solid #eee', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}
+                  <div style={{ position: 'absolute', right: 0, top: '100%', background: 'white', border: '1px solid #E2E0DC', borderRadius: 3, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 50, minWidth: 140, overflow: 'hidden' }}
                     onClick={e => e.stopPropagation()}>
                     <button onClick={() => { setEditing(true); setEditData({ title: post.title, content: post.content }); setShowMenu(false); }}
-                      style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#1a1a2e', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+                      style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#1E2A3A', background: 'none', border: 'none', borderBottom: '1px solid #F5F4F0', cursor: 'pointer' }}>
                       ✏️ 수정
                     </button>
                     <button onClick={() => { setDeleteConfirm(true); setShowMenu(false); }}
@@ -171,20 +171,20 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           {/* 수정 폼 */}
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>게시물 수정</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>게시물 수정</div>
               <input value={editData.title} onChange={e => setEditData(p => ({ ...p, title: e.target.value }))}
-                style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, outline: 'none' }}
+                style={{ padding: '10px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 14, outline: 'none' }}
                 placeholder="제목" />
               <textarea value={editData.content} onChange={e => setEditData(p => ({ ...p, content: e.target.value }))}
-                rows={5} style={{ padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical' }}
+                rows={5} style={{ padding: '10px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }}
                 placeholder="내용" />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveEdit} disabled={saving}
-                  style={{ flex: 1, padding: '10px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ flex: 1, padding: '10px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                   {saving ? '저장 중...' : '저장'}
                 </button>
                 <button onClick={() => setEditing(false)}
-                  style={{ flex: 1, padding: '10px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>
+                  style={{ flex: 1, padding: '10px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
                   취소
                 </button>
               </div>
@@ -192,10 +192,10 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           ) : (
             <>
               {/* 탭 */}
-              <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4 }}>
+              <div style={{ display: 'flex', gap: 4, background: '#F5F4F0', borderRadius: 3, padding: 4 }}>
                 {getTabs(post).map(t => (
                   <button key={t.key} onClick={() => setTab(t.key)}
-                    style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: tab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
+                    style={{ flex: 1, padding: '8px 4px', borderRadius: 9, border: 'none', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: tab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s', boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
                     {t.label}
                   </button>
                 ))}
@@ -245,11 +245,11 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   {/* 유튜브 영상 */}
                   {post.youtubeUrl && (
                     <a href={post.youtubeUrl} target="_blank" rel="noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, textDecoration: 'none' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 3, textDecoration: 'none' }}>
                       {post.youtubeThumbnail && <img src={post.youtubeThumbnail} style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} alt="" />}
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>▶ 관련 유튜브 영상</div>
-                        {post.youtubeTitle && <div style={{ fontSize: 12, color: '#6b7280' }}>{post.youtubeTitle}</div>}
+                        {post.youtubeTitle && <div style={{ fontSize: 12, color: '#8A919C' }}>{post.youtubeTitle}</div>}
                       </div>
                     </a>
                   )}
@@ -278,7 +278,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   )}
                   {gpsLat && gpsLng && (
                     <button onClick={() => setTab('map')}
-                      style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1.5px solid #c7d2fe', background: '#eef2ff', color: '#4f46e5', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                      style={{ width: '100%', padding: '12px', borderRadius: 3, border: '1.5px solid #c7d2fe', background: '#EEEDEA', color: '#1E2A3A', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                       🗺️ 주변 맛집 · 교통 · 관광지 보기 →
                     </button>
                   )}
@@ -292,7 +292,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           {post.places && post.places.length > 0 ? (
             <>
               {/* 지도 */}
-              <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+              <div style={{ borderRadius: 3, overflow: 'hidden', border: '1px solid #F0EEE9' }}>
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${
                     Math.min(...post.places.map(p => p.lng)) - 0.01},${
@@ -305,18 +305,18 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                 />
               </div>
               {/* 코스 리스트 */}
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>📍 코스 ({post.places.length}곳)</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A' }}>📍 코스 ({post.places.length}곳)</div>
               {post.places.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((place, i) => (
-                <div key={place.id || i} style={{ display: 'flex', gap: 12, padding: 14, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#FF5A5F', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
+                <div key={place.id || i} style={{ display: 'flex', gap: 12, padding: 14, background: '#FAFAF8', borderRadius: 3, border: '1px solid #F0EEE9' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1E2A3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
                     {i + 1}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 2 }}>{place.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A', marginBottom: 2 }}>{place.name}</div>
                     {place.category && (
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8, background: '#fff5f5', color: '#FF5A5F', fontWeight: 600 }}>{place.category}</span>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 2, background: '#FAFAF8', color: '#1E2A3A', fontWeight: 600 }}>{place.category}</span>
                     )}
-                    {place.tip && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>💡 {place.tip}</div>}
+                    {place.tip && <div style={{ fontSize: 12, color: '#8A919C', marginTop: 4 }}>💡 {place.tip}</div>}
                     {place.howToGet && (
                       <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                         🚇 {place.howToGet}
@@ -325,21 +325,21 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                     {place.lat && place.lng && (
                       <a href={`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`}
                         target="_blank" rel="noreferrer"
-                        style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, display: 'inline-block', textDecoration: 'none' }}>
+                        style={{ fontSize: 11, color: '#8A919C', marginTop: 4, display: 'inline-block', textDecoration: 'none' }}>
                         📍 지도에서 보기 →
                       </a>
                     )}
                   </div>
                   {i < post.places.length - 1 && (
-                    <div style={{ position: 'absolute', left: 28, bottom: -8, fontSize: 16, color: '#d1d5db' }}>↓</div>
+                    <div style={{ position: 'absolute', left: 28, bottom: -8, fontSize: 16, color: '#B8BCC4' }}>↓</div>
                   )}
                 </div>
               ))}
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>
+            <div style={{ textAlign: 'center', padding: 40, color: '#8A919C' }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📍</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>등록된 코스가 없어요</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#4A5568' }}>등록된 코스가 없어요</div>
               <div style={{ fontSize: 12, marginTop: 4 }}>이 게시물에는 장소 정보가 없습니다</div>
             </div>
           )}
@@ -359,7 +359,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   {post.comments?.map((c) => (
                     <div key={c.id} className="comment-item" style={{ alignItems: 'flex-start' }}>
                       <img className="avatar avatar-sm"
-                        src={c.userProfileImage || `https://ui-avatars.com/api/?name=${c.userNickname}&background=4f46e5&color=fff`}
+                        src={c.userProfileImage || `https://ui-avatars.com/api/?name=${c.userNickname}&background=1E2A3A&color=fff`}
                         alt={c.userNickname} />
                       <div className="comment-body" style={{ flex: 1 }}>
                         <div className="comment-name">{c.userNickname}</div>
@@ -369,9 +369,9 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                       {/* 내 댓글 삭제 버튼 */}
                       {c.userId === currentUserId && (
                         <button onClick={() => handleDeleteComment(c.id)}
-                          style={{ fontSize: 11, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', flexShrink: 0 }}
+                          style={{ fontSize: 11, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', flexShrink: 0 }}
                           onMouseEnter={e => e.target.style.color = '#ef4444'}
-                          onMouseLeave={e => e.target.style.color = '#9ca3af'}>
+                          onMouseLeave={e => e.target.style.color = '#8A919C'}>
                           삭제
                         </button>
                       )}
@@ -397,7 +397,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
         <div className="modal-overlay" onClick={() => setDeleteConfirm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
             <div className="modal-title">게시물을 삭제할까요?</div>
-            <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.7 }}>삭제하면 복구할 수 없어요.</p>
+            <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>삭제하면 복구할 수 없어요.</p>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setDeleteConfirm(false)}>취소</button>
               <button className="btn-cancel" onClick={handleDelete}>삭제</button>

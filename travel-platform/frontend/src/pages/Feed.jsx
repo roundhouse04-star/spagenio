@@ -29,18 +29,18 @@ function SponsoredAd({ ad, currentUser }) {
   if (!ad) return null;
 
   return (
-    <div ref={ref} style={{ background: 'white', borderBottom: '1px solid #f0f0f0' }}>
+    <div ref={ref} style={{ background: 'white', borderBottom: '1px solid #F0EEE9' }}>
       <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 14, background: '#FF5A5F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 3, background: '#1E2A3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 12, color: 'white', fontWeight: 800 }}>AD</span>
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e' }}>Sponsored</div>
-            <div style={{ fontSize: 10, color: '#9ca3af' }}>{ad.target_country || '전체'} · {ad.target_city || '전체'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1E2A3A' }}>Sponsored</div>
+            <div style={{ fontSize: 10, color: '#8A919C' }}>{ad.target_country || '전체'} · {ad.target_city || '전체'}</div>
           </div>
         </div>
-        <span style={{ fontSize: 10, color: '#d1d5db', background: '#f9fafb', padding: '2px 8px', borderRadius: 8 }}>광고</span>
+        <span style={{ fontSize: 10, color: '#B8BCC4', background: '#FAFAF8', padding: '2px 8px', borderRadius: 2 }}>광고</span>
       </div>
       <div onClick={handleClick} style={{ cursor: 'pointer', position: 'relative' }}>
         {ad.image_url && (
@@ -54,9 +54,9 @@ function SponsoredAd({ ad, currentUser }) {
         </div>
       </div>
       <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 12, color: '#9ca3af' }}>{ad.description?.slice(0, 40)}</div>
+        <div style={{ fontSize: 12, color: '#8A919C' }}>{ad.description?.slice(0, 40)}</div>
         <button onClick={handleClick}
-          style={{ padding: '6px 16px', borderRadius: 8, background: '#FF5A5F', color: 'white',
+          style={{ padding: '6px 16px', borderRadius: 2, background: '#1E2A3A', color: 'white',
             fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
           {ad.cta_text || '자세히 보기'}
         </button>
@@ -121,20 +121,20 @@ function PromoCard({ promo }) {
     ? { bg: '#fffbeb', border: '#fde68a', badge: '#d97706', badgeText: '광고' }
     : promo.type === 'event'
       ? { bg: '#f0fdf4', border: '#bbf7d0', badge: '#16a34a', badgeText: '이벤트' }
-      : { bg: '#eef2ff', border: '#c7d2fe', badge: '#4f46e5', badgeText: '공지' };
+      : { bg: '#EEEDEA', border: '#c7d2fe', badge: '#1E2A3A', badgeText: '공지' };
 
   return (
-    <div style={{ background: typeColor.bg, border: `1.5px solid ${typeColor.border}`, overflow: 'hidden', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ background: typeColor.bg, border: `1.5px solid ${typeColor.border}`, overflow: 'hidden', borderBottom: '1px solid #F0EEE9' }}>
       {promo.imageUrl && <img src={promo.imageUrl} alt={promo.title} style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />}
       <div style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: typeColor.badge, color: 'white' }}>{typeColor.badgeText}</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>{promo.title}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 2, background: typeColor.badge, color: 'white' }}>{typeColor.badgeText}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#1E2A3A' }}>{promo.title}</span>
         </div>
-        <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6, margin: 0 }}>{promo.content}</p>
+        <p style={{ fontSize: 13, color: '#8A919C', lineHeight: 1.6, margin: 0 }}>{promo.content}</p>
         {promo.linkUrl && (
           <a href={promo.linkUrl} target="_blank" rel="noreferrer"
-            style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', background: typeColor.badge, color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', background: typeColor.badge, color: 'white', borderRadius: 2, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
             {promo.linkLabel || '자세히 보기'} →
           </a>
         )}
@@ -151,27 +151,27 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
   const [showMore, setShowMore] = useState(false);
 
   return (
-    <div style={{ background: 'white', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ background: 'white', borderBottom: '1px solid #F0EEE9' }}>
 
       {/* 헤더 — 프로필 + 닉네임 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
           onClick={() => onProfile?.(post.userId)}>
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#4f46e5', border: '2px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#1E2A3A', border: '2px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {post.userProfileImage
               ? <img src={post.userProfileImage} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
               : <span style={{ color: 'white', fontWeight: 800, fontSize: 15 }}>{post.userNickname?.[0]?.toUpperCase()}</span>
             }
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{post.userNickname}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{post.userNickname}</div>
             {(post.city || post.country) && (
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>📍 {[post.city, post.country].filter(Boolean).join(', ')}</div>
+              <div style={{ fontSize: 11, color: '#8A919C' }}>📍 {[post.city, post.country].filter(Boolean).join(', ')}</div>
             )}
           </div>
         </div>
         <button onClick={() => onReport?.(post)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#374151', letterSpacing: 2, padding: '4px 6px' }}>···</button>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#4A5568', letterSpacing: 2, padding: '4px 6px' }}>···</button>
       </div>
 
       {/* 이미지 또는 동영상 */}
@@ -190,7 +190,7 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
           ? <AutoPlayVideo src={post.images[0]} poster={post.images[0].replace('_video.mp4', '_thumb.jpg')} />
           : post.images?.[0]
           ? <img src={post.images[0]} alt={post.title} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
-          : <div style={{ width: '100%', aspectRatio: '1/1', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          : <div style={{ width: '100%', aspectRatio: '1/1', background: '#EEEDEA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 64 }}>✈️</span>
           </div>
         }
@@ -212,21 +212,21 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
 
       {/* 좋아요 수 */}
       {likeCount > 0 && (
-        <div style={{ padding: '0 14px 4px', fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>좋아요 {likeCount}개</div>
+        <div style={{ padding: '0 14px 4px', fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>좋아요 {likeCount}개</div>
       )}
 
       {/* 캡션 */}
       <div style={{ padding: '0 14px 5px' }}>
-        <span style={{ fontSize: 13, color: '#1a1a2e' }}>
+        <span style={{ fontSize: 13, color: '#1E2A3A' }}>
           <span style={{ fontWeight: 800 }}>{post.userNickname} </span>
           {post.title}
         </span>
         {post.content && (
           <div style={{ marginTop: 3 }}>
-            <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
+            <span style={{ fontSize: 13, color: '#4A5568', lineHeight: 1.5 }}>
               {showMore ? post.content : post.content.slice(0, 80)}
               {post.content.length > 80 && !showMore && (
-                <span style={{ color: '#9ca3af', cursor: 'pointer' }} onClick={() => setShowMore(true)}> ... 더 보기</span>
+                <span style={{ color: '#8A919C', cursor: 'pointer' }} onClick={() => setShowMore(true)}> ... 더 보기</span>
               )}
             </span>
           </div>
@@ -236,7 +236,7 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
       {/* 댓글 미리보기 */}
       {commentCount > 0 && (
         <button onClick={() => onOpen?.(post)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 14px 5px', fontSize: 13, color: '#9ca3af', display: 'block' }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 14px 5px', fontSize: 13, color: '#8A919C', display: 'block' }}>
           댓글 {commentCount}개 모두 보기
         </button>
       )}
@@ -247,10 +247,10 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
           {post.travelStyles?.slice(0, 2).map(key => {
             const s = TRAVEL_STYLES.find(t => t.key === key);
             if (!s) return null;
-            return <span key={key} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 20, background: s.bg, color: s.color, fontWeight: 700 }}>{s.icon} {s.label}</span>;
+            return <span key={key} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 2, background: s.bg, color: s.color, fontWeight: 700 }}>{s.icon} {s.label}</span>;
           })}
           {post.tags?.slice(0, 3).map((t, i) => (
-            <span key={i} style={{ fontSize: 13, color: '#4f46e5', cursor: 'pointer' }}>#{t}</span>
+            <span key={i} style={{ fontSize: 13, color: '#1E2A3A', cursor: 'pointer' }}>#{t}</span>
           ))}
         </div>
       )}
@@ -308,7 +308,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
       const aWish = wishCountries.length > 0 && matchesCountry(a, wishCountries) ? 2 : 0;
       const bWish = wishCountries.length > 0 && matchesCountry(b, wishCountries) ? 2 : 0;
       if (bWish !== aWish) return bWish - aWish;
-      // 2순위: 여행 스타일
+      // 2순위: TRAVEL STYLE
       const aStyle = (preferredStyles?.length && (a.travelStyles || []).some(s => preferredStyles.includes(s))) ? 1 : 0;
       const bStyle = (preferredStyles?.length && (b.travelStyles || []).some(s => preferredStyles.includes(s))) ? 1 : 0;
       return bStyle - aStyle;
@@ -444,10 +444,10 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
     <div style={{ width: 680, margin: '0 auto', maxWidth: '100%' }}>
 
       {/* 탭 — 전체 / 팔로잉 */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid #E2E0DC', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
         {[['all', '📍 근처'], ['following', '👤 팔로잉'], ['popular', '🔥 인기']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: tab === key ? 700 : 500, color: tab === key ? '#FF5A5F' : '#9ca3af', borderBottom: tab === key ? '2px solid #FF5A5F' : '2px solid transparent' }}>
+            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: tab === key ? 700 : 500, color: tab === key ? '#1E2A3A' : '#8A919C', borderBottom: tab === key ? '2px solid #1E2A3A' : '2px solid transparent' }}>
             {label}
           </button>
         ))}
@@ -456,9 +456,9 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
       {loading ? (
         <div className="empty">불러오는 중...</div>
       ) : posts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#8A919C' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>✈️</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 6 }}>게시물이 없어요</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#4A5568', marginBottom: 6 }}>게시물이 없어요</div>
           <div style={{ fontSize: 13 }}>첫 번째 여행 이야기를 올려보세요!</div>
         </div>
       ) : (
@@ -474,8 +474,8 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
 
           {/* 무한 스크롤 센티널 */}
           <div ref={sentinelRef} style={{ height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0' }}>
-            {loadingMore && <div style={{ fontSize: 12, color: '#9ca3af' }}>불러오는 중...</div>}
-            {!hasMore && posts.length > 0 && <div style={{ fontSize: 12, color: '#d1d5db' }}>모든 게시물을 봤어요 ✓</div>}
+            {loadingMore && <div style={{ fontSize: 12, color: '#8A919C' }}>불러오는 중...</div>}
+            {!hasMore && posts.length > 0 && <div style={{ fontSize: 12, color: '#B8BCC4' }}>모든 게시물을 봤어요 ✓</div>}
           </div>
         </>
       )}

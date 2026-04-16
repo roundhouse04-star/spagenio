@@ -17,7 +17,7 @@ function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div className="modal-title" style={{ marginBottom: 0 }}>{title}</div>
-          <button onClick={onClose} style={{ fontSize: 20, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} style={{ fontSize: 20, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
         </div>
         {users.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>목록이 없어요.</div>
@@ -28,12 +28,12 @@ function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow
               const isMe = currentUser?.id === u.id;
               return (
                 <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <img src={u.profileImage || `https://ui-avatars.com/api/?name=${u.nickname}&background=4f46e5&color=fff&size=40`}
+                  <img src={u.profileImage || `https://ui-avatars.com/api/?name=${u.nickname}&background=1E2A3A&color=fff&size=40`}
                     alt={u.nickname} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }}
                     onClick={() => { onProfile?.(u.id); onClose(); }} />
                   <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => { onProfile?.(u.id); onClose(); }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#1a1a2e' }}>{u.nickname}</div>
-                    {u.bio && <div style={{ fontSize: 12, color: '#9ca3af' }}>{u.bio}</div>}
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#1E2A3A' }}>{u.nickname}</div>
+                    {u.bio && <div style={{ fontSize: 12, color: '#8A919C' }}>{u.bio}</div>}
                   </div>
                   {!isMe && currentUser && (
                     <button className={isFollowing ? 'btn-following' : 'btn-follow'}
@@ -203,36 +203,36 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="profile-header">
         <img className="avatar avatar-xl"
-          src={user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=4f46e5&color=fff&size=110`}
+          src={user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=1E2A3A&color=fff&size=110`}
           alt={user.nickname} />
         <div className="profile-info">
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>프로필 편집</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>프로필 편집</div>
 
               {/* 사진 변경 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <img src={imagePreview || editData.profileImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=4f46e5&color=fff&size=80`}
-                  style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e5e7eb' }} alt="" />
+                <img src={imagePreview || editData.profileImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=1E2A3A&color=fff&size=80`}
+                  style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #E2E0DC' }} alt="" />
                 <label style={{ cursor: 'pointer' }}>
-                  <div style={{ padding: '7px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#555' }}>
+                  <div style={{ padding: '7px 14px', background: '#F5F4F0', border: '1px solid #E2E0DC', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#555' }}>
                     📷 사진 변경
                   </div>
                   <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
                 </label>
-                <span style={{ fontSize: 11, color: '#9ca3af' }}>JPG, PNG / 30MB 이하</span>
+                <span style={{ fontSize: 11, color: '#8A919C' }}>JPG, PNG / 30MB 이하</span>
               </div>
 
               <input value={editData.nickname} onChange={e => setEditData(p => ({ ...p, nickname: e.target.value }))}
                 placeholder="닉네임" maxLength={20}
-                style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, outline: 'none' }} />
+                style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 14, outline: 'none' }} />
               <textarea value={editData.bio} onChange={e => setEditData(p => ({ ...p, bio: e.target.value }))}
                 placeholder="소개글 (선택)" rows={3} maxLength={100}
-                style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical' }} />
+                style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }} />
 
               {/* 여행 성향 */}
               <div>
-                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>✈️ 여행 성향 (복수 선택)</div>
+                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>✈️ 여행 성향 (복수 선택)</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {TRAVEL_STYLES.map(s => {
                     const selected = (editData.preferredStyles || []).includes(s.key);
@@ -243,7 +243,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                           ? p.preferredStyles.filter(k => k !== s.key)
                           : [...(p.preferredStyles || []), s.key]
                       }))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${selected ? s.color : '#eee'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#9ca3af', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 2, border: `1.5px solid ${selected ? s.color : '#E2E0DC'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#8A919C', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
                         <span style={{ fontSize: 14 }}>{s.icon}</span> {s.label}
                       </button>
                     );
@@ -253,9 +253,9 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
 
               {/* 국적 */}
               <div>
-                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>🌏 국적</div>
+                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>🌏 국적</div>
                 <select value={editData.nationality} onChange={e => setEditData(p => ({ ...p, nationality: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', background: 'white' }}>
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', background: 'white' }}>
                   <option value="KR">🇰🇷 대한민국</option>
                   <option value="JP">🇯🇵 일본</option>
                   <option value="US">🇺🇸 미국</option>
@@ -274,7 +274,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
 
               {/* 가고싶은 나라 */}
               <div>
-                <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ fontWeight: 400 }}>(복수 선택)</span></div>
+                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ fontWeight: 400 }}>(복수 선택)</span></div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {[
                     { code: 'JP', label: '🇯🇵 일본' }, { code: 'US', label: '🇺🇸 미국' },
@@ -292,7 +292,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                     return (
                       <button key={c.code} type="button"
                         onClick={() => setEditData(p => ({ ...p, wishCountries: selected ? p.wishCountries.filter(x => x !== c.code) : [...(p.wishCountries || []), c.code] }))}
-                        style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${selected ? '#4f46e5' : '#eee'}`, background: selected ? '#eef2ff' : 'white', color: selected ? '#4f46e5' : '#9ca3af', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
+                        style={{ padding: '5px 10px', borderRadius: 2, border: `1.5px solid ${selected ? '#1E2A3A' : '#E2E0DC'}`, background: selected ? '#EEEDEA' : 'white', color: selected ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
                         {c.label}
                       </button>
                     );
@@ -301,27 +301,27 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveProfile} disabled={saving || uploading}
-                  style={{ flex: 1, padding: '9px', background: uploading ? '#9ca3af' : '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer' }}>
+                  style={{ flex: 1, padding: '9px', background: uploading ? '#8A919C' : '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer' }}>
                   {uploading ? '업로드 중...' : saving ? '저장 중...' : '저장'}
                 </button>
                 <button onClick={() => { setEditing(false); setImagePreview(''); }}
-                  style={{ flex: 1, padding: '9px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>
+                  style={{ flex: 1, padding: '9px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
                   취소
                 </button>
               </div>
 
               {/* ── 계정 유형 관리 (PC만) ── */}
-              <div className="business-section" style={{ marginTop: 8, padding: 16, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 8 }}>🏢 계정 유형</div>
+              <div className="business-section" style={{ marginTop: 8, padding: 16, background: '#FAFAF8', borderRadius: 3, border: '1px solid #F0EEE9' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 8 }}>🏢 계정 유형</div>
 
                 {bizAccount ? (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#4A5568' }}>
                         {bizAccount.account_type === 'official' ? '★ 공식 계정' : bizAccount.badge_type === 'verified' ? '✓ 인증된 비즈니스' : bizAccount.badge_type === 'premium' ? '♦ 프리미엄' : '🏢 비즈니스'}
                       </span>
                       <span style={{
-                        fontSize: 10, padding: '2px 8px', borderRadius: 8,
+                        fontSize: 10, padding: '2px 8px', borderRadius: 2,
                         background: bizAccount.status === 'approved' ? '#ecfdf5' : bizAccount.status === 'pending' ? '#fffbeb' : '#fef2f2',
                         color: bizAccount.status === 'approved' ? '#10b981' : bizAccount.status === 'pending' ? '#f59e0b' : '#ef4444',
                         fontWeight: 700
@@ -329,7 +329,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                         {bizAccount.status === 'approved' ? '승인됨' : bizAccount.status === 'pending' ? '심사 중' : '거절'}
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    <div style={{ fontSize: 12, color: '#8A919C' }}>
                       <div>{bizAccount.business_name}</div>
                       {bizAccount.business_description && <div style={{ marginTop: 2 }}>{bizAccount.business_description}</div>}
                       {bizAccount.reject_reason && <div style={{ color: '#ef4444', marginTop: 4 }}>거절 사유: {bizAccount.reject_reason}</div>}
@@ -337,7 +337,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                   </div>
                 ) : showBizForm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>카테고리 선택</div>
+                    <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>카테고리 선택</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {[
                         { key: 'restaurant', icon: '🍽️', label: '음식점' },
@@ -351,8 +351,8 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                       ].map(cat => (
                         <button key={cat.key} type="button" onClick={() => setBizForm(p => ({ ...p, category: cat.key }))}
                           style={{
-                            padding: '5px 10px', borderRadius: 10, border: bizForm.category === cat.key ? '1.5px solid #FF5A5F' : '1px solid #eee',
-                            background: bizForm.category === cat.key ? '#fff5f5' : 'white', color: bizForm.category === cat.key ? '#FF5A5F' : '#9ca3af',
+                            padding: '5px 10px', borderRadius: 2, border: bizForm.category === cat.key ? '1.5px solid #1E2A3A' : '1px solid #E2E0DC',
+                            background: bizForm.category === cat.key ? '#FAFAF8' : 'white', color: bizForm.category === cat.key ? '#1E2A3A' : '#8A919C',
                             fontSize: 11, fontWeight: bizForm.category === cat.key ? 700 : 500, cursor: 'pointer'
                           }}>
                           {cat.icon} {cat.label}
@@ -360,33 +360,33 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                       ))}
                     </div>
                     <input placeholder="업체명/이름 *" value={bizForm.business_name} onChange={e => setBizForm(p => ({ ...p, business_name: e.target.value }))}
-                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                      style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                     <textarea placeholder="소개 (선택)" rows={2} value={bizForm.business_description} onChange={e => setBizForm(p => ({ ...p, business_description: e.target.value }))}
-                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none', resize: 'vertical' }} />
+                      style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
                       <input placeholder="국가" value={bizForm.business_country} onChange={e => setBizForm(p => ({ ...p, business_country: e.target.value }))}
-                        style={{ flex: 1, padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                        style={{ flex: 1, padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                       <input placeholder="도시" value={bizForm.business_city} onChange={e => setBizForm(p => ({ ...p, business_city: e.target.value }))}
-                        style={{ flex: 1, padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                        style={{ flex: 1, padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                     </div>
                     <input placeholder="웹사이트 (선택)" value={bizForm.business_website} onChange={e => setBizForm(p => ({ ...p, business_website: e.target.value }))}
-                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                      style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                     <input placeholder="연락처 (선택)" value={bizForm.business_phone} onChange={e => setBizForm(p => ({ ...p, business_phone: e.target.value }))}
-                      style={{ padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }} />
+                      style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={registerBusiness} disabled={bizLoading}
-                        style={{ flex: 1, padding: '9px', background: '#FF5A5F', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        style={{ flex: 1, padding: '9px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                         {bizLoading ? '신청 중...' : '🚀 비즈니스 신청'}
                       </button>
                       <button onClick={() => setShowBizForm(false)}
-                        style={{ padding: '9px 16px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>취소</button>
+                        style={{ padding: '9px 16px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>취소</button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8 }}>일반 계정입니다. 비즈니스 계정으로 전환하면 인증 배지와 통계 기능을 사용할 수 있어요.</div>
+                    <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8 }}>일반 계정입니다. 비즈니스 계정으로 전환하면 인증 배지와 통계 기능을 사용할 수 있어요.</div>
                     <button onClick={() => setShowBizForm(true)}
-                      style={{ padding: '8px 16px', background: '#FF5A5F', color: 'white', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      style={{ padding: '8px 16px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       🏢 비즈니스 계정으로 전환
                     </button>
                   </div>
@@ -400,7 +400,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 <div className="profile-name">{user.nickname}</div>
                 {isMe && (
                   <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '', preferredStyles: user.preferredStyles || [], nationality: user.nationality || 'KR', wishCountries: JSON.parse(user.wishCountries || '[]') }); setImagePreview(''); }}
-                    style={{ padding: '5px 12px', background: '#f3f4f6', border: '1px solid #eee', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
+                    style={{ padding: '5px 12px', background: '#F5F4F0', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 12, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
                     ✏️ 편집
                   </button>
                 )}
@@ -425,7 +425,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                     {isFollowing ? '팔로잉' : '팔로우'}
                   </button>
                   <button onClick={() => setShowBlockConfirm(true)}
-                    style={{ padding: '9px 16px', borderRadius: 10, border: '1px solid #eee', background: 'white', fontSize: 13, color: isBlocked ? '#ef4444' : '#9ca3af', fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ padding: '9px 16px', borderRadius: 2, border: '1px solid #E2E0DC', background: 'white', fontSize: 13, color: isBlocked ? '#ef4444' : '#8A919C', fontWeight: 600, cursor: 'pointer' }}>
                     {isBlocked ? '차단 해제' : '차단'}
                   </button>
                 </div>
@@ -440,7 +440,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         <div className="modal-overlay" onClick={() => setShowBlockConfirm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
             <div className="modal-title">{isBlocked ? '차단 해제' : `${user.nickname}님을 차단할까요?`}</div>
-            <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.7 }}>
+            <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>
               {isBlocked
                 ? '차단을 해제하면 상대방의 게시물이 다시 보여요.'
                 : '차단하면 상대방의 게시물이 보이지 않고, 팔로우 관계가 해제돼요.'}
@@ -466,14 +466,14 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       )}
 
       {/* 프로필 탭 */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eee' }}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E2E0DC' }}>
         {[
           { key: 'posts', label: `📷 게시물 ${visiblePosts.length}` },
           ...(isMe ? [{ key: 'saved', label: `🔖 저장됨` }] : []),
           { key: 'badges', label: `🏅 뱃지 ${user.badges?.length || 0}` },
         ].map(t => (
           <button key={t.key} onClick={() => setProfileTab(t.key)}
-            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', borderBottom: `2px solid ${profileTab === t.key ? '#4f46e5' : 'transparent'}`, color: profileTab === t.key ? '#4f46e5' : '#9ca3af', fontSize: 13, fontWeight: profileTab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
+            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', borderBottom: `2px solid ${profileTab === t.key ? '#1E2A3A' : 'transparent'}`, color: profileTab === t.key ? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: profileTab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
             {t.label}
           </button>
         ))}
@@ -565,17 +565,17 @@ function BadgeGrid({ badges, posts, user }) {
   const allBadgeKeys = Object.keys(BADGE_INFO);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ fontSize: 12, color: '#9ca3af' }}>획득한 뱃지 {badges.length}개 / 전체 {allBadgeKeys.length}개</div>
+      <div style={{ fontSize: 12, color: '#8A919C' }}>획득한 뱃지 {badges.length}개 / 전체 {allBadgeKeys.length}개</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
         {allBadgeKeys.map(key => {
           const info = BADGE_INFO[key];
           const earned = badges.includes(key);
           return (
-            <div key={key} style={{ border: `1px solid ${earned ? '#c7d2fe' : '#eee'}`, borderRadius: 14, padding: '14px 12px', textAlign: 'center', background: earned ? '#fafbff' : '#f9fafb', opacity: earned ? 1 : 0.5 }}>
+            <div key={key} style={{ border: `1px solid ${earned ? '#c7d2fe' : '#E2E0DC'}`, borderRadius: 3, padding: '14px 12px', textAlign: 'center', background: earned ? '#fafbff' : '#FAFAF8', opacity: earned ? 1 : 0.5 }}>
               <div style={{ fontSize: 28, marginBottom: 6 }}>{info.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: earned ? '#1a1a2e' : '#9ca3af', marginBottom: 3 }}>{info.name}</div>
-              <div style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.4 }}>{info.desc}</div>
-              {earned && <div style={{ fontSize: 10, color: '#4f46e5', fontWeight: 700, marginTop: 6 }}>✓ 획득</div>}
+              <div style={{ fontSize: 12, fontWeight: 700, color: earned ? '#1E2A3A' : '#8A919C', marginBottom: 3 }}>{info.name}</div>
+              <div style={{ fontSize: 11, color: '#8A919C', lineHeight: 1.4 }}>{info.desc}</div>
+              {earned && <div style={{ fontSize: 10, color: '#1E2A3A', fontWeight: 700, marginTop: 6 }}>✓ 획득</div>}
             </div>
           );
         })}

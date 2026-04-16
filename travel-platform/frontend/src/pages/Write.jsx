@@ -205,19 +205,19 @@ export default function Write({ currentUser, onDone, draft }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label">여행 스타일 (복수 선택 가능)</label>
+          <label className="form-label">TRAVEL STYLE (복수 선택 가능)</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {TRAVEL_STYLES.map(s => {
               const selected = travelStyles.includes(s.key);
               return (
                 <button key={s.key} type="button" onClick={() => toggleStyle(s.key)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 20, border: `1.5px solid ${selected ? s.color : '#eee'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#9ca3af', fontSize: 13, fontWeight: selected ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 2, border: `1.5px solid ${selected ? s.color : '#E2E0DC'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#8A919C', fontSize: 13, fontWeight: selected ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
                   <span style={{ fontSize: 16 }}>{s.icon}</span> {s.label}
                 </button>
               );
             })}
           </div>
-          {travelStyles.length === 0 && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>선택 안 해도 되지만 선택하면 탐색에서 더 잘 찾아져요!</div>}
+          {travelStyles.length === 0 && <div style={{ fontSize: 11, color: '#8A919C', marginTop: 4 }}>선택 안 해도 되지만 선택하면 탐색에서 더 잘 찾아져요!</div>}
         </div>
 
         <div className="form-group">
@@ -235,14 +235,14 @@ export default function Write({ currentUser, onDone, draft }) {
             </button>
           </div>
           {youtubeInfo && (
-            <div style={{ marginTop: 10, display: 'flex', gap: 10, background: '#f9fafb', border: '1px solid #eee', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+            <div style={{ marginTop: 10, display: 'flex', gap: 10, background: '#FAFAF8', border: '1px solid #E2E0DC', borderRadius: 3, padding: '10px 12px', alignItems: 'center' }}>
               <img src={youtubeInfo.thumbnail} alt="" style={{ width: 80, height: 50, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', marginBottom: 2 }}>{youtubeInfo.title || '유튜브 영상'}</div>
-                <a href={youtubeInfo.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#4f46e5' }}>▶ 유튜브에서 보기</a>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1E2A3A', marginBottom: 2 }}>{youtubeInfo.title || '유튜브 영상'}</div>
+                <a href={youtubeInfo.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#1E2A3A' }}>▶ 유튜브에서 보기</a>
               </div>
               <button onClick={() => { setYoutubeInfo(null); setYoutubeUrl(''); }}
-                style={{ color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                style={{ color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
             </div>
           )}
         </div>
@@ -257,11 +257,11 @@ export default function Write({ currentUser, onDone, draft }) {
           <label className="form-label">공개 설정</label>
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => update('visibility', 'public')}
-              style={{ flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${form.visibility === 'public' ? '#4f46e5' : '#eee'}`, background: form.visibility === 'public' ? '#eef2ff' : 'white', color: form.visibility === 'public' ? '#4f46e5' : '#9ca3af', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '10px', borderRadius: 2, border: `2px solid ${form.visibility === 'public' ? '#1E2A3A' : '#E2E0DC'}`, background: form.visibility === 'public' ? '#EEEDEA' : 'white', color: form.visibility === 'public' ? '#1E2A3A' : '#8A919C', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
               🌏 전체 공개
             </button>
             <button onClick={() => update('visibility', 'private')}
-              style={{ flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${form.visibility === 'private' ? '#4f46e5' : '#eee'}`, background: form.visibility === 'private' ? '#eef2ff' : 'white', color: form.visibility === 'private' ? '#4f46e5' : '#9ca3af', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '10px', borderRadius: 2, border: `2px solid ${form.visibility === 'private' ? '#1E2A3A' : '#E2E0DC'}`, background: form.visibility === 'private' ? '#EEEDEA' : 'white', color: form.visibility === 'private' ? '#1E2A3A' : '#8A919C', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
               🔒 나만 보기
             </button>
           </div>
@@ -273,7 +273,7 @@ export default function Write({ currentUser, onDone, draft }) {
           {form.images.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
               {form.images.map((img, i) => (
-                <div key={i} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: '1' }}>
+                <div key={i} style={{ position: 'relative', borderRadius: 2, overflow: 'hidden', aspectRatio: '1' }}>
                   <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button onClick={() => removeImg(i)}
                     style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 12 }}>✕</button>
@@ -296,12 +296,12 @@ export default function Write({ currentUser, onDone, draft }) {
               onKeyDown={e => e.key === 'Enter' && addUrl()} />
             <button className="btn-secondary" style={{ fontSize: 13, padding: '11px 16px', flexShrink: 0 }} onClick={addUrl}>추가</button>
           </div>
-          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>jpg, png, gif, webp / 파일당 최대 30MB / 최대 10장</div>
+          <div style={{ fontSize: 11, color: '#8A919C', marginTop: 4 }}>jpg, png, gif, webp / 파일당 최대 30MB / 최대 10장</div>
         </div>
 
         {/* GPS 자동 적용 완료 알림 */}
         {gpsFound.length === 0 && places.some(p => p.lat && p.lng) && (
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: 12, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 3, padding: 12, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
             📍 사진 위치 정보가 자동으로 저장됐어요!
           </div>
         )}
@@ -319,10 +319,10 @@ export default function Write({ currentUser, onDone, draft }) {
                 <input className="form-input" placeholder="장소명 *" value={place.name} onChange={e => updatePlace(i, 'name', e.target.value)} />
                 <input className="form-input" placeholder="주소" value={place.address} onChange={e => updatePlace(i, 'address', e.target.value)} />
                 {place.lat && place.lng && (
-                  <div style={{ fontSize: 12, color: '#10b981', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 12, color: '#10b981', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 2, padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>📍 위치 정보 저장됨</span>
                     <a href={`https://maps.google.com/?q=${place.lat},${place.lng}`} target="_blank" rel="noreferrer"
-                      style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>지도 확인 →</a>
+                      style={{ color: '#1E2A3A', textDecoration: 'none', fontWeight: 600 }}>지도 확인 →</a>
                   </div>
                 )}
                 <input className="form-input" placeholder="가는 방법 (예: 난바역 14번 출구 도보 3분)" value={place.howToGet} onChange={e => updatePlace(i, 'howToGet', e.target.value)} />

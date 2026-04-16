@@ -24,7 +24,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
   const [city, setCity] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('전체');
   const [selectedStyle, setSelectedStyle] = useState('');
-  const [showFilter, setShowFilter] = useState(false); // 여행 스타일 필터
+  const [showFilter, setShowFilter] = useState(false); // TRAVEL STYLE 필터
 
   useEffect(() => {
     if (searchTag) {
@@ -78,9 +78,9 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* 국가 스토리 바 */}
-      <div style={{ background: 'white', borderRadius: 18, border: '1px solid #eee', padding: '18px 20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 14, letterSpacing: '0.04em' }}>
-          인기 여행지
+      <div style={{ background: 'white', borderRadius: 3, border: '1px solid #E2E0DC', padding: '18px 20px' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8A919C', marginBottom: 14, letterSpacing: '0.04em' }}>
+          POPULAR DESTINATIONS
         </div>
         <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
           {COUNTRIES.map(c => {
@@ -90,16 +90,16 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0, cursor: 'pointer' }}>
                 <div style={{
                   width: 64, height: 64, borderRadius: '50%',
-                  background: isSelected ? '#4f46e5' : '#f3f4f6',
+                  background: isSelected ? '#1E2A3A' : '#F5F4F0',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 26,
-                  border: isSelected ? '3px solid #4f46e5' : '3px solid #eee',
+                  border: isSelected ? '3px solid #1E2A3A' : '3px solid #E2E0DC',
                   boxShadow: isSelected ? '0 0 0 3px #c7d2fe' : 'none',
                   transition: 'all 0.2s',
                 }}>
                   {c.flag ? c.flag : c.emoji}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: isSelected ? 700 : 500, color: isSelected ? '#4f46e5' : '#6b7280', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 11, fontWeight: isSelected ? 700 : 500, color: isSelected ? '#1E2A3A' : '#8A919C', textAlign: 'center', whiteSpace: 'nowrap' }}>
                   {c.name}
                 </div>
               </div>
@@ -110,16 +110,16 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
 
       {/* 필터 토글 버튼 */}
       <button onClick={() => setShowFilter(!showFilter)}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 14, border: '1px solid #eee', background: showFilter ? '#fff5f5' : 'white', color: showFilter ? '#FF5A5F' : '#9ca3af', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', borderRadius: 3, border: '1px solid #E2E0DC', background: showFilter ? '#FAFAF8' : 'white', color: showFilter ? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
         {showFilter ? '🔼 필터 접기' : '🔽 스타일 · 검색 필터'}
-        {(selectedStyle || keyword || city) && <span style={{ background: '#FF5A5F', color: 'white', borderRadius: 10, padding: '1px 8px', fontSize: 11 }}>ON</span>}
+        {(selectedStyle || keyword || city) && <span style={{ background: '#1E2A3A', color: 'white', borderRadius: 2, padding: '1px 8px', fontSize: 11 }}>ON</span>}
       </button>
 
-      {/* 여행 스타일 필터 */}
+      {/* TRAVEL STYLE 필터 */}
       {showFilter && <>
-      <div style={{ background: 'white', borderRadius: 18, border: '1px solid #eee', padding: '16px 20px' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12, letterSpacing: '0.04em' }}>
-          여행 스타일
+      <div style={{ background: 'white', borderRadius: 3, border: '1px solid #E2E0DC', padding: '16px 20px' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8A919C', marginBottom: 12, letterSpacing: '0.04em' }}>
+          TRAVEL STYLE
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {TRAVEL_STYLES.map(s => {
@@ -128,10 +128,10 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
               <button key={s.key} onClick={() => selectStyle(s.key)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '7px 14px', borderRadius: 20,
-                  border: `1.5px solid ${isSelected ? s.color : '#eee'}`,
+                  padding: '7px 14px', borderRadius: 2,
+                  border: `1.5px solid ${isSelected ? s.color : '#E2E0DC'}`,
                   background: isSelected ? s.bg : 'white',
-                  color: isSelected ? s.color : '#9ca3af',
+                  color: isSelected ? s.color : '#8A919C',
                   fontSize: 13, fontWeight: isSelected ? 700 : 500,
                   cursor: 'pointer', transition: 'all 0.1s'
                 }}>
@@ -143,7 +143,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
       </div>
 
       {/* 검색 */}
-      <div style={{ background: 'white', borderRadius: 18, border: '1px solid #eee', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ background: 'white', borderRadius: 3, border: '1px solid #E2E0DC', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input className="search-input" style={{ flex: 1 }}
             placeholder={selectedCountry !== '전체' ? `${selectedCountry} 여행지, 제목, 태그로 검색...` : '여행지, 제목, 태그로 검색...'}
@@ -152,7 +152,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
           <button className="btn-primary" onClick={onSearch}>검색</button>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: '#fafafa', border: '1px solid #eee', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: '#9ca3af' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: '#FAFAF8', border: '1px solid #E2E0DC', borderRadius: 2, padding: '8px 14px', fontSize: 13, color: '#8A919C' }}>
             {selectedCountry !== '전체' ? `🌏 ${selectedCountry}` : '🌏 전체 국가'}
           </div>
           <input className="filter-input" placeholder="도시 (예: 오사카)" value={city}
@@ -163,18 +163,18 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
 
       {/* 결과 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A3A' }}>
           {selectedCountry !== '전체' ? `${COUNTRIES.find(c => c.name === selectedCountry)?.flag} ${selectedCountry} 여행` : '전체 여행'}
           {curStyle && (
-            <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: curStyle.bg, color: curStyle.color, border: `1px solid ${curStyle.border}` }}>
+            <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 2, background: curStyle.bg, color: curStyle.color, border: `1px solid ${curStyle.border}` }}>
               {curStyle.icon} {curStyle.label}
             </span>
           )}
-          <span style={{ fontSize: 13, fontWeight: 400, color: '#9ca3af', marginLeft: 8 }}>{posts.length}개</span>
+          <span style={{ fontSize: 13, fontWeight: 400, color: '#8A919C', marginLeft: 8 }}>{posts.length}개</span>
         </div>
         {(selectedStyle || selectedCountry !== '전체' || keyword) && (
           <button onClick={() => { setSelectedStyle(''); setSelectedCountry('전체'); setKeyword(''); setCity(''); load('', '', '', ''); }}
-            style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: '1px solid #eee', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}>
+            style={{ fontSize: 12, color: '#8A919C', background: 'none', border: '1px solid #E2E0DC', borderRadius: 2, padding: '5px 12px', cursor: 'pointer' }}>
             필터 초기화
           </button>
         )}
@@ -184,9 +184,9 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
       {loading ? (
         <div className="empty">검색 중...</div>
       ) : posts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A919C' }}>
           <div style={{ fontSize: 36, marginBottom: 10 }}>{curStyle?.icon || '✈️'}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 4 }}>게시물이 없어요</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#4A5568', marginBottom: 4 }}>게시물이 없어요</div>
           <div style={{ fontSize: 13 }}>다른 필터로 검색해보세요!</div>
         </div>
       ) : (

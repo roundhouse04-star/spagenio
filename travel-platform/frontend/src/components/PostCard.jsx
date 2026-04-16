@@ -23,7 +23,7 @@ function BadgeIcon({ type, size = 14 }) {
   const b = badges[type];
   if (!b) return null;
   return (
-    <span title={b.title} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: '50%', background: b.bg, color: b.color, fontSize: size * 0.6, fontWeight: 900, marginLeft: 4, flexShrink: 0 }}>
+    <span title={b.title} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: '50%', background: b.bg, color: b.color, fontSize: size * 0.6, fontWeight: 500, fontFamily: "'Playfair Display', serif", marginLeft: 4, flexShrink: 0 }}>
       {b.icon}
     </span>
   );
@@ -42,7 +42,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
         <div className="post-header-left">
           <div className="avatar-ring" style={{ cursor: 'pointer' }} onClick={() => onProfile?.(post.userId)}>
             <img className="avatar avatar-sm avatar-inner"
-              src={post.userProfileImage || `https://ui-avatars.com/api/?name=${post.userNickname}&background=4f46e5&color=fff`}
+              src={post.userProfileImage || `https://ui-avatars.com/api/?name=${post.userNickname}&background=1E2A3A&color=fff`}
               alt={post.userNickname} />
           </div>
           <div>
@@ -93,7 +93,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
               const s = TRAVEL_STYLES.find(t => t.key === key);
               if (!s) return null;
               return (
-                <span key={key} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+                <span key={key} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 2, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                   {s.icon} {s.label}
                 </span>
               );
@@ -121,11 +121,11 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
         {post.youtubeUrl && (
           <a href={post.youtubeUrl} target="_blank" rel="noreferrer"
             onClick={e => e.stopPropagation()}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, textDecoration: 'none' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 2, textDecoration: 'none' }}>
             {post.youtubeThumbnail && <img src={post.youtubeThumbnail} style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} alt="" />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>▶ 유튜브 영상</div>
-              {post.youtubeTitle && <div style={{ fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.youtubeTitle}</div>}
+              {post.youtubeTitle && <div style={{ fontSize: 11, color: '#8A919C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.youtubeTitle}</div>}
             </div>
           </a>
         )}
