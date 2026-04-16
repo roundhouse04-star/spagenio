@@ -218,7 +218,7 @@ export default function FeedScreen({ user }) {
   useEffect(() => {
     if (user?.id) {
       loadNotifications();
-      const interval = setInterval(loadNotifications, 30000);
+      const interval = setInterval(loadNotifications, 60000);
       return () => clearInterval(interval);
     }
   }, [user?.id]);
@@ -230,6 +230,8 @@ export default function FeedScreen({ user }) {
       try {
         await fetch(`${API_BASE}/api/notifications/read-all?userId=${user.id}`, { method: 'POST' });
         setUnreadCount(0);
+        // 바로 UI에 반영
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       } catch (e) {}
     }
   };
