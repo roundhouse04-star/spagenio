@@ -726,7 +726,7 @@ function App() {
                       </div>
                       <div style={{ padding: 12, borderTop: '1px solid #f0f0f0', display: 'flex', gap: 8 }}>
                         <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && !e.repeat) { e.preventDefault(); sendMessage(); } }}
                           placeholder="메시지 입력..."
                           style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none' }} />
                         <button onClick={sendMessage} style={{ padding: '8px 16px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>전송</button>
