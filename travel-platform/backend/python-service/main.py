@@ -955,6 +955,20 @@ async def get_notifications(userId: str, unreadOnly: bool = False):
             "message": r[8], "isRead": bool(r[9]), "createdAt": r[10]
         } for r in rows]
 
+def save_notification(user_id, actor_id, actor_nickname, type_, post_id="", post_title="", message=""):
+    """알림 DB에 저장 (백그라운드 사용)"""
+    if not user_id or user_id == actor_id:
+        return
+    try:
+        nid = uuid_lib.uuid4().hex[:16]
+        with get_db() as conn:
+            conn.execute("""INSERT INTO notifications (id, user_id, actor_id, actor_nickname, actor_profile_image, type, post_id, post_title, message, is_read, created_at)
+                            VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, 0, ?)""",
+                         (nid, user_id, actor_id, actor_nickname, type_, post_id, post_title, message, dt_now.now().isoformat()))
+            conn.commit()
+    except Exception as e:
+        print(f"알림 저장 실패: {e}")
+
 @app.post("/api/notifications")
 async def create_notification(req: Request):
     data = await req.json()
