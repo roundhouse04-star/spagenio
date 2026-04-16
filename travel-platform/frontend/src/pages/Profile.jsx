@@ -153,8 +153,10 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       if (!res.ok) { const t = await res.text(); throw new Error(t || '업로드 실패'); }
       const data = await res.json();
       const uploadedUrl = data.feed || data.url;
-      setEditData(p => ({ ...p, profileImage: uploadedUrl }));
-      setImagePreview(uploadedUrl);
+      // 파일 생성 완료 -> DB에 즉시 저장
+      await api.updateUser(userId, { profileImage: uploadedUrl });
+      // 페이지 새로고침으로 반영
+      window.location.reload();
     } catch (err) {
       alert('이미지 업로드 실패: ' + err.message);
     }
