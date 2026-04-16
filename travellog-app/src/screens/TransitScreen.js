@@ -149,6 +149,7 @@ export default function TransitScreen() {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, maxHeight: 70 }}
         contentContainerStyle={S.cities}>
         {CITIES.map(city => (
           <TouchableOpacity key={city.id}
@@ -274,8 +275,8 @@ const S = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
   title: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 26, color: colors.primary, letterSpacing: -0.8, marginBottom: 2 },
   subtitle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 2, color: colors.textTertiary, textTransform: 'uppercase' },
-  cities: { paddingHorizontal: 20, paddingVertical: 14, gap: 10 },
-  cityBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: colors.border },
+  cities: { paddingHorizontal: 20, paddingVertical: 14, gap: 10, alignItems: 'center' },
+  cityBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: colors.border, height: 36 },
   cityBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   cityText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
   cityTextActive: { color: 'white' },
