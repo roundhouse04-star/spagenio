@@ -155,8 +155,13 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       const uploadedUrl = data.feed || data.url;
       // 파일 생성 완료 -> DB에 즉시 저장
       await api.updateUser(userId, { profileImage: uploadedUrl });
-      // 페이지 새로고침으로 반영
-      window.location.reload();
+      setEditData(p => ({ ...p, profileImage: uploadedUrl }));
+      setImagePreview(uploadedUrl);
+      setUser(prev => ({ ...prev, profileImage: uploadedUrl }));
+      onChangeUser?.({ ...currentUser, profileImage: uploadedUrl });
+      // sessionStorage 업데이트
+      const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
+      sessionStorage.setItem('auth_user', JSON.stringify({ ...savedUser, profileImage: uploadedUrl }));
     } catch (err) {
       alert('이미지 업로드 실패: ' + err.message);
     }
