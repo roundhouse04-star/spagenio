@@ -8,8 +8,9 @@ import { colors } from '../theme/colors';
 const API_BASE = 'https://travel.spagenio.com';
 
 const toFullUrl = (url) => {
-  if (!url) return url;
+  if (!url || typeof url !== 'string') return null;
   if (url.startsWith('http')) return url;
+  if (url.startsWith('data:')) return null;
   return API_BASE + url;
 };
 
@@ -148,7 +149,7 @@ export default function ProfileScreen({ user, onLogout }) {
       <ScrollView>
         <View style={S.profileWrap}>
           <View style={S.avatarBig}>
-            {profile.profileImage ? (
+            {toFullUrl(profile.profileImage) ? (
               <Image source={{ uri: toFullUrl(profile.profileImage) }} style={S.avatarImg} />
             ) : (
               <Text style={S.avatarBigText}>{profile.nickname?.[0]?.toUpperCase()}</Text>
@@ -219,7 +220,7 @@ export default function ProfileScreen({ user, onLogout }) {
           </View>
           <ScrollView contentContainerStyle={{ padding: 24 }}>
             <TouchableOpacity onPress={pickImage} style={S.editAvatarWrap}>
-              {editForm.profileImage ? (
+              {toFullUrl(editForm.profileImage) ? (
                 <Image source={{ uri: toFullUrl(editForm.profileImage) }} style={S.editAvatar} />
               ) : (
                 <View style={[S.editAvatar, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}>
@@ -265,7 +266,7 @@ export default function ProfileScreen({ user, onLogout }) {
               contentContainerStyle={{ padding: 16 }}
               renderItem={({ item }) => (
                 <View style={S.userRow}>
-                  {item.profileImage ? (
+                  {toFullUrl(item.profileImage) ? (
                     <Image source={{ uri: toFullUrl(item.profileImage) }} style={S.userAvatar} />
                   ) : (
                     <View style={[S.userAvatar, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}>
