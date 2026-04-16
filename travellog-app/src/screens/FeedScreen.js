@@ -398,6 +398,77 @@ export default function FeedScreen({ user }) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      <Modal visible={dmModalVisible} transparent animationType="slide" onRequestClose={() => { setDmModalVisible(false); setActiveConvo(null); }}>
+        <TouchableOpacity style={S.modalOverlay} activeOpacity={1} onPress={() => { setDmModalVisible(false); setActiveConvo(null); }}>
+          <TouchableOpacity style={S.dmContainer} activeOpacity={1}>
+            {activeConvo ? (
+              <>
+                <View style={S.dmHeader}>
+                  <TouchableOpacity onPress={() => setActiveConvo(null)}>
+                    <Text style={{ fontSize: 22 }}>←</Text>
+                  </TouchableOpacity>
+                  <View style={S.dmHeaderAvatar}>
+                    <Text style={{ fontSize: 14, color: '#4f46e5', fontWeight: '700' }}>{(activeConvo.otherNickname || '?')[0].toUpperCase()}</Text>
+                  </View>
+                  <Text style={S.dmHeaderName}>{activeConvo.otherNickname}</Text>
+                  <TouchableOpacity onPress={() => { setDmModalVisible(false); setActiveConvo(null); }}>
+                    <Text style={{ fontSize: 20, color: '#9ca3af' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={S.dmMessages}>
+                  {messages.length === 0 ? (
+                    <Text style={S.notifEmpty}>대화를 시작해보세요!</Text>
+                  ) : messages.map(m => (
+                    <View key={m.id} style={m.senderId === user.id ? S.dmBubbleMine : S.dmBubbleOther}>
+                      <Text style={m.senderId === user.id ? S.dmBubbleMineText : S.dmBubbleOtherText}>{m.content}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
+                <View style={S.dmInputRow}>
+                  <TextInput value={msgInput} onChangeText={setMsgInput}
+                    placeholder="메시지 입력..." placeholderTextColor="#9ca3af"
+                    style={S.dmInput} onSubmitEditing={sendMessage} returnKeyType="send" />
+                  <TouchableOpacity onPress={sendMessage} style={S.dmSendBtn}>
+                    <Text style={S.dmSendText}>전송</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={S.modalHeader}>
+                  <Text style={S.modalTitle}>💬 메시지</Text>
+                  <TouchableOpacity onPress={() => setDmModalVisible(false)}>
+                    <Text style={S.modalClose}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                {conversations.length === 0 ? (
+                  <Text style={S.notifEmpty}>아직 대화가 없어요.{'\n'}친구에게 메시지를 보내보세요!</Text>
+                ) : (
+                  <ScrollView>
+                    {conversations.map(c => (
+                      <TouchableOpacity key={c.id} style={S.convoItem} onPress={() => openConversation(c)}>
+                        <View style={S.convoAvatar}>
+                          <Text style={{ fontSize: 16, color: '#4f46e5', fontWeight: '700' }}>{(c.otherNickname || '?')[0].toUpperCase()}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={S.convoName}>{c.otherNickname}</Text>
+                          <Text style={S.convoLast} numberOfLines={1}>{c.lastMessage || '(메시지 없음)'}</Text>
+                        </View>
+                        {c.unreadCount > 0 && (
+                          <View style={S.convoBadge}>
+                            <Text style={S.convoBadgeText}>{c.unreadCount}</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
