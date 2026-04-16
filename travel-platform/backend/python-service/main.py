@@ -977,8 +977,15 @@ async def mark_read(notif_id: str):
 
 @app.post("/api/notifications/read-all")
 async def mark_all_read(req: Request):
-    data = await req.json()
-    user_id = data.get("userId")
+    try:
+        data = await req.json()
+    except Exception:
+        data = {}
+    user_id = data.get("userId") if data else None
+    if not user_id:
+        user_id = req.query_params.get("userId")
+    if not user_id:
+        return {"ok": False, "error": "userId required"}
     with get_db() as conn:
         conn.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (user_id,))
         conn.commit()
