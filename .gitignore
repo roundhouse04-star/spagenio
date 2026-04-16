@@ -43,3 +43,5 @@ travellog-app/node_modules/
 travellog-app/.expo/
 travellog-app/ios/
 travellog-app/android/
+travel-platform/data/travellog.db-shm
+travel-platform/data/travellog.db-wal
