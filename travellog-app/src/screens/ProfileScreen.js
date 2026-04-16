@@ -82,6 +82,7 @@ export default function ProfileScreen({ user, onLogout }) {
       nickname: userData.nickname || '',
       bio: userData.bio || '',
       preferredStyles: userData.preferredStyles || [],
+      profileImage: userData.profileImage || '',
     });
     setEditing(true);
   };
@@ -253,7 +254,7 @@ export default function ProfileScreen({ user, onLogout }) {
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
             <TouchableOpacity style={S.photoBtn} onPress={pickProfileImage}>
               {editForm.profileImage
-                ? <Image source={{ uri: editForm.profileImage }} style={S.editAvatar} />
+                ? <Image source={{ uri: editForm.profileImage.startsWith('file://') ? editForm.profileImage : toFullUrl(editForm.profileImage) }} style={S.editAvatar} />
                 : <View style={[S.editAvatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                     <Text style={{ fontSize: 24, color: 'white', fontWeight: '800' }}>
                       {userData?.nickname?.[0]?.toUpperCase()}
