@@ -55,6 +55,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [editData, setEditData] = useState({ nickname: '', bio: '', profileImage: '', preferredStyles: [], nationality: 'KR', wishCountries: [] });
   const [imagePreview, setImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profileTab, setProfileTab] = useState('posts');
   const [bizAccount, setBizAccount] = useState(null);
   const [bizLoading, setBizLoading] = useState(false);
@@ -284,9 +285,9 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={handleSaveProfile} disabled={saving}
-                  style={{ flex: 1, padding: '9px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  {saving ? '저장 중...' : '저장'}
+                <button onClick={handleSaveProfile} disabled={saving || uploading}
+                  style={{ flex: 1, padding: '9px', background: uploading ? '#9ca3af' : '#4f46e5', color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer' }}>
+                  {uploading ? '업로드 중...' : saving ? '저장 중...' : '저장'}
                 </button>
                 <button onClick={() => { setEditing(false); setImagePreview(''); }}
                   style={{ flex: 1, padding: '9px', background: '#f3f4f6', color: '#555', border: 'none', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}>
