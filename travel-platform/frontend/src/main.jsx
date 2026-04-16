@@ -196,6 +196,9 @@ function App() {
   const [searchTag, setSearchTag] = useState('');
   const [feedKey, setFeedKey] = useState(0); // 피드 강제 새로고침용
   const [notifications, setNotifications] = useState([]); // 알림 목록
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [serverNotifs, setServerNotifs] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false); // 알림 패널
   const [writeDraft, setWriteDraft] = useState(null); // 글쓰기 초안
 
@@ -259,6 +262,37 @@ function App() {
     setPage('feed');
     setOpenedPost(null);
     setShowLogoutMenu(false);
+  };
+
+  const loadNotifications = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
+      if (res.ok) setServerNotifs(await res.json());
+      const cRes = await fetch(`/api/notifications/unread-count?userId=${currentUser.id}`);
+      if (cRes.ok) { const d = await cRes.json(); setUnreadCount(d.count || 0); }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser?.id]);
+
+  const openNotifModal = async () => {
+    await loadNotifications();
+    setShowNotifModal(true);
+    if (currentUser?.id) {
+      await fetch('/api/notifications/read-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id }),
+      });
+      setUnreadCount(0);
+    }
   };
 
   const addNotif = (notif) => {
@@ -511,9 +545,47 @@ function App() {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => goPage('nearby')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>📍</button>
+                <button onClick={openNotifModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4, position: 'relative' }}>
+                  🔔
+                  {unreadCount > 0 && (
+                    <span style={{ position: 'absolute', top: 0, right: 0, background: '#FF5A5F', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', minWidth: 16, textAlign: 'center' }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
                 <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: 4 }}>💬</button>
               </div>
             </div>
+            {showNotifModal && (
+              <div onClick={() => setShowNotifModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 60 }}>
+                <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, width: '90%', maxWidth: 420, maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e' }}>🔔 알림</div>
+                    <button onClick={() => setShowNotifModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#9ca3af', cursor: 'pointer' }}>✕</button>
+                  </div>
+                  <div style={{ overflowY: 'auto', flex: 1 }}>
+                    {serverNotifs.length === 0 ? (
+                      <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>아직 알림이 없어요</div>
+                    ) : (
+                      serverNotifs.map(n => {
+                        const icons = { like: '❤️', comment: '💬', follow: '👤' };
+                        return (
+                          <div key={n.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f5f5f5', display: 'flex', gap: 12, alignItems: 'flex-start', background: n.isRead ? 'white' : '#fef5f5' }}>
+                            <div style={{ fontSize: 24 }}>{icons[n.type] || '🔔'}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, color: '#1a1a2e', lineHeight: 1.4 }}>
+                                <strong>{n.actorNickname}</strong>님이 {n.message}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{new Date(n.createdAt).toLocaleString('ko-KR')}</div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
           </>
         ) : page === 'nearby' ? (
