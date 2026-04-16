@@ -40,6 +40,16 @@ public class AuthProxyController {
         return forward(request, body, url);
     }
 
+    @RequestMapping("/api/dm/**")
+    public ResponseEntity<String> proxyDm(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
     @RequestMapping("/api/notifications")
     public ResponseEntity<String> proxyNotificationsRoot(
             HttpServletRequest request,

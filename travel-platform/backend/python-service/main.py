@@ -1009,3 +1009,141 @@ async def unread_count(userId: str):
     with get_db() as conn:
         row = conn.execute("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0", (userId,)).fetchone()
         return {"count": row[0] if row else 0}
+
+# ── DM 메시지 API ──
+def get_conversation(user1, user2):
+    """두 유저 간 대화방 찾기 (없으면 생성)"""
+    u1, u2 = sorted([user1, user2])
+    with get_db() as conn:
+        row = conn.execute("SELECT id FROM dm_conversations WHERE user1_id=? AND user2_id=?", (u1, u2)).fetchone()
+        if row:
+            return row[0]
+        cid = uuid_lib.uuid4().hex[:16]
+        conn.execute("""INSERT INTO dm_conversations (id, user1_id, user2_id, last_message_at, created_at)
+                        VALUES (?, ?, ?, ?, ?)""",
+                     (cid, u1, u2, dt_now.now().isoformat(), dt_now.now().isoformat()))
+        conn.commit()
+        return cid
+
+@app.get("/api/dm/conversations")
+async def list_conversations(userId: str):
+    """내 대화방 목록 - 상대 정보 + 최근 메시지 + 안읽음 수"""
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT c.id, c.user1_id, c.user2_id, c.last_message, c.last_message_at,
+                   c.user1_unread, c.user2_unread,
+                   u1.nickname, u1.profile_image,
+                   u2.nickname, u2.profile_image
+            FROM dm_conversations c
+            LEFT JOIN users u1 ON u1.id = c.user1_id
+            LEFT JOIN users u2 ON u2.id = c.user2_id
+            WHERE c.user1_id=? OR c.user2_id=?
+            ORDER BY c.last_message_at DESC
+        """, (userId, userId)).fetchall()
+        result = []
+        for r in rows:
+            is_u1 = r[1] == userId
+            other_id = r[2] if is_u1 else r[1]
+            other_nick = r[9] if is_u1 else r[7]
+            other_img = r[10] if is_u1 else r[8]
+            unread = r[5] if is_u1 else r[6]
+            result.append({
+                "id": r[0],
+                "otherUserId": other_id,
+                "otherNickname": other_nick or "",
+                "otherProfileImage": other_img or "",
+                "lastMessage": r[3] or "",
+                "lastMessageAt": r[4],
+                "unreadCount": unread or 0,
+            })
+        return result
+
+@app.get("/api/dm/conversations/{conv_id}/messages")
+async def get_messages(conv_id: str, limit: int = 50):
+    """대화방 메시지 목록 (최신순)"""
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT id, conversation_id, sender_id, content, created_at, is_read
+            FROM dm_messages
+            WHERE conversation_id=?
+            ORDER BY created_at ASC
+            LIMIT ?
+        """, (conv_id, limit)).fetchall()
+        return [{
+            "id": r[0], "conversationId": r[1], "senderId": r[2],
+            "content": r[3], "createdAt": r[4], "isRead": bool(r[5])
+        } for r in rows]
+
+@app.post("/api/dm/send")
+async def send_message(req: Request):
+    """메시지 전송"""
+    data = await req.json()
+    sender_id = data.get("senderId")
+    receiver_id = data.get("receiverId")
+    content = data.get("content", "").strip()
+    if not sender_id or not receiver_id or not content:
+        return {"ok": False, "error": "missing_fields"}
+    conv_id = get_conversation(sender_id, receiver_id)
+    msg_id = uuid_lib.uuid4().hex[:16]
+    now = dt_now.now().isoformat()
+    with get_db() as conn:
+        # 메시지 저장
+        conn.execute("""INSERT INTO dm_messages (id, conversation_id, sender_id, content, created_at, is_read)
+                        VALUES (?, ?, ?, ?, ?, 0)""",
+                     (msg_id, conv_id, sender_id, content, now))
+        # 대화방 업데이트 (수신자의 unread +1)
+        u1, u2 = sorted([sender_id, receiver_id])
+        if receiver_id == u1:
+            conn.execute("UPDATE dm_conversations SET last_message=?, last_message_at=?, user1_unread=user1_unread+1 WHERE id=?",
+                         (content, now, conv_id))
+        else:
+            conn.execute("UPDATE dm_conversations SET last_message=?, last_message_at=?, user2_unread=user2_unread+1 WHERE id=?",
+                         (content, now, conv_id))
+        # 발송자 닉네임
+        sender = conn.execute("SELECT nickname FROM users WHERE id=?", (sender_id,)).fetchone()
+        sender_nick = sender[0] if sender else "누군가"
+        # 수신자 푸시 토큰
+        receiver = conn.execute("SELECT push_token, push_consent FROM users WHERE id=?", (receiver_id,)).fetchone()
+        conn.commit()
+    # 알림 저장
+    save_notification(receiver_id, sender_id, sender_nick, "message", conv_id, "", f"메시지: {content[:30]}")
+    # 푸시 전송
+    if receiver and receiver[0] and receiver[1] == 1:
+        try:
+            message = json.dumps({"to": receiver[0], "sound": "default",
+                                  "title": f"💬 {sender_nick}",
+                                  "body": content[:100]}).encode()
+            r = urlreq.Request("https://exp.host/--/api/v2/push/send", data=message,
+                               headers={"Content-Type": "application/json"})
+            urlreq.urlopen(r)
+        except Exception:
+            pass
+    return {"ok": True, "messageId": msg_id, "conversationId": conv_id}
+
+@app.post("/api/dm/conversations/{conv_id}/read")
+async def mark_conv_read(conv_id: str, userId: str = None):
+    """대화방 읽음 처리"""
+    if not userId:
+        return {"ok": False, "error": "userId required"}
+    with get_db() as conn:
+        conv = conn.execute("SELECT user1_id, user2_id FROM dm_conversations WHERE id=?", (conv_id,)).fetchone()
+        if not conv:
+            return {"ok": False, "error": "not_found"}
+        if conv[0] == userId:
+            conn.execute("UPDATE dm_conversations SET user1_unread=0 WHERE id=?", (conv_id,))
+        elif conv[1] == userId:
+            conn.execute("UPDATE dm_conversations SET user2_unread=0 WHERE id=?", (conv_id,))
+        conn.execute("UPDATE dm_messages SET is_read=1 WHERE conversation_id=? AND sender_id != ?", (conv_id, userId))
+        conn.commit()
+    return {"ok": True}
+
+@app.get("/api/dm/unread-count")
+async def dm_unread(userId: str):
+    """전체 안 읽은 메시지 수"""
+    with get_db() as conn:
+        row = conn.execute("""
+            SELECT SUM(CASE WHEN user1_id=? THEN user1_unread ELSE user2_unread END)
+            FROM dm_conversations
+            WHERE user1_id=? OR user2_id=?
+        """, (userId, userId, userId)).fetchone()
+        return {"count": row[0] or 0 if row else 0}
