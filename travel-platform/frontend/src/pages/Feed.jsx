@@ -327,7 +327,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
     setAllPosts([]);
     try {
       if (tab === 'following' && currentUser?.id) {
-        const meRes = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem('auth_token') } });
+        const meRes = await fetch('/api/users/' + currentUser.id);
         if (meRes.ok) {
           const meData = await meRes.json();
           const fIds = meData.followingIds || [];
