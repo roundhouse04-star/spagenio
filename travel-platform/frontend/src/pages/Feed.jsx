@@ -93,7 +93,7 @@ function AutoPlayVideo({ src, poster }) {
   }, []);
 
   return (
-    <div style={{ position: 'relative', lineHeight: 0 }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: 'relative', lineHeight: 0 }}>
       <video
         ref={videoRef}
         src={src}
