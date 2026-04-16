@@ -175,7 +175,7 @@ function SNSPostCard({ post, currentUserId, onOpen, onProfile, onLike, onReport 
       </div>
 
       {/* 이미지 또는 동영상 */}
-      <div onClick={() => !post.videos?.length && onOpen?.(post)} style={{ cursor: 'pointer', lineHeight: 0 }}>
+      <div onClick={() => onOpen?.(post)} style={{ cursor: 'pointer', lineHeight: 0 }}>
         {post.videos?.[0]?.url ? (
           <video
             src={post.videos[0].url}
