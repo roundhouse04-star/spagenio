@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions , Modal , ScrollView } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView, Dimensions , Modal , ScrollView , TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -136,6 +136,12 @@ export default function FeedScreen({ user }) {
   const [notifModalVisible, setNotifModalVisible] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [dmModalVisible, setDmModalVisible] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [activeConvo, setActiveConvo] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msgInput, setMsgInput] = useState('');
+  const [dmUnread, setDmUnread] = useState(0);
 
   const applyFilter = (data, t) => {
     if (t === 'following' && user?.id) {
@@ -228,6 +234,65 @@ export default function FeedScreen({ user }) {
     }
   };
 
+  const loadConversations = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/dm/conversations?userId=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(Array.isArray(data) ? data : []);
+      }
+      const ur = await fetch(`${API_BASE}/api/dm/unread-count?userId=${user.id}`);
+      if (ur.ok) { const d = await ur.json(); setDmUnread(d.count || 0); }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      loadConversations();
+      const interval = setInterval(loadConversations, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
+
+  const openDmModal = async () => {
+    await loadConversations();
+    setDmModalVisible(true);
+  };
+
+  const openConversation = async (convo) => {
+    setActiveConvo(convo);
+    setMessages([]);
+    try {
+      const res = await fetch(`${API_BASE}/api/dm/conversations/${convo.id}/messages`);
+      if (res.ok) setMessages(await res.json());
+      await fetch(`${API_BASE}/api/dm/conversations/${convo.id}/read?userId=${user.id}`, { method: 'POST' });
+      loadConversations();
+    } catch (e) {}
+  };
+
+  const sendMessage = async () => {
+    const text = msgInput.trim();
+    if (!text || !activeConvo) return;
+    setMsgInput('');
+    try {
+      const res = await fetch(`${API_BASE}/api/dm/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId: user.id, receiverId: activeConvo.otherUserId, content: text }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) {
+          const mRes = await fetch(`${API_BASE}/api/dm/conversations/${activeConvo.id}/messages`);
+          if (mRes.ok) setMessages(await mRes.json());
+        } else {
+          alert(data.message || '전송 실패');
+        }
+      }
+    } catch (e) {}
+  };
+
   const handleLike = async (postId) => {
     if (!user) return;
     try {
@@ -256,8 +321,13 @@ export default function FeedScreen({ user }) {
               </View>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={S.headerBtn}>
+          <TouchableOpacity style={S.headerBtn} onPress={openDmModal}>
             <Text style={S.headerBtnText}>💬</Text>
+            {dmUnread > 0 && (
+              <View style={S.badge}>
+                <Text style={S.badgeText}>{dmUnread > 99 ? '99+' : dmUnread}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -351,6 +421,25 @@ const S = StyleSheet.create({
   notifText: { fontSize: 13, color: '#1a1a2e', lineHeight: 18 },
   notifTime: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
   notifEmpty: { padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14 },
+  dmContainer: { backgroundColor: 'white', borderRadius: 16, marginHorizontal: 20, height: '80%', overflow: 'hidden', flex: 1 },
+  dmHeader: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dmHeaderAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' },
+  dmHeaderName: { fontSize: 14, fontWeight: '700', flex: 1, color: '#1a1a2e' },
+  dmMessages: { flex: 1, padding: 16, gap: 8 },
+  dmBubbleMine: { alignSelf: 'flex-end', maxWidth: '75%', backgroundColor: '#4f46e5', padding: 10, paddingHorizontal: 14, borderRadius: 16, marginVertical: 3 },
+  dmBubbleOther: { alignSelf: 'flex-start', maxWidth: '75%', backgroundColor: '#f3f4f6', padding: 10, paddingHorizontal: 14, borderRadius: 16, marginVertical: 3 },
+  dmBubbleMineText: { color: 'white', fontSize: 13, lineHeight: 18 },
+  dmBubbleOtherText: { color: '#1a1a2e', fontSize: 13, lineHeight: 18 },
+  dmInputRow: { flexDirection: 'row', padding: 10, borderTopWidth: 1, borderTopColor: '#f0f0f0', gap: 8, alignItems: 'center' },
+  dmInput: { flex: 1, padding: 10, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', fontSize: 13 },
+  dmSendBtn: { backgroundColor: '#4f46e5', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  dmSendText: { color: 'white', fontSize: 13, fontWeight: '700' },
+  convoItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5', flexDirection: 'row', gap: 12, alignItems: 'center' },
+  convoAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' },
+  convoName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  convoLast: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
+  convoBadge: { backgroundColor: '#FF5A5F', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  convoBadgeText: { color: 'white', fontSize: 11, fontWeight: '700' },
   tabs: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
   tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: '#FF5A5F' },
