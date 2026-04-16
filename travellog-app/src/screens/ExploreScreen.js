@@ -76,7 +76,7 @@ export default function ExploreScreen({ user }) {
             <TouchableOpacity style={S.gridCard} activeOpacity={0.9}
               onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
               {item.images?.[0]
-                ? <Image source={{ uri: toFullUrl(item.images[0]) }} style={S.gridImage} />
+                ? <Image source={{ uri: toFullUrl(item.images[0].endsWith('.mp4') ? item.images[0].replace('_video.mp4', '_thumb.jpg') : item.images[0]) }} style={S.gridImage} />
                 : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
                     <Text style={{ fontSize: 32 }}>✈️</Text>
                   </View>

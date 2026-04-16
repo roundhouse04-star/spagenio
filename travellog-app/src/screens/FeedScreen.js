@@ -137,7 +137,8 @@ export default function FeedScreen({ user }) {
   const applyFilter = (data, t) => {
     if (t === 'following' && user?.id) {
       const fIds = user.followingIds || [];
-      setPosts(fIds.length > 0 ? data.filter(p => fIds.includes(p.userId) && p.userId !== user.id) : []);
+      const filtered = fIds.length > 0 ? data.filter(p => fIds.includes(p.userId) && p.userId !== user.id) : [];
+      setPosts(filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } else if (t === 'popular') {
       const now = Date.now();
       const week = 7 * 24 * 60 * 60 * 1000;
