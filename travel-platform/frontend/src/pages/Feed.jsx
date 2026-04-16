@@ -334,14 +334,10 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
           if (fIds.length > 0) {
             const data = await api.getPosts({ offset: 0, limit: 100 });
             const fPosts = (data || []).filter(p => fIds.includes(p.userId));
-            const now = Date.now();
-            const cutoff = 48 * 60 * 60 * 1000;
-            const recent = fPosts.filter(p => (now - new Date(p.createdAt).getTime()) < cutoff);
-            const seen = new Set();
-            const unique = recent.filter(p => { if (seen.has(p.userId)) return false; seen.add(p.userId); return true; });
-            setPosts(unique);
-            setAllPosts(unique);
-            tabCache.current['following'] = unique; cacheTime.current['following'] = Date.now();
+            const sorted = fPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setPosts(sorted);
+            setAllPosts(sorted);
+            tabCache.current['following'] = sorted; cacheTime.current['following'] = Date.now();
           } else {
             setPosts([]);
             tabCache.current['following'] = []; cacheTime.current['following'] = Date.now();
