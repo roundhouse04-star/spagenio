@@ -29,15 +29,7 @@ function LogoIcon() {
       </View>
     </View>
   );
-} viewBox="0 0 96 96" fill="none">
-      <Circle cx="48" cy="48" r="48" fill="#FF5A5F"/>
-      <Circle cx="48" cy="38" r="18" fill="white"/>
-      <Circle cx="48" cy="38" r="8" fill="#FF5A5F"/>
-      <Path d="M36 58 Q48 76 60 58" fill="white"/>
-    </Svg>
-  );
 }
-
 function VideoCard({ uri, style }) {
   const player = useVideoPlayer(uri, p => {
     p.loop = true;
