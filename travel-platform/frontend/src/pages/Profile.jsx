@@ -59,12 +59,12 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const [bizAccount, setBizAccount] = useState(null);
   const [bizLoading, setBizLoading] = useState(false);
   const [showBizForm, setShowBizForm] = useState(false);
-  
+
   const loadBizAccount = async (uid) => {
     try {
       const res = await fetch('/api/business/' + uid);
       if (res.ok) { const data = await res.json(); setBizAccount(data); }
-    } catch(e) {}
+    } catch (e) { }
   };
 
   const registerBusiness = async () => {
@@ -80,7 +80,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         const data = await res.json();
         alert(data.detail || '등록 실패');
       }
-    } catch(e) { alert('서버 오류'); }
+    } catch (e) { alert('서버 오류'); }
     setBizLoading(false);
   };
 
@@ -138,23 +138,16 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     } catch (e) { console.error(e); }
   };
 
-  const handleImageChange = async (e) => {
+  const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 30 * 1024 * 1024) { alert('이미지 크기는 30MB 이하여야 해요.'); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.onload = (ev) => {
+      setImagePreview(ev.target.result);
+      setEditData(p => ({ ...p, profileImage: ev.target.result }));
+    };
     reader.readAsDataURL(file);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('업로드 실패');
-      const data = await res.json();
-      setEditData(p => ({ ...p, profileImage: data.feed || data.url }));
-    } catch (err) {
-      alert('이미지 업로드 실패: ' + err.message);
-    }
   };
 
   const handleSaveProfile = async () => {
@@ -295,17 +288,19 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               {/* ── 계정 유형 관리 (PC만) ── */}
               <div className="business-section" style={{ marginTop: 8, padding: 16, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 8 }}>🏢 계정 유형</div>
-                
+
                 {bizAccount ? (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
                         {bizAccount.account_type === 'official' ? '★ 공식 계정' : bizAccount.badge_type === 'verified' ? '✓ 인증된 비즈니스' : bizAccount.badge_type === 'premium' ? '♦ 프리미엄' : '🏢 비즈니스'}
                       </span>
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 8,
+                      <span style={{
+                        fontSize: 10, padding: '2px 8px', borderRadius: 8,
                         background: bizAccount.status === 'approved' ? '#ecfdf5' : bizAccount.status === 'pending' ? '#fffbeb' : '#fef2f2',
                         color: bizAccount.status === 'approved' ? '#10b981' : bizAccount.status === 'pending' ? '#f59e0b' : '#ef4444',
-                        fontWeight: 700 }}>
+                        fontWeight: 700
+                      }}>
                         {bizAccount.status === 'approved' ? '승인됨' : bizAccount.status === 'pending' ? '심사 중' : '거절'}
                       </span>
                     </div>
@@ -330,9 +325,11 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                         { key: 'other', icon: '📢', label: '기타' },
                       ].map(cat => (
                         <button key={cat.key} type="button" onClick={() => setBizForm(p => ({ ...p, category: cat.key }))}
-                          style={{ padding: '5px 10px', borderRadius: 10, border: bizForm.category === cat.key ? '1.5px solid #FF5A5F' : '1px solid #eee',
+                          style={{
+                            padding: '5px 10px', borderRadius: 10, border: bizForm.category === cat.key ? '1.5px solid #FF5A5F' : '1px solid #eee',
                             background: bizForm.category === cat.key ? '#fff5f5' : 'white', color: bizForm.category === cat.key ? '#FF5A5F' : '#9ca3af',
-                            fontSize: 11, fontWeight: bizForm.category === cat.key ? 700 : 500, cursor: 'pointer' }}>
+                            fontSize: 11, fontWeight: bizForm.category === cat.key ? 700 : 500, cursor: 'pointer'
+                          }}>
                           {cat.icon} {cat.label}
                         </button>
                       ))}
@@ -509,7 +506,7 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
   }, [savedPostIds]);
 
   if (loading) return <div className="empty">불러오는 중...</div>;
-  if (!savedPosts.length) return <div className="empty">저장된 게시물이 없어요.<br/>게시물 상세에서 🔖 버튼으로 저장해보세요!</div>;
+  if (!savedPosts.length) return <div className="empty">저장된 게시물이 없어요.<br />게시물 상세에서 🔖 버튼으로 저장해보세요!</div>;
 
   return (
     <div className="profile-grid">
@@ -527,16 +524,16 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
 
 // ── 뱃지 그리드 ─────────────────────────────────────────
 const BADGE_INFO = {
-  first_post:    { icon: '✏️', name: '첫 게시물', desc: '첫 번째 여행 이야기 작성' },
-  ten_posts:     { icon: '📝', name: '여행 작가', desc: '게시물 10개 달성' },
-  fifty_posts:   { icon: '📚', name: '여행 전문가', desc: '게시물 50개 달성' },
-  likes_100:     { icon: '❤️', name: '인기 여행자', desc: '좋아요 100개 달성' },
-  likes_1000:    { icon: '🔥', name: '여행 인플루언서', desc: '좋아요 1000개 달성' },
-  followers_10:  { icon: '👥', name: '친구 만들기', desc: '팔로워 10명 달성' },
+  first_post: { icon: '✏️', name: '첫 게시물', desc: '첫 번째 여행 이야기 작성' },
+  ten_posts: { icon: '📝', name: '여행 작가', desc: '게시물 10개 달성' },
+  fifty_posts: { icon: '📚', name: '여행 전문가', desc: '게시물 50개 달성' },
+  likes_100: { icon: '❤️', name: '인기 여행자', desc: '좋아요 100개 달성' },
+  likes_1000: { icon: '🔥', name: '여행 인플루언서', desc: '좋아요 1000개 달성' },
+  followers_10: { icon: '👥', name: '친구 만들기', desc: '팔로워 10명 달성' },
   followers_100: { icon: '🌟', name: '여행 스타', desc: '팔로워 100명 달성' },
-  countries_5:   { icon: '🗺️', name: '세계 탐험가', desc: '5개국 방문' },
-  countries_10:  { icon: '✈️', name: '글로벌 여행자', desc: '10개국 방문' },
-  countries_30:  { icon: '🌍', name: '세계 일주', desc: '30개국 방문' },
+  countries_5: { icon: '🗺️', name: '세계 탐험가', desc: '5개국 방문' },
+  countries_10: { icon: '✈️', name: '글로벌 여행자', desc: '10개국 방문' },
+  countries_30: { icon: '🌍', name: '세계 일주', desc: '30개국 방문' },
 };
 
 function BadgeGrid({ badges, posts, user }) {
