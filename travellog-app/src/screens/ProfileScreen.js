@@ -8,7 +8,7 @@ import { registerForPush, updatePushConsent, getPushStatus } from '../utils/push
 const API_BASE = 'https://travel.spagenio.com';
 
 const toFullUrl = (url) => {
-  if (!url || url.trim() === '') return null;
+  if (!url || typeof url !== 'string' || url.trim() === '') return '';
   if (url.startsWith('http')) return url;
   return API_BASE + url;
 };
@@ -142,7 +142,7 @@ export default function ProfileScreen({ user, onLogout }) {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={S.profileCard}>
           <View style={S.avatarWrap}>
-            {userData?.profileImage && userData.profileImage.trim() !== ''
+            {userData?.profileImage && typeof userData.profileImage === 'string' && userData.profileImage.trim() !== '' && toFullUrl(userData.profileImage)
               ? <Image source={{ uri: toFullUrl(userData.profileImage) }} style={S.avatar} />
               : <View style={[S.avatar, { backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }]}>
                   <Text style={{ fontSize: 28, color: 'white', fontWeight: '800' }}>
@@ -202,12 +202,14 @@ export default function ProfileScreen({ user, onLogout }) {
               {posts.map(post => (
                 <TouchableOpacity key={post.id} style={S.gridItem} activeOpacity={0.9}
                   onPress={() => navigation.navigate('PostDetail', { post, user })}>
-                  {post.images?.[0]
-                    ? <Image source={{ uri: toFullUrl(post.images[0].endsWith('.mp4') ? post.images[0].replace('_video.mp4', '_thumb.jpg') : post.images[0]) }} style={S.gridImage} />
-                    : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
-                        <Text style={{ fontSize: 28 }}>✈️</Text>
-                      </View>
-                  }
+                  {(() => {
+                    const raw = post.images?.[0];
+                    const img = raw && typeof raw === 'string' && raw.trim() !== '' ? toFullUrl(raw.endsWith('.mp4') ? raw.replace('_video.mp4', '_thumb.jpg') : raw) : '';
+                    return img ? <Image source={{ uri: img }} style={S.gridImage} />
+                      : <View style={[S.gridImage, { backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center' }]}>
+                          <Text style={{ fontSize: 28 }}>✈️</Text>
+                        </View>;
+                  })()}
                   <Text style={S.gridTitle} numberOfLines={1}>{post.title}</Text>
                 </TouchableOpacity>
               ))}
@@ -289,7 +291,7 @@ export default function ProfileScreen({ user, onLogout }) {
               <ScrollView style={{ maxHeight: 400 }}>
                 {followList.map(u => (
                   <View key={u.id} style={S.followItem}>
-                    {u.profileImage ? (
+                    {u.profileImage && typeof u.profileImage === 'string' && u.profileImage.trim() !== '' ? (
                       <Image source={{ uri: toFullUrl(u.profileImage) }} style={S.followAvatar} />
                     ) : (
                       <View style={[S.followAvatar, { backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' }]}>
