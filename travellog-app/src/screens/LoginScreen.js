@@ -1,181 +1,187 @@
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
-import Svg, { Rect, Line, Circle, Path } from 'react-native-svg';
+import { MapPin } from 'lucide-react-native';
+import { colors } from '../theme/colors';
+import { typography } from '../theme/fonts';
 
 const API_BASE = 'https://travel.spagenio.com';
-const { width, height } = Dimensions.get('window');
-
-function LogoSvg({ size = 64 }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 96 96" fill="none">
-      <Rect width="96" height="96" rx="24" fill="rgba(255,255,255,0.2)"/>
-      <Line x1="0" y1="34" x2="96" y2="34" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-      <Line x1="0" y1="62" x2="96" y2="62" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-      <Line x1="34" y1="0" x2="34" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-      <Line x1="62" y1="0" x2="62" y2="96" stroke="white" strokeWidth="1.2" opacity="0.3"/>
-      <Circle cx="48" cy="38" r="22" fill="white"/>
-      <Circle cx="48" cy="38" r="10" fill="#FF5A5F"/>
-      <Path d="M36 58 Q48 80 60 58" fill="white"/>
-    </Svg>
-  );
-}
-
-function MiniCard({ icon, label }) {
-  return (
-    <View style={S.miniCard}>
-      <Text style={S.miniIcon}>{icon}</Text>
-      <Text style={S.miniLabel}>{label}</Text>
-    </View>
-  );
-}
 
 export default function LoginScreen({ onLogin }) {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [mode, setMode] = useState('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [focusedField, setFocusedField] = useState('');
 
-  const login = async () => {
-    if (!form.email || !form.password) { setError('이메일과 비밀번호를 입력해주세요.'); return; }
-    setLoading(true); setError('');
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      Alert.alert('입력 오류', '이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+    if (mode === 'signup' && !nickname) {
+      Alert.alert('입력 오류', '닉네임을 입력해주세요.');
+      return;
+    }
+    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/signup';
+      const body = mode === 'login'
+        ? { email, password }
+        : { email, password, nickname };
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.user) {
         onLogin(data.user);
       } else {
-        setError(data.detail || data.error || '로그인 실패');
+        Alert.alert('오류', data.error || data.detail || '로그인에 실패했습니다.');
       }
     } catch (e) {
-      setError('서버 연결 오류');
+      Alert.alert('오류', '서버 연결에 실패했습니다.');
     }
     setLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView style={S.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={S.scroll} keyboardShouldPersistTaps="handled" bounces={false}>
-
-        {/* 상단: 코랄 패널 */}
-        <View style={S.coral}>
-          <LogoSvg size={68} />
-
-          <View style={S.copyWrap}>
-            <Text style={S.headline}>당신의 순간을{'\n'}세상과 나눠요</Text>
-            <Text style={S.sub}>사진 한 장, 짧은 글 하나로{'\n'}새로운 연결이 시작돼요</Text>
+    <SafeAreaView style={S.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={S.inner}
+      >
+        {/* Logo */}
+        <View style={S.logoWrap}>
+          <View style={S.logoBox}>
+            <MapPin size={24} color="white" strokeWidth={1.6} />
           </View>
-
-          {/* 미니 카드 */}
-          <View style={S.miniRow}>
-            <MiniCard icon="📍" label="132개 여행지" />
-            <MiniCard icon="🗺" label="8.9만 코스" />
-          </View>
+          <Text style={S.logoSub}>travel</Text>
+          <Text style={S.logoMain}>Spagenio</Text>
+          <Text style={S.tagline}>TRAVEL · SHARE · DISCOVER</Text>
         </View>
 
-        {/* 하단: 로그인 폼 */}
-        <View style={S.formArea}>
-          <Text style={S.formTitle}>로그인</Text>
-          <Text style={S.formSub}>계정에 접속하세요</Text>
-
-          {error ? <Text style={S.error}>{error}</Text> : null}
-
-          <TextInput
-            style={[S.input, focusedField === 'email' && S.inputFocused]}
-            placeholder="이메일 주소"
-            placeholderTextColor="#bbb"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={form.email}
-            onChangeText={v => setForm(p => ({ ...p, email: v }))}
-            onFocus={() => setFocusedField('email')}
-            onBlur={() => setFocusedField('')}
-          />
-          <TextInput
-            style={[S.input, focusedField === 'password' && S.inputFocused]}
-            placeholder="비밀번호"
-            placeholderTextColor="#bbb"
-            secureTextEntry
-            value={form.password}
-            onChangeText={v => setForm(p => ({ ...p, password: v }))}
-            onFocus={() => setFocusedField('password')}
-            onBlur={() => setFocusedField('')}
-          />
-
-          <TouchableOpacity style={S.loginBtn} onPress={login} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={S.loginBtnText}>로그인</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={S.forgotBtn}>
-            <Text style={S.forgotText}>비밀번호를 잊으셨나요?</Text>
-          </TouchableOpacity>
-
-          <View style={S.divider}>
-            <View style={S.dividerLine} />
-            <Text style={S.dividerText}>또는</Text>
-            <View style={S.dividerLine} />
+        {/* Form */}
+        <View style={S.form}>
+          {mode === 'signup' && (
+            <View style={S.inputWrap}>
+              <Text style={S.inputLabel}>Nickname</Text>
+              <TextInput
+                style={S.input}
+                value={nickname}
+                onChangeText={setNickname}
+                placeholder="닉네임"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+              />
+            </View>
+          )}
+          <View style={S.inputWrap}>
+            <Text style={S.inputLabel}>Email</Text>
+            <TextInput
+              style={S.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="example@email.com"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
+          <View style={S.inputWrap}>
+            <Text style={S.inputLabel}>Password</Text>
+            <TextInput
+              style={S.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+            />
           </View>
 
-          <TouchableOpacity style={S.registerBtn}>
-            <Text style={S.registerText}>새 계정 만들기</Text>
+          <TouchableOpacity style={S.submitBtn} onPress={handleSubmit} disabled={loading}>
+            {loading
+              ? <ActivityIndicator size="small" color="white" />
+              : <Text style={S.submitText}>{mode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}</Text>}
           </TouchableOpacity>
 
-          <View style={S.footerLinks}>
-            <Text style={S.footerLink}>서비스 약관</Text>
-            <Text style={S.footerLink}>개인정보처리방침</Text>
-            <Text style={S.footerLink}>도움말</Text>
+          <View style={S.switchWrap}>
+            <Text style={S.switchText}>
+              {mode === 'login' ? 'New here?' : 'Already have an account?'}{' '}
+            </Text>
+            <TouchableOpacity onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+              <Text style={S.switchLink}>
+                {mode === 'login' ? 'Create account' : 'Sign in'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Text style={S.copyright}>© 2026 Travellog</Text>
         </View>
-
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const S = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FF5A5F' },
-  scroll: { flexGrow: 1 },
-
-  /* 코랄 상단 */
-  coral: { backgroundColor: '#FF5A5F', paddingTop: 70, paddingBottom: 30, alignItems: 'center', paddingHorizontal: 24 },
-  copyWrap: { marginTop: 20, alignItems: 'center' },
-  headline: { fontSize: 26, fontWeight: '800', color: 'white', textAlign: 'center', lineHeight: 36 },
-  sub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', textAlign: 'center', marginTop: 10, lineHeight: 22 },
-
-  /* 미니 카드 */
-  miniRow: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  miniCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  miniIcon: { fontSize: 14, marginRight: 6 },
-  miniLabel: { fontSize: 12, color: 'white', fontWeight: '600' },
-
-  /* 하단 폼 */
-  formArea: { backgroundColor: 'white', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 28, paddingTop: 32, paddingBottom: 40, minHeight: height * 0.5 },
-  formTitle: { fontSize: 22, fontWeight: '800', color: '#1a1a2e', marginBottom: 4 },
-  formSub: { fontSize: 13, color: '#9ca3af', marginBottom: 20 },
-
-  error: { backgroundColor: '#fef2f2', color: '#ef4444', padding: 12, borderRadius: 12, fontSize: 13, fontWeight: '600', marginBottom: 12, overflow: 'hidden' },
-
-  input: { backgroundColor: '#f9fafb', borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#1a1a2e', marginBottom: 12 },
-  inputFocused: { borderColor: '#FF5A5F', backgroundColor: '#fff5f5' },
-
-  loginBtn: { backgroundColor: '#FF5A5F', paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 4 },
-  loginBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-
-  forgotBtn: { alignItems: 'center', marginTop: 14 },
-  forgotText: { fontSize: 13, color: '#FF5A5F', fontWeight: '600' },
-
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
-  dividerText: { marginHorizontal: 12, fontSize: 12, color: '#9ca3af' },
-
-  registerBtn: { borderWidth: 1.5, borderColor: '#FF5A5F', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-  registerText: { color: '#FF5A5F', fontSize: 15, fontWeight: '700' },
-
-  footerLinks: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 24 },
-  footerLink: { fontSize: 11, color: '#d1d5db' },
-  copyright: { textAlign: 'center', fontSize: 11, color: '#d1d5db', marginTop: 10 },
+  container: { flex: 1, backgroundColor: colors.bgPrimary },
+  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+  logoWrap: { alignItems: 'center', marginBottom: 56 },
+  logoBox: {
+    width: 64, height: 64, backgroundColor: colors.primary,
+    borderRadius: 14, justifyContent: 'center', alignItems: 'center',
+    marginBottom: 28,
+  },
+  logoSub: {
+    fontFamily: 'PlayfairDisplay_400Regular',
+    fontSize: 16, fontStyle: 'italic',
+    color: colors.textTertiary, letterSpacing: 3,
+    marginBottom: 2,
+  },
+  logoMain: {
+    fontFamily: 'PlayfairDisplay_500Medium',
+    fontSize: 44, color: colors.primary,
+    letterSpacing: -1.5, lineHeight: 48,
+  },
+  tagline: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 10, letterSpacing: 2.5,
+    color: colors.textTertiary, marginTop: 14,
+  },
+  form: { width: '100%' },
+  inputWrap: { marginBottom: 18 },
+  inputLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 10, letterSpacing: 2,
+    color: colors.textTertiary, textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  input: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14, color: colors.textPrimary,
+    paddingVertical: 10,
+    borderBottomWidth: 0.5, borderBottomColor: colors.border,
+  },
+  submitBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16, borderRadius: 3,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 16, height: 52,
+  },
+  submitText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11, color: 'white',
+    letterSpacing: 3,
+  },
+  switchWrap: {
+    flexDirection: 'row', justifyContent: 'center',
+    marginTop: 20,
+  },
+  switchText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12, color: colors.textTertiary,
+  },
+  switchLink: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12, color: colors.primary,
+  },
 });

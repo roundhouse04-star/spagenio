@@ -32,7 +32,8 @@
     },
     "owner": "hynn_lth",
     "plugins": [
-      "expo-video"
+      "expo-video",
+      "expo-font"
     ]
   }
 }
