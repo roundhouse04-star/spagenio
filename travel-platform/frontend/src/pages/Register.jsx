@@ -2,25 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { TRAVEL_STYLES } from '../travelStyles';
 
 const S = {
-  wrap: { minHeight: '100vh', background: '#f5f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  logo: { fontSize: 28, fontWeight: 900, color: '#4f46e5', letterSpacing: -0.5, marginBottom: 24, textAlign: 'center' },
-  box: { background: 'white', border: '1px solid #eee', borderRadius: 20, padding: '32px 36px', width: '100%', maxWidth: 520, boxShadow: '0 4px 20px rgba(79,70,229,0.08)' },
-  title: { fontSize: 16, fontWeight: 800, color: '#1a1a2e', marginBottom: 20 },
-  inp: { width: '100%', padding: '12px 16px', border: '1px solid #e5e7eb', borderRadius: 12, fontSize: 14, outline: 'none', background: '#fafafa', color: '#1a1a2e', marginBottom: 12, boxSizing: 'border-box' },
-  btn: { width: '100%', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },
-  btnOut: { width: '100%', background: 'white', color: '#6b7280', border: '1px solid #eee', borderRadius: 12, padding: 12, fontSize: 14, cursor: 'pointer', marginTop: 8 },
-  btnSkip: { width: '100%', background: 'none', color: '#9ca3af', border: '1px dashed #e5e7eb', borderRadius: 12, padding: 12, fontSize: 13, cursor: 'pointer', marginTop: 8 },
-  err: { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14 },
-  ok: { background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14 },
+  wrap: { minHeight: '100vh', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  logo: { fontSize: 28, fontWeight: 500, fontFamily: "'Playfair Display', serif", color: '#1E2A3A', letterSpacing: -0.5, marginBottom: 24, textAlign: 'center' },
+  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '32px 36px', width: '100%', maxWidth: 520, boxShadow: '0 4px 20px rgba(79,70,229,0.08)' },
+  title: { fontSize: 16, fontWeight: 800, color: '#1E2A3A', marginBottom: 20 },
+  inp: { width: '100%', padding: '12px 16px', border: '1px solid #E2E0DC', borderRadius: 3, fontSize: 14, outline: 'none', background: '#FAFAF8', color: '#1E2A3A', marginBottom: 12, boxSizing: 'border-box' },
+  btn: { width: '100%', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 3, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },
+  btnOut: { width: '100%', background: 'white', color: '#8A919C', border: '1px solid #eee', borderRadius: 3, padding: 12, fontSize: 14, cursor: 'pointer', marginTop: 8 },
+  btnSkip: { width: '100%', background: 'none', color: '#8A919C', border: '1px dashed #E2E0DC', borderRadius: 3, padding: 12, fontSize: 13, cursor: 'pointer', marginTop: 8 },
+  err: { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 2, padding: '10px 14px', fontSize: 13, marginBottom: 14 },
+  ok: { background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 2, padding: '10px 14px', fontSize: 13, marginBottom: 14 },
   steps: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 28 },
-  dot: (active, done) => ({ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, background: done ? '#10b981' : active ? '#4f46e5' : '#f3f4f6', color: done || active ? 'white' : '#9ca3af', border: done ? '2px solid #10b981' : active ? '2px solid #4f46e5' : '2px solid #e5e7eb' }),
-  line: (done) => ({ width: 40, height: 2, background: done ? '#10b981' : '#e5e7eb' }),
-  pwBar: { height: 4, borderRadius: 4, background: '#e5e7eb', overflow: 'hidden', marginTop: 8 },
+  dot: (active, done) => ({ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, background: done ? '#10b981' : active ? '#1E2A3A' : '#F5F4F0', color: done || active ? 'white' : '#8A919C', border: done ? '2px solid #10b981' : active ? '2px solid #1E2A3A' : '2px solid #E2E0DC' }),
+  line: (done) => ({ width: 40, height: 2, background: done ? '#10b981' : '#E2E0DC' }),
+  pwBar: { height: 4, borderRadius: 4, background: '#E2E0DC', overflow: 'hidden', marginTop: 8 },
   pwFill: (cnt) => ({ height: '100%', borderRadius: 4, width: `${cnt/4*100}%`, background: cnt <= 1 ? '#ef4444' : cnt <= 3 ? '#f59e0b' : '#10b981', transition: 'width 0.3s, background 0.3s' }),
   pwChecks: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginTop: 8 },
-  pwCheck: (pass) => ({ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: pass ? '#10b981' : '#9ca3af' }),
+  pwCheck: (pass) => ({ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: pass ? '#10b981' : '#8A919C' }),
   timer: { fontSize: 12, color: '#f59e0b', fontWeight: 600, marginTop: 4 },
-  code: { width: '100%', padding: '14px 16px', border: '1px solid #e5e7eb', borderRadius: 12, fontSize: 22, fontWeight: 700, outline: 'none', background: '#fafafa', color: '#1a1a2e', letterSpacing: 8, textAlign: 'center', boxSizing: 'border-box' },
+  code: { width: '100%', padding: '14px 16px', border: '1px solid #E2E0DC', borderRadius: 3, fontSize: 22, fontWeight: 700, outline: 'none', background: '#FAFAF8', color: '#1E2A3A', letterSpacing: 8, textAlign: 'center', boxSizing: 'border-box' },
 };
 
 const STEPS = [
@@ -143,7 +143,7 @@ export default function Register() {
 
   return (
     <div style={S.wrap}>
-      <div style={S.logo}>✈ Travellog</div>
+      <div style={S.logo}>✈ Spagenio</div>
       <div style={S.box}>
         {/* 스텝 인디케이터 */}
         <div style={S.steps}>
@@ -151,7 +151,7 @@ export default function Register() {
             <React.Fragment key={s.n}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <div style={S.dot(step === s.n, step > s.n)}>{step > s.n ? '✓' : s.n}</div>
-                <div style={{ fontSize: 10, color: '#9ca3af' }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: '#8A919C' }}>{s.label}</div>
               </div>
               {i < STEPS.length - 1 && <div style={{ ...S.line(step > s.n), marginBottom: 18 }} />}
             </React.Fragment>
@@ -166,7 +166,7 @@ export default function Register() {
             <div style={S.title}>기본 정보 입력</div>
             <input style={S.inp} placeholder="닉네임 (2~20자)" value={form.nickname}
               onChange={e => setForm(p => ({...p, nickname: e.target.value}))} />
-            <select style={{...S.inp, color: form.nationality ? '#1a1a2e' : '#9ca3af'}}
+            <select style={{...S.inp, color: form.nationality ? '#1E2A3A' : '#8A919C'}}
               value={form.nationality}
               onChange={e => setForm(p => ({...p, nationality: e.target.value}))}>
               <option value="KR">🇰🇷 대한민국</option>
@@ -186,7 +186,7 @@ export default function Register() {
 
             {/* 가고싶은 나라 선택 (선택) */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ color: '#9ca3af', fontWeight: 400 }}>(선택, 복수 선택 가능)</span></div>
+              <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ color: '#8A919C', fontWeight: 400 }}>(선택, 복수 선택 가능)</span></div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {[
                   { code: 'JP', label: '🇯🇵 일본' }, { code: 'US', label: '🇺🇸 미국' },
@@ -206,7 +206,7 @@ export default function Register() {
                       onClick={() => setWishCountries(prev =>
                         prev.includes(c.code) ? prev.filter(x => x !== c.code) : [...prev, c.code]
                       )}
-                      style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${selected ? '#4f46e5' : '#e5e7eb'}`, background: selected ? '#eef2ff' : 'white', color: selected ? '#4f46e5' : '#6b7280', fontSize: 12, fontWeight: selected ? 700 : 400, cursor: 'pointer', transition: 'all 0.1s' }}>
+                      style={{ padding: '6px 12px', borderRadius: 3, border: `1.5px solid ${selected ? '#1E2A3A' : '#E2E0DC'}`, background: selected ? '#EEEDEA' : 'white', color: selected ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: selected ? 700 : 400, cursor: 'pointer', transition: 'all 0.1s' }}>
                       {c.label}
                     </button>
                   );
@@ -221,7 +221,7 @@ export default function Register() {
             <div style={S.pwChecks}>
               {[['len','8자 이상'],['upper','대문자'],['lower','소문자'],['num','숫자']].map(([k,label]) => (
                 <div key={k} style={S.pwCheck(pwStrength[k])}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: pwStrength[k] ? '#10b981' : '#e5e7eb' }} />
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: pwStrength[k] ? '#10b981' : '#E2E0DC' }} />
                   {label}
                 </div>
               ))}
@@ -244,7 +244,7 @@ export default function Register() {
         {step === 2 && (
           <div>
             <div style={S.title}>이메일 인증</div>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: '#8A919C', marginBottom: 16, lineHeight: 1.6 }}>
               <strong>{form.email}</strong>으로 6자리 인증코드를 발송했습니다.
             </p>
             <input style={S.code} placeholder="000000" maxLength={6} value={form.verifyCode}
@@ -264,9 +264,9 @@ export default function Register() {
         {step === 3 && (
           <div>
             <div style={S.title}>✈️ 어떤 여행을 좋아하세요?</div>
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 18, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: '#8A919C', marginBottom: 18, lineHeight: 1.6 }}>
               선택한 성향에 맞는 게시물을 피드에서 우선적으로 보여드려요.<br/>
-              <span style={{ color: '#9ca3af' }}>여러 개 선택 가능 · 나중에 프로필에서 변경 가능</span>
+              <span style={{ color: '#8A919C' }}>여러 개 선택 가능 · 나중에 프로필에서 변경 가능</span>
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
               {TRAVEL_STYLES.map(s => {
@@ -276,9 +276,9 @@ export default function Register() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '10px 16px', borderRadius: 24,
-                      border: `2px solid ${selected ? s.color : '#eee'}`,
+                      border: `2px solid ${selected ? s.color : '#E2E0DC'}`,
                       background: selected ? s.bg : 'white',
-                      color: selected ? s.color : '#9ca3af',
+                      color: selected ? s.color : '#8A919C',
                       fontSize: 13, fontWeight: selected ? 700 : 500,
                       cursor: 'pointer', transition: 'all 0.1s',
                       boxShadow: selected ? `0 0 0 3px ${s.bg}` : 'none'
@@ -291,7 +291,7 @@ export default function Register() {
               })}
             </div>
             {selectedStyles.length > 0 && (
-              <div style={{ fontSize: 12, color: '#4f46e5', marginBottom: 14, fontWeight: 600 }}>
+              <div style={{ fontSize: 12, color: '#1E2A3A', marginBottom: 14, fontWeight: 600 }}>
                 ✓ {selectedStyles.length}개 선택됨
               </div>
             )}
@@ -308,9 +308,9 @@ export default function Register() {
         {step === 4 && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', marginBottom: 10 }}>가입이 완료됐어요!</div>
-            <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 16, lineHeight: 1.7 }}>
-              Travellog에 오신 것을 환영합니다.<br/>여행 이야기를 공유하고 새로운 코스를 발견해보세요!
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#1E2A3A', marginBottom: 10 }}>가입이 완료됐어요!</div>
+            <div style={{ fontSize: 14, color: '#8A919C', marginBottom: 16, lineHeight: 1.7 }}>
+              Spagenio에 오신 것을 환영합니다.<br/>여행 이야기를 공유하고 새로운 코스를 발견해보세요!
             </div>
             {selectedStyles.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
@@ -318,7 +318,7 @@ export default function Register() {
                   const s = TRAVEL_STYLES.find(t => t.key === key);
                   if (!s) return null;
                   return (
-                    <span key={key} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: s.bg, color: s.color, border: `1px solid ${s.border}`, fontWeight: 700 }}>
+                    <span key={key} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 3, background: s.bg, color: s.color, border: `1px solid ${s.border}`, fontWeight: 700 }}>
                       {s.icon} {s.label}
                     </span>
                   );
@@ -329,7 +329,7 @@ export default function Register() {
           </div>
         )}
       </div>
-      <div style={{ marginTop: 16, fontSize: 12, color: '#9ca3af' }}>© 2026 Travellog</div>
+      <div style={{ marginTop: 16, fontSize: 12, color: '#8A919C' }}>© 2026 Spagenio</div>
     </div>
   );
 }

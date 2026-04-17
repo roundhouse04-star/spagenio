@@ -40,7 +40,7 @@ function SponsoredAd({ ad, currentUser }) {
             <div style={{ fontSize: 10, color: '#8A919C' }}>{ad.target_country || '전체'} · {ad.target_city || '전체'}</div>
           </div>
         </div>
-        <span style={{ fontSize: 10, color: '#B8BCC4', background: '#FAFAF8', padding: '2px 8px', borderRadius: 2 }}>광고</span>
+        <span style={{ fontSize: 10, color: '#B8BCC4', background: '#FAFAF8', padding: '2px 8px', borderRadius: 8 }}>광고</span>
       </div>
       <div onClick={handleClick} style={{ cursor: 'pointer', position: 'relative' }}>
         {ad.image_url && (
@@ -56,7 +56,7 @@ function SponsoredAd({ ad, currentUser }) {
       <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 12, color: '#8A919C' }}>{ad.description?.slice(0, 40)}</div>
         <button onClick={handleClick}
-          style={{ padding: '6px 16px', borderRadius: 2, background: '#1E2A3A', color: 'white',
+          style={{ padding: '6px 16px', borderRadius: 8, background: '#1E2A3A', color: 'white',
             fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
           {ad.cta_text || '자세히 보기'}
         </button>
@@ -134,7 +134,7 @@ function PromoCard({ promo }) {
         <p style={{ fontSize: 13, color: '#8A919C', lineHeight: 1.6, margin: 0 }}>{promo.content}</p>
         {promo.linkUrl && (
           <a href={promo.linkUrl} target="_blank" rel="noreferrer"
-            style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', background: typeColor.badge, color: 'white', borderRadius: 2, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', background: typeColor.badge, color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
             {promo.linkLabel || '자세히 보기'} →
           </a>
         )}
@@ -308,7 +308,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
       const aWish = wishCountries.length > 0 && matchesCountry(a, wishCountries) ? 2 : 0;
       const bWish = wishCountries.length > 0 && matchesCountry(b, wishCountries) ? 2 : 0;
       if (bWish !== aWish) return bWish - aWish;
-      // 2순위: TRAVEL STYLE
+      // 2순위: 여행 스타일
       const aStyle = (preferredStyles?.length && (a.travelStyles || []).some(s => preferredStyles.includes(s))) ? 1 : 0;
       const bStyle = (preferredStyles?.length && (b.travelStyles || []).some(s => preferredStyles.includes(s))) ? 1 : 0;
       return bStyle - aStyle;
@@ -445,7 +445,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
 
       {/* 탭 — 전체 / 팔로잉 */}
       <div style={{ display: 'flex', borderBottom: '1px solid #E2E0DC', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
-        {[['all', '📍 근처'], ['following', '👤 팔로잉'], ['popular', '🔥 인기']].map(([key, label]) => (
+        {[['all', 'NEAR'], ['following', 'FOLLOW'], ['popular', 'POPULAR']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: tab === key ? 700 : 500, color: tab === key ? '#1E2A3A' : '#8A919C', borderBottom: tab === key ? '2px solid #1E2A3A' : '2px solid transparent' }}>
             {label}

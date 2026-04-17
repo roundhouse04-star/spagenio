@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 
 const S = {
-  wrap: { minHeight: '100vh', background: '#f5f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  logo: { fontSize: 28, fontWeight: 900, color: '#4f46e5', letterSpacing: -0.5, marginBottom: 8, textAlign: 'center' },
-  sub: { fontSize: 14, color: '#6b7280', marginBottom: 24, textAlign: 'center' },
-  box: { background: 'white', border: '1px solid #eee', borderRadius: 20, padding: '32px 36px 28px', width: '100%', maxWidth: 520, boxShadow: '0 4px 20px rgba(79,70,229,0.08)' },
-  title: { fontSize: 15, fontWeight: 800, color: '#1a1a2e', marginBottom: 20 },
-  allAgree: { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 12, marginBottom: 14, cursor: 'pointer' },
-  termItem: { border: '1px solid #eee', borderRadius: 12, marginBottom: 10, overflow: 'hidden' },
-  termHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', background: '#fafafa' },
-  badge: (req) => ({ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: req ? '#eef2ff' : '#f3f4f6', color: req ? '#4f46e5' : '#9ca3af' }),
-  termBody: (open) => ({ display: open ? 'block' : 'none', padding: '14px 16px', fontSize: 12, color: '#6b7280', lineHeight: 1.7, background: 'white', borderTop: '1px solid #f3f4f6', maxHeight: 160, overflowY: 'auto' }),
-  termCheck: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fafafa', borderTop: '1px solid #f3f4f6' },
-  btn: { width: '100%', background: '#4f46e5', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },
-  btnOut: { width: '100%', background: 'white', color: '#6b7280', border: '1px solid #eee', borderRadius: 12, padding: 12, fontSize: 14, cursor: 'pointer', marginTop: 8 },
+  wrap: { minHeight: '100vh', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  logo: { fontSize: 28, fontWeight: 500, fontFamily: "'Playfair Display', serif", color: '#1E2A3A', letterSpacing: -0.5, marginBottom: 8, textAlign: 'center' },
+  sub: { fontSize: 14, color: '#8A919C', marginBottom: 24, textAlign: 'center' },
+  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '32px 36px 28px', width: '100%', maxWidth: 520, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
+  title: { fontSize: 15, fontWeight: 800, color: '#1E2A3A', marginBottom: 20 },
+  allAgree: { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#EEEDEA', border: '1.5px solid #E2E0DC', borderRadius: 3, marginBottom: 14, cursor: 'pointer' },
+  termItem: { border: '1px solid #eee', borderRadius: 3, marginBottom: 10, overflow: 'hidden' },
+  termHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', background: '#FAFAF8' },
+  badge: (req) => ({ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 3, background: req ? '#EEEDEA' : '#F5F4F0', color: req ? '#1E2A3A' : '#8A919C' }),
+  termBody: (open) => ({ display: open ? 'block' : 'none', padding: '14px 16px', fontSize: 12, color: '#8A919C', lineHeight: 1.7, background: 'white', borderTop: '1px solid #F5F4F0', maxHeight: 160, overflowY: 'auto' }),
+  termCheck: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#FAFAF8', borderTop: '1px solid #F5F4F0' },
+  btn: { width: '100%', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 3, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },
+  btnOut: { width: '100%', background: 'white', color: '#8A919C', border: '1px solid #eee', borderRadius: 3, padding: 12, fontSize: 14, cursor: 'pointer', marginTop: 8 },
 };
 
 const TERMS = [
@@ -46,24 +46,24 @@ export default function Terms() {
   return (
     <div style={S.wrap}>
       <div style={S.logo}>✈ Travellog</div>
-      <div style={S.sub}>여행 SNS 서비스 가입을 위해 약관에 동의해주세요</div>
+      <div style={S.sub}>Please agree to the terms to create your account</div>
       <div style={S.box}>
         <div style={S.title}>약관 동의</div>
 
         <div style={S.allAgree} onClick={toggleAll}>
           <input type="checkbox" checked={allChecked} onChange={toggleAll} onClick={e => e.stopPropagation()}
-            style={{ width: 18, height: 18, accentColor: '#4f46e5', cursor: 'pointer' }} />
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#4f46e5' }}>전체 약관에 동의합니다</span>
+            style={{ width: 18, height: 18, accentColor: '#1E2A3A', cursor: 'pointer' }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#1E2A3A' }}>전체 약관에 동의합니다</span>
         </div>
 
         {TERMS.map(term => (
           <div key={term.id} style={S.termItem}>
             <div style={S.termHeader} onClick={() => setOpened(p => ({...p, [term.id]: !p[term.id]}))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={S.badge(term.required)}>{term.required ? '필수' : '선택'}</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>{term.title}</span>
+                <span style={S.badge(term.required)}>{term.required ? 'Required' : 'Optional'}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#4A5568' }}>{term.title}</span>
               </div>
-              <span style={{ color: '#9ca3af', fontSize: 12, transform: opened[term.id] ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▼</span>
+              <span style={{ color: '#8A919C', fontSize: 12, transform: opened[term.id] ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s' }}>▼</span>
             </div>
             <div style={S.termBody(opened[term.id])}>
               {term.content.split('\n').map((line, i) => <p key={i} style={{ marginBottom: 4 }}>{line}</p>)}
@@ -71,20 +71,20 @@ export default function Terms() {
             <div style={S.termCheck}>
               <input type="checkbox" checked={!!agreed[term.id]}
                 onChange={e => setAgreed(p => ({...p, [term.id]: e.target.checked}))}
-                style={{ width: 16, height: 16, accentColor: '#4f46e5', cursor: 'pointer' }} />
-              <label style={{ fontSize: 13, color: '#374151', cursor: 'pointer' }}
+                style={{ width: 16, height: 16, accentColor: '#1E2A3A', cursor: 'pointer' }} />
+              <label style={{ fontSize: 13, color: '#4A5568', cursor: 'pointer' }}
                 onClick={() => setAgreed(p => ({...p, [term.id]: !p[term.id]}))}>
-                {term.title}에 동의합니다 ({term.required ? '필수' : '선택'})
+                {term.title}에 동의합니다 ({term.required ? 'Required' : 'Optional'})
               </label>
             </div>
           </div>
         ))}
 
-        <button style={{ ...S.btn, background: requiredOk ? '#4f46e5' : '#c7d2fe', cursor: requiredOk ? 'pointer' : 'not-allowed' }}
-          onClick={go} disabled={!requiredOk}>다음 → 회원가입</button>
-        <button style={S.btnOut} onClick={() => window.location.href = '/'}>← 로그인으로 돌아가기</button>
+        <button style={{ ...S.btn, background: requiredOk ? '#1E2A3A' : '#E2E0DC', cursor: requiredOk ? 'pointer' : 'not-allowed' }}
+          onClick={go} disabled={!requiredOk}>NEXT → CREATE ACCOUNT</button>
+        <button style={S.btnOut} onClick={() => window.location.href = '/'}>← BACK TO SIGN IN</button>
       </div>
-      <div style={{ marginTop: 16, fontSize: 12, color: '#9ca3af' }}>© 2026 Travellog</div>
+      <div style={{ marginTop: 16, fontSize: 12, color: '#8A919C' }}>© 2026 TRAVEL SPAGENIO</div>
     </div>
   );
 }
