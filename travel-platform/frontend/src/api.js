@@ -93,6 +93,15 @@ export const api = {
   adminDeletePost: (id) => req(`/api/admin/posts/${id}`, { method: 'DELETE' }),
 
   // AI (Claude API)
+  getTransitRoutes: (from, to) => {
+    const q = new URLSearchParams({ from, to });
+    return req(`/api/transit/routes?${q}`);
+  },
+  getFlightAirlines: (from, to) => {
+    const q = new URLSearchParams({ from, to });
+    return req(`/api/transit/flights?${q}`);
+  },
+  getAirportAutocomplete: (q) => req(`/api/transit/airports?q=${encodeURIComponent(q)}`),
   getAiTransport: (from, to) => req('/api/ai/transport', { method: 'POST', body: JSON.stringify({ from, to }) }),
   getAiTips: (destination, category) => req('/api/ai/tips', { method: 'POST', body: JSON.stringify({ destination, category }) }),
 };
