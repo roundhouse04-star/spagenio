@@ -657,7 +657,10 @@ img {
 }
 
 /* ── 반응형 ── */
+.desktop-feed-header { display: flex !important; }
+
 @media (max-width: 900px) {
+  .desktop-feed-header { display: none !important; }
   .app {
     grid-template-columns: 1fr;
   }
@@ -1869,7 +1872,10 @@ img {
   }
 }
 
+.desktop-feed-header { display: flex !important; }
+
 @media (max-width: 900px) {
+  .desktop-feed-header { display: none !important; }
   .app {
     grid-template-columns: 72px 1fr;
   }

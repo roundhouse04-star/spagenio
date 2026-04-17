@@ -618,6 +618,34 @@ function App() {
                 </div>
               </div>
             )}
+            {/* 데스크탑 피드 상단 아이콘 */}
+            <div className="desktop-feed-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0 12px', borderBottom: '0.5px solid #F0EEE9' }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.5 }}>Feed</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => goPage('nearby')} style={{ background: 'none', border: '0.5px solid #E2E0DC', cursor: 'pointer', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6 }} title="Nearby">
+                  <span style={{ fontSize: 14 }}>📍</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: 1.5, color: '#1E2A3A' }}>NEAR</span>
+                </button>
+                <button onClick={openNotifModal} style={{ background: 'none', border: '0.5px solid #E2E0DC', cursor: 'pointer', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }} title="Notifications">
+                  <span style={{ fontSize: 14 }}>🔔</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: 1.5, color: '#1E2A3A' }}>ALERTS</span>
+                  {unreadCount > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#FF5A5F', color: 'white', fontSize: 8, fontWeight: 700, borderRadius: 10, padding: '1px 4px', minWidth: 14, textAlign: 'center' }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button onClick={openDmModal} style={{ background: 'none', border: '0.5px solid #E2E0DC', cursor: 'pointer', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }} title="Messages">
+                  <span style={{ fontSize: 14 }}>💬</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: 1.5, color: '#1E2A3A' }}>DM</span>
+                  {dmUnread > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#FF5A5F', color: 'white', fontSize: 8, fontWeight: 700, borderRadius: 10, padding: '1px 4px', minWidth: 14, textAlign: 'center' }}>
+                      {dmUnread > 99 ? '99+' : dmUnread}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
             <Feed key={feedKey} currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} onTagClick={handleTagClick} />
           </>
         ) : page === 'nearby' ? (
