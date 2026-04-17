@@ -256,7 +256,7 @@ export default function Nearby({ currentUser, onOpenPost }) {
               <div style={{ fontSize: 13 }}>RADIUS expand or directly Travel story post!</div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min(280px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
               {filtered.map(post => (
                 <NearbyPostCard key={post.id} post={post} onOpen={onOpenPost} closestDist={post._dist} />
               ))}

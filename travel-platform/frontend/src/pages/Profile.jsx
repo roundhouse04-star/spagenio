@@ -566,7 +566,7 @@ function BadgeGrid({ badges, posts, user }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ fontSize: 12, color: '#8A919C' }}>Earned BADGES {badges.length} / {allBadgeKeys.length}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min(140px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
         {allBadgeKeys.map(key => {
           const info = BADGE_INFO[key];
           const earned = badges.includes(key);
