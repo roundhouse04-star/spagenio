@@ -4,17 +4,17 @@ import PostCard from '../components/PostCard';
 import { TRAVEL_STYLES } from '../travelStyles';
 
 const COUNTRIES = [
-  { name: 'ALL', emoji: '🌍', flag: null },
-  { name: 'Japan', emoji: '🗼', flag: '🇯🇵' },
-  { name: 'France', emoji: '🥐', flag: '🇫🇷' },
-  { name: 'Italy', emoji: '🍕', flag: '🇮🇹' },
-  { name: 'Thailand', emoji: '🐘', flag: '🇹🇭' },
-  { name: 'USA', emoji: '🗽', flag: '🇺🇸' },
-  { name: 'Spain', emoji: '💃', flag: '🇪🇸' },
-  { name: 'Greece', emoji: '🏛️', flag: '🇬🇷' },
-  { name: 'Vietnam', emoji: '🍜', flag: '🇻🇳' },
-  { name: 'Indonesia', emoji: '🌺', flag: '🇮🇩' },
-  { name: 'Korea', emoji: '🍊', flag: '🇰🇷' },
+  { name: 'ALL', emoji: '🌍', flag: null, aliases: [] },
+  { name: 'Japan', emoji: '🗼', flag: '🇯🇵', aliases: ['일본', '재팬'] },
+  { name: 'France', emoji: '🥐', flag: '🇫🇷', aliases: ['프랑스'] },
+  { name: 'Italy', emoji: '🍕', flag: '🇮🇹', aliases: ['이탈리아'] },
+  { name: 'Thailand', emoji: '🐘', flag: '🇹🇭', aliases: ['태국'] },
+  { name: 'USA', emoji: '🗽', flag: '🇺🇸', aliases: ['미국', 'United States', 'America'] },
+  { name: 'Spain', emoji: '💃', flag: '🇪🇸', aliases: ['스페인'] },
+  { name: 'Greece', emoji: '🏛️', flag: '🇬🇷', aliases: ['그리스'] },
+  { name: 'Vietnam', emoji: '🍜', flag: '🇻🇳', aliases: ['베트남'] },
+  { name: 'Indonesia', emoji: '🌺', flag: '🇮🇩', aliases: ['인도네시아', '발리'] },
+  { name: 'Korea', emoji: '🍊', flag: '🇰🇷', aliases: ['한국', '대한민국'] },
 ];
 
 export default function Explore({ currentUser, onOpenPost, onProfile, searchTag }) {
@@ -43,8 +43,27 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
   ) => {
     setLoading(true);
     try {
-      const data = await api.getPosts({ keyword: kw, country: ct, city: ci, travelStyle: style, currentUserId: currentUser?.id });
-      setPosts(data || []);
+      // Try primary country name + aliases (Korean/alt names) and merge unique results
+      const countryObj = COUNTRIES.find(c => c.name === ct);
+      const countryQueries = ct
+        ? [ct, ...(countryObj?.aliases || [])]
+        : [''];
+
+      const resultsArr = await Promise.all(
+        countryQueries.map(q =>
+          api.getPosts({ keyword: kw, country: q, city: ci, travelStyle: style, currentUserId: currentUser?.id })
+            .catch(() => [])
+        )
+      );
+      // Merge unique by post id
+      const seen = new Set();
+      const merged = [];
+      for (const arr of resultsArr) {
+        for (const p of (arr || [])) {
+          if (!seen.has(p.id)) { seen.add(p.id); merged.push(p); }
+        }
+      }
+      setPosts(merged);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
