@@ -82,9 +82,9 @@ export default function ForgotPassword() {
 
         {step === 1 && <>
           <div style={S.icon}>🔑</div>
-          <div style={S.title}>비밀번호 찾기</div>
+          <div style={S.title}>RESET PASSWORD</div>
           <div style={S.desc}>Enter your email address and<br/>we will send you a verification code.</div>
-          <input style={S.inp} type="email" placeholder="이메일 주소" value={email} onChange={e => setEmail(e.target.value)} />
+          <input style={S.inp} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
           <button style={S.btn} onClick={() => sendCode()} disabled={loading}>{loading ? 'SENDING...' : 'SEND CODE'}</button>
           <button style={S.btnOut} onClick={() => window.location.href = '/'}>← BACK TO SIGN IN</button>
         </>}
@@ -103,11 +103,11 @@ export default function ForgotPassword() {
 
         {step === 3 && <>
           <div style={S.icon}>🔒</div>
-          <div style={S.title}>새 비밀번호 설정</div>
-          <input style={S.inp} type="password" placeholder="새 비밀번호" value={newPw}
+          <div style={S.title}>NEW PASSWORD</div>
+          <input style={S.inp} type="password" placeholder="New password" value={newPw}
             onChange={e => { setNewPw(e.target.value); checkPw(e.target.value); }} />
           <div style={S.pwBar}><div style={S.pwFill(pwCnt)} /></div>
-          <input style={S.inp} type="password" placeholder="새 비밀번호 확인" value={newPwCf}
+          <input style={S.inp} type="password" placeholder="Confirm password" value={newPwCf}
             onChange={e => setNewPwCf(e.target.value)} />
           {newPwCf && <div style={{ fontSize: 12, color: newPw === newPwCf ? '#10b981' : '#ef4444', marginBottom: 8 }}>
             {newPw === newPwCf ? '✓ Passwords match' : 'Passwords do not match'}
