@@ -72,7 +72,8 @@ export default function Share({ currentUser, onProfile }) {
       p.userNickname?.toLowerCase().includes(q) ||
       p.items?.some(i => i.placeName?.toLowerCase().includes(q))
     );
-    return matchSearch;
+    const matchStyle = !styleFilter || (p.travelStyles || []).includes(styleFilter);
+    return matchSearch && matchStyle;
   });
 
   // Friends going to the same place (when not in my-shared mode)
