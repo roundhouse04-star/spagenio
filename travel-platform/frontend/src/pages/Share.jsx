@@ -330,7 +330,7 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
                         <span style={{ fontSize: 12 }}>From today onwards the schedule first Please create one!</span>
                       </div>
                     ) : (
-                      <div style={{ Height: 240, overflowY: 'auto' }}>
+                      <div style={{ height: 240, overflowY: 'auto' }}>
                         {copyablePlans.map(p => (
                           <button key={p.id} onClick={() => copyToPlan(p.id, p.title)}
                             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #FAFAF8', transition: 'background 0.1s' }}

@@ -268,7 +268,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
             ))}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, Height: 260, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: 260, overflowY: 'auto' }}>
             {filtered.map(p => {
               const cfg = CATEGORY[p.type] || CATEGORY.attraction;
               return (
@@ -1530,7 +1530,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                                   return (
                                     <div key={msg.id} style={{ display: 'flex', flexDirection: isMine? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 6 }}>
                                       {!isMine && <img src={msg.userProfileImage || `https://ui-avatars.com/api/?name=${msg.userNickname}&size=28&background=e5e7eb&color=555`} style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }} alt="" />}
-                                      <div style={{ Width: '70%' }}>
+                                      <div style={{ width: '70%' }}>
                                         {!isMine && <div style={{ fontSize: 10, color: '#8A919C', marginBottom: 2, paddingLeft: 4 }}>{msg.userNickname}</div>}
                                         <div style={{ background: isMine? '#1E2A3A' : 'white', color: isMine? 'white' : '#1E2A3A', padding: '8px 12px', borderRadius: isMine? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 13, lineHeight: 1.4, border: isMine? 'none' : '1px solid #eee', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>{msg.content}</div>
                                         <div style={{ fontSize: 10, color: '#bbb', marginTop: 2, textAlign: isMine? 'right' : 'left', paddingLeft: 4, paddingRight: 4 }}>{msg.createdAt?.slice(11, 16)}</div>
@@ -1592,12 +1592,12 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       )}
       {showInvite && (
         <div className="modal-overlay" onClick={() => setShowInvite(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ Width: 400 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: 400 }}>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#1E2A3A', marginBottom: 16 }}>👥 friends Invite</div>
             {followings.length === 0? (
               <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>No followed friends.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, Height: 360, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: 360, overflowY: 'auto' }}>
                 {followings.filter(u => {
                   const alreadyMember = (Selected?.members || []).some(m => m.userId === u.id);
                   const isOwner = Selected?.userId === u.id;

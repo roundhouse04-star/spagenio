@@ -153,7 +153,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: '#FAFAF8', border: '1px solid #E2E0DC', borderRadius: 2, padding: '8px 14px', fontSize: 13, color: '#8A919C' }}>
-            {SelectedCountry!== 'ALL'? `🌏 ${SelectedCountry}` : '🌏 ALL Country'}
+            {SelectedCountry!== 'ALL'? `🌏 ${SelectedCountry}` : '🌏 All countries'}
           </div>
           <input className="filter-input" placeholder="City (e.g. Osaka)" value={city}
             onChange={e => setCity(e.target.value)} style={{ flex: 1 }} />
@@ -164,13 +164,13 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
       {/* Results header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A3A' }}>
-          {SelectedCountry!== 'ALL'? `${COUNTRIES.find(c => c.name === SelectedCountry)?.flag} ${SelectedCountry} TRAVEL` : 'ALL TRAVEL'}
+          {SelectedCountry!== 'ALL'? `${COUNTRIES.find(c => c.name === SelectedCountry)?.flag} ${SelectedCountry} TRAVEL` : 'All travel'}
           {curStyle && (
             <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 2, background: curStyle.bg, color: curStyle.color, border: `1px solid ${curStyle.border}` }}>
               {curStyle.icon} {curStyle.label}
             </span>
           )}
-          <span style={{ fontSize: 13, fontWeight: 400, color: '#8A919C', marginLeft: 8 }}>{posts}</span>
+          <span style={{ fontSize: 13, fontWeight: 400, color: '#8A919C', marginLeft: 8 }}>{posts.length} posts</span>
         </div>
         {(SelectedStyle || SelectedCountry!== 'ALL' || keyword) && (
           <button onClick={() => { setSelectedStyle(''); setSelectedCountry('ALL'); setKeyword(''); setCity(''); load('', '', '', ''); }}
@@ -190,7 +190,7 @@ export default function Explore({ currentUser, onOpenPost, onProfile, searchTag 
           <div style={{ fontSize: 13 }}>Try other filters search again!</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, Width: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, width: '100%' }}>
           {posts.map(post => (
             <PostCard key={post.id} post={post} currentUserId={currentUser?.id}
               onOpen={onOpenPost} onProfile={onProfile} onLike={handleLike}

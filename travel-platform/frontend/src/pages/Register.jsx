@@ -4,7 +4,7 @@ import { TRAVEL_STYLES } from '../travelStyles';
 const S = {
   wrap: { minHeight: '100vh', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
   logo: { fontSize: 28, fontWeight: 500, fontFamily: "'Playfair Display', serif", color: '#1E2A3A', letterSpacing: -0.5, marginBottom: 24, textAlign: 'center' },
-  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '32px 36px', width: '100%', Width: 520, boxShadow: '0 4px 20px rgba(79,70,229,0.08)' },
+  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '32px 36px', width: '100%', width: 520, boxShadow: '0 4px 20px rgba(79,70,229,0.08)' },
   title: { fontSize: 16, fontWeight: 800, color: '#1E2A3A', marginBottom: 20 },
   inp: { width: '100%', padding: '12px 16px', border: '1px solid #E2E0DC', borderRadius: 3, fontSize: 14, outline: 'none', background: '#FAFAF8', color: '#1E2A3A', marginBottom: 12, boxSizing: 'border-box' },
   btn: { width: '100%', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 3, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },

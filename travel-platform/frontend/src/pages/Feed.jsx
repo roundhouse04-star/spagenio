@@ -125,7 +125,7 @@ function PromoCard({ promo }) {
 
   return (
     <div style={{ background: typeColor.bg, border: `1.5px solid ${typeColor.border}`, overflow: 'hidden', borderBottom: '1px solid #F0EEE9' }}>
-      {promo.imageUrl && <img src={promo.imageUrl} alt={promo.title} style={{ width: '100%', Height: 200, objectFit: 'cover', display: 'block' }} />}
+      {promo.imageUrl && <img src={promo.imageUrl} alt={promo.title} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />}
       <div style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 2, background: typeColor.badge, color: 'white' }}>{typeColor.badgeText}</span>
@@ -441,7 +441,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const feedItems = buildFeedItems(posts, promotions.filter(p => p.active));
 
   return (
-    <div style={{ width: 680, margin: '0 auto', Width: '100%' }}>
+    <div style={{ width: 680, margin: '0 auto', width: '100%' }}>
 
       {/* Tab — ALL / FOLLOWING */}
       <div style={{ display: 'flex', borderBottom: '1px solid #E2E0DC', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>

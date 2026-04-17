@@ -314,7 +314,7 @@ export default function Transit() {
   };
 
   const S = {
-    wrap: { Width: 680, margin: '0 auto', padding: '0 0 80px' },
+    wrap: { width: 680, margin: '0 auto', padding: '0 0 80px' },
     cityTabs: { display: 'flex', gap: 8, overflowX: 'auto', padding: '16px 16px 8px', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' },
     cityBtn: (active) => ({
       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
@@ -399,7 +399,7 @@ export default function Transit() {
                     <input style={S.input}
                       placeholder={(selectingFor === 'from'? 'From' : 'To') + 'Station SEARCH...'}
                       value={searchQuery} onChange={e => setSearchQuery(e.target.value)} autoFocus />
-                    <div style={{ Height: 240, overflowY: 'auto', marginTop: 8, borderRadius: 3, border: '1px solid #F0EEE9' }}>
+                    <div style={{ height: 240, overflowY: 'auto', marginTop: 8, borderRadius: 3, border: '1px solid #F0EEE9' }}>
                       {filteredStations.slice(0, 50).map(s => {
                         const stLines = lines.filter(l =>
                           connections.some(c => (c.fromStationId === s.id || c.toStationId === s.id) && c.lineId === l.id)
