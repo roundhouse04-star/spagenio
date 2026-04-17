@@ -2326,6 +2326,23 @@
       if (!el) return;
       el.style.display = '';
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
+
+      // ✅ 서버에서 10게임 예측 생성 + lotto_predictions 자동 저장
+      try {
+        const _t = localStorage.getItem('token');
+        const r = await fetch('/api/lotto/prediction/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _t },
+          body: JSON.stringify({ count: 10 })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          console.log(`✅ 예측 ${d.saved}건 저장됨 (${d.based_on_round}회 기반)`);
+          // 예측 이력 카드 자동 새로고침
+          if (typeof loadPredictionHistoryTab === 'function') loadPredictionHistoryTab();
+        }
+      } catch (e) { console.log('예측 저장 실패:', e.message); }
+
       await _runLottoPrediction(el);
     }
 

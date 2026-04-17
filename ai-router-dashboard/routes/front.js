@@ -101,7 +101,7 @@ async function fetchJson(url, options = {}) {
   return { response, data: safeJson(text) };
 }
 
-export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname }) {
+export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname, lottoBuildGames }) {
 
   // ── portfolio_performance 마이그레이션: broker_key_id 컬럼 추가 ──
   try {
@@ -726,6 +726,39 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         .run(based_on_round, predicted_for_round || null, picksJson);
       res.json({ ok: true, skipped: false });
     } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ✅ 예측 실행 — 서버에서 lottoBuildGames(N) 실행 → lotto_predictions에 저장 → 결과 리턴
+  router.post('/api/lotto/prediction/run', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const count = parseInt(req.body?.count) || 10;
+      if (typeof lottoBuildGames !== 'function') return res.status(500).json({ ok: false, error: 'lottoBuildGames 미연결' });
+
+      const games = lottoBuildGames(count);
+      if (!games.length) return res.json({ ok: false, error: '로또 당첨번호 이력이 없습니다.' });
+
+      const latest = db.prepare('SELECT drw_no FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
+      if (!latest) return res.json({ ok: false, error: '최신 회차 조회 실패' });
+
+      // 10게임 INSERT
+      const stmt = db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)');
+      const tx = db.transaction(() => {
+        games.forEach(picks => stmt.run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)));
+      });
+      tx();
+
+      res.json({
+        ok: true,
+        saved: games.length,
+        based_on_round: latest.drw_no,
+        predicted_for_round: latest.drw_no + 1,
+        games
+      });
+    } catch (e) {
+      console.error('[prediction/run]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
   });
 
   router.post('/api/lotto/prediction/check', (req, res) => {

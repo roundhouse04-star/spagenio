@@ -888,7 +888,7 @@ app.use((req, res, next) => { requestStats.total += 1; res.setHeader('Cache-Cont
 // 라우트 연결
 // ============================================================
 const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
-const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus };
+const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus, lottoBuildGames };
 
 app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
@@ -1019,6 +1019,15 @@ async function lottoCheckAndSendSchedules() {
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(sch.chat_id);
       db.prepare('INSERT INTO lotto_schedule_log (chat_id,days,hour,game_count,action) VALUES (?,?,?,?,?)')
         .run(sch.chat_id, String(currentDay), sch.hour, sch.game_count, 'send');
+
+      // ✅ lotto_predictions에도 저장 (예측 이력 UI에서 조회 가능)
+      try {
+        const latest = db.prepare('SELECT drw_no FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
+        if (latest) {
+          const stmt = db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)');
+          games.forEach(picks => stmt.run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)));
+        }
+      } catch (e) { console.log('[로또] lotto_predictions 저장 실패:', e.message); }
 
       if (isCatchup) console.log(`[로또] 캐치업 발송: chat_id=${sch.chat_id}, 예정=${sch.hour}시, 현재=${currentHour}시`);
     }
