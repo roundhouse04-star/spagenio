@@ -504,6 +504,45 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
   });
 
+  // ✅ 신규 통합 등록 (텔레그램 + 자동발송 한 번에) — 중복만 체크, 그 외 제약 없음
+  router.post('/api/lotto/telegram/register', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const { chat_id, bot_token, days, hour, game_count, enabled = 1 } = req.body;
+
+      if (!chat_id) return res.json({ ok: false, error: 'Chat ID를 입력하세요' });
+      if (!days)    return res.json({ ok: false, error: '요일을 선택하세요' });
+      if (hour === undefined || hour === null || hour === '') return res.json({ ok: false, error: '발송 시각을 선택하세요' });
+      if (!game_count) return res.json({ ok: false, error: '게임 수를 선택하세요' });
+
+      const cid = String(chat_id).trim();
+      const cleanToken = (bot_token && String(bot_token).startsWith('bot')) ? String(bot_token).slice(3) : (bot_token || '');
+
+      // 중복 체크 (유일한 제약)
+      const existing = db.prepare('SELECT chat_id FROM lotto_telegram WHERE chat_id=?').get(cid);
+      if (existing) {
+        return res.json({ ok: false, duplicate: true, error: '이미 등록된 Chat ID입니다. 아래 등록자 리스트에서 수정하세요.' });
+      }
+
+      // 트랜잭션으로 두 테이블 동시 INSERT
+      const tx = db.transaction(() => {
+        db.prepare('INSERT INTO lotto_telegram (chat_id, bot_token) VALUES (?,?)').run(cid, cleanToken);
+        db.prepare('INSERT INTO lotto_schedule (chat_id, enabled, days, hour, game_count) VALUES (?,?,?,?,?)')
+          .run(cid, enabled ? 1 : 0, String(days), parseInt(hour), parseInt(game_count));
+        const today = new Date().toISOString().split('T')[0];
+        const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
+        db.prepare('INSERT INTO lotto_schedule_log (chat_id, days, hour, game_count, drw_no, action) VALUES (?,?,?,?,?,?)')
+          .run(cid, String(days), parseInt(hour), parseInt(game_count), drw_no, 'create');
+      });
+      tx();
+
+      res.json({ ok: true, chat_id: cid });
+    } catch (e) {
+      console.error('[lotto/telegram/register]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   // ✅ 로또 텔레그램 등록자 + 스케줄 통합 리스트 (관리자 화면용)
   router.get('/api/lotto/telegram/list', (req, res) => {
     try {
@@ -725,10 +764,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       }
 
       const existing = db.prepare('SELECT chat_id, updated_at FROM lotto_schedule WHERE chat_id=?').get(cid);
-      if (existing && existing.updated_at) {
-        const diffDays = (Date.now() - new Date(existing.updated_at).getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDays < 7) return res.json({ ok: false, remain_days: Math.ceil(7 - diffDays) });
-      }
+      // ✅ 일주일 제약 제거 — 자유롭게 수정 가능
       if (existing) {
         db.prepare('UPDATE lotto_schedule SET enabled=?,days=?,hour=?,game_count=?,updated_at=CURRENT_TIMESTAMP WHERE chat_id=?')
           .run(enabled ? 1 : 0, days, hour, game_count, cid);

@@ -353,6 +353,49 @@
         $id('lotto-confirm-cancel').onclick = () => { layer.style.display = 'none'; };
       }
 
+      // ✅ 신규 통합 등록 (텔레그램 + 자동발송 한 번에)
+      window.lottoRegisterAll = async function lottoRegisterAll() {
+        const chatId = ($id('lotto-tg-chatid')?.value?.trim() || '');
+        const token  = ($id('lotto-tg-token')?.value?.trim() || '');
+        const activeDays = [...document.querySelectorAll('.lotto-day-btn.active')].map(b => b.dataset.day);
+        const days = activeDays[0] || '';
+        const hour = $id('lotto-sch-hour')?.value;
+        const game_count = $id('lotto-sch-count')?.value;
+
+        if (!chatId)     { lottoShowToast('⚠️', '입력 오류', 'Chat ID를 입력하세요'); return; }
+        if (!days)       { lottoShowToast('⚠️', '요일 미선택', '요일을 선택하세요'); return; }
+        if (hour === '' || hour == null) { lottoShowToast('⚠️', '시각 미선택', '발송 시각을 선택하세요'); return; }
+        if (!game_count) { lottoShowToast('⚠️', '게임 수 미선택', '게임 수를 선택하세요'); return; }
+
+        const cleanToken = token.startsWith('bot') ? token.slice(3) : token;
+        try {
+          const r = await fetch('/api/lotto/telegram/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, bot_token: cleanToken, days, hour: parseInt(hour), game_count: parseInt(game_count), enabled: 1 })
+          });
+          const d = await r.json();
+          if (d.ok) {
+            // localStorage에 마지막 등록 chat_id 저장 (테스트 발송용)
+            localStorage.setItem(LOTTO_TG_CHATID_KEY, chatId);
+            if (cleanToken) localStorage.setItem(LOTTO_TG_TOKEN_KEY, cleanToken);
+            lottoShowToast('✅', '등록 완료', 'Chat ID ' + chatId + ' 등록됨. 아래 리스트에서 수정 가능.');
+            // 입력 필드 초기화
+            $id('lotto-tg-chatid').value = '';
+            $id('lotto-tg-token').value = '';
+            document.querySelectorAll('.lotto-day-btn').forEach(b => b.classList.remove('active'));
+            $id('lotto-sch-hour').value = '';
+            $id('lotto-sch-count').value = '';
+            // 리스트 갱신
+            if (typeof lottoLoadTgList === 'function') lottoLoadTgList();
+          } else if (d.duplicate) {
+            lottoShowToast('ℹ️', '중복 Chat ID', d.error);
+          } else {
+            lottoShowToast('❌', '등록 실패', d.error || '다시 시도해주세요');
+          }
+        } catch(e) { lottoShowToast('❌', '오류', e.message); }
+      };
+
       window.lottoSaveTg = async function lottoSaveTg() {
         const token = ($id('lotto-tg-token')?.value?.trim() || '');
         const chatId = ($id('lotto-tg-chatid')?.value?.trim() || '');
