@@ -890,7 +890,20 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const savePlanEdit = async () => {
-    if (!editPlan ||!editPlan.title.trim()) return;
+    if (!editPlan) return;
+    const missing = [];
+    if (!editPlan.title?.trim()) missing.push('schedule name');
+    if (!editPlan.startDate) missing.push('departure date');
+    if (!editPlan.endDate) missing.push('arrival date');
+
+    if (missing.length > 0) {
+      alert('Please enter: ' + missing.join(', '));
+      return;
+    }
+    if (new Date(editPlan.endDate) < new Date(editPlan.startDate)) {
+      alert('Arrival date must be on or after departure date.');
+      return;
+    }
     try {
       const updated = await api.updatePlan(editPlan.id, {
         title: editPlan.title,
