@@ -139,43 +139,43 @@ export default function Exchange() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="page-header">
-        <div className="page-title">💱 환율 & 예산</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>💱 환율 & 예산</div>
         {lastUpdated && (
-          <div style={{ fontSize: 12, color: '#9ca3af' }}>기준일: {lastUpdated} · <span style={{ cursor: 'pointer', color: '#4f46e5' }} onClick={fetchRates}>새로고침</span></div>
+          <div style={{ fontSize: 12, color: '#8A919C' }}>기준일: {lastUpdated} · <span style={{ cursor: 'pointer', color: '#1E2A3A' }} onClick={fetchRates}>새로고침</span></div>
         )}
       </div>
 
       {/* 탭 */}
-      <div style={{ display: 'flex', gap: 4, background: '#f3f4f6', borderRadius: 12, padding: 4 }}>
+      <div style={{ display: 'flex', gap: 4, background: '#F5F4F0', borderRadius: 3, padding: 4 }}>
         {[['exchange', '💱 환율 계산기'], ['budget', '💰 여행 예산 계산기']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            style={{ flex: 1, padding: '9px 4px', borderRadius: 9, border: 'none', background: tab === key ? 'white' : 'transparent', color: tab === key ? '#4f46e5' : '#9ca3af', fontSize: 13, fontWeight: tab === key ? 700 : 500, cursor: 'pointer', boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
+            style={{ flex: 1, padding: '9px 4px', borderRadius: 9, border: 'none', background: tab === key ? 'white' : 'transparent', color: tab === key ? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: tab === key ? 700 : 500, cursor: 'pointer', boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
             {label}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A919C' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>💱</div>
           <div>환율 정보 불러오는 중...</div>
         </div>
       ) : error ? (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: '16px 20px', color: '#dc2626', fontSize: 13 }}>
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 3, padding: '16px 20px', color: '#dc2626', fontSize: 13 }}>
           ⚠️ {error}
-          <button onClick={fetchRates} style={{ marginLeft: 10, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>다시 시도</button>
+          <button onClick={fetchRates} style={{ marginLeft: 10, color: '#1E2A3A', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>다시 시도</button>
         </div>
       ) : tab === 'exchange' ? (
         <>
           {/* 환율 계산기 */}
-          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 18, padding: '20px' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 14 }}>🔄 환율 계산기</div>
+          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '20px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A', marginBottom: 14 }}>🔄 환율 계산기</div>
 
             {/* 통화 선택 */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
               {CURRENCIES.map(c => (
                 <button key={c.code} onClick={() => { setSelectedCurrency(c.code); setForeignInput('100'); setKrwInput(''); }}
-                  style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${selectedCurrency === c.code ? '#4f46e5' : '#eee'}`, background: selectedCurrency === c.code ? '#eef2ff' : 'white', color: selectedCurrency === c.code ? '#4f46e5' : '#6b7280', fontSize: 12, fontWeight: selectedCurrency === c.code ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
+                  style={{ padding: '6px 12px', borderRadius: 2, border: `1.5px solid ${selectedCurrency === c.code ? '#1E2A3A' : '#E2E0DC'}`, background: selectedCurrency === c.code ? '#EEEDEA' : 'white', color: selectedCurrency === c.code ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: selectedCurrency === c.code ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
                   {c.flag} {c.code}
                 </button>
               ))}
@@ -184,26 +184,26 @@ export default function Exchange() {
             {/* 계산 입력 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {/* KRW 입력 */}
-              <div style={{ background: '#f9fafb', border: '1.5px solid #e5e7eb', borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>🇰🇷 한국 원 (KRW)</div>
+              <div style={{ background: '#FAFAF8', border: '1.5px solid #E2E0DC', borderRadius: 3, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 6, fontWeight: 600 }}>🇰🇷 한국 원 (KRW)</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input
                     value={krwInput}
                     onChange={e => handleKrwChange(e.target.value)}
                     onFocus={() => setForeignInput('')}
                     placeholder="금액 입력"
-                    style={{ flex: 1, fontSize: 22, fontWeight: 800, color: '#1a1a2e', border: 'none', background: 'none', outline: 'none' }}
+                    style={{ flex: 1, fontSize: 22, fontWeight: 800, color: '#1E2A3A', border: 'none', background: 'none', outline: 'none' }}
                   />
-                  <span style={{ fontSize: 16, color: '#9ca3af', fontWeight: 600 }}>₩</span>
+                  <span style={{ fontSize: 16, color: '#8A919C', fontWeight: 600 }}>₩</span>
                 </div>
               </div>
 
               {/* 화살표 */}
-              <div style={{ textAlign: 'center', fontSize: 20, color: '#c7d2fe' }}>⇅</div>
+              <div style={{ textAlign: 'center', fontSize: 20, color: '#E2E0DC' }}>⇅</div>
 
               {/* 외화 입력 */}
-              <div style={{ background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, color: '#6366f1', marginBottom: 6, fontWeight: 600 }}>
+              <div style={{ background: '#EEEDEA', border: '1.5px solid #E2E0DC', borderRadius: 3, padding: '14px 16px' }}>
+                <div style={{ fontSize: 11, color: '#1E2A3A', marginBottom: 6, fontWeight: 600 }}>
                   {cur?.flag} {cur?.country} ({selectedCurrency})
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -212,30 +212,30 @@ export default function Exchange() {
                     onChange={e => handleForeignChange(e.target.value)}
                     onFocus={() => setKrwInput('')}
                     placeholder="금액 입력"
-                    style={{ flex: 1, fontSize: 22, fontWeight: 800, color: '#4f46e5', border: 'none', background: 'none', outline: 'none' }}
+                    style={{ flex: 1, fontSize: 22, fontWeight: 800, color: '#1E2A3A', border: 'none', background: 'none', outline: 'none' }}
                   />
                   <span style={{ fontSize: 16, color: '#818cf8', fontWeight: 600 }}>{selectedCurrency}</span>
                 </div>
                 {foreignInput && (
-                  <div style={{ fontSize: 12, color: '#6366f1', marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: '#1E2A3A', marginTop: 4 }}>
                     = ₩{toKRW(foreignInput, selectedCurrency)}
                   </div>
                 )}
               </div>
 
               {/* 환율 기준 힌트 */}
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 3, padding: '10px 14px', fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
                 💡 {cur?.flag} {(selectedCurrency === 'JPY' || selectedCurrency === 'IDR' || selectedCurrency === 'VND' || selectedCurrency === 'PHP') ? '100' : '1'} {selectedCurrency} = ₩{rates?.[selectedCurrency] ? Math.round((selectedCurrency === 'JPY' || selectedCurrency === 'IDR' || selectedCurrency === 'VND' || selectedCurrency === 'PHP' ? 100 : 1) / rates[selectedCurrency]).toLocaleString() : '-'}
               </div>
             </div>
 
             {/* 빠른 금액 버튼 */}
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, fontWeight: 600 }}>빠른 금액 선택</div>
+              <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>빠른 금액 선택</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['10000', '50000', '100000', '500000', '1000000'].map(amt => (
                   <button key={amt} onClick={() => { setKrwInput(parseInt(amt).toLocaleString()); setForeignInput(''); }}
-                    style={{ padding: '6px 12px', background: krwInput === parseInt(amt).toLocaleString() ? '#4f46e5' : '#f3f4f6', color: krwInput === parseInt(amt).toLocaleString() ? 'white' : '#555', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ padding: '6px 12px', background: krwInput === parseInt(amt).toLocaleString() ? '#1E2A3A' : '#F5F4F0', color: krwInput === parseInt(amt).toLocaleString() ? 'white' : '#555', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                     {parseInt(amt).toLocaleString()}원
                   </button>
                 ))}
@@ -244,10 +244,10 @@ export default function Exchange() {
           </div>
 
           {/* 전체 환율 목록 */}
-          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 18, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>📊 오늘의 환율</div>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>외화 → 원화 기준</div>
+          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #F5F4F0' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A' }}>📊 오늘의 환율</div>
+              <div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>외화 → 원화 기준</div>
             </div>
             <div>
               {CURRENCIES.map((c, i) => {
@@ -258,17 +258,17 @@ export default function Exchange() {
                 return (
                   <div key={c.code}
                     onClick={() => { setSelectedCurrency(c.code); setTab('exchange'); setKrwInput(''); setForeignInput('100'); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < CURRENCIES.length - 1 ? '1px solid #f9fafb' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < CURRENCIES.length - 1 ? '1px solid #FAFAF8' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
                     onMouseEnter={e => e.currentTarget.style.background = '#fafbff'}
                     onMouseLeave={e => e.currentTarget.style.background = 'white'}>
                     <span style={{ fontSize: 24, flexShrink: 0 }}>{c.flag}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{c.country}</div>
-                      <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.name} · {c.code}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{c.country}</div>
+                      <div style={{ fontSize: 11, color: '#8A919C' }}>{c.name} · {c.code}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#4f46e5' }}>₩{displayKRW}</div>
-                      <div style={{ fontSize: 10, color: '#9ca3af' }}>{unit} {c.code}</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#1E2A3A' }}>₩{displayKRW}</div>
+                      <div style={{ fontSize: 10, color: '#8A919C' }}>{unit} {c.code}</div>
                     </div>
                   </div>
                 );
@@ -279,14 +279,14 @@ export default function Exchange() {
       ) : (
         /* 예산 계산기 탭 */
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 18, padding: '20px' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 14 }}>⚙️ 여행 기본 설정</div>
+          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '20px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A', marginBottom: 14 }}>⚙️ 여행 기본 설정</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {/* 통화 선택 */}
               <div style={{ flex: 1, minWidth: 140 }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>현지 통화</div>
+                <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 6, fontWeight: 600 }}>현지 통화</div>
                 <select value={budgetCurrency} onChange={e => setBudgetCurrency(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 13, outline: 'none' }}>
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }}>
                   {CURRENCIES.map(c => (
                     <option key={c.code} value={c.code}>{c.flag} {c.country} ({c.code})</option>
                   ))}
@@ -294,32 +294,32 @@ export default function Exchange() {
               </div>
               {/* 여행 기간 */}
               <div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>숙박</div>
+                <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 6, fontWeight: 600 }}>숙박</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button onClick={() => setNights(n => Math.max(1, n-1))}
-                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#f3f4f6', fontSize: 16, cursor: 'pointer' }}>−</button>
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#F5F4F0', fontSize: 16, cursor: 'pointer' }}>−</button>
                   <span style={{ fontSize: 14, fontWeight: 700, minWidth: 30, textAlign: 'center' }}>{nights}박</span>
                   <button onClick={() => setNights(n => n+1)}
-                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#f3f4f6', fontSize: 16, cursor: 'pointer' }}>+</button>
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#F5F4F0', fontSize: 16, cursor: 'pointer' }}>+</button>
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6, fontWeight: 600 }}>여행일수</div>
+                <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 6, fontWeight: 600 }}>여행일수</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button onClick={() => setDays(d => Math.max(1, d-1))}
-                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#f3f4f6', fontSize: 16, cursor: 'pointer' }}>−</button>
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#F5F4F0', fontSize: 16, cursor: 'pointer' }}>−</button>
                   <span style={{ fontSize: 14, fontWeight: 700, minWidth: 30, textAlign: 'center' }}>{days}일</span>
                   <button onClick={() => setDays(d => d+1)}
-                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#f3f4f6', fontSize: 16, cursor: 'pointer' }}>+</button>
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#F5F4F0', fontSize: 16, cursor: 'pointer' }}>+</button>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 항목별 예산 입력 */}
-          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 18, padding: '20px' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>📋 항목별 예산 입력</div>
-            <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 14 }}>현지 통화 기준으로 입력하세요</div>
+          <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '20px' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A', marginBottom: 4 }}>📋 항목별 예산 입력</div>
+            <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 14 }}>현지 통화 기준으로 입력하세요</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {budgetItems.map((item, i) => {
                 const amt = parseFloat(item.amount) || 0;
@@ -333,21 +333,21 @@ export default function Exchange() {
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 3, fontWeight: 600 }}>
-                        {item.label} {label && <span style={{ color: '#9ca3af', fontWeight: 400 }}>{label}</span>}
+                      <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 3, fontWeight: 600 }}>
+                        {item.label} {label && <span style={{ color: '#8A919C', fontWeight: 400 }}>{label}</span>}
                       </div>
                       <input
                         type="number"
                         value={item.amount}
                         onChange={e => updateBudget(i, e.target.value)}
                         placeholder="0"
-                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 9, fontSize: 14, outline: 'none', fontWeight: 600 }}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #E2E0DC', borderRadius: 9, fontSize: 14, outline: 'none', fontWeight: 600 }}
                       />
                     </div>
                     {amt > 0 && (
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>{subtotal.toLocaleString()} {budgetCurrency}</div>
-                        <div style={{ fontSize: 10, color: '#9ca3af' }}>≈ ₩{subtotalKRW.toLocaleString()}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#1E2A3A' }}>{subtotal.toLocaleString()} {budgetCurrency}</div>
+                        <div style={{ fontSize: 10, color: '#8A919C' }}>≈ ₩{subtotalKRW.toLocaleString()}</div>
                       </div>
                     )}
                   </div>
@@ -358,7 +358,7 @@ export default function Exchange() {
 
           {/* 합계 */}
           {totalForeign > 0 && (
-            <div style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderRadius: 18, padding: '20px' }}>
+            <div style={{ background: '#1E2A3A', borderRadius: 3, padding: '20px' }}>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>🧳 {nights}박 {days}일 예상 총 예산</div>
               <div style={{ fontSize: 28, fontWeight: 900, color: 'white', marginBottom: 4 }}>
                 ₩{totalKRW.toLocaleString()}

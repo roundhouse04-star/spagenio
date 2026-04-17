@@ -73,7 +73,7 @@ function LineView({ lines, stations, connections, stationMap, onSelectStation, f
         const isExpanded = expandedLine === line.id;
         const orderedStations = isExpanded ? getOrderedStations(line.id) : [];
         return (
-          <div key={line.id} style={{ background: 'white', borderRadius: 14, border: '1px solid #f0f0f0', marginBottom: 10, overflow: 'hidden' }}>
+          <div key={line.id} style={{ background: 'white', borderRadius: 3, border: '1px solid #F0EEE9', marginBottom: 10, overflow: 'hidden' }}>
             <div style={{ background: line.color, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
               onClick={() => setExpandedLine(isExpanded ? null : line.id)}>
               <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: line.textColor || 'white' }}>
@@ -102,8 +102,8 @@ function LineView({ lines, stations, connections, stationMap, onSelectStation, f
                             width: isFrom || isTo ? 18 : isTransfer ? 16 : 12,
                             height: isFrom || isTo ? 18 : isTransfer ? 16 : 12,
                             borderRadius: '50%',
-                            background: isFrom ? '#16a34a' : isTo ? '#FF5A5F' : 'white',
-                            border: (isTransfer ? 3 : 2) + 'px solid ' + (isFrom ? '#16a34a' : isTo ? '#FF5A5F' : isOnPath ? '#f59e0b' : line.color),
+                            background: isFrom ? '#16a34a' : isTo ? '#1E2A3A' : 'white',
+                            border: (isTransfer ? 3 : 2) + 'px solid ' + (isFrom ? '#16a34a' : isTo ? '#1E2A3A' : isOnPath ? '#f59e0b' : line.color),
                             marginTop: isFrom || isTo ? 11 : isTransfer ? 12 : 14,
                             boxShadow: (isFrom || isTo) ? '0 0 0 3px rgba(255,90,95,0.2)' : 'none',
                           }} />
@@ -111,7 +111,7 @@ function LineView({ lines, stations, connections, stationMap, onSelectStation, f
                             writingMode: 'vertical-rl',
                             fontSize: isFrom || isTo ? 11 : 10,
                             fontWeight: isFrom || isTo || isTransfer ? 700 : 400,
-                            color: isFrom ? '#16a34a' : isTo ? '#FF5A5F' : isOnPath ? '#f59e0b' : '#374151',
+                            color: isFrom ? '#16a34a' : isTo ? '#1E2A3A' : isOnPath ? '#f59e0b' : '#4A5568',
                             marginTop: 6, whiteSpace: 'nowrap', letterSpacing: 0.5,
                           }}>
                             {s.nameKo}
@@ -121,7 +121,7 @@ function LineView({ lines, stations, connections, stationMap, onSelectStation, f
                     })}
                   </div>
                 </div>
-                <div style={{ padding: '0 16px', fontSize: 11, color: '#9ca3af' }}>
+                <div style={{ padding: '0 16px', fontSize: 11, color: '#8A919C' }}>
                   총 {orderedStations.length}개 역
                 </div>
               </div>
@@ -158,9 +158,9 @@ function FullMapView({ cityId }) {
   return (
     <div style={{ padding: '12px 16px' }}>
       {/* 메인 카드 */}
-      <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: 3, border: '1px solid #F0EEE9', overflow: 'hidden' }}>
         {/* 헤더 */}
-        <div style={{ background: 'linear-gradient(135deg, #FF5A5F 0%, #ff8a8e 100%)', padding: '28px 24px', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1E2A3A 0%, #ff8a8e 100%)', padding: '28px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 12 }}>🗺️</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'white', marginBottom: 4 }}>
             {city?.flag} {city?.name} 노선도
@@ -175,8 +175,8 @@ function FullMapView({ cityId }) {
           <a href={info.url} target="_blank" rel="noreferrer"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              width: '100%', padding: '14px 20px', borderRadius: 12,
-              background: '#FF5A5F', color: 'white',
+              width: '100%', padding: '14px 20px', borderRadius: 3,
+              background: '#1E2A3A', color: 'white',
               fontSize: 15, fontWeight: 700, textDecoration: 'none',
               boxShadow: '0 2px 8px rgba(255,90,95,0.3)',
               transition: 'opacity 0.15s',
@@ -184,7 +184,7 @@ function FullMapView({ cityId }) {
             🔗 {info.name} 공식 노선도 보기
           </a>
 
-          <div style={{ marginTop: 12, fontSize: 11, color: '#9ca3af', textAlign: 'center', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 12, fontSize: 11, color: '#8A919C', textAlign: 'center', lineHeight: 1.6 }}>
             공식 사이트에서 최신 노선도를 확인할 수 있어요
           </div>
         </div>
@@ -192,7 +192,7 @@ function FullMapView({ cityId }) {
 
       {/* 다른 도시 공식 사이트 바로가기 */}
       <div style={{ marginTop: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 10 }}>다른 도시 노선도</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#4A5568', marginBottom: 10 }}>다른 도시 노선도</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {CITIES.filter(c => c.id !== cityId).map(c => {
             const cInfo = MAP_INFO[c.id] || {};
@@ -200,14 +200,14 @@ function FullMapView({ cityId }) {
               <a key={c.id} href={cInfo.url} target="_blank" rel="noreferrer"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 12px', borderRadius: 10,
-                  background: 'white', border: '1px solid #f0f0f0',
+                  padding: '10px 12px', borderRadius: 2,
+                  background: 'white', border: '1px solid #F0EEE9',
                   textDecoration: 'none', transition: 'border-color 0.15s',
                 }}>
                 <span style={{ fontSize: 18 }}>{c.flag}</span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{c.name}</div>
-                  <div style={{ fontSize: 10, color: '#9ca3af' }}>{cInfo.name}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#4A5568' }}>{c.name}</div>
+                  <div style={{ fontSize: 10, color: '#8A919C' }}>{cInfo.name}</div>
                 </div>
               </a>
             );
@@ -216,7 +216,7 @@ function FullMapView({ cityId }) {
       </div>
 
       {/* 안내 */}
-      <div style={{ marginTop: 12, padding: '10px 14px', background: '#f9fafb', borderRadius: 10, fontSize: 11, color: '#9ca3af', lineHeight: 1.6 }}>
+      <div style={{ marginTop: 12, padding: '10px 14px', background: '#FAFAF8', borderRadius: 2, fontSize: 11, color: '#8A919C', lineHeight: 1.6 }}>
         💡 경로 검색은 "경로 찾기" 탭을, 노선별 역 정보는 "노선별" 탭을 이용하세요.
       </div>
     </div>
@@ -318,32 +318,32 @@ export default function Transit() {
     cityTabs: { display: 'flex', gap: 8, overflowX: 'auto', padding: '16px 16px 8px', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' },
     cityBtn: (active) => ({
       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-      padding: '8px 14px', borderRadius: 20, border: '1.5px solid ' + (active ? '#FF5A5F' : '#eee'),
-      background: active ? '#fff5f5' : 'white', color: active ? '#FF5A5F' : '#6b7280',
+      padding: '8px 14px', borderRadius: 2, border: '1.5px solid ' + (active ? '#1E2A3A' : '#E2E0DC'),
+      background: active ? '#FAFAF8' : 'white', color: active ? '#1E2A3A' : '#8A919C',
       fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap',
     }),
-    tabBar: { display: 'flex', borderBottom: '1px solid #f0f0f0', margin: '12px 16px 0' },
+    tabBar: { display: 'flex', borderBottom: '1px solid #F0EEE9', margin: '12px 16px 0' },
     tab: (active) => ({
       flex: 1, padding: '10px 0', textAlign: 'center', fontSize: 13, fontWeight: active ? 700 : 500,
-      color: active ? '#FF5A5F' : '#9ca3af', borderBottom: active ? '2px solid #FF5A5F' : '2px solid transparent',
+      color: active ? '#1E2A3A' : '#8A919C', borderBottom: active ? '2px solid #1E2A3A' : '2px solid transparent',
       cursor: 'pointer',
     }),
-    card: { background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', margin: '12px 16px', padding: 16 },
+    card: { background: 'white', borderRadius: 3, border: '1px solid #F0EEE9', margin: '12px 16px', padding: 16 },
     stationBtn: (selected) => ({
-      flex: 1, padding: '12px 14px', borderRadius: 12,
-      background: selected ? '#fff5f5' : '#f9fafb',
-      border: '1.5px solid ' + (selected ? '#FF5A5F' : '#e5e7eb'),
-      color: selected ? '#FF5A5F' : '#374151',
+      flex: 1, padding: '12px 14px', borderRadius: 3,
+      background: selected ? '#FAFAF8' : '#FAFAF8',
+      border: '1.5px solid ' + (selected ? '#1E2A3A' : '#E2E0DC'),
+      color: selected ? '#1E2A3A' : '#4A5568',
       fontSize: 13, fontWeight: selected ? 700 : 500, cursor: 'pointer', textAlign: 'left',
     }),
-    input: { width: '100%', padding: '11px 14px', borderRadius: 12, border: '1.5px solid #e5e7eb', fontSize: 13, outline: 'none', background: '#f9fafb', color: '#1a1a2e', boxSizing: 'border-box' },
+    input: { width: '100%', padding: '11px 14px', borderRadius: 3, border: '1.5px solid #E2E0DC', fontSize: 13, outline: 'none', background: '#FAFAF8', color: '#1E2A3A', boxSizing: 'border-box' },
     stationItem: (selected) => ({
       display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px',
-      borderBottom: '1px solid #f9fafb', cursor: 'pointer',
-      background: selected ? '#fff5f5' : 'white',
+      borderBottom: '1px solid #FAFAF8', cursor: 'pointer',
+      background: selected ? '#FAFAF8' : 'white',
     }),
     lineBadge: (color, textColor) => ({
-      display: 'inline-block', padding: '2px 8px', borderRadius: 10,
+      display: 'inline-block', padding: '2px 8px', borderRadius: 2,
       background: color, color: textColor || 'white', fontSize: 11, fontWeight: 700,
     }),
     pathSegment: (color) => ({ borderLeft: '4px solid ' + color, paddingLeft: 12, marginLeft: 8, paddingTop: 4, paddingBottom: 4 }),
@@ -369,27 +369,27 @@ export default function Transit() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>불러오는 중...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#8A919C' }}>불러오는 중...</div>
       ) : (
         <>
           {/* ── 경로 찾기 탭 ── */}
           {activeTab === 'search' && (
             <>
               <div style={S.card}>
-                <div style={{ fontSize: 13, color: '#9ca3af', marginBottom: 10, fontWeight: 600 }}>
+                <div style={{ fontSize: 13, color: '#8A919C', marginBottom: 10, fontWeight: 600 }}>
                   {city?.flag} {city?.name} 지하철 경로 찾기
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                   <button style={S.stationBtn(!!fromStation)}
                     onClick={() => { setSelectingFor('from'); setSearchQuery(''); }}>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>출발역</div>
+                    <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 2 }}>출발역</div>
                     <div>{fromStation ? fromStation.nameKo : '역 선택'}</div>
                   </button>
-                  <button style={{ padding: '12px 8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#FF5A5F' }}
+                  <button style={{ padding: '12px 8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#1E2A3A' }}
                     onClick={() => { const tmp = fromStation; setFromStation(toStation); setToStation(tmp); }}>⇄</button>
                   <button style={S.stationBtn(!!toStation)}
                     onClick={() => { setSelectingFor('to'); setSearchQuery(''); }}>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>도착역</div>
+                    <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 2 }}>도착역</div>
                     <div>{toStation ? toStation.nameKo : '역 선택'}</div>
                   </button>
                 </div>
@@ -399,7 +399,7 @@ export default function Transit() {
                     <input style={S.input}
                       placeholder={(selectingFor === 'from' ? '출발' : '도착') + '역 검색...'}
                       value={searchQuery} onChange={e => setSearchQuery(e.target.value)} autoFocus />
-                    <div style={{ maxHeight: 240, overflowY: 'auto', marginTop: 8, borderRadius: 12, border: '1px solid #f0f0f0' }}>
+                    <div style={{ maxHeight: 240, overflowY: 'auto', marginTop: 8, borderRadius: 3, border: '1px solid #F0EEE9' }}>
                       {filteredStations.slice(0, 50).map(s => {
                         const stLines = lines.filter(l =>
                           connections.some(c => (c.fromStationId === s.id || c.toStationId === s.id) && c.lineId === l.id)
@@ -415,8 +415,8 @@ export default function Transit() {
                               setSelectingFor(null); setSearchQuery('');
                             }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{s.nameKo}</div>
-                              <div style={{ fontSize: 11, color: '#9ca3af' }}>{s.nameEn}</div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: '#1E2A3A' }}>{s.nameKo}</div>
+                              <div style={{ fontSize: 11, color: '#8A919C' }}>{s.nameEn}</div>
                             </div>
                             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                               {stLines.slice(0, 3).map(l => (
@@ -427,7 +427,7 @@ export default function Transit() {
                         );
                       })}
                       {filteredStations.length === 0 && (
-                        <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>검색 결과가 없어요</div>
+                        <div style={{ padding: 20, textAlign: 'center', color: '#8A919C', fontSize: 13 }}>검색 결과가 없어요</div>
                       )}
                     </div>
                   </div>
@@ -438,29 +438,29 @@ export default function Transit() {
               {pathResult && !selectingFor && (
                 <div style={S.card}>
                   {pathResult.notFound ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: '#9ca3af' }}>
+                    <div style={{ textAlign: 'center', padding: 20, color: '#8A919C' }}>
                       <div style={{ fontSize: 24, marginBottom: 8 }}>😢</div>
                       경로를 찾을 수 없어요
                     </div>
                   ) : (
                     <>
-                      <div style={{ display: 'flex', gap: 12, marginBottom: 16, padding: 12, background: '#fff5f5', borderRadius: 12 }}>
+                      <div style={{ display: 'flex', gap: 12, marginBottom: 16, padding: 12, background: '#FAFAF8', borderRadius: 3 }}>
                         <div style={{ textAlign: 'center', flex: 1 }}>
-                          <div style={{ fontSize: 22, fontWeight: 800, color: '#FF5A5F' }}>{pathResult.totalTime}분</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af' }}>예상 소요시간</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: '#1E2A3A' }}>{pathResult.totalTime}분</div>
+                          <div style={{ fontSize: 11, color: '#8A919C' }}>예상 소요시간</div>
                         </div>
-                        <div style={{ width: 1, background: '#f0f0f0' }} />
+                        <div style={{ width: 1, background: '#F0EEE9' }} />
                         <div style={{ textAlign: 'center', flex: 1 }}>
-                          <div style={{ fontSize: 22, fontWeight: 800, color: '#FF5A5F' }}>{pathResult.path.length - 1}</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af' }}>정거장</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: '#1E2A3A' }}>{pathResult.path.length - 1}</div>
+                          <div style={{ fontSize: 11, color: '#8A919C' }}>정거장</div>
                         </div>
-                        <div style={{ width: 1, background: '#f0f0f0' }} />
+                        <div style={{ width: 1, background: '#F0EEE9' }} />
                         <div style={{ textAlign: 'center', flex: 1 }}>
-                          <div style={{ fontSize: 22, fontWeight: 800, color: '#FF5A5F' }}>{Math.max(0, pathResult.transfers)}</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af' }}>환승</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: '#1E2A3A' }}>{Math.max(0, pathResult.transfers)}</div>
+                          <div style={{ fontSize: 11, color: '#8A919C' }}>환승</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 12 }}>상세 경로</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#4A5568', marginBottom: 12 }}>상세 경로</div>
                       {pathResult.segments.map((seg, si) => {
                         const color = getLineColor(seg.lineId);
                         const lineName = getLineName(seg.lineId);
@@ -468,7 +468,7 @@ export default function Transit() {
                           <div key={si} style={{ marginBottom: 16 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                               <span style={S.lineBadge(color)}>{lineName}</span>
-                              <span style={{ fontSize: 12, color: '#9ca3af' }}>{seg.stations.length - 1}정거장</span>
+                              <span style={{ fontSize: 12, color: '#8A919C' }}>{seg.stations.length - 1}정거장</span>
                             </div>
                             <div style={S.pathSegment(color)}>
                               {seg.stations.map((id, idx) => {
@@ -479,8 +479,8 @@ export default function Transit() {
                                 return (
                                   <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', opacity: (!isFirst && !isLast && seg.stations.length > 3) ? 0.5 : 1 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: (isFirst || isLast) ? color : '#ddd', border: '2px solid ' + color, flexShrink: 0 }} />
-                                    <span style={{ fontSize: 13, fontWeight: (isFirst || isLast) ? 700 : 400, color: '#1a1a2e' }}>{st.nameKo}</span>
-                                    {(isFirst || isLast) && <span style={{ fontSize: 11, color: '#9ca3af' }}>{st.nameEn}</span>}
+                                    <span style={{ fontSize: 13, fontWeight: (isFirst || isLast) ? 700 : 400, color: '#1E2A3A' }}>{st.nameKo}</span>
+                                    {(isFirst || isLast) && <span style={{ fontSize: 11, color: '#8A919C' }}>{st.nameEn}</span>}
                                   </div>
                                 );
                               })}
@@ -499,7 +499,7 @@ export default function Transit() {
               )}
 
               {!fromStation && !toStation && !selectingFor && (
-                <div style={{ textAlign: 'center', padding: '32px 16px', color: '#9ca3af' }}>
+                <div style={{ textAlign: 'center', padding: '32px 16px', color: '#8A919C' }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🚇</div>
                   <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>출발역과 도착역을 선택하세요</div>
                   <div style={{ fontSize: 12 }}>지하철 경로와 소요시간을 알려드릴게요</div>
