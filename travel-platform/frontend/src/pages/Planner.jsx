@@ -831,7 +831,21 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const createPlan = async () => {
-    if (!newPlan.title.trim()) return;
+    // Validation with user-friendly messages
+    const missing = [];
+    if (!newPlan.title.trim()) missing.push('schedule name');
+    if (!newPlan.startDate) missing.push('departure date');
+    if (!newPlan.endDate) missing.push('arrival date');
+
+    if (missing.length > 0) {
+      alert('Please enter: ' + missing.join(', '));
+      return;
+    }
+    if (new Date(newPlan.endDate) < new Date(newPlan.startDate)) {
+      alert('Arrival date must be on or after departure date.');
+      return;
+    }
+
     try {
       const created = await api.createPlan({
        ...newPlan,
