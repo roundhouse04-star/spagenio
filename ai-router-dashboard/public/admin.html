@@ -1187,6 +1187,7 @@
               <div style="font-weight:700;">📋 예측 이력</div>
               <div style="display:flex;gap:8px;align-items:center;">
                 <button onclick="checkAllPredictions()" class="btn" style="background:#6366f1;color:#fff;font-size:0.82rem;">🎯 전체 당첨확인</button>
+                <button onclick="resendSelectedPredictions()" class="btn" style="background:#22c55e;color:#fff;font-size:0.82rem;">📤 선택 전송</button>
                 <select id="pred-round-filter" onchange="loadPredictionHistoryTab()"
                   style="padding:6px 10px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);font-size:0.85rem;">
                   <option value="">전체 회차</option>
@@ -1195,6 +1196,20 @@
               </div>
             </div>
             <div id="prediction-history-tab">
+              <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+            </div>
+          </div>
+
+          <!-- 발송 실패 대기열 카드 -->
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="font-weight:700;">📮 발송 실패 대기열</div>
+              <button onclick="loadSendRetryQueue()" class="btn" style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+            </div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">
+              자동 5분마다 재시도 (최대 3회). 수동으로 [재시도] 또는 [삭제] 가능.
+            </div>
+            <div id="send-retry-list">
               <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
             </div>
           </div>
@@ -2191,8 +2206,108 @@
       });
       if (tab === 'repeat') loadRepeatNumbers();
       if (tab === 'pattern') loadPatternAnalysis();
-      if (tab === 'prediction') { loadPredictionHistoryTab(); loadWeightsTable(); }
+      if (tab === 'prediction') { loadPredictionHistoryTab(); loadWeightsTable(); loadSendRetryQueue(); }
     }
+
+    // ===== 예측 이력 체크박스 / 선택 전송 =====
+    window.togglePredCheckAll = function(el) {
+      document.querySelectorAll('.pred-check').forEach(cb => { cb.checked = el.checked; });
+    };
+
+    window.resendSelectedPredictions = async function() {
+      const checked = [...document.querySelectorAll('.pred-check:checked')].map(cb => parseInt(cb.dataset.id));
+      if (!checked.length) { spAlert('전송할 예측을 선택하세요.', '선택 없음', '⚠️'); return; }
+      if (!await spConfirm(`선택한 ${checked.length}건의 예측을 텔레그램 등록자 전체에게 전송할까요?`, '선택 전송', '📤', '전송', 'confirm')) return;
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const r = await fetch('/api/lotto/prediction/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _t },
+          body: JSON.stringify({ ids: checked })
+        });
+        const d = await r.json();
+        if (d.ok || d.sent > 0 || d.retrying > 0) {
+          const retryMsg = d.retrying > 0 ? ` · ${d.retrying}명 재시도 예약` : '';
+          const failMsg = d.failed > 0 ? ` · ${d.failed}명 영구실패` : '';
+          spAlert(`${d.sent || 0}명 발송 완료${retryMsg}${failMsg}`, '선택 전송 결과', '📤');
+          loadPredictionHistoryTab();
+          loadSendRetryQueue();
+        } else {
+          spAlert(d.error || '발송 실패', '오류', '❌');
+        }
+      } catch (e) { spAlert(e.message, '오류', '❌'); }
+    };
+
+    // ===== 발송 실패 대기열 =====
+    window.loadSendRetryQueue = async function() {
+      const el = document.getElementById('send-retry-list');
+      if (!el) return;
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const r = await fetch('/api/lotto/send-retry', { headers: { 'Authorization': 'Bearer ' + _t } });
+        const d = await r.json();
+        if (!d.ok || !d.items?.length) {
+          el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;font-size:0.82rem;">대기열이 비어있습니다 ✓</div>';
+          return;
+        }
+        const typeLabels = { auto: '자동발송', prediction: '예측실행', manual: '수동/재전송' };
+        const statusBadge = (status) => {
+          if (status === 'pending') return '<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.15);color:#6366f1;font-weight:700;">⏳ 재시도 대기</span>';
+          if (status === 'success') return '<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ 성공</span>';
+          if (status === 'failed_permanent') return '<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;">❌ 영구실패</span>';
+          return status;
+        };
+        el.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.82rem;min-width:760px;">' +
+          '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
+          '<th style="padding:8px;text-align:left;">유형</th>' +
+          '<th style="padding:8px;text-align:left;">Chat ID</th>' +
+          '<th style="padding:8px;text-align:center;">시도</th>' +
+          '<th style="padding:8px;text-align:center;">상태</th>' +
+          '<th style="padding:8px;text-align:left;">에러</th>' +
+          '<th style="padding:8px;text-align:center;">다음 재시도</th>' +
+          '<th style="padding:8px;text-align:center;">작업</th></tr></thead><tbody>' +
+          d.items.map(it => {
+            const typeLbl = typeLabels[it.type] || it.type;
+            const nextRetry = it.status === 'pending' && it.next_retry_at ? new Date(it.next_retry_at.replace(' ', 'T')).toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) : '-';
+            const err = (it.last_error || '').length > 60 ? it.last_error.slice(0, 60) + '...' : (it.last_error || '-');
+            return `<tr style="border-bottom:1px solid #f3f4f6;">
+              <td style="padding:8px;"><span style="font-size:0.75rem;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#6366f1;font-weight:700;">${typeLbl}</span></td>
+              <td style="padding:8px;font-family:monospace;">${it.chat_id}</td>
+              <td style="padding:8px;text-align:center;">${it.attempt_count}/${it.max_attempts}</td>
+              <td style="padding:8px;text-align:center;">${statusBadge(it.status)}</td>
+              <td style="padding:8px;font-size:0.75rem;color:#6b7280;max-width:200px;" title="${(it.last_error || '').replace(/"/g, '&quot;')}">${err}</td>
+              <td style="padding:8px;text-align:center;font-size:0.75rem;color:#6b7280;">${nextRetry}</td>
+              <td style="padding:8px;text-align:center;white-space:nowrap;">
+                <button onclick="retrySendItem(${it.id})" style="font-size:0.75rem;padding:4px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:4px;">재시도</button>
+                <button onclick="deleteSendItem(${it.id})" style="font-size:0.75rem;padding:4px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;cursor:pointer;">삭제</button>
+              </td>
+            </tr>`;
+          }).join('') + '</tbody></table></div>';
+      } catch (e) {
+        el.innerHTML = '<div style="color:#ef4444;padding:16px;font-size:0.82rem;">로드 실패: ' + e.message + '</div>';
+      }
+    };
+
+    window.retrySendItem = async function(id) {
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const r = await fetch('/api/lotto/send-retry/' + id + '/retry', { method: 'POST', headers: { 'Authorization': 'Bearer ' + _t } });
+        const d = await r.json();
+        if (d.ok) { spAlert('재시도 성공!', '완료', '✅'); loadSendRetryQueue(); loadPredictionHistoryTab(); }
+        else spAlert(d.error || '재시도 실패', '실패', '❌');
+      } catch (e) { spAlert(e.message, '오류', '❌'); }
+    };
+
+    window.deleteSendItem = async function(id) {
+      if (!await spConfirm('이 재시도 항목을 삭제할까요?', '삭제 확인', '🗑️', '삭제', 'delete')) return;
+      try {
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
+        const r = await fetch('/api/lotto/send-retry/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _t } });
+        const d = await r.json();
+        if (d.ok) { loadSendRetryQueue(); }
+        else spAlert(d.error || '삭제 실패', '오류', '❌');
+      } catch (e) { spAlert(e.message, '오류', '❌'); }
+    };
 
     // ===== 반복출현번호 =====
     function getLottoBallColor(n) {
@@ -2355,6 +2470,7 @@
 
         // 3) 예측 이력 카드 자동 새로고침
         if (typeof loadPredictionHistoryTab === 'function') loadPredictionHistoryTab();
+        if (typeof loadSendRetryQueue === 'function') loadSendRetryQueue();
 
         // 4) N게임 리스트 렌더링 (기존 UI 아래에 추가)
         const bColors = ['#f59e0b', '#3b82f6', '#ef4444', '#888888', '#22c55e'];
@@ -2627,9 +2743,19 @@
           const picks=JSON.parse(p.picks);
           const balls=picks.map(n=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:11px;margin:1px;">${n}</span>`).join('');
           const badge=p.result_checked?`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">✅ ${p.hit_count}개 적중</span>`:`<span style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(99,102,241,0.1);color:#6366f1;font-weight:700;">⏳ 미확인</span>`;
-          return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.predicted_for_round || p.based_on_round + 1}회 예측</div><div>${balls}</div><div style="margin-left:auto;">${badge}</div></div>`;
+          const sentBadge = p.telegram_sent
+            ? `<span title="발송 성공" style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.15);color:#22c55e;font-weight:700;">📤 발송</span>`
+            : `<span title="미발송/실패" style="font-size:0.72rem;padding:2px 8px;border-radius:999px;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700;">❌ 미발송</span>`;
+          return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #2A2A2A;flex-wrap:wrap;"><input type="checkbox" class="pred-check" data-id="${p.id}" style="width:16px;height:16px;cursor:pointer;"><div style="min-width:80px;font-size:0.78rem;color:#9CA3AF;">${p.predicted_for_round || p.based_on_round + 1}회 예측</div><div>${balls}</div><div style="margin-left:auto;display:flex;gap:4px;">${sentBadge}${badge}</div></div>`;
         }).join('');
-        el.innerHTML='<div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">📋 예측 이력 ('+filtered.length+'건' + (filterRound ? ' · '+filterRound+'회' : '') + ')</div>'+rows +
+        // 헤더에 전체 선택 체크박스
+        const headerHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:0.8rem;font-weight:700;color:#9CA3AF;">📋 예측 이력 (${filtered.length}건${filterRound ? ' · '+filterRound+'회' : ''})</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:#9CA3AF;cursor:pointer;">
+            <input type="checkbox" id="pred-check-all" onchange="togglePredCheckAll(this)" style="width:14px;height:14px;cursor:pointer;"> 전체 선택
+          </label>
+        </div>`;
+        el.innerHTML = headerHtml + rows +
           (totalPages > 1 ? '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#e2e8f0);">' +
             '<button onclick="_predPage=Math.max(1,_predPage-1);loadPredictionHistoryTab()" ' + (_predPage<=1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--line,#e2e8f0);border-radius:6px;background:var(--panel2);color:var(--text);cursor:pointer;">← 이전</button>' +
             '<span style="font-size:0.85rem;color:var(--muted);">'+_predPage+' / '+_predTotalPages+'</span>' +

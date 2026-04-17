@@ -117,7 +117,7 @@ async function fetchJson(url, options = {}) {
   return { response, data: safeJson(text) };
 }
 
-export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname, lottoBuildGames }) {
+export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname, lottoBuildGames, sendTelegramWithRetry }) {
 
   // ── portfolio_performance 마이그레이션: broker_key_id 컬럼 추가 ──
   try {
@@ -736,7 +736,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ✅ 예측 실행 — 서버에서 lottoBuildGames(N) 실행 → lotto_predictions 저장 → 텔레그램 브로드캐스트
+  // ✅ 예측 실행 — lottoBuildGames(N) → lotto_predictions 저장 → 텔레그램 브로드캐스트 (재시도 큐 연동)
   router.post('/api/lotto/prediction/run', async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: '로그인 필요' });
@@ -749,31 +749,35 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const latest = db.prepare('SELECT drw_no FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
       if (!latest) return res.json({ ok: false, error: '최신 회차 조회 실패' });
 
-      // 1) lotto_predictions에 INSERT
-      const stmt = db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)');
+      // 1) lotto_predictions에 INSERT (id 배열 추적)
+      const insert = db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks, telegram_sent) VALUES (?,?,?,0)');
+      const predIds = [];
       const tx = db.transaction(() => {
-        games.forEach(picks => stmt.run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)));
+        games.forEach(picks => {
+          const info = insert.run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks));
+          predIds.push(info.lastInsertRowid);
+        });
       });
       tx();
 
-      // 2) 텔레그램 브로드캐스트 (lotto_telegram 등록된 모든 chat_id)
+      // 2) 텔레그램 브로드캐스트 (재시도 큐 연동)
       const recipients = db.prepare('SELECT chat_id, bot_token FROM lotto_telegram').all();
-      let sent = 0, failed = 0;
+      let sent = 0, failed = 0, retrying = 0;
+      const errorList = [];
       if (recipients.length > 0) {
         const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
         const msg = `🎯 *로또 예측 번호* (${latest.drw_no + 1}회 예측)\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n🕐 ${new Date().toLocaleString('ko-KR')}`;
 
-        const results = recipients.map((r) => {
+        for (const r of recipients) {
           const token = r.bot_token || process.env.TG_BOT_TOKEN;
-          if (!token) { console.log('[prediction/run telegram] no token for', r.chat_id); return { chat_id: r.chat_id, ok: false, error: 'no token' }; }
-          const out = sendTelegramViaCurl(token, r.chat_id, msg, 'Markdown');
-          if (!out.ok) console.log('[prediction/run telegram FAIL]', r.chat_id, '→', out.description, '(code:', out.error_code + ')');
-          return { chat_id: r.chat_id, ok: out.ok, error: out.description };
-        });
-        sent = results.filter(r => r.ok).length;
-        failed = results.filter(r => !r.ok).length;
-        var errorList = results.filter(r => !r.ok).map(r => `${r.chat_id}: ${r.error}`);
-        if (failed > 0) console.log('[prediction/run telegram SUMMARY]', { sent, failed, errors: errorList });
+          if (!token) { failed++; errorList.push(`${r.chat_id}: no token`); continue; }
+          const out = typeof sendTelegramWithRetry === 'function'
+            ? await sendTelegramWithRetry({ chatId: r.chat_id, token, message: msg, type: 'prediction', prediction_ids: predIds })
+            : { ok: false, error: 'sendTelegramWithRetry 미연결' };
+          if (out.ok) sent++;
+          else if (out.retrying) { retrying++; errorList.push(`${r.chat_id}: ${out.error} (재시도 예약)`); }
+          else { failed++; errorList.push(`${r.chat_id}: ${out.error}`); }
+        }
       }
 
       res.json({
@@ -782,12 +786,108 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         based_on_round: latest.drw_no,
         predicted_for_round: latest.drw_no + 1,
         games,
-        telegram: { total: recipients.length, sent, failed, errors: (typeof errorList !== 'undefined' ? errorList : []) }
+        prediction_ids: predIds,
+        telegram: { total: recipients.length, sent, failed, retrying, errors: errorList }
       });
     } catch (e) {
       console.error('[prediction/run]', e);
       res.status(500).json({ ok: false, error: e.message });
     }
+  });
+
+  // ✅ 선택한 예측 id들 재발송
+  router.post('/api/lotto/prediction/resend', async (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || !ids.length) return res.json({ ok: false, error: '선택된 예측이 없습니다.' });
+
+      // 선택된 예측들 조회
+      const placeholders = ids.map(() => '?').join(',');
+      const predictions = db.prepare(`SELECT id, based_on_round, predicted_for_round, picks FROM lotto_predictions WHERE id IN (${placeholders}) ORDER BY id ASC`).all(...ids);
+      if (!predictions.length) return res.json({ ok: false, error: '해당 예측이 없습니다.' });
+
+      // 메시지 구성
+      const lines = predictions.map((p, i) => {
+        const picks = JSON.parse(p.picks);
+        return `${String.fromCharCode(65 + i)}게임: ${picks.map(n => `*${n}*`).join(' ')}`;
+      }).join('\n');
+      const basedOn = predictions[0].based_on_round;
+      const predFor = predictions[0].predicted_for_round || (basedOn + 1);
+      const msg = `🎯 *로또 예측 번호* (${predFor}회 예측 · 재전송)\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n🕐 ${new Date().toLocaleString('ko-KR')}`;
+
+      const predIds = predictions.map(p => p.id);
+      const recipients = db.prepare('SELECT chat_id, bot_token FROM lotto_telegram').all();
+      let sent = 0, failed = 0, retrying = 0;
+      const errorList = [];
+
+      for (const r of recipients) {
+        const token = r.bot_token || process.env.TG_BOT_TOKEN;
+        if (!token) { failed++; errorList.push(`${r.chat_id}: no token`); continue; }
+        const out = typeof sendTelegramWithRetry === 'function'
+          ? await sendTelegramWithRetry({ chatId: r.chat_id, token, message: msg, type: 'manual', prediction_ids: predIds })
+          : { ok: false, error: 'sendTelegramWithRetry 미연결' };
+        if (out.ok) sent++;
+        else if (out.retrying) { retrying++; errorList.push(`${r.chat_id}: ${out.error} (재시도 예약)`); }
+        else { failed++; errorList.push(`${r.chat_id}: ${out.error}`); }
+      }
+
+      res.json({ ok: sent > 0 || retrying > 0, sent, failed, retrying, total: recipients.length, errors: errorList });
+    } catch (e) {
+      console.error('[prediction/resend]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // ✅ 발송 재시도 큐 관리 API
+  router.get('/api/lotto/send-retry', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const rows = db.prepare(`SELECT * FROM lotto_send_retry ORDER BY
+        CASE status WHEN 'pending' THEN 0 WHEN 'failed_permanent' THEN 1 ELSE 2 END,
+        created_at DESC LIMIT 50`).all();
+      res.json({ ok: true, items: rows });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  });
+
+  router.post('/api/lotto/send-retry/:id/retry', async (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const id = parseInt(req.params.id);
+      const item = db.prepare('SELECT * FROM lotto_send_retry WHERE id=?').get(id);
+      if (!item) return res.json({ ok: false, error: '항목 없음' });
+
+      const { execSync } = await import('child_process');
+      const bodyStr = JSON.stringify({ chat_id: item.chat_id, text: item.message, parse_mode: 'Markdown' });
+      const curlCmd = `curl -s -X POST https://api.telegram.org/bot${item.bot_token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
+      const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
+      const data = JSON.parse(result);
+
+      if (data.ok) {
+        db.prepare(`UPDATE lotto_send_retry SET status='success', updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(id);
+        if (item.prediction_ids) {
+          try {
+            const pids = JSON.parse(item.prediction_ids);
+            const stmt = db.prepare('UPDATE lotto_predictions SET telegram_sent=1 WHERE id=?');
+            pids.forEach(pid => stmt.run(pid));
+          } catch (e) { }
+        }
+        return res.json({ ok: true });
+      } else {
+        db.prepare(`UPDATE lotto_send_retry SET attempt_count=attempt_count+1, last_error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .run(`${data.description} (code: ${data.error_code})`, id);
+        return res.json({ ok: false, error: data.description });
+      }
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  });
+
+  router.delete('/api/lotto/send-retry/:id', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const id = parseInt(req.params.id);
+      db.prepare('DELETE FROM lotto_send_retry WHERE id=?').run(id);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
   router.post('/api/lotto/prediction/check', (req, res) => {
