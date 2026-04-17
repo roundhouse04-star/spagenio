@@ -39,7 +39,7 @@ function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow
                     <button className={isFollowing ? 'btn-following' : 'btn-follow'}
                       style={{ fontSize: 12, padding: '6px 14px' }}
                       onClick={() => onFollow?.(u.id, isFollowing)}>
-                      {isFollowing ? '팔로잉' : '팔로우'}
+                      {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
                     </button>
                   )}
                 </div>
@@ -161,7 +161,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       if (!res.ok) { const t = await res.text(); throw new Error(t || '업로드 실패'); }
       const data = await res.json();
       const uploadedUrl = data.feed || data.url;
-      // 파일 생성 완료 -> DB에 즉시 저장
+      // 파일 생성 완료 -> DB에 즉시 SAVE
       await api.updateUser(userId, { profileImage: uploadedUrl });
       setEditData(p => ({ ...p, profileImage: uploadedUrl }));
       setImagePreview(uploadedUrl);
@@ -190,7 +190,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       sessionStorage.setItem('auth_user', JSON.stringify({ ...savedUser, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) }));
       setEditing(false);
       setImagePreview('');
-    } catch (e) { alert('저장 실패: ' + e.message); }
+    } catch (e) { alert('SAVE 실패: ' + e.message); }
     finally { setSaving(false); }
   };
 
@@ -224,7 +224,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               </div>
 
               <input value={editData.nickname} onChange={e => setEditData(p => ({ ...p, nickname: e.target.value }))}
-                placeholder="닉네임" maxLength={20}
+                placeholder="Nickname" maxLength={20}
                 style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 14, outline: 'none' }} />
               <textarea value={editData.bio} onChange={e => setEditData(p => ({ ...p, bio: e.target.value }))}
                 placeholder="소개글 (선택)" rows={3} maxLength={100}
@@ -302,11 +302,11 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveProfile} disabled={saving || uploading}
                   style={{ flex: 1, padding: '9px', background: uploading ? '#8A919C' : '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer' }}>
-                  {uploading ? '업로드 중...' : saving ? '저장 중...' : '저장'}
+                  {uploading ? '업로드 중...' : saving ? 'SAVE 중...' : 'SAVE'}
                 </button>
                 <button onClick={() => { setEditing(false); setImagePreview(''); }}
                   style={{ flex: 1, padding: '9px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
-                  취소
+                  CANCEL
                 </button>
               </div>
 
@@ -379,7 +379,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                         {bizLoading ? '신청 중...' : '🚀 비즈니스 신청'}
                       </button>
                       <button onClick={() => setShowBizForm(false)}
-                        style={{ padding: '9px 16px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>취소</button>
+                        style={{ padding: '9px 16px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>CANCEL</button>
                     </div>
                   </div>
                 ) : (
@@ -407,7 +407,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               </div>
               {user.bio && <div className="profile-bio">{user.bio}</div>}
               <div className="profile-stats">
-                <div className="stat"><div className="stat-num">{visiblePosts.length}</div><div className="stat-label">게시물</div></div>
+                <div className="stat"><div className="stat-num">{visiblePosts.length}</div><div className="stat-label">POSTS</div></div>
                 <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followers')}>
                   <div className="stat-num">{user.followerIds?.length || 0}</div>
                   <div className="stat-label">팔로워</div>
@@ -422,7 +422,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <button className={isFollowing ? 'btn-following' : 'btn-follow'}
                     onClick={() => handleFollow(userId, isFollowing)}>
-                    {isFollowing ? '팔로잉' : '팔로우'}
+                    {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
                   </button>
                   <button onClick={() => setShowBlockConfirm(true)}
                     style={{ padding: '9px 16px', borderRadius: 2, border: '1px solid #E2E0DC', background: 'white', fontSize: 13, color: isBlocked ? '#ef4444' : '#8A919C', fontWeight: 600, cursor: 'pointer' }}>
@@ -442,11 +442,11 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
             <div className="modal-title">{isBlocked ? '차단 해제' : `${user.nickname}님을 차단할까요?`}</div>
             <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>
               {isBlocked
-                ? '차단을 해제하면 상대방의 게시물이 다시 보여요.'
-                : '차단하면 상대방의 게시물이 보이지 않고, 팔로우 관계가 해제돼요.'}
+                ? '차단을 해제하면 상대방의 POSTS이 다시 보여요.'
+                : '차단하면 상대방의 POSTS이 보이지 않고, FOLLOW 관계가 해제돼요.'}
             </p>
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowBlockConfirm(false)}>취소</button>
+              <button className="btn-secondary" onClick={() => setShowBlockConfirm(false)}>CANCEL</button>
               <button className="btn-cancel" onClick={handleBlock}>{isBlocked ? '차단 해제' : '차단'}</button>
             </div>
           </div>
@@ -456,7 +456,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       {/* 팔로워/팔로잉 모달 */}
       {modal && (
         <UserListModal
-          title={modal === 'followers' ? '팔로워' : '팔로잉'}
+          title={modal === 'followers' ? 'FOLLOWERS' : 'FOLLOWING'}
           users={modalUsers}
           currentUser={currentUser}
           onClose={() => setModal(null)}
@@ -468,9 +468,9 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       {/* 프로필 탭 */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E2E0DC' }}>
         {[
-          { key: 'posts', label: `📷 게시물 ${visiblePosts.length}` },
-          ...(isMe ? [{ key: 'saved', label: `🔖 저장됨` }] : []),
-          { key: 'badges', label: `🏅 뱃지 ${user.badges?.length || 0}` },
+          { key: 'posts', label: `📷 POSTS ${visiblePosts.length}` },
+          ...(isMe ? [{ key: 'saved', label: `🔖 SAVED` }] : []),
+          { key: 'badges', label: `🏅 BADGES ${user.badges?.length || 0}` },
         ].map(t => (
           <button key={t.key} onClick={() => setProfileTab(t.key)}
             style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', borderBottom: `2px solid ${profileTab === t.key ? '#1E2A3A' : 'transparent'}`, color: profileTab === t.key ? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: profileTab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
@@ -479,10 +479,10 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         ))}
       </div>
 
-      {/* 게시물 탭 */}
+      {/* POSTS 탭 */}
       {profileTab === 'posts' && (
         visiblePosts.length === 0 ? (
-          <div className="empty">아직 게시물이 없어요.</div>
+          <div className="empty">아직 POSTS이 없어요.</div>
         ) : (
           <div className="profile-grid">
             {visiblePosts.map(post => (
@@ -500,12 +500,12 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         )
       )}
 
-      {/* 저장된 게시물 탭 (본인만) */}
+      {/* SAVE된 POSTS 탭 (본인만) */}
       {profileTab === 'saved' && isMe && (
         <SavedPosts userId={userId} savedPostIds={user.savedPostIds || []} onOpenPost={onOpenPost} />
       )}
 
-      {/* 뱃지 탭 */}
+      {/* BADGES 탭 */}
       {profileTab === 'badges' && (
         <BadgeGrid badges={user.badges || []} posts={visiblePosts} user={user} />
       )}
@@ -513,7 +513,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   );
 }
 
-// ── 저장된 게시물 ───────────────────────────────────────
+// ── SAVE된 POSTS ───────────────────────────────────────
 function SavedPosts({ userId, savedPostIds, onOpenPost }) {
   const [savedPosts, setSavedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -531,7 +531,7 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
   }, [savedPostIds]);
 
   if (loading) return <div className="empty">불러오는 중...</div>;
-  if (!savedPosts.length) return <div className="empty">저장된 게시물이 없어요.<br />게시물 상세에서 🔖 버튼으로 저장해보세요!</div>;
+  if (!savedPosts.length) return <div className="empty">SAVE된 POSTS이 없어요.<br />POSTS 상세에서 🔖 버튼으로 SAVE해보세요!</div>;
 
   return (
     <div className="profile-grid">
@@ -547,11 +547,11 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
   );
 }
 
-// ── 뱃지 그리드 ─────────────────────────────────────────
+// ── BADGES 그리드 ─────────────────────────────────────────
 const BADGE_INFO = {
-  first_post: { icon: '✏️', name: '첫 게시물', desc: '첫 번째 여행 이야기 작성' },
-  ten_posts: { icon: '📝', name: '여행 작가', desc: '게시물 10개 달성' },
-  fifty_posts: { icon: '📚', name: '여행 전문가', desc: '게시물 50개 달성' },
+  first_post: { icon: '✏️', name: '첫 POSTS', desc: '첫 번째 여행 이야기 작성' },
+  ten_posts: { icon: '📝', name: '여행 작가', desc: 'POSTS 10개 달성' },
+  fifty_posts: { icon: '📚', name: '여행 전문가', desc: 'POSTS 50개 달성' },
   likes_100: { icon: '❤️', name: '인기 여행자', desc: '좋아요 100개 달성' },
   likes_1000: { icon: '🔥', name: '여행 인플루언서', desc: '좋아요 1000개 달성' },
   followers_10: { icon: '👥', name: '친구 만들기', desc: '팔로워 10명 달성' },
@@ -565,7 +565,7 @@ function BadgeGrid({ badges, posts, user }) {
   const allBadgeKeys = Object.keys(BADGE_INFO);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ fontSize: 12, color: '#8A919C' }}>획득한 뱃지 {badges.length}개 / 전체 {allBadgeKeys.length}개</div>
+      <div style={{ fontSize: 12, color: '#8A919C' }}>획득한 BADGES {badges.length}개 / 전체 {allBadgeKeys.length}개</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
         {allBadgeKeys.map(key => {
           const info = BADGE_INFO[key];

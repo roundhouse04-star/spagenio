@@ -76,7 +76,7 @@ export default function ForgotPassword() {
 
   return (
     <div style={S.wrap}>
-      <div style={S.logo}>✈ Travellog</div>
+      <div style={S.logo}>Spagenio</div>
       <div style={S.box}>
         {msg.text && <div style={msg.type === 'err' ? S.err : S.ok}>{msg.text}</div>}
 
