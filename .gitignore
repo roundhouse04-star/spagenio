@@ -48,3 +48,6 @@ travel-platform/data/travellog.db-wal
 travel-platform/data/*.db-shm
 travel-platform/data/*.db-wal
 travel-platform/data/*.db
+
+# User uploads (don't track)
+travel-platform/uploads/
