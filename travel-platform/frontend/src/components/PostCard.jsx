@@ -5,20 +5,20 @@ function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return '방금 전';
-  if (m < 60) return `${m}분 전`;
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  return `${Math.floor(h / 24)}일 전`;
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 
 function BadgeIcon({ type, size = 14 }) {
   if (!type || type === 'none') return null;
   const badges = {
-    verified: { icon: '✓', bg: '#3b82f6', color: 'white', title: '인증된 계정' },
-    official: { icon: '★', bg: '#f59e0b', color: 'white', title: '공식 계정' },
-    premium: { icon: '♦', bg: '#8b5cf6', color: 'white', title: '프리미엄' },
+    verified: { icon: '✓', bg: '#3b82f6', color: 'white', title: 'Verified account' },
+    official: { icon: '★', bg: '#f59e0b', color: 'white', title: 'Official account' },
+    premium: { icon: '♦', bg: '#8b5cf6', color: 'white', title: 'Premium' },
   };
   const b = badges[type];
   if (!b) return null;
@@ -37,7 +37,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
 
   return (
     <div className="post-card">
-      {/* 헤더 - 라이트 */}
+      {/* Header - light */}
       <div className="post-header">
         <div className="post-header-left">
           <div className="avatar-ring" style={{ cursor: 'pointer' }} onClick={() => onProfile?.(post.userId)}>
@@ -56,7 +56,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
         </div>
       </div>
 
-      {/* 이미지 - 다크 */}
+      {/* Image - dark */}
       <div className="post-image-wrap" onClick={() => onOpen?.(post)}>
         {mainImg?.endsWith('.mp4') ? (
           <video src={mainImg} poster={mainImg.replace('_video.mp4', '_thumb.jpg')} muted playsInline loop
@@ -72,7 +72,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
         <div className="post-image-caption">{post.title}</div>
       </div>
 
-      {/* 푸터 - 라이트 */}
+      {/* Footer - light */}
       <div className="post-footer">
         <div className="post-actions">
           <button className={`action-btn${liked ? ' liked' : ''}`} onClick={() => onLike?.(post.id)}>
@@ -111,10 +111,10 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
         {post.places?.length > 0 && (
           <div className="place-chips" style={{ marginTop: 8 }}>
             <button className="chip chip-green" onClick={() => onOpen?.(post)}>
-              📍 장소 {post.places.length}곳
+              📍 {post.places.length} places
             </button>
             <button className="chip chip-indigo" onClick={() => onOpen?.(post)}>
-              + 내 일정 추가
+              + Add to my schedule
             </button>
           </div>
         )}
@@ -124,7 +124,7 @@ export default function PostCard({ post, currentUserId, onOpen, onProfile, onLik
             style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 2, textDecoration: 'none' }}>
             {post.youtubeThumbnail && <img src={post.youtubeThumbnail} style={{ width: 48, height: 30, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} alt="" />}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>▶ 유튜브 영상</div>
+              <div style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>▶ YouTube</div>
               {post.youtubeTitle && <div style={{ fontSize: 11, color: '#8A919C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.youtubeTitle}</div>}
             </div>
           </a>

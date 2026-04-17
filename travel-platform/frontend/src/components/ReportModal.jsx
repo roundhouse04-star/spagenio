@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { api } from '../api';
 
 const REASONS = [
-  '스팸/광고',
-  '욕설/혐오 발언',
-  '허위 정보',
-  '저작권 침해',
-  '개인정보 노출',
-  '불법 콘텐츠',
-  '기타',
+  'Spam / advertising',
+  'Abuse / hate speech',
+  'False information',
+  'Copyright violation',
+  'Personal info exposed',
+  'Illegal content',
+  'Other',
 ];
 
 export default function ReportModal({ post, currentUser, onClose }) {
@@ -23,11 +23,11 @@ export default function ReportModal({ post, currentUser, onClose }) {
     try {
       await api.createReport({
         reporterId: currentUser?.id || 'anonymous',
-        reporterNickname: currentUser?.nickname || '익명',
+        reporterNickname: currentUser?.nickname || 'Anonymous',
         targetType: 'post',
         targetId: post.id,
         targetContent: post.title,
-        reason: reason === '기타' ? custom : reason,
+        reason: reason === 'Other' ? custom : reason,
       });
       setDone(true);
     } catch (e) { console.error(e); }
@@ -40,16 +40,16 @@ export default function ReportModal({ post, currentUser, onClose }) {
         {done ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 8 }}>신고가 접수됐어요</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 8 }}>Report received</div>
             <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20, lineHeight: 1.6 }}>
-              검토 후 조치하겠습니다.<br/>소중한 신고 감사해요!
+              We'll review and take action.<br/>Thanks for reporting!
             </div>
-            <button className="btn-primary" onClick={onClose}>확인</button>
+            <button className="btn-primary" onClick={onClose}>OK</button>
           </div>
         ) : (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div className="modal-title" style={{ marginBottom: 0 }}>게시물 신고</div>
+              <div className="modal-title" style={{ marginBottom: 0 }}>Report post</div>
               <button onClick={onClose} style={{ fontSize: 20, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
             </div>
             <div style={{ background: '#f9fafb', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#555', marginBottom: 16 }}>
@@ -63,14 +63,14 @@ export default function ReportModal({ post, currentUser, onClose }) {
                 </label>
               ))}
             </div>
-            {reason === '기타' && (
+            {reason === 'Other' && (
               <textarea value={custom} onChange={e => setCustom(e.target.value)}
-                placeholder="신고 사유를 입력해주세요" rows={3}
+                placeholder="Describe the issue" rows={3}
                 style={{ width: '100%', padding: '10px 14px', border: '1px solid #eee', borderRadius: 10, fontSize: 14, outline: 'none', marginBottom: 12, resize: 'vertical' }} />
             )}
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={onClose}>취소</button>
-              <button className="btn-cancel" onClick={submit} disabled={!reason || loading}>{loading ? '신고 중...' : '신고하기'}</button>
+              <button className="btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="btn-cancel" onClick={submit} disabled={!reason || loading}>{loading ? 'Reporting...' : 'Submit'}</button>
             </div>
           </>
         )}

@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const CATEGORY_CONFIG = {
-  all:        { label: '전체',   icon: '🌍', color: '#4f46e5' },
-  restaurant: { label: '맛집',   icon: '🍽️', color: '#ef4444' },
-  cafe:       { label: '카페',   icon: '☕', color: '#f59e0b' },
-  subway:     { label: '교통',   icon: '🚇', color: '#10b981' },
-  hotel:      { label: '숙소',   icon: '🏨', color: '#8b5cf6' },
-  attraction: { label: '관광',   icon: '🏛️', color: '#0ea5e9' },
-  convenience:{ label: '편의점', icon: '🏪', color: '#6b7280' },
+  all:        { label: 'All',        icon: '🌍', color: '#4f46e5' },
+  restaurant: { label: 'Food',       icon: '🍽️', color: '#ef4444' },
+  cafe:       { label: 'Cafe',       icon: '☕', color: '#f59e0b' },
+  subway:     { label: 'Transit',    icon: '🚇', color: '#10b981' },
+  hotel:      { label: 'Hotel',      icon: '🏨', color: '#8b5cf6' },
+  attraction: { label: 'Sights',     icon: '🏛️', color: '#0ea5e9' },
+  convenience:{ label: 'Store',      icon: '🏪', color: '#6b7280' },
 };
 
 const OVERPASS_QUERY = (lat, lng, radius = 600) => `
@@ -59,7 +59,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
   const centerLng = lng || (places[0]?.lng) || 126.9780;
   const hasGPS = !!(lat && lng);
 
-  // Leaflet 동적 로드
+  // Dynamic Leaflet load
   useEffect(() => {
     if (window.L) { setLeafletLoaded(true); return; }
     const link = document.createElement('link');
@@ -72,7 +72,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
     document.head.appendChild(script);
   }, []);
 
-  // 지도 초기화
+  // Map init
   useEffect(() => {
     if (!leafletLoaded || !mapRef.current || mapInstanceRef.current) return;
     const L = window.L;
@@ -92,7 +92,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
     markersRef.current.forEach(m => map.removeLayer(m));
     markersRef.current = [];
 
-    // 게시물 장소 핀
+    // Post place pins
     places.forEach((p, i) => {
       if (!p.lat || !p.lng) return;
       const icon = L.divIcon({
@@ -104,14 +104,14 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
       markersRef.current.push(marker);
     });
 
-    // GPS 중심 핀
+    // GPS center pin
     if (hasGPS) {
       const centerIcon = L.divIcon({
         html: `<div style="width:20px;height:20px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
         className: '', iconSize: [20,20], iconAnchor: [10,10]
       });
       const m = L.marker([lat, lng], { icon: centerIcon }).addTo(map);
-      m.bindPopup(`<div style="font-size:13px;font-weight:700">📷 ${placeName || '사진 촬영 위치'}</div>`);
+      m.bindPopup(`<div style="font-size:13px;font-weight:700">📷 ${placeName || 'Photo location'}</div>`);
       markersRef.current.push(m);
     }
   };
@@ -143,7 +143,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
         .slice(0, 40);
       setNearbyPlaces(items);
       addNearbyMarkers(items);
-    } catch (e) { console.error('Overpass 오류:', e); }
+    } catch (e) { console.error('Overpass error:', e); }
     setLoading(false);
   };
 
@@ -175,7 +175,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
       name: place.name,
       lat: place.lat, lng: place.lng,
       address: place.address,
-      category: CATEGORY_CONFIG[place.type]?.label || '기타',
+      category: CATEGORY_CONFIG[place.type]?.label || 'Other',
       howToGet: '', tip: '',
     });
     setShowPlanSelect(false);
@@ -184,23 +184,23 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* 지도 */}
+      {/* Map */}
       <div ref={mapRef} style={{ width: '100%', height: 380, borderRadius: 16, border: '1px solid #eee', overflow: 'hidden', background: '#f0f4f8' }}>
-        {!leafletLoaded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: 14 }}>지도 불러오는 중...</div>}
+        {!leafletLoaded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: 14 }}>Loading map...</div>}
       </div>
 
-      {/* 주변 장소 */}
+      {/* Nearby places */}
       {hasGPS && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>
-              📍 주변 장소
-              {loading && <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 400, marginLeft: 8 }}>검색 중...</span>}
-              {!loading && nearbyPlaces.length > 0 && <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 400, marginLeft: 8 }}>{filteredNearby.length}곳</span>}
+              📍 Nearby places
+              {loading && <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 400, marginLeft: 8 }}>Searching...</span>}
+              {!loading && nearbyPlaces.length > 0 && <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 400, marginLeft: 8 }}>{filteredNearby.length} places</span>}
             </div>
           </div>
 
-          {/* 필터 */}
+          {/* Filter */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
               <button key={key} onClick={() => setFilter(key)}
@@ -210,7 +210,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
             ))}
           </div>
 
-          {/* 장소 목록 */}
+          {/* Place list */}
           {filteredNearby.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', paddingRight: 2 }}>
               {filteredNearby.map(place => {
@@ -226,7 +226,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
                     {onAddToPlanner && plans.length > 0 && (
                       <button onClick={e => { e.stopPropagation(); setSelectedPlace(place); setShowPlanSelect(true); }}
                         style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4f46e5', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                        + 추가
+                        + Add
                       </button>
                     )}
                   </div>
@@ -234,17 +234,17 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
               })}
             </div>
           ) : !loading ? (
-            <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '20px 0' }}>주변 장소 정보가 없어요.</div>
+            <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '20px 0' }}>No nearby places found.</div>
           ) : null}
         </>
       )}
 
-      {/* 일정 선택 모달 */}
+      {/* Schedule select modal */}
       {showPlanSelect && selectedPlace && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: 'white', borderRadius: 20, padding: 28, width: '100%', maxWidth: 380 }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e', marginBottom: 6 }}>일정에 추가</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>"{selectedPlace.name}"을 추가할 일정을 선택해주세요.</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e', marginBottom: 6 }}>Add to schedule</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>"{selectedPlace.name}" — choose a schedule to add it to.</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
               {plans.map(plan => (
                 <div key={plan.id} onClick={() => handleAddToPlanner(plan.id, selectedPlace)}
@@ -257,7 +257,7 @@ export default function MapView({ lat, lng, placeName, places = [], onAddToPlann
               ))}
             </div>
             <button onClick={() => setShowPlanSelect(false)}
-              style={{ width: '100%', marginTop: 14, padding: 11, borderRadius: 12, border: '1px solid #eee', background: '#f3f4f6', color: '#555', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+              style={{ width: '100%', marginTop: 14, padding: 11, borderRadius: 12, border: '1px solid #eee', background: '#f3f4f6', color: '#555', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
           </div>
         </div>
       )}

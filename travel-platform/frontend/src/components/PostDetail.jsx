@@ -6,22 +6,22 @@ function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return '방금 전';
-  if (m < 60) return `${m}분 전`;
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  return `${Math.floor(h / 24)}일 전`;
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 const getTabs = (post) => {
   const tabs = [
-    { key: 'info', label: '게시물' },
+    { key: 'info', label: 'Post' },
   ];
   if (post?.places && post.places.length > 0) {
-    tabs.push({ key: 'course', label: '📍 코스 ' + post.places.length });
+    tabs.push({ key: 'course', label: '📍 Route ' + post.places.length });
   }
-  tabs.push({ key: 'map', label: '🗺️ 여행정보' });
-  tabs.push({ key: 'comments', label: '💬 댓글' });
+  tabs.push({ key: 'map', label: '🗺️ Info' });
+  tabs.push({ key: 'comments', label: '💬 Comments' });
   return tabs;
 };
 
@@ -57,7 +57,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('댓글을 삭제할까요?')) return;
+    if (!window.confirm('Delete this comment?')) return;
     try {
       const updated = await api.deleteComment(post.id, commentId);
       if (updated) setPost(updated);
@@ -71,7 +71,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
       const updated = await api.updatePost(post.id, { title: editData.title, content: editData.content });
       if (updated) { setPost(updated); onUpdate?.(updated); }
       setEditing(false);
-    } catch (e) { alert('수정 실패: ' + e.message); }
+    } catch (e) { alert('Edit failed: ' + e.message); }
     finally { setSaving(false); }
   };
 
@@ -80,7 +80,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
       await api.deletePost(post.id);
       onDelete?.(post.id);
       onBack?.();
-    } catch (e) { alert('삭제 실패: ' + e.message); }
+    } catch (e) { alert('Delete failed: ' + e.message); }
   };
 
   const handleAddToPlanner = () => {
@@ -93,11 +93,11 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
   return (
     <div onClick={() => showMenu && setShowMenu(false)}>
       <button className="btn-secondary" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }} onClick={onBack}>
-        ← 뒤로
+        ← Back
       </button>
 
       <div className="post-detail">
-        {/* 이미지 */}
+        {/* Image */}
         <div className="post-detail-images card">
           {post.images?.length > 0 ? (
             <>
@@ -127,13 +127,13 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
               )}
             </>
           ) : (
-            <div style={{ height: 300, background: '#F5F4F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>사진 없음</div>
+            <div style={{ height: 300, background: '#F5F4F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>No photo</div>
           )}
         </div>
 
-        {/* 사이드 패널 */}
+        {/* Side panel */}
         <div className="post-detail-panel">
-          {/* 작성자 + 메뉴 */}
+          {/* Author + menu */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img className="avatar avatar-md" style={{ cursor: 'pointer' }}
               src={post.userProfileImage || `https://ui-avatars.com/api/?name=${post.userNickname}&background=1E2A3A&color=fff`}
@@ -144,7 +144,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                 {post.city && post.country ? `${post.city}, ${post.country}` : ''} · {timeAgo(post.createdAt)}
               </div>
             </div>
-            {/* ⋯ 메뉴 */}
+            {/* ⋯ menu */}
             {isMyPost && (
               <div style={{ position: 'relative' }}>
                 <button onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
@@ -154,11 +154,11 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                     onClick={e => e.stopPropagation()}>
                     <button onClick={() => { setEditing(true); setEditData({ title: post.title, content: post.content }); setShowMenu(false); }}
                       style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#1E2A3A', background: 'none', border: 'none', borderBottom: '1px solid #F5F4F0', cursor: 'pointer' }}>
-                      ✏️ 수정
+                      ✏️ Edit
                     </button>
                     <button onClick={() => { setDeleteConfirm(true); setShowMenu(false); }}
                       style={{ width: '100%', padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      🗑 삭제
+                      🗑 Delete
                     </button>
                   </div>
                 )}
@@ -168,30 +168,30 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
 
           <hr className="divider" />
 
-          {/* 수정 폼 */}
+          {/* Edit form */}
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>게시물 수정</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>Edit post</div>
               <input value={editData.title} onChange={e => setEditData(p => ({ ...p, title: e.target.value }))}
                 style={{ padding: '10px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 14, outline: 'none' }}
-                placeholder="제목" />
+                placeholder="Title" />
               <textarea value={editData.content} onChange={e => setEditData(p => ({ ...p, content: e.target.value }))}
                 rows={5} style={{ padding: '10px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }}
-                placeholder="내용" />
+                placeholder="Content" />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveEdit} disabled={saving}
                   style={{ flex: 1, padding: '10px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  {saving ? '저장 중...' : '저장'}
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
                 <button onClick={() => setEditing(false)}
                   style={{ flex: 1, padding: '10px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
-                  취소
+                  Cancel
                 </button>
               </div>
             </div>
           ) : (
             <>
-              {/* 탭 */}
+              {/* Tabs */}
               <div style={{ display: 'flex', gap: 4, background: '#F5F4F0', borderRadius: 3, padding: 4 }}>
                 {getTabs(post).map(t => (
                   <button key={t.key} onClick={() => setTab(t.key)}
@@ -201,7 +201,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                 ))}
               </div>
 
-              {/* 게시물 탭 */}
+              {/* Post tab */}
               {tab === 'info' && (
                 <>
                   <div className="post-detail-title">{post.title}</div>
@@ -226,7 +226,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                         } catch(e) { console.error(e); }
                       }} style={{ marginLeft: 'auto' }}>
                         <span className="icon">🔖</span>
-                        {currentUser?.savedPostIds?.includes(post.id) ? '저장됨' : '저장'}
+                        {currentUser?.savedPostIds?.includes(post.id) ? 'Saved' : 'Save'}
                       </button>
                     )}
                     {currentUser && (
@@ -237,18 +237,18 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                         } catch(e) { console.error(e); }
                       }}>
                         <span className="icon">{currentUser?.wishlistPostIds?.includes(post.id) ? '✈️' : '✈️'}</span>
-                        {currentUser?.wishlistPostIds?.includes(post.id) ? '가고 싶다 ✓' : '가고 싶다'}
+                        {currentUser?.wishlistPostIds?.includes(post.id) ? 'Wishlisted ✓' : 'Wishlist'}
                       </button>
                     )}
                   </div>
 
-                  {/* 유튜브 영상 */}
+                  {/* YouTube video */}
                   {post.youtubeUrl && (
                     <a href={post.youtubeUrl} target="_blank" rel="noreferrer"
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 3, textDecoration: 'none' }}>
                       {post.youtubeThumbnail && <img src={post.youtubeThumbnail} style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} alt="" />}
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>▶ 관련 유튜브 영상</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>▶ Related YouTube video</div>
                         {post.youtubeTitle && <div style={{ fontSize: 12, color: '#8A919C' }}>{post.youtubeTitle}</div>}
                       </div>
                     </a>
@@ -256,7 +256,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   <hr className="divider" />
                   {post.places?.length > 0 && (
                     <div>
-                      <div className="section-label" style={{ marginBottom: 10 }}>여행 코스 ({post.places.length}곳)</div>
+                      <div className="section-label" style={{ marginBottom: 10 }}>Travel route ({post.places.length})</div>
                       {post.places.map((place, i) => (
                         <div key={i} className="place-card" style={{ marginBottom: 8 }}>
                           <div className="place-num">{place.order || i + 1}</div>
@@ -268,9 +268,9 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                           </div>
                           <div className="place-btns">
                             {place.lat && place.lng && (
-                              <button className="btn-map" onClick={() => window.open(`https://maps.google.com/?q=${place.lat},${place.lng}`, '_blank')}>지도</button>
+                              <button className="btn-map" onClick={() => window.open(`https://maps.google.com/?q=${place.lat},${place.lng}`, '_blank')}>Map</button>
                             )}
-                            <button className="btn-add-plan" onClick={() => { setShowPlanModal(place); setSelectedPlanId(plans?.[0]?.id || ''); }}>+ 일정</button>
+                            <button className="btn-add-plan" onClick={() => { setShowPlanModal(place); setSelectedPlanId(plans?.[0]?.id || ''); }}>+ Schedule</button>
                           </div>
                         </div>
                       ))}
@@ -279,19 +279,19 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   {gpsLat && gpsLng && (
                     <button onClick={() => setTab('map')}
                       style={{ width: '100%', padding: '12px', borderRadius: 3, border: '1.5px solid #c7d2fe', background: '#EEEDEA', color: '#1E2A3A', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                      🗺️ 주변 맛집 · 교통 · 관광지 보기 →
+                      🗺️ Nearby places · transit · attractions →
                     </button>
                   )}
                 </>
               )}
 
-              {/* 여행정보 탭 */}
+              {/* Travel info tab */}
         
       {tab === 'course' && (
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {post.places && post.places.length > 0 ? (
             <>
-              {/* 지도 */}
+              {/* Map */}
               <div style={{ borderRadius: 3, overflow: 'hidden', border: '1px solid #F0EEE9' }}>
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${
@@ -304,8 +304,8 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   loading="lazy"
                 />
               </div>
-              {/* 코스 리스트 */}
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A' }}>📍 코스 ({post.places.length}곳)</div>
+              {/* Route list */}
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A' }}>📍 Route ({post.places.length})</div>
               {post.places.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((place, i) => (
                 <div key={place.id || i} style={{ display: 'flex', gap: 12, padding: 14, background: '#FAFAF8', borderRadius: 3, border: '1px solid #F0EEE9' }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1E2A3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
@@ -326,7 +326,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                       <a href={`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`}
                         target="_blank" rel="noreferrer"
                         style={{ fontSize: 11, color: '#8A919C', marginTop: 4, display: 'inline-block', textDecoration: 'none' }}>
-                        📍 지도에서 보기 →
+                        📍 View on map →
                       </a>
                     )}
                   </div>
@@ -339,8 +339,8 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           ) : (
             <div style={{ textAlign: 'center', padding: 40, color: '#8A919C' }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📍</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#4A5568' }}>등록된 코스가 없어요</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>이 게시물에는 장소 정보가 없습니다</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#4A5568' }}>No route added</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>No place info for this post</div>
             </div>
           )}
         </div>
@@ -351,11 +351,11 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                   places={post.places || []} onAddToPlanner={(planId, place) => onAddToPlanner?.(planId, place, post)} plans={plans} />
               )}
 
-              {/* 댓글 탭 */}
+              {/* Comments tab */}
               {tab === 'comments' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div className="section-label">댓글 {post.comments?.length || 0}개</div>
-                  {post.comments?.length === 0 && <div style={{ fontSize: 13, color: '#aaa', textAlign: 'center', padding: '16px 0' }}>아직 댓글이 없어요.</div>}
+                  <div className="section-label">Comments {post.comments?.length || 0}</div>
+                  {post.comments?.length === 0 && <div style={{ fontSize: 13, color: '#aaa', textAlign: 'center', padding: '16px 0' }}>No comments yet.</div>}
                   {post.comments?.map((c) => (
                     <div key={c.id} className="comment-item" style={{ alignItems: 'flex-start' }}>
                       <img className="avatar avatar-sm"
@@ -366,23 +366,23 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
                         <div className="comment-text">{c.content}</div>
                         <div className="comment-time">{timeAgo(c.createdAt)}</div>
                       </div>
-                      {/* 내 댓글 삭제 버튼 */}
+                      {/* My comment delete button */}
                       {c.userId === currentUserId && (
                         <button onClick={() => handleDeleteComment(c.id)}
                           style={{ fontSize: 11, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', flexShrink: 0 }}
                           onMouseEnter={e => e.target.style.color = '#ef4444'}
                           onMouseLeave={e => e.target.style.color = '#8A919C'}>
-                          삭제
+                          Delete
                         </button>
                       )}
                     </div>
                   ))}
                   {currentUserId && (
                     <div className="comment-input-row">
-                      <input className="comment-input" placeholder="댓글 달기..." value={commentText}
+                      <input className="comment-input" placeholder="Write a comment..." value={commentText}
                         onChange={e => setCommentText(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && submitComment()} />
-                      <button className="btn-primary" style={{ padding: '9px 16px', fontSize: 13 }} onClick={submitComment}>게시</button>
+                      <button className="btn-primary" style={{ padding: '9px 16px', fontSize: 13 }} onClick={submitComment}>Post</button>
                     </div>
                   )}
                 </div>
@@ -392,27 +392,27 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
         </div>
       </div>
 
-      {/* 삭제 확인 모달 */}
+      {/* Delete confirm modal */}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
-            <div className="modal-title">게시물을 삭제할까요?</div>
-            <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>삭제하면 복구할 수 없어요.</p>
+            <div className="modal-title">Delete this post?</div>
+            <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>This cannot be undone.</p>
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setDeleteConfirm(false)}>취소</button>
-              <button className="btn-cancel" onClick={handleDelete}>삭제</button>
+              <button className="btn-secondary" onClick={() => setDeleteConfirm(false)}>Cancel</button>
+              <button className="btn-cancel" onClick={handleDelete}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 일정 추가 모달 */}
+      {/* Add to schedule modal */}
       {showPlanModal && (
         <div className="modal-overlay" onClick={() => setShowPlanModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">📍 "{showPlanModal.name}"을 내 일정에 추가</div>
+            <div className="modal-title">📍 Add "{showPlanModal.name}" to my schedule</div>
             {plans?.length === 0 ? (
-              <div className="message info">아직 만든 일정이 없어요. 먼저 일정을 만들어주세요!</div>
+              <div className="message info">No schedules yet. Create one first!</div>
             ) : (
               <div className="plan-select-list">
                 {plans?.map(plan => (
@@ -425,8 +425,8 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
               </div>
             )}
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowPlanModal(null)}>취소</button>
-              {plans?.length > 0 && <button className="btn-primary" onClick={handleAddToPlanner}>추가하기</button>}
+              <button className="btn-secondary" onClick={() => setShowPlanModal(null)}>Cancel</button>
+              {plans?.length > 0 && <button className="btn-primary" onClick={handleAddToPlanner}>Add</button>}
             </div>
           </div>
         </div>
