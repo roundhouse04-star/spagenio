@@ -566,8 +566,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       if (!req.user) return res.status(401).json({ error: '로그인 필요' });
       const oldId = String(req.params.oldChatId);
-      const { chat_id, days, hour, game_count, enabled } = req.body;
+      const { chat_id, bot_token, days, hour, game_count, enabled } = req.body;
       const newId = String(chat_id || oldId);
+      // bot_token이 'bot' prefix면 제거
+      const cleanToken = (bot_token != null && String(bot_token).startsWith('bot')) ? String(bot_token).slice(3) : (bot_token != null ? String(bot_token) : null);
 
       // chat_id 변경 시 새 ID가 이미 존재하면 충돌
       if (newId !== oldId) {
@@ -579,6 +581,10 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         if (newId !== oldId) {
           db.prepare('UPDATE lotto_telegram SET chat_id=?, updated_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(newId, oldId);
           db.prepare('UPDATE lotto_schedule SET chat_id=? WHERE chat_id=?').run(newId, oldId);
+        }
+        // bot_token 변경 (제공됐을 때만)
+        if (cleanToken !== null && cleanToken !== '') {
+          db.prepare('UPDATE lotto_telegram SET bot_token=?, updated_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(cleanToken, newId);
         }
         // 스케줄 upsert
         const existing = db.prepare('SELECT chat_id FROM lotto_schedule WHERE chat_id=?').get(newId);

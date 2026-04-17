@@ -642,9 +642,10 @@
             return [1,3,5,10].map(n => `<option value="${n}" ${parseInt(selectedCount)===n?'selected':''}>${n}게임</option>`).join('');
           };
 
-          el.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:780px;">' +
+          el.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:880px;">' +
             '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
             '<th style="padding:8px;text-align:left;">Chat ID</th>' +
+            '<th style="padding:8px;text-align:left;">Bot Token</th>' +
             '<th style="padding:8px;text-align:center;">요일</th>' +
             '<th style="padding:8px;text-align:center;">발송시각</th>' +
             '<th style="padding:8px;text-align:center;">게임수</th>' +
@@ -652,8 +653,15 @@
             '<th style="padding:8px;text-align:center;">작업</th></tr></thead><tbody>' +
             d.rows.map((row, idx) => {
               const safeOldId = row.chat_id;
+              const tokenVal = row.bot_token || '';
               return `<tr data-old-chatid="${safeOldId}" style="border-bottom:1px solid #f3f4f6;">
-                <td style="padding:8px;"><input type="text" value="${row.chat_id}" data-field="chat_id" style="width:140px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;" /></td>
+                <td style="padding:8px;"><input type="text" value="${row.chat_id}" data-field="chat_id" style="width:130px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;" /></td>
+                <td style="padding:8px;">
+                  <div style="display:flex;gap:4px;align-items:center;">
+                    <input type="password" value="${tokenVal.replace(/"/g, '&quot;')}" data-field="bot_token" placeholder="(비우면 변경 안함)" style="width:160px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;" />
+                    <button type="button" onclick="lottoToggleTokenView(this)" style="padding:4px 6px;border:1px solid #e5e7eb;background:#fff;border-radius:6px;cursor:pointer;font-size:0.7rem;">👁</button>
+                  </div>
+                </td>
                 <td style="padding:8px;text-align:center;"><div data-field="days" data-value="${row.days||''}" style="display:flex;gap:3px;justify-content:center;">${dayBtnsHtml(row.days)}</div></td>
                 <td style="padding:8px;text-align:center;"><select data-field="hour" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;">${hourOptionsHtml(row.hour)}</select></td>
                 <td style="padding:8px;text-align:center;"><select data-field="game_count" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;">${countOptionsHtml(row.game_count)}</select></td>
@@ -667,6 +675,13 @@
         } catch(e) {
           el.innerHTML = '<div style="color:#ef4444;padding:16px;">로드 실패: ' + e.message + '</div>';
         }
+      };
+
+      // Bot Token 토글 (보이기/숨기기)
+      window.lottoToggleTokenView = function(btn) {
+        const inp = btn.parentElement.querySelector('input[data-field="bot_token"]');
+        if (!inp) return;
+        inp.type = inp.type === 'password' ? 'text' : 'password';
       };
 
       // 행 안에서 요일 버튼 단일 선택 토글
@@ -689,6 +704,7 @@
       window.lottoSaveTgRow = async function(btn, oldChatId) {
         const tr = btn.closest('tr');
         const newChatId = tr.querySelector('[data-field="chat_id"]').value.trim();
+        const botToken = tr.querySelector('[data-field="bot_token"]').value.trim();
         const days = tr.querySelector('[data-field="days"]').dataset.value || '';
         const hour = tr.querySelector('[data-field="hour"]').value;
         const game_count = tr.querySelector('[data-field="game_count"]').value;
@@ -701,10 +717,13 @@
 
         btn.disabled = true; btn.textContent = '저장 중...';
         try {
+          const body = { chat_id: newChatId, days, hour: parseInt(hour), game_count: parseInt(game_count), enabled };
+          // bot_token은 입력값 있을 때만 전송 (빈 값이면 기존값 유지)
+          if (botToken) body.bot_token = botToken;
           const r = await fetch('/api/lotto/telegram/' + encodeURIComponent(oldChatId), {
             method: 'PUT',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ chat_id: newChatId, days, hour: parseInt(hour), game_count: parseInt(game_count), enabled })
+            body: JSON.stringify(body)
           });
           const d = await r.json();
           if (d.ok) {
