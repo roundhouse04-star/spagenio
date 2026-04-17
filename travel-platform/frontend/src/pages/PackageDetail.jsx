@@ -5,7 +5,7 @@ export default function PackageDetail({ pkg, onBackToResults, onBook }) {
     <div className="page-stack">
       <section className="detail-hero">
         <div>
-          <p className="eyebrow">상품 상세</p>
+          <p className="eyebrow">Product Details</p>
           <h2>{pkg.title}</h2>
           <p>{pkg.summary}</p>
           <div className="detail-tags">
@@ -13,11 +13,11 @@ export default function PackageDetail({ pkg, onBackToResults, onBook }) {
           </div>
         </div>
         <div className="detail-price-card">
-          <span>1인 기준</span>
+          <span>1 Basis</span>
           <strong>₩ {pkg.pricePerPerson.toLocaleString()}</strong>
-          <p>{pkg.durationNights}박 {pkg.durationDays}일 · 평점 {pkg.rating}</p>
-          <button className="primary-btn" onClick={onBook}>이 상품 예약하기</button>
-          <button className="ghost-btn" onClick={onBackToResults}>검색결과로 돌아가기</button>
+          <p>{pkg.durationNights}N {pkg.durationDays}D · Rating {pkg.rating}</p>
+          <button className="primary-btn" onClick={onBook}> Product Reservation</button>
+          <button className="ghost-btn" onClick={onBackToResults}>Back to results</button>
         </div>
       </section>
 
@@ -25,8 +25,8 @@ export default function PackageDetail({ pkg, onBackToResults, onBook }) {
         <article className="section-card">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">일정 개요</p>
-              <h3>여행 일정</h3>
+              <p className="eyebrow">Schedule summary</p>
+              <h3>TRAVEL SCHEDULE</h3>
             </div>
           </div>
           <div className="timeline-list">
@@ -44,23 +44,23 @@ export default function PackageDetail({ pkg, onBackToResults, onBook }) {
 
         <aside className="detail-side">
           <div className="section-card compact">
-            <p className="eyebrow">포함사항</p>
+            <p className="eyebrow">Included</p>
             <ul className="bullet-list">
               {pkg.inclusions.map((item) => <li key={item}>{item}</li>)}
             </ul>
           </div>
           <div className="section-card compact">
-            <p className="eyebrow">불포함사항</p>
+            <p className="eyebrow">Excluded</p>
             <ul className="bullet-list">
               {pkg.exclusions.map((item) => <li key={item}>{item}</li>)}
             </ul>
           </div>
           <div className="section-card compact">
-            <p className="eyebrow">운영정보</p>
+            <p className="eyebrow">Operation info</p>
             <ul className="summary-list">
-              <li><span>지역</span><strong>{pkg.location}</strong></li>
-              <li><span>최소인원</span><strong>{pkg.minimumTravelers}명</strong></li>
-              <li><span>카테고리</span><strong>{pkg.categoryLabel}</strong></li>
+              <li><span>Region</span><strong>{pkg.location}</strong></li>
+              <li><span>Min travelers</span><strong>{pkg.minimumTravelers}name</strong></li>
+              <li><span>Category</span><strong>{pkg.categoryLabel}</strong></li>
             </ul>
           </div>
         </aside>

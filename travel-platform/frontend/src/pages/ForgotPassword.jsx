@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const S = {
   wrap: { minHeight: '100vh', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
   logo: { fontSize: 28, fontWeight: 500, fontFamily: "'Playfair Display', serif", color: '#1E2A3A', letterSpacing: -0.5, marginBottom: 24, textAlign: 'center' },
-  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '36px', width: '100%', maxWidth: 440, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
+  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '36px', width: '100%', Width: 440, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
   icon: { fontSize: 40, textAlign: 'center', marginBottom: 12 },
   title: { fontSize: 18, fontWeight: 800, color: '#1E2A3A', marginBottom: 6, textAlign: 'center' },
   desc: { fontSize: 13, color: '#8A919C', marginBottom: 24, textAlign: 'center', lineHeight: 1.6 },
@@ -15,7 +15,7 @@ const S = {
   ok: { background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 2, padding: '10px 14px', fontSize: 13, marginBottom: 14 },
   timer: { fontSize: 12, color: '#f59e0b', fontWeight: 600, marginBottom: 12 },
   pwBar: { height: 4, borderRadius: 4, background: '#E2E0DC', overflow: 'hidden', marginTop: 4, marginBottom: 8 },
-  pwFill: (cnt) => ({ height: '100%', borderRadius: 4, width: `${cnt/4*100}%`, background: cnt <= 1 ? '#ef4444' : cnt <= 3 ? '#f59e0b' : '#10b981', transition: 'width 0.3s' }),
+  pwFill: (cnt) => ({ height: '100%', borderRadius: 4, width: `${cnt/4*100}%`, background: cnt <= 1? '#ef4444' : cnt <= 3? '#f59e0b' : '#10b981', transition: 'width 0.3s' }),
 };
 
 export default function ForgotPassword() {
@@ -55,7 +55,7 @@ export default function ForgotPassword() {
   };
 
   const verifyCode = () => {
-    if (code.length !== 6) { setMsg({ type: 'err', text: 'Please enter the 6-digit code.' }); return; }
+    if (code.length!== 6) { setMsg({ type: 'err', text: 'Please enter the 6-digit code.' }); return; }
     setStep(3); setMsg({ type: 'ok', text: 'Verified. Please set your new password.' });
   };
 
@@ -78,27 +78,27 @@ export default function ForgotPassword() {
     <div style={S.wrap}>
       <div style={S.logo}>Spagenio</div>
       <div style={S.box}>
-        {msg.text && <div style={msg.type === 'err' ? S.err : S.ok}>{msg.text}</div>}
+        {msg.text && <div style={msg.type === 'err'? S.err : S.ok}>{msg.text}</div>}
 
         {step === 1 && <>
           <div style={S.icon}>🔑</div>
           <div style={S.title}>RESET PASSWORD</div>
           <div style={S.desc}>Enter your email address and<br/>we will send you a verification code.</div>
           <input style={S.inp} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
-          <button style={S.btn} onClick={() => sendCode()} disabled={loading}>{loading ? 'SENDING...' : 'SEND CODE'}</button>
+          <button style={S.btn} onClick={() => sendCode()} disabled={loading}>{loading? 'SENDING...' : 'SEND CODE'}</button>
           <button style={S.btnOut} onClick={() => window.location.href = '/'}>← BACK TO SIGN IN</button>
         </>}
 
         {step === 2 && <>
           <div style={S.icon}>📧</div>
-          <div style={S.title}>인증코드 입력</div>
+          <div style={S.title}>Verification code Enter</div>
           <div style={S.desc}>{email}<br/>A 6-digit code has been sent.</div>
-          <input style={S.code} placeholder="000000" maxLength={6} value={code}
+          <input style={S.code} placeholder="000000" Length={6} value={code}
             onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} />
-          {timer > 0 ? <div style={S.timer}>남은 시간: {fmtTimer(timer)}</div> : <div style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>만료됐습니다.</div>}
-          <button style={S.btn} onClick={verifyCode}>인증 확인</button>
-          <button style={S.btnOut} onClick={() => sendCode(true)} disabled={loading}>재발송</button>
-          <button style={S.btnOut} onClick={() => setStep(1)}>← 이전으로</button>
+          {timer > 0? <div style={S.timer}>Time left: {fmtTimer(timer)}</div> : <div style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>Expired.</div>}
+          <button style={S.btn} onClick={verifyCode}>Verify OK</button>
+          <button style={S.btnOut} onClick={() => sendCode(true)} disabled={loading}>Resend</button>
+          <button style={S.btnOut} onClick={() => setStep(1)}>← Back</button>
         </>}
 
         {step === 3 && <>
@@ -109,17 +109,17 @@ export default function ForgotPassword() {
           <div style={S.pwBar}><div style={S.pwFill(pwCnt)} /></div>
           <input style={S.inp} type="password" placeholder="Confirm password" value={newPwCf}
             onChange={e => setNewPwCf(e.target.value)} />
-          {newPwCf && <div style={{ fontSize: 12, color: newPw === newPwCf ? '#10b981' : '#ef4444', marginBottom: 8 }}>
-            {newPw === newPwCf ? '✓ Passwords match' : 'Passwords do not match'}
+          {newPwCf && <div style={{ fontSize: 12, color: newPw === newPwCf? '#10b981' : '#ef4444', marginBottom: 8 }}>
+            {newPw === newPwCf? '✓ Passwords match' : 'Passwords do not match'}
           </div>}
-          <button style={S.btn} onClick={resetPw} disabled={loading || !pwOk}>{loading ? 'PROCESSING...' : 'CHANGE PASSWORD'}</button>
+          <button style={S.btn} onClick={resetPw} disabled={loading ||!pwOk}>{loading? 'PROCESSING...' : 'CHANGE PASSWORD'}</button>
         </>}
 
         {step === 4 && <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#1E2A3A', marginBottom: 10 }}>Password changed successfully!</div>
           <div style={{ fontSize: 13, color: '#8A919C', marginBottom: 24 }}>Please sign in with your new password.</div>
-          <button style={S.btn} onClick={() => window.location.href = '/'}>로그인하러 가기</button>
+          <button style={S.btn} onClick={() => window.location.href = '/'}>Go to login</button>
         </div>}
       </div>
       <div style={{ marginTop: 16, fontSize: 12, color: '#8A919C' }}>© 2026 TRAVEL SPAGENIO</div>

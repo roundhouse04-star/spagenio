@@ -3,14 +3,14 @@ import { api } from '../api';
 import CountryPanel from '../components/CountryPanel';
 import { detectCountries } from '../countryInfo';
 
-// ── 지도 컴포넌트 (Leaflet + Nominatim + Overpass) ────────
+// ── Map component (Leaflet + Nominatim + Overpass) ────────
 const CATEGORY = {
-  restaurant: { label: '맛집', icon: '🍽️', color: '#ef4444' },
-  cafe: { label: '카페', icon: '☕', color: '#f59e0b' },
-  subway: { label: '교통', icon: '🚇', color: '#10b981' },
-  hotel: { label: '숙소', icon: '🏨', color: '#8b5cf6' },
-  attraction: { label: '관광', icon: '🏛️', color: '#0ea5e9' },
-  convenience: { label: '편의점', icon: '🏪', color: '#8A919C' },
+  restaurant: { label: 'Restaurant', icon: '🍽️', color: '#ef4444' },
+  cafe: { label: 'Cafe', icon: '☕', color: '#f59e0b' },
+  subway: { label: 'TRANSIT', icon: '🚇', color: '#10b981' },
+  hotel: { label: 'Hotel', icon: '🏨', color: '#8b5cf6' },
+  attraction: { label: 'Attraction', icon: '🏛️', color: '#0ea5e9' },
+  convenience: { label: 'Convenience', icon: '🏪', color: '#8A919C' },
 };
 
 function classifyNode(tags) {
@@ -30,7 +30,7 @@ function calcDist(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return d < 1000 ? `${Math.round(d)}m` : `${(d / 1000).toFixed(1)}km`;
+  return d < 1000? `${Math.round(d)}m` : `${(d / 1000).toFixed(1)}km`;
 }
 
 function PlanMap({ onAddPlace, planPlaces = [] }) {
@@ -38,12 +38,12 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
   const mapInst = useRef(null);
   const markersRef = useRef([]);
   const nearbyMarkersRef = useRef([]);
-  const selectedMarkerRef = useRef(null);
+  const SelectedMarkerRef = useRef(null);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [SelectedPlace, setSelectedPlace] = useState(null);
   const [nearby, setNearby] = useState([]);
   const [loadingNearby, setLoadingNearby] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -61,25 +61,25 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
   }, []);
 
   useEffect(() => {
-    if (!leafletLoaded || !mapRef.current || mapInst.current) return;
+    if (!leafletLoaded ||!mapRef.current || mapInst.current) return;
     const L = window.L;
     const map = L.map(mapRef.current).setView([37.5665, 126.9780], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap', maxZoom: 19
+      attribution: '© OpenStreetMap', Zoom: 19
     }).addTo(map);
 
-    // 지도 클릭 시 장소 선택
+    // Map click h Place SELECT
     map.on('click', async (e) => {
       const { lat, lng } = e.latlng;
-      // 역지오코딩으로 주소 가져오기
+      // Station geocoding as Get address
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
         const data = await res.json();
-        const name = data.name || data.display_name?.split(',')[0] || '선택한 위치';
+        const name = data.name || data.display_name?.split(',')[0] || 'Selected Location';
         const address = data.display_name || '';
         selectLocation(lat, lng, name, address);
       } catch {
-        selectLocation(lat, lng, '선택한 위치', '');
+        selectLocation(lat, lng, 'Selected Location', '');
       }
     });
 
@@ -92,12 +92,12 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
   }, [planPlaces, leafletLoaded]);
 
   const renderPlanMarkers = (places) => {
-    if (!mapInst.current || !window.L) return;
+    if (!mapInst.current ||!window.L) return;
     const L = window.L;
     markersRef.current.forEach(m => mapInst.current.removeLayer(m));
     markersRef.current = [];
     places.forEach((p, i) => {
-      if (!p.lat || !p.lng) return;
+      if (!p.lat ||!p.lng) return;
       const icon = L.divIcon({
         html: `<div style="width:30px;height:30px;border-radius:50%;background:#1E2A3A;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25)">${i + 1}</div>`,
         className: '', iconSize: [30, 30], iconAnchor: [15, 30]
@@ -109,16 +109,16 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
   };
 
   const selectLocation = (lat, lng, name, address) => {
-    if (!mapInst.current || !window.L) return;
+    if (!mapInst.current ||!window.L) return;
     const L = window.L;
-    if (selectedMarkerRef.current) mapInst.current.removeLayer(selectedMarkerRef.current);
+    if (SelectedMarkerRef.current) mapInst.current.removeLayer(SelectedMarkerRef.current);
     const icon = L.divIcon({
       html: `<div style="width:36px;height:36px;border-radius:50%;background:#ef4444;color:white;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.3)">📍</div>`,
       className: '', iconSize: [36, 36], iconAnchor: [18, 36]
     });
     const m = L.marker([lat, lng], { icon }).addTo(mapInst.current);
     m.bindPopup(`<div style="font-size:13px;font-weight:700">${name}</div><div style="font-size:11px;color:#8A919C;margin-top:4px">${address.slice(0, 50)}...</div>`).openPopup();
-    selectedMarkerRef.current = m;
+    SelectedMarkerRef.current = m;
     setSelectedPlace({ lat, lng, name, address });
     fetchNearby(lat, lng);
   };
@@ -154,19 +154,19 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
       });
       const data = await res.json();
       const items = (data.elements || [])
-        .filter(n => n.tags?.name)
-        .map(n => ({
+       .filter(n => n.tags?.name)
+       .map(n => ({
           id: n.id, name: n.tags.name,
           type: classifyNode(n.tags || {}),
           lat: n.lat, lng: n.lon,
           dist: calcDist(lat, lng, n.lat, n.lon),
           address: n.tags['addr:street'] || '',
         }))
-        .sort((a, b) => {
+       .sort((a, b) => {
           const toM = d => parseFloat(d.replace('km', '000').replace('m', ''));
           return toM(a.dist) - toM(b.dist);
         })
-        .slice(0, 40);
+       .slice(0, 40);
       setNearby(items);
       addNearbyMarkers(items);
     } catch (e) { console.error(e); }
@@ -180,7 +180,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
   };
 
   const addNearbyMarkers = (items) => {
-    if (!mapInst.current || !window.L) return;
+    if (!mapInst.current ||!window.L) return;
     const L = window.L;
     items.forEach(p => {
       const cfg = CATEGORY[p.type] || CATEGORY.attraction;
@@ -199,20 +199,20 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
     mapInst.current.flyTo([p.lat, p.lng], 17, { duration: 0.6 });
   };
 
-  const filtered = filter === 'all' ? nearby : nearby.filter(p => p.type === filter);
+  const filtered = filter === 'all'? nearby : nearby.filter(p => p.type === filter);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* 검색 */}
+      {/* SEARCH */}
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && searchPlace()}
-            placeholder="장소 검색 (예: 에펠탑, 도쿄역...)"
+            placeholder="Search places (e.g. Eiffel Tower, Tokyo Stn...)"
             style={{ flex: 1, padding: '11px 16px', border: '1px solid #E2E0DC', borderRadius: 3, fontSize: 14, outline: 'none' }} />
           <button onClick={searchPlace} disabled={searching}
             style={{ padding: '11px 20px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 3, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-            {searching ? '...' : '검색'}
+            {searching? '...' : 'SEARCH'}
           </button>
         </div>
         {searchResults.length > 0 && (
@@ -230,45 +230,45 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
         )}
       </div>
 
-      {/* 지도 */}
+      {/* Map */}
       <div ref={mapRef} style={{ width: '100%', height: 340, borderRadius: 3, border: '1px solid #eee', overflow: 'hidden', background: '#f0f4f8' }}>
-        {!leafletLoaded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8A919C', fontSize: 14 }}>지도 불러오는 중...</div>}
+        {!leafletLoaded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8A919C', fontSize: 14 }}>Map Loading...</div>}
       </div>
 
-      {/* 선택된 장소 → 일정 추가 */}
-      {selectedPlace && (
+      {/* Add selected place to schedule */}
+      {SelectedPlace && (
         <div style={{ background: '#EEEDEA', border: '1.5px solid #E2E0DC', borderRadius: 3, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A' }}>📍 {selectedPlace.name}</div>
-            <div style={{ fontSize: 11, color: '#1E2A3A', marginTop: 3 }}>위도 {selectedPlace.lat.toFixed(5)}, 경도 {selectedPlace.lng.toFixed(5)}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A3A' }}>📍 {SelectedPlace.name}</div>
+            <div style={{ fontSize: 11, color: '#1E2A3A', marginTop: 3 }}>Lat {SelectedPlace.lat.toFixed(5)}, Lng {SelectedPlace.lng.toFixed(5)}</div>
           </div>
-          <button onClick={() => onAddPlace(selectedPlace)}
+          <button onClick={() => onAddPlace(SelectedPlace)}
             style={{ padding: '9px 18px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-            + 일정에 추가
+            + to the schedule ADD
           </button>
         </div>
       )}
 
-      {/* 주변 장소 */}
+      {/* Nearby Place */}
       {(loadingNearby || nearby.length > 0) && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>
-            📍 주변 장소
-            {loadingNearby && <span style={{ fontSize: 12, color: '#8A919C', fontWeight: 400, marginLeft: 6 }}>검색 중...</span>}
-            {!loadingNearby && <span style={{ fontSize: 12, color: '#8A919C', fontWeight: 400, marginLeft: 6 }}>{filtered.length}곳</span>}
+            📍 Nearby Place
+            {loadingNearby && <span style={{ fontSize: 12, color: '#8A919C', fontWeight: 400, marginLeft: 6 }}>SEARCH...</span>}
+            {!loadingNearby && <span style={{ fontSize: 12, color: '#8A919C', fontWeight: 400, marginLeft: 6 }}>{filtered.length}places</span>}
           </div>
 
-          {/* 필터 */}
+          {/* Filter */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-            {[['all', '전체', '#1E2A3A'], ...Object.entries(CATEGORY).map(([k, v]) => [k, `${v.icon} ${v.label}`, v.color])].map(([key, label, color]) => (
+            {[['all', 'ALL', '#1E2A3A'],...Object.entries(CATEGORY).map(([k, v]) => [k, `${v.icon} ${v.label}`, v.color])].map(([key, label, color]) => (
               <button key={key} onClick={() => setFilter(key)}
-                style={{ padding: '5px 12px', borderRadius: 2, border: `1.5px solid ${filter === key ? color : '#E2E0DC'}`, background: filter === key ? color : 'white', color: filter === key ? 'white' : '#8A919C', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+                style={{ padding: '5px 12px', borderRadius: 2, border: `1.5px solid ${filter === key? color : '#E2E0DC'}`, background: filter === key? color : 'white', color: filter === key? 'white' : '#8A919C', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
                 {label}
               </button>
             ))}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, Height: 260, overflowY: 'auto' }}>
             {filtered.map(p => {
               const cfg = CATEGORY[p.type] || CATEGORY.attraction;
               return (
@@ -283,7 +283,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
                   </div>
                   <button onClick={e => { e.stopPropagation(); onAddPlace(p); }}
                     style={{ padding: '5px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 11, fontWeight: 700, color: '#1E2A3A', cursor: 'pointer', flexShrink: 0 }}>
-                    + 추가
+                    + ADD
                   </button>
                 </div>
               );
@@ -295,7 +295,7 @@ function PlanMap({ onAddPlace, planPlaces = [] }) {
   );
 }
 
-// ── 장소 아이템 컴포넌트 ──────────────────────────────────
+// ── Place item component ──────────────────────────────────
 function PlanItem({ item, idx, onRemove, onUpdate, readOnly = false }) {
   const [editing, setEditing] = useState(false);
   const [date, setDate] = useState(item.date || '');
@@ -305,66 +305,66 @@ function PlanItem({ item, idx, onRemove, onUpdate, readOnly = false }) {
   const cancel = () => { setDate(item.date || ''); setMemo(item.memo || ''); setEditing(false); };
 
   return (
-    <div style={{ border: `1px solid ${editing ? '#E2E0DC' : '#E2E0DC'}`, borderRadius: 3, padding: '14px 16px', background: readOnly ? '#FAFAF8' : (editing ? '#fafbff' : 'white'), transition: 'all 0.15s' }}>
+    <div style={{ border: `1px solid ${editing? '#E2E0DC' : '#E2E0DC'}`, borderRadius: 3, padding: '14px 16px', background: readOnly? '#FAFAF8' : (editing? '#fafbff' : 'white'), transition: 'all 0.15s' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: readOnly ? '#E2E0DC' : '#1E2A3A', color: readOnly ? '#8A919C' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>{idx + 1}</div>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', background: readOnly? '#E2E0DC' : '#1E2A3A', color: readOnly? '#8A919C' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, marginTop: 1 }}>{idx + 1}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: readOnly ? '#8A919C' : '#1E2A3A' }}>{item.placeName}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: readOnly? '#8A919C' : '#1E2A3A' }}>{item.placeName}</div>
           {item.address && <div style={{ fontSize: 12, color: '#8A919C', marginTop: 2 }}>{item.address}</div>}
           {item.category && <div style={{ fontSize: 11, color: '#1E2A3A', marginTop: 2 }}>📌 {item.category}</div>}
           {item.howToGet && <div style={{ fontSize: 12, color: '#1E2A3A', marginTop: 3 }}>🚇 {item.howToGet}</div>}
           {item.tip && <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 3 }}>💡 {item.tip}</div>}
-          {item.fromUserNickname && <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>출처: @{item.fromUserNickname}</div>}
+          {item.fromUserNickname && <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>Source: @{item.fromUserNickname}</div>}
 
-          {/* 읽기 전용 모드 */}
-          {readOnly ? (
+          {/* Read-only mode */}
+          {readOnly? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
               {item.date && <span style={{ fontSize: 12, color: '#8A919C', background: '#F5F4F0', border: '1px solid #eee', borderRadius: 2, padding: '3px 10px' }}>📅 {item.date}</span>}
               {item.memo && <span style={{ fontSize: 12, color: '#8A919C', background: '#F5F4F0', border: '1px solid #eee', borderRadius: 2, padding: '3px 10px' }}>📝 {item.memo}</span>}
               {item.lat && item.lng && (
                 <a href={`https://maps.google.com/?q=${item.lat},${item.lng}`} target="_blank" rel="noreferrer"
-                  style={{ padding: '3px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 11, fontWeight: 600, color: '#1E2A3A', textDecoration: 'none' }}>🗺 지도</a>
+                  style={{ padding: '3px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 11, fontWeight: 600, color: '#1E2A3A', textDecoration: 'none' }}>🗺 Map</a>
               )}
             </div>
-          ) : !editing ? (
+          ) :!editing? (
             <>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                 {item.date && <span style={{ fontSize: 12, color: '#1E2A3A', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, padding: '3px 10px', fontWeight: 600 }}>📅 {item.date}</span>}
                 {item.memo && <span style={{ fontSize: 12, color: '#555', background: '#FAFAF8', border: '1px solid #eee', borderRadius: 2, padding: '3px 10px' }}>📝 {item.memo}</span>}
-                {!item.date && !item.memo && <span style={{ fontSize: 12, color: '#B8BCC4' }}>날짜/메모 없음</span>}
+                {!item.date &&!item.memo && <span style={{ fontSize: 12, color: '#B8BCC4' }}>Date/Memo none</span>}
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                 <button onClick={() => setEditing(true)}
                   style={{ padding: '4px 10px', background: '#F5F4F0', border: '1px solid #eee', borderRadius: 2, fontSize: 11, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
-                  ✏️ {item.date || item.memo ? '수정' : '날짜/메모 추가'}
+                  ✏️ {item.date || item.memo? 'EDIT' : 'Date/Memo ADD'}
                 </button>
                 {item.lat && item.lng && (
                   <a href={`https://maps.google.com/?q=${item.lat},${item.lng}`} target="_blank" rel="noreferrer"
-                    style={{ padding: '4px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 11, fontWeight: 600, color: '#1E2A3A', textDecoration: 'none' }}>🗺 지도</a>
+                    style={{ padding: '4px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 11, fontWeight: 600, color: '#1E2A3A', textDecoration: 'none' }}>🗺 Map</a>
                 )}
               </div>
             </>
           ) : (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: '#8A919C', width: 40, flexShrink: 0 }}>📅 날짜</span>
+                <span style={{ fontSize: 12, color: '#8A919C', width: 40, flexShrink: 0 }}>📅 Date</span>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
                   style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 12, color: '#8A919C', width: 40, flexShrink: 0, paddingTop: 8 }}>📝 메모</span>
+                <span style={{ fontSize: 12, color: '#8A919C', width: 40, flexShrink: 0, paddingTop: 8 }}>📝 Memo</span>
                 <textarea value={memo} onChange={e => setMemo(e.target.value)}
-                  placeholder="예: 오전 10시 방문, 예약 필요" rows={2}
+                  placeholder="e.g. 10 AM visit, reservation needed" rows={2}
                   style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={save} style={{ flex: 1, padding: '8px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>저장</button>
-                <button onClick={cancel} style={{ flex: 1, padding: '8px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 9, fontSize: 13, cursor: 'pointer' }}>취소</button>
+                <button onClick={save} style={{ flex: 1, padding: '8px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>SAVE</button>
+                <button onClick={cancel} style={{ flex: 1, padding: '8px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 9, fontSize: 13, cursor: 'pointer' }}>CANCEL</button>
               </div>
             </div>
           )}
         </div>
-        {/* 삭제 버튼 — readOnly여도 삭제는 가능 */}
+        {/* DELETE button — readOnly still DELETE available */}
         {onRemove && (
           <button onClick={() => onRemove(item.id)}
             style={{ color: '#E2E0DC', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, flexShrink: 0, padding: '0 2px' }}
@@ -376,12 +376,12 @@ function PlanItem({ item, idx, onRemove, onUpdate, readOnly = false }) {
   );
 }
 
-// PlanItemRow — PlanItem alias (아코디언 내 리스트용)
+// PlanItemRow — PlanItem alias (accordion My list)
 const PlanItemRow = PlanItem;
 
-// ── 날짜별 타임라인 컴포넌트 ──────────────────────────────
+// ── By date Thai component ──────────────────────────────
 function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
-  // 날짜별 그룹핑
+  // By date grouping
   const groups = {};
   const undated = [];
   items.forEach(item => {
@@ -393,7 +393,7 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
     }
   });
 
-  // 날짜 범위 생성
+  // Date range Create
   const dates = Object.keys(groups).sort();
   if (startDate && endDate) {
     const s = new Date(startDate), e = new Date(endDate);
@@ -405,9 +405,9 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
     dates.sort();
   }
 
-  if (!dates.length && !undated.length) return (
+  if (!dates.length &&!undated.length) return (
     <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '20px 0' }}>
-      장소에 날짜를 지정하면 타임라인으로 볼 수 있어요!
+      Set a date for each place Thaito can!
     </div>
   );
 
@@ -424,11 +424,11 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{date}</div>
-                <div style={{ fontSize: 11, color: '#8A919C' }}>{dayItems.length}개 장소</div>
+                <div style={{ fontSize: 11, color: '#8A919C' }}>{dayItems} Place</div>
               </div>
             </div>
-            {dayItems.length === 0 ? (
-              <div style={{ marginLeft: 46, fontSize: 12, color: '#B8BCC4', padding: '8px 0' }}>이 날 장소가 없어요</div>
+            {dayItems.length === 0? (
+              <div style={{ marginLeft: 46, fontSize: 12, color: '#B8BCC4', padding: '8px 0' }}> day Place none</div>
             ) : (
               <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {dayItems.map((item, idx) => (
@@ -458,7 +458,7 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
       })}
       {undated.length > 0 && (
         <div>
-          <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, paddingLeft: 46 }}>📌 날짜 미지정 ({undated.length}개)</div>
+          <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, paddingLeft: 46 }}>📌 Date TBD ({undated})</div>
           <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {undated.map(item => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#FAFAF8', border: '1px solid #eee', borderRadius: 3 }}>
@@ -478,30 +478,30 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
   );
 }
 
-// ── 메인 Planner ──────────────────────────────────────────
+// ── Main planner ──────────────────────────────────────────
 export default function Planner({ currentUser, plans, onUpdatePlans, onConvertToPost }) {
-  const [selected, setSelected] = useState(null);
+  const [Selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showNewPlan, setShowNewPlan] = useState(false);
   const [editPlan, setEditPlan] = useState(null);
   const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '', from: '', to: '', pax: 1, shareType: 'private', shareSchedule: false, sharePlaces: false });
   const [routeResults, setRouteResults] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [SelectedRoute, setSelectedRoute] = useState(null);
   const [addedRoutes, setAddedRoutes] = useState([]);
   const [addedPlaces, setAddedPlaces] = useState([]);
-  // 아코디언 상태
+  // accordion state
   const [openTransport, setOpenTransport] = useState(false);
   const [openPlace, setOpenPlace] = useState(false);
   const [openCourse, setOpenCourse] = useState(false);
   const [courseQuery, setCourseQuery] = useState('');
-  // 장소 검색 상태
+  // Place SEARCH state
   const [recommendedCourses, setRecommendedCourses] = useState([]);
   const [courseLoading, setCourseLoading] = useState(false);
   const [placeQuery, setPlaceQuery] = useState('');
   const [placeResults, setPlaceResults] = useState([]);
   const [placeSearching, setPlaceSearching] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [SelectedPlace, setSelectedPlace] = useState(null);
   const [placeDate, setPlaceDate] = useState('');
   const [placeMemo, setPlaceMemo] = useState('');
   const [placeCategory, setPlaceCategory] = useState('attraction');
@@ -519,15 +519,15 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     const timer = setTimeout(() => { loadRecommendedCourses(newPlan.to); }, 500);
     return () => clearTimeout(timer);
   }, [newPlan.to]);
-  // 자동 선택 제거 - 클릭 시에만 상세 표시
+  // Auto SELECT Remove - click h only Details Display
 
   useEffect(() => {
-    if (selected && viewMode === 'chat') {
+    if (Selected && viewMode === 'chat') {
       loadMessages();
       pollRef.current = setInterval(loadMessages, 30000);
     }
     return () => clearInterval(pollRef.current);
-  }, [selected?.id, viewMode]);
+  }, [Selected?.id, viewMode]);
 
   useEffect(() => {
     msgEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -540,18 +540,18 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
         api.getUserPlans(currentUser.id),
         api.getMemberPlans(currentUser.id),
       ]);
-      const allPlans = [...(owned || []), ...(membered || [])];
+      const allPlans = [...(owned || []),...(membered || [])];
       onUpdatePlans?.(owned || []);
       setMemberPlans(membered || []);
-      // 자동 선택 제거 - 리스트만 표시
+      // Auto SELECT Remove - list only Display
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
   const loadMessages = async () => {
-    if (!selected) return;
+    if (!Selected) return;
     try {
-      const data = await api.getMessages(selected.id);
+      const data = await api.getMessages(Selected.id);
       setMessages(data || []);
     } catch (e) { console.error(e); }
   };
@@ -564,9 +564,9 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const sendMessage = async () => {
-    if (!msgText.trim() || !selected) return;
+    if (!msgText.trim() ||!Selected) return;
     try {
-      const msg = await api.sendMessage(selected.id, {
+      const msg = await api.sendMessage(Selected.id, {
         userId: currentUser.id, content: msgText, type: 'text'
       });
       setMessages(prev => [...prev, msg]);
@@ -575,14 +575,14 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const inviteMember = async (userId, nickname) => {
-    if (!selected) return;
+    if (!Selected) return;
     try {
-      const updated = await api.inviteMember(selected.id, userId);
+      const updated = await api.inviteMember(Selected.id, userId);
       setSelected(updated);
-      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
-      // 시스템 메시지
-      await api.sendMessage(selected.id, {
-        userId: currentUser.id, content: `${currentUser.nickname}님이 ${nickname}님을 초대했어요.`, type: 'system'
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id? updated : p));
+      // System MESSAGE
+      await api.sendMessage(Selected.id, {
+        userId: currentUser.id, content: `${currentUser.nickname} invited ${nickname}.`, type: 'system'
       });
       await loadMessages();
       setShowInvite(false);
@@ -590,104 +590,104 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const kickMember = async (userId, nickname) => {
-    if (!selected || !confirm(`${nickname}님을 내보내시겠습니까?`)) return;
+    if (!Selected ||!confirm(`Remove ${nickname} from this schedule?`)) return;
     try {
-      const updated = await api.removeMember(selected.id, userId);
+      const updated = await api.removeMember(Selected.id, userId);
       setSelected(updated);
-      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id? updated : p));
     } catch (e) { console.error(e); }
   };
 
   const ROUTES_DB = {
-    '서울_오사카': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→간사이)', tag: '추천', tagColor: '#1E2A3A', time: '1시간 50분', price: '89,000~180,000원', priceNum: 130000, steps: ['인천공항 체크인 (출발 2시간 전)', '대한항공/아시아나/제주항공 탑승', '간사이공항 도착 후 입국', '난카이 라피트로 오사카 시내 이동 (약 50분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }, { t: '네이버항공', u: 'https://flight.naver.com' }] },
-      { type: 'ferry', icon: '🚢', name: '배 + 기차 (부산→시모노세키→오사카)', tag: '최저가', tagColor: '#f59e0b', time: '약 18시간', price: '60,000~90,000원', priceNum: 75000, steps: ['KTX 서울→부산 (약 2시간 30분, 59,800원)', '부산항 페리 탑승 (야간)', '시모노세키 도착 후 JR로 오사카 이동'], links: [{ t: '부관훼리', u: 'https://www.pukuanferry.com' }] },
+    'Seoul_Osaka': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Kansai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩89,000 – ₩180,000', priceNum: 130000, steps: ['Check in 2h before at ICN', 'Board Korean Air, Asiana, or Jeju Air', 'Arrive KIX', 'Nankai Rapit into central Osaka (~50m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }, { t: 'Naver Flight', u: 'https://flight.naver.com' }] },
+      { type: 'ferry', icon: '🚢', name: 'Ferry + train (Busan→Shimonoseki→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~18h', price: '₩60,000 – ₩90,000', priceNum: 75000, steps: ['KTX Seoul→Busan (~2h 30m, KRW 59,800)', 'Board ferry at Busan Port (overnight)', 'Arrive Shimonoseki, then JR to Osaka'], links: [{ t: 'Kampu Ferry', u: 'https://www.pukuanferry.com' }] },
     ],
-    '서울_도쿄': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→나리타/하네다)', tag: '추천', tagColor: '#1E2A3A', time: '2시간 30분', price: '110,000~220,000원', priceNum: 165000, steps: ['인천공항 출발', '대한항공/아시아나 탑승', '나리타 or 하네다 도착', '나리타 익스프레스로 시내 이동 (약 1시간)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }, { t: '네이버항공', u: 'https://flight.naver.com' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→도쿄)', tag: '최저가', tagColor: '#f59e0b', time: '6~9시간', price: '70,000~110,000원', priceNum: 90000, steps: ['인천공항 출발', '경유지 환승 (2~4시간)', '나리타 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Tokyo': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Narita/Haneda)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩110,000 – ₩220,000', priceNum: 165000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive Narita or Haneda', 'Narita Express to city center (~1h)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }, { t: 'Naver Flight', u: 'https://flight.naver.com' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '6-9h', price: '₩70,000 – ₩110,000', priceNum: 90000, steps: ['Depart ICN', 'Layover (2-4h)', 'Arrive Narita'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '오사카_도쿄': [
-      { type: 'train', icon: '🚄', name: '신칸센 노조미', tag: '최단시간', tagColor: '#10b981', time: '2시간 30분', price: '약 15,000엔 (135,000원)', priceNum: 135000, steps: ['신오사카역 출발 (노조미)', '교토→나고야 경유', '도쿄역 도착'], links: [{ t: 'JR패스', u: 'https://www.jrpass.com' }, { t: '에키넷', u: 'https://www.eki-net.com' }] },
-      { type: 'bus', icon: '🚌', name: '야간버스 (오사카→도쿄)', tag: '최저가', tagColor: '#f59e0b', time: '약 8시간 (야간)', price: '약 4,000~8,000엔 (36,000~72,000원)', priceNum: 54000, steps: ['난바역 출발 (저녁 10~11시)', '야간 고속버스 탑승', '신주쿠/도쿄역 도착 (아침 6~7시)'], links: [{ t: '버스예약', u: 'https://www.bushikaku.net' }] },
-      { type: 'airplane', icon: '✈', name: '국내선 (간사이→하네다)', tag: '', tagColor: '', time: '1시간 10분', price: '약 8,000~15,000엔 (72,000~135,000원)', priceNum: 100000, steps: ['간사이공항 출발', 'ANA/JAL/피치항공 탑승', '하네다공항 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Osaka_Tokyo': [
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥15,000 (₩135,000)', priceNum: 135000, steps: ['Shin-Osaka Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Tokyo Stn'], links: [{ t: 'JR Pass', u: 'https://www.jrpass.com' }, { t: 'Eki-net', u: 'https://www.eki-net.com' }] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Osaka→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥4,000 – ¥8,000 (₩36,000 – ₩72,000)', priceNum: 54000, steps: ['Namba Stn — 10-11 PM', 'Board night express bus', 'Arrive at Shinjuku/Tokyo Stn (6-7 AM)'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Kansai→Haneda)', tag: '', tagColor: '', time: '1h 10m', price: '¥8,000 – ¥15,000 (₩72,000 – ₩135,000)', priceNum: 100000, steps: ['Depart KIX', 'Board ANA, JAL, or Peach Aviation', 'Arrive HND'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_방콕': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→수완나품)', tag: '추천', tagColor: '#1E2A3A', time: '5시간 30분', price: '150,000~280,000원', priceNum: 215000, steps: ['인천공항 출발', '대한항공/타이항공 탑승', '수완나품공항 도착', 'BTS or 택시로 시내 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→방콕)', tag: '최저가', tagColor: '#f59e0b', time: '8~12시간', price: '100,000~180,000원', priceNum: 140000, steps: ['인천공항 출발', '홍콩/싱가포르 경유', '수완나품 or 돈므앙 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Bangkok': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Suvarnabhumi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '5h 30m', price: '₩150,000 – ₩280,000', priceNum: 215000, steps: ['Depart ICN', 'Board Korean Air or Thai Airways', 'Arrive BKK', 'BTS or Taxi to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Bangkok)', tag: 'Cheapest', tagColor: '#f59e0b', time: '8-12h', price: '₩100,000 – ₩180,000', priceNum: 140000, steps: ['Depart ICN', 'Hong Kong/Singapore transit', 'Arrive Suvarnabhumi or Don Mueang'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_파리': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→파리 CDG)', tag: '추천', tagColor: '#1E2A3A', time: '13시간', price: '700,000~1,400,000원', priceNum: 1000000, steps: ['인천공항 출발', '대한항공/에어프랑스 탑승', '샤를드골공항 도착', 'RER B로 시내 이동 (약 45분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→파리)', tag: '최저가', tagColor: '#f59e0b', time: '16~22시간', price: '500,000~900,000원', priceNum: 700000, steps: ['인천공항 출발', '두바이/싱가포르 등 경유', '파리 CDG 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Paris': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Paris CDG)', tag: 'Recommended', tagColor: '#1E2A3A', time: '13h', price: '₩700,000 – ₩1,400,000', priceNum: 1000000, steps: ['Depart ICN', 'Board Korean Air or Air France', 'Arrive CDG', 'RER B to city center (~45m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Paris)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-22h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Singapore transit', 'Arrive CDG'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_제주': [
-      { type: 'airplane', icon: '✈', name: '직항 (김포/인천→제주)', tag: '추천', tagColor: '#1E2A3A', time: '1시간', price: '40,000~120,000원', priceNum: 70000, steps: ['김포 or 인천공항 출발', '제주항공/진에어/티웨이 탑승', '제주공항 도착', '렌터카 or 버스 이동'], links: [{ t: '네이버항공', u: 'https://flight.naver.com' }] },
-      { type: 'ferry', icon: '🚢', name: '배 (목포/완도→제주)', tag: '최저가', tagColor: '#f59e0b', time: '약 3~5시간', price: '30,000~60,000원', priceNum: 45000, steps: ['목포 or 완도 항구 출발', '한일고속/씨스타크루즈 탑승', '제주항 도착'], links: [{ t: '섬여행', u: 'https://www.island.go.kr' }] },
+    'Seoul_Jeju': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Gimpo/Incheon→Jeju)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h', price: '₩40,000 – ₩120,000', priceNum: 70000, steps: ['Depart from Gimpo or Incheon Airport', 'Board Jeju Air, Jin Air, or T\'way Air', 'Arrive CJU', 'Rental car or bus'], links: [{ t: 'Naver Flight', u: 'https://flight.naver.com' }] },
+      { type: 'ferry', icon: '🚢', name: 'Ferry (Mokpo/Wando→Jeju)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~3-5h', price: '₩30,000 – ₩60,000', priceNum: 45000, steps: ['Depart from Mokpo or Wando Port', 'Board Hanil Express or Seastar Cruise', 'Arrive at Jeju Port'], links: [{ t: 'Island travel', u: 'https://www.island.go.kr' }] },
     ],
-    '서울_싱가포르': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→창이)', tag: '추천', tagColor: '#1E2A3A', time: '6시간 30분', price: '200,000~400,000원', priceNum: 280000, steps: ['인천공항 출발', '싱가포르항공/스쿠트/진에어 탑승', '창이공항 도착', 'MRT로 시내 이동 (약 30분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }, { t: '네이버항공', u: 'https://flight.naver.com' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→싱가포르)', tag: '최저가', tagColor: '#f59e0b', time: '10~14시간', price: '150,000~250,000원', priceNum: 200000, steps: ['인천공항 출발', '쿠알라룸푸르/홍콩 경유', '창이공항 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Singapore': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Changi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '6h 30m', price: '₩200,000 – ₩400,000', priceNum: 280000, steps: ['Depart ICN', 'Board Singapore Airlines, Scoot, or Jin Air', 'Arrive SIN', 'MRT to city center (~30m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }, { t: 'Naver Flight', u: 'https://flight.naver.com' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Singapore)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-14h', price: '₩150,000 – ₩250,000', priceNum: 200000, steps: ['Depart ICN', 'Kuala Lumpur/Hong Kong transit', 'Arrive SIN'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_발리': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→응우라라이)', tag: '추천', tagColor: '#1E2A3A', time: '7시간', price: '250,000~500,000원', priceNum: 350000, steps: ['인천공항 출발', '진에어/가루다인도네시아 탑승', '응우라라이공항 도착', '택시로 숙소 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→쿠알라룸푸르→발리)', tag: '최저가', tagColor: '#f59e0b', time: '10~13시간', price: '180,000~320,000원', priceNum: 250000, steps: ['인천공항 출발', '에어아시아/말레이시아항공 탑승', '쿠알라룸푸르 경유 (2~4시간)', '발리 도착'], links: [{ t: '에어아시아', u: 'https://www.airasia.com' }] },
+    'Seoul_Bali': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Ngurah Rai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '7h', price: '₩250,000 – ₩500,000', priceNum: 350000, steps: ['Depart ICN', 'Board Jin Air or Lion Air', 'Arrive DPS', 'Taxi to hotel'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Kuala Lumpur→Bali)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-13h', price: '₩180,000 – ₩320,000', priceNum: 250000, steps: ['Depart ICN', 'Board AirAsia or Malaysia Airlines', 'Via Kuala Lumpur (2-4h)', 'Arrive Bali'], links: [{ t: 'AirAsia', u: 'https://www.airasia.com' }] },
     ],
-    '서울_런던': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→히드로)', tag: '추천', tagColor: '#1E2A3A', time: '12시간', price: '700,000~1,500,000원', priceNum: 1050000, steps: ['인천공항 출발', '대한항공/아시아나 탑승', '히드로공항 도착', 'Elizabeth line으로 시내 이동 (약 40분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→런던)', tag: '최저가', tagColor: '#f59e0b', time: '16~24시간', price: '500,000~900,000원', priceNum: 700000, steps: ['인천공항 출발', '두바이/아부다비/도하 경유', '개트윅 or 히드로 도착'], links: [{ t: '카약', u: 'https://www.kayak.co.kr' }] },
+    'Seoul_London': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Heathrow)', tag: 'Recommended', tagColor: '#1E2A3A', time: '12h', price: '₩700,000 – ₩1,500,000', priceNum: 1050000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive at Heathrow', 'Elizabeth Line to city center (~40m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→London)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-24h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Abu Dhabi transit', 'Arrive Gatwick or Heathrow'], links: [{ t: 'Skyscanner', u: 'https://www.kayak.co.kr' }] },
     ],
-    '서울_뉴욕': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→JFK)', tag: '추천', tagColor: '#1E2A3A', time: '14시간', price: '900,000~2,000,000원', priceNum: 1300000, steps: ['인천공항 출발', '대한항공/아시아나 탑승', 'JFK공항 도착', '에어트레인+지하철로 시내 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: '경유 (인천→경유→뉴욕)', tag: '최저가', tagColor: '#f59e0b', time: '18~26시간', price: '700,000~1,300,000원', priceNum: 1000000, steps: ['인천공항 출발', '도쿄/시카고/LA 경유', 'JFK or 뉴어크 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_New York': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→JFK)', tag: 'Recommended', tagColor: '#1E2A3A', time: '14h', price: '₩900,000 – ₩2,000,000', priceNum: 1300000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive JFK', 'Airtrain+Subway to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→New York)', tag: 'Cheapest', tagColor: '#f59e0b', time: '18-26h', price: '₩700,000 – ₩1,300,000', priceNum: 1000000, steps: ['Depart ICN', 'Tokyo/Osaka/LA transit', 'Arrive JFK or Newark'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_홍콩': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→홍콩 첵랍콕)', tag: '추천', tagColor: '#1E2A3A', time: '3시간 30분', price: '100,000~250,000원', priceNum: 175000, steps: ['인천공항 출발', '대한항공/캐세이패시픽/홍콩익스프레스 탑승', '홍콩공항 도착', 'AEL로 시내 이동 (약 24분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Hong Kong': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hong Kong Chek Lap Kok)', tag: 'Recommended', tagColor: '#1E2A3A', time: '3h 30m', price: '₩100,000 – ₩250,000', priceNum: 175000, steps: ['Depart ICN', 'Board Korean Air, Cathay Pacific, or HK Express', 'Arrive at Hong Kong Airport', 'AEL to city center (~24m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_베트남': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→하노이/다낭/호치민)', tag: '추천', tagColor: '#1E2A3A', time: '4~5시간', price: '120,000~280,000원', priceNum: 180000, steps: ['인천공항 출발', '베트남항공/비엣젯/진에어 탑승', '노이바이/다낭/탄손녓 공항 도착', '그랩 or 택시 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Vietnam': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hanoi/Danang/Ho Chi Minh)', tag: 'Recommended', tagColor: '#1E2A3A', time: '4-5h', price: '₩120,000 – ₩280,000', priceNum: 180000, steps: ['Depart ICN', 'Board Vietnam Airlines, VietJet, or Jin Air', 'Arrive at Noi Bai, Danang, or Tan Son Nhat', 'Grab or taxi'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_대만': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→타오위안)', tag: '추천', tagColor: '#1E2A3A', time: '2시간 30분', price: '100,000~200,000원', priceNum: 150000, steps: ['인천공항 출발', '중화항공/에바항공/티웨이 탑승', '타오위안공항 도착', 'MRT로 시내 이동 (약 35분)'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Taiwan': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Taoyuan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩100,000 – ₩200,000', priceNum: 150000, steps: ['Depart ICN', 'Board China Airlines, Eva Air, or T\'way Air', 'Arrive TPE', 'MRT to city center (~35m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_두바이': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→두바이)', tag: '추천', tagColor: '#1E2A3A', time: '9시간', price: '400,000~900,000원', priceNum: 600000, steps: ['인천공항 출발', '에미레이트항공/에티하드 탑승', '두바이 DXB 도착', '메트로로 시내 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Dubai': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Dubai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '9h', price: '₩400,000 – ₩900,000', priceNum: 600000, steps: ['Depart ICN', 'Board Emirates or Etihad', 'Arrive DXB', 'Metro to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '서울_시드니': [
-      { type: 'airplane', icon: '✈', name: '직항 (인천→시드니)', tag: '추천', tagColor: '#1E2A3A', time: '10시간 30분', price: '600,000~1,200,000원', priceNum: 850000, steps: ['인천공항 출발', '대한항공/콴타스 탑승', '시드니 킹스퍼드스미스 도착', '에어포트링크로 시내 이동'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Seoul_Sydney': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Sydney)', tag: 'Recommended', tagColor: '#1E2A3A', time: '10h 30m', price: '₩600,000 – ₩1,200,000', priceNum: 850000, steps: ['Depart ICN', 'Board Korean Air or Qantas', 'Arrive SYD (Kingsford Smith)', 'Airport Link to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '오사카_교토': [
-      { type: 'train', icon: '🚄', name: '특급 하루카 (오사카→교토)', tag: '추천', tagColor: '#1E2A3A', time: '75분', price: '약 2,850엔 (25,000원)', priceNum: 25000, steps: ['오사카역 or 신오사카역 출발', 'JR 산인 본선 탑승', '교토역 도착'], links: [{ t: 'JR서일본', u: 'https://www.westjr.co.jp' }] },
-      { type: 'bus', icon: '🚌', name: '고속버스 (오사카→교토)', tag: '최저가', tagColor: '#f59e0b', time: '약 1시간', price: '약 600~1,000엔 (5,000~9,000원)', priceNum: 7000, steps: ['우메다 or 난바 버스정류장 출발', '고속버스 탑승', '교토역 or 시내 도착'], links: [{ t: '버스예약', u: 'https://www.bushikaku.net' }] },
+    'Osaka_Kyoto': [
+      { type: 'train', icon: '🚄', name: 'Express Haruka (Osaka→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '75m', price: '~¥2,850 (₩25,000)', priceNum: 25000, steps: ['Depart from Osaka Stn or Shin-Osaka Stn', 'Board JR Sanyo Main Line', 'Arrive at Kyoto Stn'], links: [{ t: 'JR West', u: 'https://www.westjr.co.jp' }] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Osaka→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~1h', price: '¥600 – ¥1,000 (₩5,000 – ₩9,000)', priceNum: 7000, steps: ['Depart from Umeda or Namba bus terminal', 'Board express bus', 'Arrive Kyoto Stn or city center'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
     ],
-    '도쿄_교토': [
-      { type: 'train', icon: '🚄', name: '신칸센 노조미 (도쿄→교토)', tag: '추천', tagColor: '#1E2A3A', time: '2시간 15분', price: '약 13,750엔 (123,000원)', priceNum: 123000, steps: ['도쿄역 출발 (노조미)', '교토역 도착'], links: [{ t: 'JR패스', u: 'https://www.jrpass.com' }] },
-      { type: 'bus', icon: '🚌', name: '야간버스 (도쿄→교토)', tag: '최저가', tagColor: '#f59e0b', time: '약 8시간 (야간)', price: '약 3,500~7,000엔 (31,000~63,000원)', priceNum: 47000, steps: ['신주쿠역 버스터미널 출발 (저녁 10시)', '야간버스 탑승', '교토역 도착 (아침 6시)'], links: [{ t: '버스예약', u: 'https://www.bushikaku.net' }] },
+    'Tokyo_Kyoto': [
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 15m', price: '¥13,750 (₩123,000)', priceNum: 123000, steps: ['Tokyo Stn — Nozomi', 'Arrive at Kyoto Stn'], links: [{ t: 'JR Pass', u: 'https://www.jrpass.com' }] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥3,500 – ¥7,000 (₩31,000 – ₩63,000)', priceNum: 47000, steps: ['Depart from Shinjuku Stn Bus Terminal (10 PM)', 'Board night bus', 'Arrive at Kyoto Stn (6 AM)'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
     ],
-    '방콕_치앙마이': [
-      { type: 'airplane', icon: '✈', name: '국내선 (수완나품→치앙마이)', tag: '추천', tagColor: '#1E2A3A', time: '1시간 20분', price: '약 800~3,000밧 (30,000~112,000원)', priceNum: 60000, steps: ['수완나품공항 출발', '타이항공/노크에어/에어아시아 탑승', '치앙마이공항 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'train', icon: '🚄', name: '야간기차 (방콕→치앙마이)', tag: '최저가', tagColor: '#f59e0b', time: '약 12~13시간 (야간)', price: '약 600~1,500밧 (22,000~56,000원)', priceNum: 38000, steps: ['화람퐁역 출발 (저녁 6~8시)', '2등 침대칸 탑승', '치앙마이역 도착 (오전 7~9시)'], links: [{ t: '태국철도', u: 'https://www.thairailway.go.th' }] },
+    'Bangkok_Chiang Mai': [
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Suvarnabhumi→Chiang Mai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 20m', price: '฿800 – ฿3,000 (₩30,000 – ₩112,000)', priceNum: 60000, steps: ['Depart BKK', 'Board Thai Airways, Nok Air, or AirAsia', 'Arrive CNX'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'train', icon: '🚄', name: 'NightTrain (Bangkok→Chiang Mai)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~12-13h (Night)', price: '฿600 – ฿1,500 (₩22,000 – ₩56,000)', priceNum: 38000, steps: ['Depart from Hua Lamphong Stn (6-8 PM)', 'Board 2nd class sleeper', 'Arrive at Chiang Mai Stn (7-9 AM)'], links: [{ t: 'Thailandmore', u: 'https://www.thairailway.go.th' }] },
     ],
-    '서울_부산': [
-      { type: 'train', icon: '🚄', name: 'KTX (서울→부산)', tag: '추천', tagColor: '#1E2A3A', time: '2시간 20분', price: '59,800원 (일반실)', priceNum: 59800, steps: ['서울역 or 수서역 출발', 'KTX/SRT 탑승', '부산역 도착', '지하철 or 택시로 이동'], links: [{ t: '코레일', u: 'https://www.letskorail.com' }, { t: 'SRT', u: 'https://www.srail.or.kr' }] },
-      { type: 'bus', icon: '🚌', name: '고속버스 (서울→부산)', tag: '최저가', tagColor: '#f59e0b', time: '약 4시간', price: '20,000~35,000원', priceNum: 27500, steps: ['강남/동서울터미널 출발', '고속버스 탑승', '부산종합버스터미널 도착'], links: [{ t: '고속버스', u: 'https://www.kobus.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: '항공 (김포→김해)', tag: '', tagColor: '', time: '55분', price: '50,000~100,000원', priceNum: 70000, steps: ['김포공항 출발', '대한항공/아시아나 탑승', '김해공항 도착'], links: [{ t: '네이버항공', u: 'https://flight.naver.com' }] },
+    'Seoul_Busan': [
+      { type: 'train', icon: '🚄', name: 'KTX (Seoul→Busan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 20m', price: '₩59,800 (Regular)', priceNum: 59800, steps: ['Depart from Seoul Stn or Suseo Stn', 'Board KTX or SRT', 'Arrive at Busan Stn', 'Subway or taxi'], links: [{ t: 'Korail', u: 'https://www.letskorail.com' }, { t: 'SRT', u: 'https://www.srail.or.kr' }] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Busan)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~4h', price: '₩20,000 – ₩35,000', priceNum: 27500, steps: ['Depart from Gangnam/East Seoul Terminal', 'Board express bus', 'Arrive at Busan Express Bus Terminal'], links: [{ t: 'Express bus', u: 'https://www.kobus.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Flight (Gimpo→Gimhae)', tag: '', tagColor: '', time: '55m', price: '₩50,000 – ₩100,000', priceNum: 70000, steps: ['Depart from Gimpo Airport', 'Board Korean Air or Asiana', 'Arrive at Gimhae Airport'], links: [{ t: 'Naver Flight', u: 'https://flight.naver.com' }] },
     ],
-    '서울_강릉': [
-      { type: 'train', icon: '🚄', name: 'KTX-이음 (서울→강릉)', tag: '추천', tagColor: '#1E2A3A', time: '1시간 50분', price: '27,600원', priceNum: 27600, steps: ['청량리역 출발', 'KTX-이음 탑승', '강릉역 도착'], links: [{ t: '코레일', u: 'https://www.letskorail.com' }] },
-      { type: 'bus', icon: '🚌', name: '고속버스 (서울→강릉)', tag: '최저가', tagColor: '#f59e0b', time: '약 2시간 30분', price: '13,000~18,000원', priceNum: 15500, steps: ['동서울터미널 출발', '고속버스 탑승', '강릉터미널 도착'], links: [{ t: '고속버스', u: 'https://www.kobus.co.kr' }] },
+    'Seoul_Gangneung': [
+      { type: 'train', icon: '🚄', name: 'KTX-Eum (Seoul→Gangneung)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩27,600', priceNum: 27600, steps: ['Depart from Cheongnyangni Stn', 'Board KTX-Eum', 'Arrive at Gangneung Stn'], links: [{ t: 'Korail', u: 'https://www.letskorail.com' }] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Gangneung)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~2h 30m', price: '₩13,000 – ₩18,000', priceNum: 15500, steps: ['Depart from East Seoul Terminal', 'Board express bus', 'Arrive at Gangneung Terminal'], links: [{ t: 'Express bus', u: 'https://www.kobus.co.kr' }] },
     ],
-    '파리_런던': [
-      { type: 'train', icon: '🚄', name: '유로스타 (파리→런던)', tag: '추천', tagColor: '#1E2A3A', time: '2시간 16분', price: '€39~€350 (56,000~504,000원)', priceNum: 160000, steps: ['파리 북역 출발', '유로스타 탑승', '영불해협 터널 통과', '런던 세인트판크라스역 도착'], links: [{ t: '유로스타', u: 'https://www.eurostar.com' }] },
-      { type: 'airplane', icon: '✈', name: '항공 (CDG→히드로)', tag: '최단시간', tagColor: '#10b981', time: '1시간 15분', price: '€50~€200 (72,000~288,000원)', priceNum: 130000, steps: ['파리 CDG 출발', '에어프랑스/BA 탑승', '런던 히드로 도착'], links: [{ t: '스카이스캐너', u: 'https://www.skyscanner.co.kr' }] },
+    'Paris_London': [
+      { type: 'train', icon: '🚄', name: 'Eurostar (Paris→London)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 16m', price: '€39 – €350 (₩56,000 – ₩504,000)', priceNum: 160000, steps: ['Depart from Paris Gare du Nord', 'Board Eurostar', 'Via Channel Tunnel', 'Arrive at Arrive at London St Pancras'], links: [{ t: 'Eurostar', u: 'https://www.eurostar.com' }] },
+      { type: 'airplane', icon: '✈', name: 'Flight (CDG→Heathrow)', tag: 'Fastest', tagColor: '#10b981', time: '1h 15m', price: '€50 – €200 (₩72,000 – ₩288,000)', priceNum: 130000, steps: ['Depart CDG', 'Board Air France or BA', 'Arrive LHR'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
     ],
-    '도쿄_오사카': [
-      { type: 'train', icon: '🚄', name: '신칸센 노조미 (도쿄→오사카)', tag: '추천', tagColor: '#1E2A3A', time: '2시간 30분', price: '약 14,720엔 (132,000원)', priceNum: 132000, steps: ['도쿄역 출발 (노조미)', '나고야 경유', '신오사카역 도착'], links: [{ t: 'JR패스', u: 'https://www.jrpass.com' }] },
-      { type: 'bus', icon: '🚌', name: '야간버스 (도쿄→오사카)', tag: '최저가', tagColor: '#f59e0b', time: '약 8시간', price: '약 3,000~8,000엔 (27,000~72,000원)', priceNum: 48000, steps: ['신주쿠역 출발 (야간)', '오사카 난바 도착'], links: [{ t: '버스예약', u: 'https://www.bushikaku.net' }] },
+    'Tokyo_Osaka': [
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Osaka)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '¥14,720 (₩132,000)', priceNum: 132000, steps: ['Tokyo Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Shin-Osaka Stn'], links: [{ t: 'JR Pass', u: 'https://www.jrpass.com' }] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h', price: '¥3,000 – ¥8,000 (₩27,000 – ₩72,000)', priceNum: 48000, steps: ['Shinjuku Stn — overnight', 'Arrive Osaka Namba'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
     ],
   };
 
 
-  // ── 인기 코스 추천 ──
+  // ── Popular Route Recommended ──
   const loadRecommendedCourses = async (city) => {
     if (!city || city.length < 2) { setRecommendedCourses([]); return; }
     setCourseLoading(true);
@@ -695,7 +695,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       const res = await fetch('/api/posts?keyword=' + encodeURIComponent(city) + '&limit=20');
       if (res.ok) {
         const posts = await res.json();
-        // places가 있는 게시물만 (코스가 있는 것)
+        // Posts with places only (with route)
         const withCourse = [];
         for (const post of (posts || [])) {
           try {
@@ -715,7 +715,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     setCourseLoading(false);
   };
 
-  // 코스를 내 일정에 추가
+  // Route to my schedule ADD
   const addCourseToPlaces = (course) => {
     if (!course.places) return;
     const newPlaces = course.places.map(p => ({
@@ -727,19 +727,19 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       date: newPlan.startDate || '',
       memo: [p.tip, p.howToGet].filter(Boolean).join(' | '),
     }));
-    setAddedPlaces(prev => [...prev, ...newPlaces]);
+    setAddedPlaces(prev => [...prev,...newPlaces]);
   };
 
   const searchRoutes = async () => {
     const from = newPlan.from.trim();
     const to = newPlan.to.trim();
-    if (!from || !to) return;
+    if (!from ||!to) return;
     setRouteLoading(true);
     setRouteResults([]);
     setSelectedRoute(null);
 
-    // 1) 로컬 DB에서 먼저 찾기
-    const cities = ['서울', '도쿄', '오사카', '방콕', '치앙마이', '파리', '제주', '런던', '싱가포르', '발리', '뉴욕', '홍콩', '베트남', '대만', '두바이', '시드니', '교토', '부산', '강릉'];
+    // 1) Local DBfrom first Find
+    const cities = ['Seoul', 'Tokyo', 'Osaka', 'Bangkok', 'Chiang Mai', 'Paris', 'Jeju', 'London', 'Singapore', 'Bali', 'New York', 'Hong Kong', 'Vietnam', 'Taiwan', 'Dubai', 'Sydney', 'Kyoto', 'Busan', 'Gangneung'];
     const f = cities.find(c => from.includes(c)) || from;
     const t = cities.find(c => to.includes(c)) || to;
     const key = f + '_' + t;
@@ -751,7 +751,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       return;
     }
 
-    // 2) 로컬 DB에 없으면 Claude AI에게 물어보기
+    // 2) If not in local DB, ask Claude AI
     try {
       const rawJson = await api.getAiTransport(from, to);
       let parsed;
@@ -760,8 +760,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       } else {
         parsed = rawJson;
       }
-      const aiRoutes = Array.isArray(parsed) ? parsed : [];
-      setRouteResults(aiRoutes.length > 0 ? aiRoutes : []);
+      const aiRoutes = Array.isArray(parsed)? parsed : [];
+      setRouteResults(aiRoutes.length > 0? aiRoutes : []);
     } catch (e) {
       console.error('AI transport error:', e);
       setRouteResults([]);
@@ -793,7 +793,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     if (!newPlan.title.trim()) return;
     try {
       const created = await api.createPlan({
-        ...newPlan,
+       ...newPlan,
         userId: currentUser.id,
         shareType: newPlan.shareType || 'private',
         shareSchedule: newPlan.shareSchedule || false,
@@ -801,22 +801,22 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       });
 
       let finalPlan = created;
-      // 추가된 교통편 → plan_items
+      // added transit options → plan_items
       for (const route of addedRoutes) {
         try {
           finalPlan = await api.addPlanItem(created.id, {
             placeName: `${route.icon} ${route.name}`,
             lat: 0, lng: 0,
             address: `${route.from} → ${route.to}`,
-            howToGet: `${route.time} / 예상비용: ${route.price}`,
+            howToGet: `${route.time} / Est. cost: ${route.price}`,
             tip: route.steps?.join(' → ') || '',
             category: route.type || 'transport',
             date: route.date || newPlan.startDate || '',
-            memo: `${newPlan.pax}인 기준 ≈ ${(route.priceNum * newPlan.pax).toLocaleString()}원~`,
+            memo: `For ${newPlan.pax} name ≈ KRW ${(route.priceNum * newPlan.pax).toLocaleString()}~`,
           });
-        } catch (e) { console.error('교통편 저장 실패:', e); }
+        } catch (e) { console.error('transit options SAVE failed:', e); }
       }
-      // 추가된 장소 → plan_items
+      // added Place → plan_items
       for (const place of addedPlaces) {
         try {
           finalPlan = await api.addPlanItem(created.id, {
@@ -830,10 +830,10 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             howToGet: '',
             tip: '',
           });
-        } catch (e) { console.error('장소 저장 실패:', e); }
+        } catch (e) { console.error('Place SAVE failed:', e); }
       }
 
-      onUpdatePlans?.([finalPlan, ...(plans || [])]);
+      onUpdatePlans?.([finalPlan,...(plans || [])]);
       setSelected(finalPlan);
       setShowNewPlan(false);
       setAddedRoutes([]);
@@ -849,7 +849,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const savePlanEdit = async () => {
-    if (!editPlan || !editPlan.title.trim()) return;
+    if (!editPlan ||!editPlan.title.trim()) return;
     try {
       const updated = await api.updatePlan(editPlan.id, {
         title: editPlan.title,
@@ -859,140 +859,140 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
         shareSchedule: editPlan.shareSchedule,
         sharePlaces: editPlan.sharePlaces,
       });
-      onUpdatePlans?.(plans.map(p => p.id === updated.id ? updated : p));
-      if (selected?.id === updated.id) setSelected(updated);
+      onUpdatePlans?.(plans.map(p => p.id === updated.id? updated : p));
+      if (Selected?.id === updated.id) setSelected(updated);
       setEditPlan(null);
     } catch (e) { console.error(e); }
   };
 
   const deletePlan = async (planId) => {
-    if (!confirm('이 일정을 삭제하시겠습니까?')) return;
+    if (!confirm('Delete this schedule?')) return;
     try {
       await api.deletePlan(planId);
-      const next = (plans || []).filter(p => p.id !== planId);
+      const next = (plans || []).filter(p => p.id!== planId);
       onUpdatePlans?.(next);
       setSelected(next[0] || null);
     } catch (e) { console.error(e); }
   };
 
   const removeItem = async (itemId) => {
-    if (!selected) return;
+    if (!Selected) return;
     try {
-      const updated = await api.removePlanItem(selected.id, itemId);
+      const updated = await api.removePlanItem(Selected.id, itemId);
       setSelected(updated);
-      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id? updated : p));
     } catch (e) { console.error(e); }
   };
 
   const updateItem = async (itemId, date, memo) => {
-    if (!selected) return;
+    if (!Selected) return;
     try {
-      const item = selected.items.find(i => i.id === itemId);
+      const item = Selected.items.find(i => i.id === itemId);
       if (!item) return;
-      await api.removePlanItem(selected.id, itemId);
-      const updated = await api.addPlanItem(selected.id, { ...item, date, memo });
+      await api.removePlanItem(Selected.id, itemId);
+      const updated = await api.addPlanItem(Selected.id, {...item, date, memo });
       setSelected(updated);
-      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id? updated : p));
     } catch (e) { console.error(e); }
   };
 
   const addPlaceToSelected = async (place) => {
-    if (!selected) { alert('먼저 일정을 선택해주세요.'); return; }
+    if (!Selected) { alert('Please select a schedule First.'); return; }
     try {
       const item = {
         placeName: place.name, lat: place.lat || 0, lng: place.lng || 0,
-        address: place.address || '', category: CATEGORY[place.type]?.label || place.category || '기타',
+        address: place.address || '', category: CATEGORY[place.type]?.label || place.category || 'Other',
         howToGet: '', tip: '', fromPostId: '', fromPostTitle: '', fromUserNickname: '',
         date: '', memo: '',
       };
-      const updated = await api.addPlanItem(selected.id, item);
+      const updated = await api.addPlanItem(Selected.id, item);
       setSelected(updated);
-      onUpdatePlans?.((plans || []).map(p => p.id === updated.id ? updated : p));
-      alert(`"${place.name}"을 일정에 추가했어요! ✅`);
+      onUpdatePlans?.((plans || []).map(p => p.id === updated.id? updated : p));
+      alert(`"${place.name}" to schedule Added! ✅`);
     } catch (e) { console.error(e); }
   };
 
-  const planPlaces = selected?.items?.filter(i => i.lat && i.lng).map(i => ({
+  const planPlaces = Selected?.items?.filter(i => i.lat && i.lng).map(i => ({
     name: i.placeName, lat: i.lat, lng: i.lng,
   })) || [];
 
-  if (!currentUser) return <div className="empty">로그인이 필요해요.</div>;
-  if (loading) return <div className="empty">불러오는 중...</div>;
+  if (!currentUser) return <div className="empty">LOGIN required.</div>;
+  if (loading) return <div className="empty">Loading...</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="page-header">
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>내 여행 플래너</div>
-        <button className="btn-primary" onClick={() => setShowNewPlan(true)}>+ 새 일정</button>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>My TRAVEL PLANNER</div>
+        <button className="btn-primary" onClick={() => setShowNewPlan(true)}>+ New schedule</button>
       </div>
 
-      {/* 새 일정 만들기 */}
+      {/* New schedule */}
       {showNewPlan && (
         <div className="post-form" style={{ gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#1E2A3A' }}>새 일정 만들기</div>
-          <input className="form-input" placeholder="일정 이름 (예: 오사카 3박 4일)" value={newPlan.title}
-            onChange={e => setNewPlan(p => ({ ...p, title: e.target.value }))} />
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#1E2A3A' }}>New schedule</div>
+          <input className="form-input" placeholder="Schedule name (e.g. Osaka 3N4D)" value={newPlan.title}
+            onChange={e => setNewPlan(p => ({...p, title: e.target.value }))} />
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">출발일</label>
+              <label className="form-label">Departure date</label>
               <input type="date" className="form-input" value={newPlan.startDate}
-                onChange={e => setNewPlan(p => ({ ...p, startDate: e.target.value }))} />
+                onChange={e => setNewPlan(p => ({...p, startDate: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="form-label">도착일</label>
+              <label className="form-label">Arrival date</label>
               <input type="date" className="form-input" value={newPlan.endDate}
-                onChange={e => setNewPlan(p => ({ ...p, endDate: e.target.value }))} />
+                onChange={e => setNewPlan(p => ({...p, endDate: e.target.value }))} />
             </div>
           </div>
 
-          {/* ── 교통편 검색 (아코디언) ── */}
+          {/* ── transit options SEARCH (accordion) ── */}
           <div style={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
-            <button onClick={() => setOpenTransport(v => !v)}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openTransport ? '#EEEDEA' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openTransport ? '#1E2A3A' : '#1E2A3A' }}>
-              <span>✈ 교통편 검색 {addedRoutes.length > 0 && <span style={{ fontSize: 11, background: '#1E2A3A', color: 'white', borderRadius: 2, padding: '1px 7px', marginLeft: 6 }}>{addedRoutes.length}</span>}</span>
-              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openTransport ? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
+            <button onClick={() => setOpenTransport(v =>!v)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openTransport? '#EEEDEA' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openTransport? '#1E2A3A' : '#1E2A3A' }}>
+              <span>✈ transit options SEARCH {addedRoutes.length > 0 && <span style={{ fontSize: 11, background: '#1E2A3A', color: 'white', borderRadius: 2, padding: '1px 7px', marginLeft: 6 }}>{addedRoutes.length}</span>}</span>
+              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openTransport? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
             </button>
             {openTransport && (
               <div style={{ padding: '14px 16px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="출발지 (예: 서울)"
-                    value={newPlan.from} onChange={e => setNewPlan(p => ({ ...p, from: e.target.value }))} />
-                  <button onClick={() => setNewPlan(p => ({ ...p, from: p.to, to: p.from }))}
+                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="From (e.g. Seoul)"
+                    value={newPlan.from} onChange={e => setNewPlan(p => ({...p, from: e.target.value }))} />
+                  <button onClick={() => setNewPlan(p => ({...p, from: p.to, to: p.from }))}
                     style={{ padding: '8px 10px', border: '1px solid #eee', borderRadius: 2, background: 'white', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>⇄</button>
-                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="목적지 (예: 오사카)"
-                    value={newPlan.to} onChange={e => setNewPlan(p => ({ ...p, to: e.target.value }))} />
+                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="Destination (e.g. Osaka)"
+                    value={newPlan.to} onChange={e => setNewPlan(p => ({...p, to: e.target.value }))} />
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <select className="form-input" style={{ flex: 1, marginBottom: 0 }} value={newPlan.pax}
-                    onChange={e => setNewPlan(p => ({ ...p, pax: parseInt(e.target.value) }))}>
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}명</option>)}
+                    onChange={e => setNewPlan(p => ({...p, pax: parseInt(e.target.value) }))}>
+                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}name</option>)}
                   </select>
-                  <button onClick={searchRoutes} disabled={!newPlan.from || !newPlan.to}
-                    style={{ flex: 2, padding: '10px', background: newPlan.from && newPlan.to ? '#1E2A3A' : '#E2E0DC', color: newPlan.from && newPlan.to ? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: newPlan.from && newPlan.to ? 'pointer' : 'not-allowed' }}>
-                    교통편 검색
+                  <button onClick={searchRoutes} disabled={!newPlan.from ||!newPlan.to}
+                    style={{ flex: 2, padding: '10px', background: newPlan.from && newPlan.to? '#1E2A3A' : '#E2E0DC', color: newPlan.from && newPlan.to? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: newPlan.from && newPlan.to? 'pointer' : 'not-allowed' }}>
+                    transit options SEARCH
                   </button>
                 </div>
                 {(routeLoading || routeResults.length > 0) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: '#8A919C', flexShrink: 0 }}>📅 탑승일</span>
+                    <span style={{ fontSize: 12, color: '#8A919C', flexShrink: 0 }}>📅 BoardD</span>
                     <input type="date" value={newPlan.routeDate || newPlan.startDate || ''}
-                      onChange={e => setNewPlan(p => ({ ...p, routeDate: e.target.value }))}
+                      onChange={e => setNewPlan(p => ({...p, routeDate: e.target.value }))}
                       style={{ flex: 1, padding: '7px 10px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                   </div>
                 )}
                 {routeLoading && (
                   <div style={{ textAlign: 'center', padding: '14px 0' }}>
                     <div style={{ fontSize: 22, marginBottom: 4 }}>🤖</div>
-                    <div style={{ fontSize: 13, color: '#1E2A3A', fontWeight: 600 }}>AI가 교통편 분석 중...</div>
+                    <div style={{ fontSize: 13, color: '#1E2A3A', fontWeight: 600 }}>AI analyzing transit options...</div>
                     <div style={{ fontSize: 12, color: '#8A919C', marginTop: 2 }}>{newPlan.from} → {newPlan.to}</div>
                   </div>
                 )}
                 {!routeLoading && routeResults.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ fontSize: 11, color: '#8A919C' }}>{newPlan.from} → {newPlan.to} · {newPlan.pax}인 기준 · 추가 후 다음 구간 계속 검색 가능</div>
+                    <div style={{ fontSize: 11, color: '#8A919C' }}>{newPlan.from} → {newPlan.to} · {newPlan.pax} Basis · After adding, keep searching next segments</div>
                     {routeResults.map((r, i) => (
-                      <div key={i} onClick={() => setSelectedRoute(selectedRoute === r ? null : r)}
-                        style={{ border: `2px solid ${selectedRoute === r ? '#1E2A3A' : '#E2E0DC'}`, borderRadius: 2, padding: '10px 12px', cursor: 'pointer', background: selectedRoute === r ? '#EEEDEA' : 'white' }}>
+                      <div key={i} onClick={() => setSelectedRoute(SelectedRoute === r? null : r)}
+                        style={{ border: `2px solid ${SelectedRoute === r? '#1E2A3A' : '#E2E0DC'}`, borderRadius: 2, padding: '10px 12px', cursor: 'pointer', background: SelectedRoute === r? '#EEEDEA' : 'white' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: 18 }}>{r.icon}</span>
                           <div style={{ flex: 1 }}>
@@ -1005,24 +1005,24 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                           <button onClick={e => {
                               e.stopPropagation();
                               const routeDate = newPlan.routeDate || newPlan.startDate || '';
-                              setAddedRoutes(prev => [...prev, { ...r, from: newPlan.from, to: newPlan.to, date: routeDate }]);
+                              setAddedRoutes(prev => [...prev, {...r, from: newPlan.from, to: newPlan.to, date: routeDate }]);
                               setRouteResults([]); setSelectedRoute(null);
-                              setNewPlan(p => ({ ...p, from: p.to, to: '', routeDate: '' }));
+                              setNewPlan(p => ({...p, from: p.to, to: '', routeDate: '' }));
                             }}
                             style={{ padding: '6px 14px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                            + 추가
+                            + ADD
                           </button>
                         </div>
-                        {selectedRoute === r && (
+                        {SelectedRoute === r && (
                           <div style={{ borderTop: '1px solid #E2E0DC', marginTop: 8, paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {r.steps?.map((s, j) => (
                               <div key={j} style={{ display: 'flex', gap: 8, fontSize: 12, color: '#555' }}>
-                                <span>{j === 0 ? '🔵' : j === r.steps.length - 1 ? '🔴' : '⚪'}</span>
+                                <span>{j === 0? '🔵' : j === r.steps.length - 1? '🔴' : '⚪'}</span>
                                 <span style={{ lineHeight: 1.5 }}>{s}</span>
                               </div>
                             ))}
                             <div style={{ fontSize: 12, color: '#1E2A3A', fontWeight: 600, marginTop: 4 }}>
-                              {newPlan.pax}인 합계: ≈ {(r.priceNum * newPlan.pax).toLocaleString()}원~
+                              {newPlan.pax} Total: ≈ {(r.priceNum * newPlan.pax).toLocaleString()} KRW~
                             </div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                               {r.links?.map(l => (
@@ -1035,18 +1035,18 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                       </div>
                     ))}
                     <div style={{ textAlign: 'center', fontSize: 11, color: '#bbb' }}>
-                      다른 교통편은 <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ color: '#1E2A3A' }}>스카이스캐너</a>에서 확인하세요
+                      Other transit: <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ color: '#1E2A3A' }}>Skyscanner</a>from OK
                     </div>
                   </div>
                 )}
                 {!routeLoading && routeResults.length === 0 && newPlan.from && newPlan.to && (
                   <div style={{ textAlign: 'center', fontSize: 12, color: '#8A919C', padding: '10px 0' }}>
                     <div style={{ fontSize: 20, marginBottom: 4 }}>🔍</div>
-                    <div style={{ fontWeight: 600, color: '#4A5568', marginBottom: 6 }}>검색된 교통편이 없어요</div>
+                    <div style={{ fontWeight: 600, color: '#4A5568', marginBottom: 6 }}>Searched transit options none</div>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, color: '#1E2A3A', textDecoration: 'none', fontWeight: 600 }}>✈ 스카이스캐너</a>
-                      <a href="https://flight.naver.com" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 2, color: '#16a34a', textDecoration: 'none', fontWeight: 600 }}>🛫 네이버항공</a>
-                      <a href="https://www.letskorail.com" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 2, color: '#d97706', textDecoration: 'none', fontWeight: 600 }}>🚄 코레일</a>
+                      <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, color: '#1E2A3A', textDecoration: 'none', fontWeight: 600 }}>✈ Skyscanner</a>
+                      <a href="https://flight.naver.com" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 2, color: '#16a34a', textDecoration: 'none', fontWeight: 600 }}>🛫 Naver Flight</a>
+                      <a href="https://www.letskorail.com" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 2, color: '#d97706', textDecoration: 'none', fontWeight: 600 }}>🚄 Korail</a>
                     </div>
                   </div>
                 )}
@@ -1054,29 +1054,29 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             )}
           </div>
 
-          {/* ── 장소 검색 (아코디언) ── */}
+          {/* ── Place SEARCH (accordion) ── */}
           <div style={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
-            <button onClick={() => setOpenPlace(v => !v)}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openPlace ? '#f0fdf4' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openPlace ? '#16a34a' : '#1E2A3A' }}>
-              <span>📍 장소 검색 {addedPlaces.length > 0 && <span style={{ fontSize: 11, background: '#16a34a', color: 'white', borderRadius: 2, padding: '1px 7px', marginLeft: 6 }}>{addedPlaces.length}</span>}</span>
-              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openPlace ? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
+            <button onClick={() => setOpenPlace(v =>!v)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openPlace? '#f0fdf4' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openPlace? '#16a34a' : '#1E2A3A' }}>
+              <span>📍 Place SEARCH {addedPlaces.length > 0 && <span style={{ fontSize: 11, background: '#16a34a', color: 'white', borderRadius: 2, padding: '1px 7px', marginLeft: 6 }}>{addedPlaces.length}</span>}</span>
+              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openPlace? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
             </button>
             {openPlace && (
               <div style={{ padding: '14px 16px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* 검색창 */}
+                {/* SEARCHChangi */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input className="form-input" style={{ flex: 1, marginBottom: 0 }}
-                    placeholder="장소 검색 (예: 도쿄 스카이트리, 오사카 카페)"
+                    placeholder="Search places (e.g. Tokyo Skytree, Osaka cafe)"
                     value={placeQuery} onChange={e => setPlaceQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && searchPlaces()} />
-                  <button onClick={searchPlaces} disabled={placeSearching || !placeQuery.trim()}
-                    style={{ padding: '8px 16px', background: placeQuery.trim() ? '#16a34a' : '#E2E0DC', color: placeQuery.trim() ? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                    {placeSearching ? '검색중...' : '검색'}
+                  <button onClick={searchPlaces} disabled={placeSearching ||!placeQuery.trim()}
+                    style={{ padding: '8px 16px', background: placeQuery.trim()? '#16a34a' : '#E2E0DC', color: placeQuery.trim()? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                    {placeSearching? 'SEARCH...' : 'SEARCH'}
                   </button>
                 </div>
 
-                {/* 검색 결과 */}
-                {placeResults.length > 0 && !selectedPlace && (
+                {/* Search results */}
+                {placeResults.length > 0 &&!SelectedPlace && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {placeResults.map((p, i) => (
                       <div key={i} onClick={() => setSelectedPlace(p)}
@@ -1090,58 +1090,58 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                   </div>
                 )}
 
-                {/* 선택된 장소 + 미니 지도 + 입력 */}
-                {selectedPlace && (
+                {/* Selected place + map + enter */}
+                {SelectedPlace && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 2 }}>
                       <span style={{ fontSize: 18 }}>📍</span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{selectedPlace.name}</div>
-                        <div style={{ fontSize: 11, color: '#8A919C' }}>{selectedPlace.fullName}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>{SelectedPlace.name}</div>
+                        <div style={{ fontSize: 11, color: '#8A919C' }}>{SelectedPlace.fullName}</div>
                       </div>
                       <button onClick={() => setSelectedPlace(null)}
                         style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#8A919C', padding: '0 4px' }}>✕</button>
                     </div>
 
-                    {/* 미니 지도 */}
+                    {/* Map */}
                     <div style={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #eee', height: 180 }}>
                       <iframe
                         title="map"
                         width="100%" height="180"
                         style={{ border: 'none', display: 'block' }}
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedPlace.lng - 0.01},${selectedPlace.lat - 0.01},${selectedPlace.lng + 0.01},${selectedPlace.lat + 0.01}&layer=mapnik&marker=${selectedPlace.lat},${selectedPlace.lng}`}
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${SelectedPlace.lng - 0.01},${SelectedPlace.lat - 0.01},${SelectedPlace.lng + 0.01},${SelectedPlace.lat + 0.01}&layer=mapnik&marker=${SelectedPlace.lat},${SelectedPlace.lng}`}
                       />
                     </div>
 
-                    {/* 카테고리 */}
+                    {/* Category */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {[['attraction','🏛️ 관광'],['cafe','☕ 카페'],['restaurant','🍽️ 맛집'],['hotel','🏨 숙소'],['shopping','🛍️ 쇼핑'],['etc','📌 기타']].map(([val, label]) => (
+                      {[['attraction','🏛️ Attraction'],['cafe','☕ Cafe'],['restaurant','🍽️ Restaurant'],['hotel','🏨 Hotel'],['shopping','🛍️ Shopping'],['etc','📌 Other']].map(([val, label]) => (
                         <button key={val} onClick={() => setPlaceCategory(val)}
-                          style={{ padding: '5px 12px', borderRadius: 2, border: `1px solid ${placeCategory === val ? '#16a34a' : '#E2E0DC'}`, background: placeCategory === val ? '#f0fdf4' : 'white', color: placeCategory === val ? '#16a34a' : '#8A919C', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                          style={{ padding: '5px 12px', borderRadius: 2, border: `1px solid ${placeCategory === val? '#16a34a' : '#E2E0DC'}`, background: placeCategory === val? '#f0fdf4' : 'white', color: placeCategory === val? '#16a34a' : '#8A919C', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                           {label}
                         </button>
                       ))}
                     </div>
 
-                    {/* 날짜 + 메모 */}
+                    {/* Date + Memo */}
                     <div style={{ display: 'flex', gap: 8 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>📅 방문일</div>
+                        <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>📅 VisitD</div>
                         <input type="date" value={placeDate || newPlan.startDate || ''}
                           onChange={e => setPlaceDate(e.target.value)}
                           style={{ width: '100%', padding: '8px 10px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>📝 메모 (선택)</div>
+                      <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>📝 Memo (optional)</div>
                       <input className="form-input" style={{ marginBottom: 0 }}
-                        placeholder="예: 오전 10시 방문 예정, 예약 필수"
+                        placeholder="e.g. 10 AM visit, reservation required"
                         value={placeMemo} onChange={e => setPlaceMemo(e.target.value)} />
                     </div>
 
                     <button onClick={() => {
                         setAddedPlaces(prev => [...prev, {
-                          ...selectedPlace,
+                         ...SelectedPlace,
                           category: placeCategory,
                           date: placeDate || newPlan.startDate || '',
                           memo: placeMemo,
@@ -1154,7 +1154,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         setPlaceCategory('attraction');
                       }}
                       style={{ padding: '10px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                      📍 이 장소 추가
+                      📍 Place ADD
                     </button>
                   </div>
                 )}
@@ -1162,26 +1162,26 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             )}
           </div>
 
-          {/* ── 🔥 인기 코스 추천 (아코디언) ── */}
+          {/* ── 🔥 Popular Route Recommended (accordion) ── */}
           <div style={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
-            <button onClick={() => { if (!openCourse) loadRecommendedCourses(courseQuery || newPlan.to || newPlan.title); setOpenCourse(v => !v); }}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openCourse ? '#FAFAF8' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openCourse ? '#1E2A3A' : '#1E2A3A' }}>
-              <span>🔥 인기 코스</span>
-              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openCourse ? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
+            <button onClick={() => { if (!openCourse) loadRecommendedCourses(courseQuery || newPlan.to || newPlan.title); setOpenCourse(v =>!v); }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openCourse? '#FAFAF8' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openCourse? '#1E2A3A' : '#1E2A3A' }}>
+              <span>🔥 Popular Route</span>
+              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openCourse? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
             </button>
             {openCourse && (
               <div style={{ padding: '14px 16px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="도시명 (예: 도쿄, 파리, 서울)" value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadRecommendedCourses(courseQuery)} />
-                  <button onClick={() => loadRecommendedCourses(courseQuery)} disabled={courseLoading || !courseQuery.trim()} style={{ padding: '8px 16px', background: courseQuery.trim() ? '#1E2A3A' : '#E2E0DC', color: courseQuery.trim() ? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>{courseLoading ? '검색중...' : '검색'}</button>
+                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="City (e.g. Tokyo, Paris, Seoul)" value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadRecommendedCourses(courseQuery)} />
+                  <button onClick={() => loadRecommendedCourses(courseQuery)} disabled={courseLoading ||!courseQuery.trim()} style={{ padding: '8px 16px', background: courseQuery.trim()? '#1E2A3A' : '#E2E0DC', color: courseQuery.trim()? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>{courseLoading? 'SEARCH...' : 'SEARCH'}</button>
                 </div>
-                {courseLoading && <div style={{ textAlign: 'center', padding: 12, color: '#8A919C', fontSize: 12 }}>코스 검색 중...</div>}
-                {!courseLoading && recommendedCourses.length === 0 && courseQuery && <div style={{ textAlign: 'center', padding: 16, color: '#8A919C', fontSize: 12 }}>이 도시의 추천 코스가 아직 없어요</div>}
+                {courseLoading && <div style={{ textAlign: 'center', padding: 12, color: '#8A919C', fontSize: 12 }}>Route SEARCH...</div>}
+                {!courseLoading && recommendedCourses.length === 0 && courseQuery && <div style={{ textAlign: 'center', padding: 16, color: '#8A919C', fontSize: 12 }}> City — Recommended Route No none</div>}
                 {recommendedCourses.map(course => (
                   <div key={course.id} style={{ background: 'white', borderRadius: 3, border: '1px solid #F0EEE9', overflow: 'hidden' }}>
                     <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{course.title}</div><div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>📍 {course.places?.length || 0}곳</div></div>
-                      <button onClick={() => addCourseToPlaces(course)} style={{ padding: '6px 14px', borderRadius: 2, background: '#1E2A3A', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ 전체 추가</button>
+                      <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{course.title}</div><div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>📍 {course.places?.length || 0}places</div></div>
+                      <button onClick={() => addCourseToPlaces(course)} style={{ padding: '6px 14px', borderRadius: 2, background: '#1E2A3A', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ ALL ADD</button>
                     </div>
                     <div style={{ padding: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {course.places?.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((p, i) => (
@@ -1189,7 +1189,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                           <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#1E2A3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
                           <div style={{ flex: 1 }}><span style={{ fontWeight: 600, color: '#1E2A3A' }}>{p.name}</span></div>
                           {p.howToGet && <span style={{ fontSize: 10, color: '#3b82f6', flexShrink: 0 }}>🚇 {(p.howToGet || '').substring(0, 20)}</span>}
-                          <button onClick={(e) => { e.stopPropagation(); setAddedPlaces(prev => [...prev, { name: p.name, lat: p.lat || 0, lng: p.lng || 0, fullName: '', category: p.category || 'attraction', date: newPlan.startDate || '', memo: [p.tip, p.howToGet].filter(Boolean).join(' | ') }]); }} style={{ padding: '3px 8px', borderRadius: 6, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>+ 추가</button>
+                          <button onClick={(e) => { e.stopPropagation(); setAddedPlaces(prev => [...prev, { name: p.name, lat: p.lat || 0, lng: p.lng || 0, fullName: '', category: p.category || 'attraction', date: newPlan.startDate || '', memo: [p.tip, p.howToGet].filter(Boolean).join(' | ') }]); }} style={{ padding: '3px 8px', borderRadius: 6, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>+ ADD</button>
                         </div>
                       ))}
                     </div>
@@ -1199,44 +1199,44 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             )}
           </div>
 
-          {/* 공유 설정 */}
+          {/* SHARE Settings */}
           <div style={{ background: '#FAFAF8', border: '1px solid #eee', borderRadius: 3, padding: '14px 16px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>🔗 공유 설정</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>🔗 SHARE Settings</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              {[['private', '🔒 비공개'], ['friends', '👥 친구 공개'], ['public', '🌍 전체 공개']].map(([val, label]) => (
+              {[['private', '🔒 Private'], ['friends', '👥 Friends-only'], ['public', '🌍 Public']].map(([val, label]) => (
                 <button key={val} onClick={() => setNewPlan(p => ({
-                    ...p, shareType: val,
-                    shareSchedule: val === 'public' ? true : val === 'private' ? false : p.shareSchedule,
-                    sharePlaces: val === 'public' ? true : val === 'private' ? false : p.sharePlaces,
+                   ...p, shareType: val,
+                    shareSchedule: val === 'public'? true : val === 'private'? false : p.shareSchedule,
+                    sharePlaces: val === 'public'? true : val === 'private'? false : p.sharePlaces,
                   }))}
-                  style={{ flex: 1, padding: '8px 4px', borderRadius: 2, border: `2px solid ${newPlan.shareType === val ? '#1E2A3A' : '#E2E0DC'}`, background: newPlan.shareType === val ? '#EEEDEA' : 'white', color: newPlan.shareType === val ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ flex: 1, padding: '8px 4px', borderRadius: 2, border: `2px solid ${newPlan.shareType === val? '#1E2A3A' : '#E2E0DC'}`, background: newPlan.shareType === val? '#EEEDEA' : 'white', color: newPlan.shareType === val? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {label}
                 </button>
               ))}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, opacity: newPlan.shareType === 'private' ? 0.4 : 1 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, opacity: newPlan.shareType === 'private'? 0.4 : 1 }}>
                 <input type="checkbox" checked={newPlan.shareSchedule} disabled={newPlan.shareType === 'private'}
-                  onChange={e => setNewPlan(p => ({ ...p, shareSchedule: e.target.checked }))}
+                  onChange={e => setNewPlan(p => ({...p, shareSchedule: e.target.checked }))}
                   style={{ width: 16, height: 16, accentColor: '#1E2A3A' }} />
-                <span style={{ color: '#4A5568', fontWeight: 600 }}>📅 일정 공유</span>
-                <span style={{ color: '#8A919C', fontSize: 12 }}>— 여행 날짜를 공유해요</span>
+                <span style={{ color: '#4A5568', fontWeight: 600 }}>📅 SCHEDULE SHARE</span>
+                <span style={{ color: '#8A919C', fontSize: 12 }}>— share travel dates</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, opacity: newPlan.shareType === 'private' ? 0.4 : 1 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, opacity: newPlan.shareType === 'private'? 0.4 : 1 }}>
                 <input type="checkbox" checked={newPlan.sharePlaces} disabled={newPlan.shareType === 'private'}
-                  onChange={e => setNewPlan(p => ({ ...p, sharePlaces: e.target.checked }))}
+                  onChange={e => setNewPlan(p => ({...p, sharePlaces: e.target.checked }))}
                   style={{ width: 16, height: 16, accentColor: '#1E2A3A' }} />
-                <span style={{ color: '#4A5568', fontWeight: 600 }}>📍 장소 공유</span>
-                <span style={{ color: '#8A919C', fontSize: 12 }}>— 방문할 장소를 공유해요</span>
+                <span style={{ color: '#4A5568', fontWeight: 600 }}>📍 Place SHARE</span>
+                <span style={{ color: '#8A919C', fontSize: 12 }}>— share planned places</span>
               </label>
             </div>
           </div>
 
-          {/* 추가된 항목 리스트 */}
+          {/* Added items */}
           {(addedRoutes.length > 0 || addedPlaces.length > 0) && (
             <div style={{ background: '#FAFAF8', border: '1px solid #eee', borderRadius: 3, padding: '14px 16px' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>
-                🗂 추가된 항목 ({addedRoutes.length + addedPlaces.length}개)
+                🗂 added Item ({addedRoutes.length + addedPlaces})
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {addedRoutes.map((r, i) => (
@@ -1251,8 +1251,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         ✈ {r.from} → {r.to}{r.date && ` · 📅 ${r.date}`} · ⏱ {r.time} · 💰 {r.price}
                       </div>
                     </div>
-                    <button onClick={() => setAddedRoutes(prev => prev.filter((_, idx) => idx !== i))}
-                      style={{ padding: '4px 10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 2, fontSize: 12, cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>삭제</button>
+                    <button onClick={() => setAddedRoutes(prev => prev.filter((_, idx) => idx!== i))}
+                      style={{ padding: '4px 10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 2, fontSize: 12, cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>DELETE</button>
                   </div>
                 ))}
                 {addedPlaces.map((p, i) => (
@@ -1264,8 +1264,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         {p.category && `${p.category}`}{p.date && ` · 📅 ${p.date}`}{p.memo && ` · ${p.memo}`}
                       </div>
                     </div>
-                    <button onClick={() => setAddedPlaces(prev => prev.filter((_, idx) => idx !== i))}
-                      style={{ padding: '4px 10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 2, fontSize: 12, cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>삭제</button>
+                    <button onClick={() => setAddedPlaces(prev => prev.filter((_, idx) => idx!== i))}
+                      style={{ padding: '4px 10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 2, fontSize: 12, cursor: 'pointer', flexShrink: 0, fontWeight: 600 }}>DELETE</button>
                   </div>
                 ))}
               </div>
@@ -1273,50 +1273,50 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary" onClick={createPlan}>만들기</button>
-            <button className="btn-secondary" onClick={() => { setShowNewPlan(false); setRouteResults([]); setAddedRoutes([]); setSelectedRoute(null); setAddedPlaces([]); setPlaceResults([]); setSelectedPlace(null); setOpenTransport(false); setOpenPlace(false); }}>취소</button>
+            <button className="btn-primary" onClick={createPlan}>Create</button>
+            <button className="btn-secondary" onClick={() => { setShowNewPlan(false); setRouteResults([]); setAddedRoutes([]); setSelectedRoute(null); setAddedPlaces([]); setPlaceResults([]); setSelectedPlace(null); setOpenTransport(false); setOpenPlace(false); }}>CANCEL</button>
           </div>
         </div>
       )}
 
-      {/* 일정 수정 */}
+      {/* SCHEDULE EDIT */}
       {editPlan && (
         <div className="post-form" style={{ gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#1E2A3A' }}>일정 수정</div>
-          <input className="form-input" placeholder="일정 이름" value={editPlan.title}
-            onChange={e => setEditPlan(p => ({ ...p, title: e.target.value }))} />
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#1E2A3A' }}>SCHEDULE EDIT</div>
+          <input className="form-input" placeholder="Schedule name" value={editPlan.title}
+            onChange={e => setEditPlan(p => ({...p, title: e.target.value }))} />
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">출발일</label>
+              <label className="form-label">Departure date</label>
               <input type="date" className="form-input" value={editPlan.startDate || ''}
-                onChange={e => setEditPlan(p => ({ ...p, startDate: e.target.value }))} />
+                onChange={e => setEditPlan(p => ({...p, startDate: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="form-label">도착일</label>
+              <label className="form-label">Arrival date</label>
               <input type="date" className="form-input" value={editPlan.endDate || ''}
-                onChange={e => setEditPlan(p => ({ ...p, endDate: e.target.value }))} />
+                onChange={e => setEditPlan(p => ({...p, endDate: e.target.value }))} />
             </div>
           </div>
-          {/* ── 🔥 인기 코스 추천 (아코디언) ── */}
+          {/* ── 🔥 Popular Route Recommended (accordion) ── */}
           <div style={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
-            <button onClick={() => { if (!openCourse) loadRecommendedCourses(courseQuery || newPlan.to || newPlan.title); setOpenCourse(v => !v); }}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openCourse ? '#FAFAF8' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openCourse ? '#1E2A3A' : '#1E2A3A' }}>
-              <span>🔥 인기 코스</span>
-              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openCourse ? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
+            <button onClick={() => { if (!openCourse) loadRecommendedCourses(courseQuery || newPlan.to || newPlan.title); setOpenCourse(v =>!v); }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: openCourse? '#FAFAF8' : '#FAFAF8', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: openCourse? '#1E2A3A' : '#1E2A3A' }}>
+              <span>🔥 Popular Route</span>
+              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: openCourse? 'rotate(180deg)' : 'rotate(0deg)' }}>›</span>
             </button>
             {openCourse && (
               <div style={{ padding: '14px 16px', borderTop: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="도시명 (예: 도쿄, 파리, 서울)" value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadRecommendedCourses(courseQuery)} />
-                  <button onClick={() => loadRecommendedCourses(courseQuery)} disabled={courseLoading || !courseQuery.trim()} style={{ padding: '8px 16px', background: courseQuery.trim() ? '#1E2A3A' : '#E2E0DC', color: courseQuery.trim() ? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>{courseLoading ? '검색중...' : '검색'}</button>
+                  <input className="form-input" style={{ flex: 1, marginBottom: 0 }} placeholder="City (e.g. Tokyo, Paris, Seoul)" value={courseQuery} onChange={e => setCourseQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && loadRecommendedCourses(courseQuery)} />
+                  <button onClick={() => loadRecommendedCourses(courseQuery)} disabled={courseLoading ||!courseQuery.trim()} style={{ padding: '8px 16px', background: courseQuery.trim()? '#1E2A3A' : '#E2E0DC', color: courseQuery.trim()? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>{courseLoading? 'SEARCH...' : 'SEARCH'}</button>
                 </div>
-                {courseLoading && <div style={{ textAlign: 'center', padding: 12, color: '#8A919C', fontSize: 12 }}>코스 검색 중...</div>}
-                {!courseLoading && recommendedCourses.length === 0 && courseQuery && <div style={{ textAlign: 'center', padding: 16, color: '#8A919C', fontSize: 12 }}>이 도시의 추천 코스가 아직 없어요</div>}
+                {courseLoading && <div style={{ textAlign: 'center', padding: 12, color: '#8A919C', fontSize: 12 }}>Route SEARCH...</div>}
+                {!courseLoading && recommendedCourses.length === 0 && courseQuery && <div style={{ textAlign: 'center', padding: 16, color: '#8A919C', fontSize: 12 }}> City — Recommended Route No none</div>}
                 {recommendedCourses.map(course => (
                   <div key={course.id} style={{ background: 'white', borderRadius: 3, border: '1px solid #F0EEE9', overflow: 'hidden' }}>
                     <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{course.title}</div><div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>📍 {course.places?.length || 0}곳</div></div>
-                      <button onClick={() => addCourseToPlaces(course)} style={{ padding: '6px 14px', borderRadius: 2, background: '#1E2A3A', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ 전체 추가</button>
+                      <div><div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{course.title}</div><div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>📍 {course.places?.length || 0}places</div></div>
+                      <button onClick={() => addCourseToPlaces(course)} style={{ padding: '6px 14px', borderRadius: 2, background: '#1E2A3A', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ ALL ADD</button>
                     </div>
                     <div style={{ padding: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {course.places?.sort((a, b) => (a.placeOrder || 0) - (b.placeOrder || 0)).map((p, i) => (
@@ -1324,7 +1324,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                           <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#1E2A3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
                           <div style={{ flex: 1 }}><span style={{ fontWeight: 600, color: '#1E2A3A' }}>{p.name}</span></div>
                           {p.howToGet && <span style={{ fontSize: 10, color: '#3b82f6', flexShrink: 0 }}>🚇 {(p.howToGet || '').substring(0, 20)}</span>}
-                          <button onClick={(e) => { e.stopPropagation(); setAddedPlaces(prev => [...prev, { name: p.name, lat: p.lat || 0, lng: p.lng || 0, fullName: '', category: p.category || 'attraction', date: newPlan.startDate || '', memo: [p.tip, p.howToGet].filter(Boolean).join(' | ') }]); }} style={{ padding: '3px 8px', borderRadius: 6, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>+ 추가</button>
+                          <button onClick={(e) => { e.stopPropagation(); setAddedPlaces(prev => [...prev, { name: p.name, lat: p.lat || 0, lng: p.lng || 0, fullName: '', category: p.category || 'attraction', date: newPlan.startDate || '', memo: [p.tip, p.howToGet].filter(Boolean).join(' | ') }]); }} style={{ padding: '3px 8px', borderRadius: 6, background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0', fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>+ ADD</button>
                         </div>
                       ))}
                     </div>
@@ -1334,184 +1334,184 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             )}
           </div>
 
-          {/* 공유 설정 */}
+          {/* SHARE Settings */}
           <div style={{ background: '#FAFAF8', border: '1px solid #eee', borderRadius: 3, padding: '14px 16px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>🔗 공유 설정</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>🔗 SHARE Settings</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              {[['private', '🔒 비공개'], ['friends', '👥 친구 공개'], ['public', '🌍 전체 공개']].map(([val, label]) => (
+              {[['private', '🔒 Private'], ['friends', '👥 Friends-only'], ['public', '🌍 Public']].map(([val, label]) => (
                 <button key={val} onClick={() => setEditPlan(p => ({
-                    ...p,
+                   ...p,
                     shareType: val,
-                    shareSchedule: val === 'public' ? true : val === 'private' ? false : p.shareSchedule,
-                    sharePlaces: val === 'public' ? true : val === 'private' ? false : p.sharePlaces,
+                    shareSchedule: val === 'public'? true : val === 'private'? false : p.shareSchedule,
+                    sharePlaces: val === 'public'? true : val === 'private'? false : p.sharePlaces,
                   }))}
-                  style={{ flex: 1, padding: '8px 4px', borderRadius: 2, border: `2px solid ${editPlan.shareType === val ? '#1E2A3A' : '#E2E0DC'}`, background: editPlan.shareType === val ? '#EEEDEA' : 'white', color: editPlan.shareType === val ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ flex: 1, padding: '8px 4px', borderRadius: 2, border: `2px solid ${editPlan.shareType === val? '#1E2A3A' : '#E2E0DC'}`, background: editPlan.shareType === val? '#EEEDEA' : 'white', color: editPlan.shareType === val? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {label}
                 </button>
               ))}
             </div>
-            {editPlan.shareType !== 'private' && (
+            {editPlan.shareType!== 'private' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={editPlan.shareSchedule}
-                    onChange={e => setEditPlan(p => ({ ...p, shareSchedule: e.target.checked }))}
+                    onChange={e => setEditPlan(p => ({...p, shareSchedule: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: '#1E2A3A' }} />
-                  <span style={{ color: '#4A5568', fontWeight: 600 }}>📅 일정 공유</span>
+                  <span style={{ color: '#4A5568', fontWeight: 600 }}>📅 SCHEDULE SHARE</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={editPlan.sharePlaces}
-                    onChange={e => setEditPlan(p => ({ ...p, sharePlaces: e.target.checked }))}
+                    onChange={e => setEditPlan(p => ({...p, sharePlaces: e.target.checked }))}
                     style={{ width: 16, height: 16, accentColor: '#1E2A3A' }} />
-                  <span style={{ color: '#4A5568', fontWeight: 600 }}>📍 장소 공유</span>
+                  <span style={{ color: '#4A5568', fontWeight: 600 }}>📍 Place SHARE</span>
                 </label>
               </div>
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary" onClick={savePlanEdit}>저장</button>
-            <button className="btn-secondary" onClick={() => setEditPlan(null)}>취소</button>
+            <button className="btn-primary" onClick={savePlanEdit}>SAVE</button>
+            <button className="btn-secondary" onClick={() => setEditPlan(null)}>CANCEL</button>
           </div>
         </div>
       )}
 
-      {(!plans || plans.length === 0) && !showNewPlan ? (
-        <div className="empty">아직 일정이 없어요.<br />새 일정을 만들고 장소를 추가해보세요!</div>
+      {(!plans || plans.length === 0) &&!showNewPlan? (
+        <div className="empty">No schedules.<br />Create a new schedule and add places!</div>
       ) : (
         <div className="plan-layout">
-          {/* 왼쪽: 일정 목록 — 클릭하면 아코디언으로 상세 펼쳐짐 */}
+          {/* Left: SCHEDULE List — click accordionto details */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(plans || []).map(plan => {
-              const isOpen = selected?.id === plan.id;
+              const isOpen = Selected?.id === plan.id;
               const today = new Date().toISOString().slice(0, 10);
               const isPast = plan.endDate && plan.endDate < today;
 
               return (
-                <div key={plan.id} style={{ border: isOpen ? (isPast ? '2px solid #B8BCC4' : '2px solid #1E2A3A') : '2px solid #eee', borderRadius: 3, overflow: 'hidden', background: isPast ? '#FAFAF8' : 'white', transition: 'border-color 0.15s' }}>
-                  {/* 카드 헤더 */}
-                  <div onClick={() => { setSelected(isOpen ? null : plan); setViewMode('list'); }}
-                    style={{ padding: '14px 16px', cursor: 'pointer', background: isOpen ? (isPast ? '#FAFAF8' : '#fafbff') : (isPast ? '#FAFAF8' : 'white') }}>
+                <div key={plan.id} style={{ border: isOpen? (isPast? '2px solid #B8BCC4' : '2px solid #1E2A3A') : '2px solid #eee', borderRadius: 3, overflow: 'hidden', background: isPast? '#FAFAF8' : 'white', transition: 'border-color 0.15s' }}>
+                  {/* card header */}
+                  <div onClick={() => { setSelected(isOpen? null : plan); setViewMode('list'); }}
+                    style={{ padding: '14px 16px', cursor: 'pointer', background: isOpen? (isPast? '#FAFAF8' : '#fafbff') : (isPast? '#FAFAF8' : 'white') }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                          <span style={{ fontWeight: 700, fontSize: 15, color: isPast ? '#8A919C' : '#1E2A3A' }}>{plan.title}</span>
+                          <span style={{ fontWeight: 700, fontSize: 15, color: isPast? '#8A919C' : '#1E2A3A' }}>{plan.title}</span>
                           {isPast && (
                             <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 2, background: '#F5F4F0', color: '#8A919C', border: '1px solid #E2E0DC', flexShrink: 0 }}>
-                              ✅ 완료된 일정
+                              ✅ Completed SCHEDULE
                             </span>
                           )}
                         </div>
                         <div style={{ fontSize: 12, color: '#8A919C' }}>
-                          {plan.startDate || '날짜 미설정'}{plan.endDate ? ` ~ ${plan.endDate}` : ''}
+                          {plan.startDate || 'Date TBD'}{plan.endDate? ` ~ ${plan.endDate}` : ''}
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 11, color: isPast ? '#8A919C' : '#ef4444', fontWeight: 600 }}>📍 {plan.items?.length || 0}개 장소</span>
+                          <span style={{ fontSize: 11, color: isPast? '#8A919C' : '#ef4444', fontWeight: 600 }}>📍 {plan.items?.length || 0} Place</span>
                           <span style={{ fontSize: 11, color: '#8A919C' }}>
-                            {plan.shareType === 'friends' ? '👥 친구 공개' : plan.shareType === 'public' ? '🌍 전체 공개' : '🔒 비공개'}
-                            {plan.shareSchedule && ' · 📅 일정공유'}
-                            {plan.sharePlaces && ' · 📍 장소공유'}
+                            {plan.shareType === 'friends'? '👥 Friends-only' : plan.shareType === 'public'? '🌍 Public' : '🔒 Private'}
+                            {plan.shareSchedule && ' · 📅 SCHEDULESHARE'}
+                            {plan.sharePlaces && ' · 📍 PlaceSHARE'}
                           </span>
                         </div>
                       </div>
-                      <span style={{ fontSize: 20, color: isPast ? '#B8BCC4' : '#E2E0DC', marginLeft: 10, transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', flexShrink: 0 }}>›</span>
+                      <span style={{ fontSize: 20, color: isPast? '#B8BCC4' : '#E2E0DC', marginLeft: 10, transition: 'transform 0.2s', display: 'inline-block', transform: isOpen? 'rotate(90deg)' : 'rotate(0deg)', flexShrink: 0 }}>›</span>
                     </div>
-                    {/* 수정/삭제 버튼 */}
+                    {/* EDIT/DELETE button */}
                     <div style={{ display: 'flex', gap: 4, marginTop: 10 }} onClick={e => e.stopPropagation()}>
                       {!isPast && (
                         <button onClick={() => setEditPlan({ id: plan.id, title: plan.title, startDate: plan.startDate, endDate: plan.endDate, shareType: plan.shareType || 'private', shareSchedule: plan.shareSchedule || false, sharePlaces: plan.sharePlaces || false })}
-                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid #eee', background: '#FAFAF8', color: '#555', cursor: 'pointer', fontWeight: 600 }}>✏️ 수정</button>
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid #eee', background: '#FAFAF8', color: '#555', cursor: 'pointer', fontWeight: 600 }}>✏️ EDIT</button>
                       )}
                       <button onClick={() => deletePlan(plan.id)}
-                        style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontWeight: 600 }}>🗑 삭제</button>
+                        style={{ fontSize: 11, padding: '4px 10px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontWeight: 600 }}>🗑 DELETE</button>
                     </div>
                   </div>
 
-                  {/* 아코디언 상세 */}
+                  {/* accordion Details */}
                   {isOpen && (
-                    <div style={{ borderTop: isPast ? '1px solid #E2E0DC' : '1px solid #EEEDEA', background: isPast ? '#FAFAF8' : '#fafbff', padding: '12px 16px' }}>
+                    <div style={{ borderTop: isPast? '1px solid #E2E0DC' : '1px solid #EEEDEA', background: isPast? '#FAFAF8' : '#fafbff', padding: '12px 16px' }}>
 
-                      {/* 완료된 일정 안내 배너 + 게시물 변환 버튼 */}
+                      {/* Completed SCHEDULE Guide Banner + POSTS Convert button */}
                       {isPast && (
                         <div style={{ background: '#F5F4F0', border: '1px solid #E2E0DC', borderRadius: 2, padding: '10px 14px', fontSize: 13, color: '#8A919C', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span>🔒</span>
-                            <span>완료된 일정이에요. 읽기 전용이에요.</span>
+                            <span>This schedule is completed. Read-only.</span>
                           </span>
                           <button onClick={() => onConvertToPost?.(plan)}
                             style={{ fontSize: 11, padding: '5px 12px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>
-                            ✍️ 후기 쓰기
+                            ✍️ Write story
                           </button>
                         </div>
                       )}
 
-                      {/* 탭 버튼 */}
+                      {/* Tab button */}
                       <div style={{ display: 'flex', gap: 4, background: '#F5F4F0', borderRadius: 2, padding: 3, marginBottom: 12 }}>
                         {(isPast
-                          ? [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778']]
+                         ? [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778']]
                           : [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778'], ['map', '\uD83D\uDDFA\uFE0F \uC9C0\uB3C4 \uAC80\uC0C9'], ['chat', '\uD83D\uDCAC \uCC44\uD305']]
                         ).map(([key, label]) => (
                           <button key={key}
                             onClick={() => { setViewMode(key); if (key === 'chat') loadMessages(); }}
-                            style={{ flex: 1, padding: '7px 4px', borderRadius: 2, border: 'none', background: viewMode === key ? 'white' : 'transparent', color: viewMode === key ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: viewMode === key ? 700 : 500, cursor: 'pointer', boxShadow: viewMode === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
+                            style={{ flex: 1, padding: '7px 4px', borderRadius: 2, border: 'none', background: viewMode === key? 'white' : 'transparent', color: viewMode === key? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: viewMode === key? 700 : 500, cursor: 'pointer', boxShadow: viewMode === key? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition: 'all 0.15s' }}>
                             {label}
                           </button>
                         ))}
                       </div>
 
-                      {/* 타임라인 탭 */}
+                      {/* Thai Tab */}
                       {viewMode === 'timeline' && (
-                        <PlanTimeline items={plan.items || []} startDate={plan.startDate} endDate={plan.endDate} readOnly={isPast} onRemove={isPast ? null : removeItem} />
+                        <PlanTimeline items={plan.items || []} startDate={plan.startDate} endDate={plan.endDate} readOnly={isPast} onRemove={isPast? null : removeItem} />
                       )}
 
-                      {/* 장소 목록 탭 */}
+                      {/* Place List Tab */}
                       {viewMode === 'list' && (
-                        plan.items?.length === 0 ? (
+                        plan.items?.length === 0? (
                           <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '20px 0', lineHeight: 1.9 }}>
-                            {isPast ? '장소 기록이 없어요.' : '아직 추가된 장소가 없어요.\n지도 검색 탭에서 장소를 추가해보세요!'}
+                            {isPast? 'Place Record None.' : 'No places added yet.\nAdd places from the map search tab!'}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {plan.items.map((item, idx) => (
                               <PlanItemRow key={item.id} item={item} idx={idx}
-                                onRemove={isPast ? null : removeItem}
-                                onUpdate={isPast ? null : updateItem}
+                                onRemove={isPast? null : removeItem}
+                                onUpdate={isPast? null : updateItem}
                                 readOnly={isPast} />
                             ))}
                           </div>
                         )
                       )}
 
-                      {/* 지도/검색 탭 */}
+                      {/* Map/SEARCH Tab */}
                       {viewMode === 'map' && (
                         <PlanMap onAddPlace={addPlaceToSelected} planPlaces={planPlaces} />
                       )}
 
-                      {/* 채팅 탭 */}
+                      {/* Chat Tab */}
                       {viewMode === 'chat' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          {/* 멤버 */}
+                          {/* Member */}
                           <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '12px 14px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>👥 여행 멤버</div>
-                              {selected.userId === currentUser.id && (
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>👥 TRAVEL Member</div>
+                              {Selected.userId === currentUser.id && (
                                 <button onClick={() => { setShowInvite(true); loadFollowings(); }}
                                   style={{ fontSize: 12, padding: '4px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, color: '#1E2A3A', fontWeight: 700, cursor: 'pointer' }}>
-                                  + 친구 초대
+                                  + friends Invite
                                 </button>
                               )}
                             </div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, padding: '4px 10px 4px 5px' }}>
-                                <img src={`https://ui-avatars.com/api/?name=${selected.userNickname || '?'}&background=1E2A3A&color=fff&size=22`}
+                                <img src={`https://ui-avatars.com/api/?name=${Selected.userNickname || '?'}&background=1E2A3A&color=fff&size=22`}
                                   style={{ width: 22, height: 22, borderRadius: '50%' }} alt="" />
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#1E2A3A' }}>{selected.userNickname || '방장'}</span>
-                                <span style={{ fontSize: 10, color: '#818cf8' }}>방장</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#1E2A3A' }}>{Selected.userNickname || 'Host'}</span>
+                                <span style={{ fontSize: 10, color: '#818cf8' }}>Host</span>
                               </div>
-                              {(selected.members || []).map(m => (
+                              {(Selected.members || []).map(m => (
                                 <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'white', border: '1px solid #eee', borderRadius: 2, padding: '4px 10px 4px 5px' }}>
                                   <img src={m.userProfileImage || `https://ui-avatars.com/api/?name=${m.userNickname}&background=e5e7eb&color=555&size=22`}
                                     style={{ width: 22, height: 22, borderRadius: '50%' }} alt="" />
                                   <span style={{ fontSize: 11, fontWeight: 600, color: '#4A5568' }}>{m.userNickname}</span>
-                                  {selected.userId === currentUser.id && (
+                                  {Selected.userId === currentUser.id && (
                                     <button onClick={() => kickMember(m.userId, m.userNickname)}
                                       style={{ fontSize: 10, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}>✕</button>
                                   )}
@@ -1519,21 +1519,21 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                               ))}
                             </div>
                           </div>
-                          {/* 채팅창 */}
+                          {/* ChatChangi */}
                           <div style={{ border: '1px solid #eee', borderRadius: 3, overflow: 'hidden' }}>
                             <div style={{ height: 260, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, background: '#FAFAF8' }}>
-                              {messages.length === 0 ? (
-                                <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, marginTop: 60 }}>채팅을 시작해보세요!</div>
+                              {messages.length === 0? (
+                                <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, marginTop: 60 }}>Start chatting!</div>
                               ) : (
                                 messages.map(msg => {
                                   const isMine = msg.userId === currentUser.id;
                                   return (
-                                    <div key={msg.id} style={{ display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 6 }}>
+                                    <div key={msg.id} style={{ display: 'flex', flexDirection: isMine? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 6 }}>
                                       {!isMine && <img src={msg.userProfileImage || `https://ui-avatars.com/api/?name=${msg.userNickname}&size=28&background=e5e7eb&color=555`} style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }} alt="" />}
-                                      <div style={{ maxWidth: '70%' }}>
+                                      <div style={{ Width: '70%' }}>
                                         {!isMine && <div style={{ fontSize: 10, color: '#8A919C', marginBottom: 2, paddingLeft: 4 }}>{msg.userNickname}</div>}
-                                        <div style={{ background: isMine ? '#1E2A3A' : 'white', color: isMine ? 'white' : '#1E2A3A', padding: '8px 12px', borderRadius: isMine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 13, lineHeight: 1.4, border: isMine ? 'none' : '1px solid #eee', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>{msg.content}</div>
-                                        <div style={{ fontSize: 10, color: '#bbb', marginTop: 2, textAlign: isMine ? 'right' : 'left', paddingLeft: 4, paddingRight: 4 }}>{msg.createdAt?.slice(11, 16)}</div>
+                                        <div style={{ background: isMine? '#1E2A3A' : 'white', color: isMine? 'white' : '#1E2A3A', padding: '8px 12px', borderRadius: isMine? '14px 14px 4px 14px' : '14px 14px 14px 4px', fontSize: 13, lineHeight: 1.4, border: isMine? 'none' : '1px solid #eee', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>{msg.content}</div>
+                                        <div style={{ fontSize: 10, color: '#bbb', marginTop: 2, textAlign: isMine? 'right' : 'left', paddingLeft: 4, paddingRight: 4 }}>{msg.createdAt?.slice(11, 16)}</div>
                                       </div>
                                     </div>
                                   );
@@ -1543,40 +1543,40 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                             </div>
                             <div style={{ padding: '10px 12px', borderTop: '1px solid #eee', display: 'flex', gap: 8, background: 'white' }}>
                               <input value={msgText} onChange={e => setMsgText(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                placeholder="메시지 입력..."
+                                onKeyDown={e => e.key === 'Enter' &&!e.shiftKey && sendMessage()}
+                                placeholder="MESSAGE Enter..."
                                 style={{ flex: 1, padding: '8px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                               <button onClick={sendMessage} disabled={!msgText.trim()}
-                                style={{ padding: '8px 14px', background: msgText.trim() ? '#1E2A3A' : '#E2E0DC', color: msgText.trim() ? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>전송</button>
+                                style={{ padding: '8px 14px', background: msgText.trim()? '#1E2A3A' : '#E2E0DC', color: msgText.trim()? 'white' : '#8A919C', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>SEND</button>
                             </div>
                           </div>
-                          {/* 초대 모달 */}
+                          {/* Invite Modal */}
                           {showInvite && (
                             <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '14px 16px' }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>친구 초대</div>
-                              {followings.length === 0 ? (
-                                <div style={{ fontSize: 13, color: '#8A919C' }}>팔로우한 친구가 없어요.</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 10 }}>friends Invite</div>
+                              {followings.length === 0? (
+                                <div style={{ fontSize: 13, color: '#8A919C' }}>No followed friends.</div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                  {followings.filter(f => f.id !== currentUser.id && !(selected.members || []).find(m => m.userId === f.id)).map(f => (
+                                  {followings.filter(f => f.id!== currentUser.id &&!(Selected.members || []).find(m => m.userId === f.id)).map(f => (
                                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid #eee', borderRadius: 2, background: '#FAFAF8' }}>
                                       <img src={f.profileImage || `https://ui-avatars.com/api/?name=${f.nickname}&size=32`} style={{ width: 32, height: 32, borderRadius: '50%' }} alt="" />
                                       <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{f.nickname}</span>
                                       <button onClick={() => inviteMember(f.id, f.nickname)}
-                                        style={{ padding: '5px 12px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>초대</button>
+                                        style={{ padding: '5px 12px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Invite</button>
                                     </div>
                                   ))}
                                 </div>
                               )}
                               <button onClick={() => setShowInvite(false)}
-                                style={{ marginTop: 10, width: '100%', padding: '8px', background: '#F5F4F0', border: 'none', borderRadius: 9, fontSize: 13, cursor: 'pointer', color: '#555' }}>닫기</button>
+                                style={{ marginTop: 10, width: '100%', padding: '8px', background: '#F5F4F0', border: 'none', borderRadius: 9, fontSize: 13, cursor: 'pointer', color: '#555' }}>CLOSE</button>
                             </div>
                           )}
                         </div>
                       )}
                     </div>
                   )}
-                  {/* 국가 정보 패널 — 아코디언 아래 별도 표시 */}
+                  {/* Country Info panel — accordion displayed separately below */}
                   {isOpen && detectCountries(plan.items || []).length > 0 && (
                     <div style={{ borderTop: '1px solid #EEEDEA' }}>
                       <CountryPanel countries={detectCountries(plan.items || [])} planTitle={plan.title} />
@@ -1587,21 +1587,21 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
             })}
           </div>
 
-          {/* 오른쪽: 패널 제거 (아코디언으로 통합) */}
+          {/* Right: panel Remove (integrated into accordion) */}
         </div>
       )}
       {showInvite && (
         <div className="modal-overlay" onClick={() => setShowInvite(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#1E2A3A', marginBottom: 16 }}>👥 친구 초대</div>
-            {followings.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>팔로우한 친구가 없어요.</div>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ Width: 400 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#1E2A3A', marginBottom: 16 }}>👥 friends Invite</div>
+            {followings.length === 0? (
+              <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>No followed friends.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, Height: 360, overflowY: 'auto' }}>
                 {followings.filter(u => {
-                  const alreadyMember = (selected?.members || []).some(m => m.userId === u.id);
-                  const isOwner = selected?.userId === u.id;
-                  return !alreadyMember && !isOwner;
+                  const alreadyMember = (Selected?.members || []).some(m => m.userId === u.id);
+                  const isOwner = Selected?.userId === u.id;
+                  return!alreadyMember &&!isOwner;
                 }).map(u => (
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid #eee', borderRadius: 3 }}>
                     <img src={u.profileImage || `https://ui-avatars.com/api/?name=${u.nickname}&background=1E2A3A&color=fff&size=36`}
@@ -1612,14 +1612,14 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                     </div>
                     <button onClick={() => inviteMember(u.id, u.nickname)}
                       style={{ padding: '7px 14px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      초대
+                      Invite
                     </button>
                   </div>
                 ))}
               </div>
             )}
             <button onClick={() => setShowInvite(false)}
-              style={{ width: '100%', marginTop: 14, padding: 11, borderRadius: 3, border: '1px solid #eee', background: '#F5F4F0', color: '#555', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>닫기</button>
+              style={{ width: '100%', marginTop: 14, padding: 11, borderRadius: 3, border: '1px solid #eee', background: '#F5F4F0', color: '#555', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>CLOSE</button>
           </div>
         </div>
       )}

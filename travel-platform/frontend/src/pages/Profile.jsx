@@ -10,19 +10,19 @@ const getThumbUrl = (url) => {
   return url;
 };
 
-// FOLLOWERS/FOLLOWING 목록 모달
+// FOLLOWERS/FOLLOWING List Modal
 function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ Width: 400 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div className="modal-title" style={{ marginBottom: 0 }}>{title}</div>
           <button onClick={onClose} style={{ fontSize: 20, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
         </div>
-        {users.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>목록이 없어요.</div>
+        {users.length === 0? (
+          <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>List None.</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, Height: 400, overflowY: 'auto' }}>
             {users.map(u => {
               const isFollowing = currentUser?.followingIds?.includes(u.id);
               const isMe = currentUser?.id === u.id;
@@ -36,10 +36,10 @@ function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow
                     {u.bio && <div style={{ fontSize: 12, color: '#8A919C' }}>{u.bio}</div>}
                   </div>
                   {!isMe && currentUser && (
-                    <button className={isFollowing ? 'btn-following' : 'btn-follow'}
+                    <button className={isFollowing? 'btn-following' : 'btn-follow'}
                       style={{ fontSize: 12, padding: '6px 14px' }}
                       onClick={() => onFollow?.(u.id, isFollowing)}>
-                      {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                      {isFollowing? 'FOLLOWING' : 'FOLLOW'}
                     </button>
                   )}
                 </div>
@@ -77,19 +77,19 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   };
 
   const registerBusiness = async () => {
-    if (!bizForm.business_name) { alert('업체명을 입력해주세요.'); return; }
+    if (!bizForm.business_name) { alert('Business name '); return; }
     setBizLoading(true);
     try {
-      const res = await fetch('/api/business/register?' + new URLSearchParams({ ...bizForm, user_id: user.id }), { method: 'POST' });
+      const res = await fetch('/api/business/register?' + new URLSearchParams({...bizForm, user_id: user.id }), { method: 'POST' });
       if (res.ok) {
-        alert('비즈니스 계정 신청이 완료되었습니다! 관리자 심사 후 승인됩니다.');
+        alert('Business account application submitted. Pending admin review.');
         loadBizAccount(user.id);
         setShowBizForm(false);
       } else {
         const data = await res.json();
-        alert(data.detail || '등록 실패');
+        alert(data.detail || 'REGISTER failed');
       }
-    } catch (e) { alert('서버 오류'); }
+    } catch (e) { alert('Server error'); }
     setBizLoading(false);
   };
 
@@ -115,12 +115,12 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     try {
       if (isFollowing) {
         await api.unfollow(currentUser.id, targetId);
-        onChangeUser?.({ ...currentUser, followingIds: currentUser.followingIds.filter(id => id !== targetId) });
-        if (targetId === userId) setUser(prev => ({ ...prev, followerIds: prev.followerIds.filter(id => id !== currentUser.id) }));
+        onChangeUser?.({...currentUser, followingIds: currentUser.followingIds.filter(id => id!== targetId) });
+        if (targetId === userId) setUser(prev => ({...prev, followerIds: prev.followerIds.filter(id => id!== currentUser.id) }));
       } else {
         await api.follow(currentUser.id, targetId);
-        onChangeUser?.({ ...currentUser, followingIds: [...(currentUser.followingIds || []), targetId] });
-        if (targetId === userId) setUser(prev => ({ ...prev, followerIds: [...(prev.followerIds || []), currentUser.id] }));
+        onChangeUser?.({...currentUser, followingIds: [...(currentUser.followingIds || []), targetId] });
+        if (targetId === userId) setUser(prev => ({...prev, followerIds: [...(prev.followerIds || []), currentUser.id] }));
       }
     } catch (e) { console.error(e); }
   };
@@ -130,10 +130,10 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
     try {
       if (isBlocked) {
         await api.unblock(currentUser.id, userId);
-        onChangeUser?.({ ...currentUser, blockedIds: currentUser.blockedIds.filter(id => id !== userId) });
+        onChangeUser?.({...currentUser, blockedIds: currentUser.blockedIds.filter(id => id!== userId) });
       } else {
         await api.block(currentUser.id, userId);
-        onChangeUser?.({ ...currentUser, blockedIds: [...(currentUser.blockedIds || []), userId], followingIds: currentUser.followingIds.filter(id => id !== userId) });
+        onChangeUser?.({...currentUser, blockedIds: [...(currentUser.blockedIds || []), userId], followingIds: currentUser.followingIds.filter(id => id!== userId) });
       }
       setShowBlockConfirm(false);
     } catch (e) { console.error(e); }
@@ -141,7 +141,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
 
   const openModal = async (type) => {
     try {
-      const users = type === 'followers' ? await api.getFollowers(userId) : await api.getFollowings(userId);
+      const users = type === 'followers'? await api.getFollowers(userId) : await api.getFollowings(userId);
       setModalUsers(users || []);
       setModal(type);
     } catch (e) { console.error(e); }
@@ -150,7 +150,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 30 * 1024 * 1024) { alert('이미지 크기는 30MB 이하여야 해요.'); return; }
+    if (file.size > 30 * 1024 * 1024) { alert('Image must be under 30MB.'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
@@ -158,20 +158,20 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) { const t = await res.text(); throw new Error(t || '업로드 실패'); }
+      if (!res.ok) { const t = await res.text(); throw new Error(t || 'Upload failed'); }
       const data = await res.json();
       const uploadedUrl = data.feed || data.url;
-      // 파일 생성 완료 -> DB에 즉시 SAVE
+      // file Created -> DB in immediately SAVE
       await api.updateUser(userId, { profileImage: uploadedUrl });
-      setEditData(p => ({ ...p, profileImage: uploadedUrl }));
+      setEditData(p => ({...p, profileImage: uploadedUrl }));
       setImagePreview(uploadedUrl);
-      setUser(prev => ({ ...prev, profileImage: uploadedUrl }));
-      onChangeUser?.({ ...currentUser, profileImage: uploadedUrl });
-      // sessionStorage 업데이트
+      setUser(prev => ({...prev, profileImage: uploadedUrl }));
+      onChangeUser?.({...currentUser, profileImage: uploadedUrl });
+      // sessionStorage Update
       const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
-      sessionStorage.setItem('auth_user', JSON.stringify({ ...savedUser, profileImage: uploadedUrl }));
+      sessionStorage.setItem('auth_user', JSON.stringify({...savedUser, profileImage: uploadedUrl }));
     } catch (err) {
-      alert('이미지 업로드 실패: ' + err.message);
+      alert('Image Upload failed: ' + err.message);
     }
   };
 
@@ -182,22 +182,22 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       const payload = { nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) };
       if (editData.profileImage) payload.profileImage = editData.profileImage;
       await api.updateUser(userId, payload);
-      const updated = { ...currentUser, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries), ...(editData.profileImage ? { profileImage: editData.profileImage } : {}) };
-      setUser(prev => ({ ...prev, ...updated }));
+      const updated = {...currentUser, nickname: editData.nickname, bio: editData.bio, preferredStyles: editData.preferredStyles, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries),...(editData.profileImage? { profileImage: editData.profileImage } : {}) };
+      setUser(prev => ({...prev,...updated }));
       onChangeUser?.(updated);
-      // sessionStorage 업데이트
+      // sessionStorage Update
       const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
-      sessionStorage.setItem('auth_user', JSON.stringify({ ...savedUser, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) }));
+      sessionStorage.setItem('auth_user', JSON.stringify({...savedUser, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) }));
       setEditing(false);
       setImagePreview('');
-    } catch (e) { alert('SAVE 실패: ' + e.message); }
+    } catch (e) { alert('SAVE failed: ' + e.message); }
     finally { setSaving(false); }
   };
 
-  if (loading) return <div className="empty">불러오는 중...</div>;
-  if (!user) return <div className="empty">유저를 찾을 수 없어요.</div>;
+  if (loading) return <div className="empty">Loading...</div>;
+  if (!user) return <div className="empty">User not found.</div>;
 
-  const visiblePosts = isMe ? posts : posts.filter(p => p.visibility !== 'private');
+  const visiblePosts = isMe? posts : posts.filter(p => p.visibility!== 'private');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -206,44 +206,44 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
           src={user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=1E2A3A&color=fff&size=110`}
           alt={user.nickname} />
         <div className="profile-info">
-          {editing ? (
+          {editing? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>프로필 EDIT</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>PROFILE EDIT</div>
 
-              {/* 사진 변경 */}
+              {/* Photo Change */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <img src={imagePreview || editData.profileImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.nickname}&background=1E2A3A&color=fff&size=80`}
                   style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #E2E0DC' }} alt="" />
                 <label style={{ cursor: 'pointer' }}>
                   <div style={{ padding: '7px 14px', background: '#F5F4F0', border: '1px solid #E2E0DC', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#555' }}>
-                    📷 사진 변경
+                    📷 Photo Change
                   </div>
                   <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
                 </label>
-                <span style={{ fontSize: 11, color: '#8A919C' }}>JPG, PNG / 30MB 이하</span>
+                <span style={{ fontSize: 11, color: '#8A919C' }}>JPG, PNG / 30MB </span>
               </div>
 
-              <input value={editData.nickname} onChange={e => setEditData(p => ({ ...p, nickname: e.target.value }))}
-                placeholder="Nickname" maxLength={20}
+              <input value={editData.nickname} onChange={e => setEditData(p => ({...p, nickname: e.target.value }))}
+                placeholder="Nickname" Length={20}
                 style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 14, outline: 'none' }} />
-              <textarea value={editData.bio} onChange={e => setEditData(p => ({ ...p, bio: e.target.value }))}
-                placeholder="소개글 (선택)" rows={3} maxLength={100}
+              <textarea value={editData.bio} onChange={e => setEditData(p => ({...p, bio: e.target.value }))}
+                placeholder="Short bio (optional)" rows={3} Length={100}
                 style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }} />
 
-              {/* 여행 성향 */}
+              {/* TRAVEL Preferences */}
               <div>
-                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>✈️ 여행 성향 (복수 선택)</div>
+                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>✈️ TRAVEL Preferences (Multiple SELECT)</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {TRAVEL_STYLES.map(s => {
-                    const selected = (editData.preferredStyles || []).includes(s.key);
+                    const Selected = (editData.preferredStyles || []).includes(s.key);
                     return (
                       <button key={s.key} type="button" onClick={() => setEditData(p => ({
-                        ...p,
-                        preferredStyles: selected
-                          ? p.preferredStyles.filter(k => k !== s.key)
+                       ...p,
+                        preferredStyles: Selected
+                         ? p.preferredStyles.filter(k => k!== s.key)
                           : [...(p.preferredStyles || []), s.key]
                       }))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 2, border: `1.5px solid ${selected ? s.color : '#E2E0DC'}`, background: selected ? s.bg : 'white', color: selected ? s.color : '#8A919C', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 2, border: `1.5px solid ${Selected? s.color : '#E2E0DC'}`, background: Selected? s.bg : 'white', color: Selected? s.color : '#8A919C', fontSize: 12, fontWeight: Selected? 700 : 500, cursor: 'pointer' }}>
                         <span style={{ fontSize: 14 }}>{s.icon}</span> {s.label}
                       </button>
                     );
@@ -251,48 +251,48 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 </div>
               </div>
 
-              {/* 국적 */}
+              {/* Nationality */}
               <div>
-                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>🌏 국적</div>
-                <select value={editData.nationality} onChange={e => setEditData(p => ({ ...p, nationality: e.target.value }))}
+                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>🌏 Nationality</div>
+                <select value={editData.nationality} onChange={e => setEditData(p => ({...p, nationality: e.target.value }))}
                   style={{ width: '100%', padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', background: 'white' }}>
-                  <option value="KR">🇰🇷 대한민국</option>
-                  <option value="JP">🇯🇵 일본</option>
-                  <option value="US">🇺🇸 미국</option>
-                  <option value="EU">🇪🇺 유럽 (유로)</option>
-                  <option value="TH">🇹🇭 태국</option>
-                  <option value="CN">🇨🇳 중국</option>
-                  <option value="GB">🇬🇧 영국</option>
-                  <option value="AU">🇦🇺 호주</option>
-                  <option value="SG">🇸🇬 싱가포르</option>
-                  <option value="MY">🇲🇾 말레이시아</option>
-                  <option value="VN">🇻🇳 베트남</option>
-                  <option value="ID">🇮🇩 인도네시아</option>
-                  <option value="PH">🇵🇭 필리핀</option>
+                  <option value="KR">🇰🇷 Korea</option>
+                  <option value="JP">🇯🇵 Japan</option>
+                  <option value="US">🇺🇸 USA</option>
+                  <option value="EU">🇪🇺 Europe (EUR)</option>
+                  <option value="TH">🇹🇭 Thailand</option>
+                  <option value="CN">🇨🇳 China</option>
+                  <option value="GB">🇬🇧 UK</option>
+                  <option value="AU">🇦🇺 Australia</option>
+                  <option value="SG">🇸🇬 Singapore</option>
+                  <option value="MY">🇲🇾 Malaysia</option>
+                  <option value="VN">🇻🇳 Vietnam</option>
+                  <option value="ID">🇮🇩 Indonesia</option>
+                  <option value="PH">🇵🇭 Philippines</option>
                 </select>
               </div>
 
-              {/* 가고싶은 나라 */}
+              {/* Countries you want to visit */}
               <div>
-                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>✈️ 가고싶은 나라 <span style={{ fontWeight: 400 }}>(복수 선택)</span></div>
+                <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, fontWeight: 600 }}>Countries you want to visit <span style={{ fontWeight: 400 }}>(Multiple SELECT)</span></div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {[
-                    { code: 'JP', label: '🇯🇵 일본' }, { code: 'US', label: '🇺🇸 미국' },
-                    { code: 'FR', label: '🇫🇷 프랑스' }, { code: 'IT', label: '🇮🇹 이탈리아' },
-                    { code: 'TH', label: '🇹🇭 태국' }, { code: 'ID', label: '🇮🇩 발리' },
-                    { code: 'ES', label: '🇪🇸 스페인' }, { code: 'GB', label: '🇬🇧 영국' },
-                    { code: 'AU', label: '🇦🇺 호주' }, { code: 'SG', label: '🇸🇬 싱가포르' },
-                    { code: 'VN', label: '🇻🇳 베트남' }, { code: 'CN', label: '🇨🇳 중국' },
-                    { code: 'HK', label: '🇭🇰 홍콩' }, { code: 'TR', label: '🇹🇷 터키' },
-                    { code: 'MA', label: '🇲🇦 모로코' }, { code: 'MX', label: '🇲🇽 멕시코' },
-                    { code: 'CZ', label: '🇨🇿 체코' }, { code: 'NL', label: '🇳🇱 네덜란드' },
-                    { code: 'AE', label: '🇦🇪 두바이' }, { code: 'HW', label: '🌺 하와이' },
+                    { code: 'JP', label: '🇯🇵 Japan' }, { code: 'US', label: '🇺🇸 USA' },
+                    { code: 'FR', label: '🇫🇷 France' }, { code: 'IT', label: '🇮🇹 Italy' },
+                    { code: 'TH', label: '🇹🇭 Thailand' }, { code: 'ID', label: '🇮🇩 Bali' },
+                    { code: 'ES', label: '🇪🇸 Spain' }, { code: 'GB', label: '🇬🇧 UK' },
+                    { code: 'AU', label: '🇦🇺 Australia' }, { code: 'SG', label: '🇸🇬 Singapore' },
+                    { code: 'VN', label: '🇻🇳 Vietnam' }, { code: 'CN', label: '🇨🇳 China' },
+                    { code: 'HK', label: '🇭🇰 Hong Kong' }, { code: 'TR', label: '🇹🇷 Turkey' },
+                    { code: 'MA', label: '🇲🇦 Morocco' }, { code: 'MX', label: '🇲🇽 Mexico' },
+                    { code: 'CZ', label: '🇨🇿 Czechia' }, { code: 'NL', label: '🇳🇱 Netherlands' },
+                    { code: 'AE', label: '🇦🇪 Dubai' }, { code: 'HW', label: '🌺 Hawaii' },
                   ].map(c => {
-                    const selected = (editData.wishCountries || []).includes(c.code);
+                    const Selected = (editData.wishCountries || []).includes(c.code);
                     return (
                       <button key={c.code} type="button"
-                        onClick={() => setEditData(p => ({ ...p, wishCountries: selected ? p.wishCountries.filter(x => x !== c.code) : [...(p.wishCountries || []), c.code] }))}
-                        style={{ padding: '5px 10px', borderRadius: 2, border: `1.5px solid ${selected ? '#1E2A3A' : '#E2E0DC'}`, background: selected ? '#EEEDEA' : 'white', color: selected ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: selected ? 700 : 500, cursor: 'pointer' }}>
+                        onClick={() => setEditData(p => ({...p, wishCountries: Selected? p.wishCountries.filter(x => x!== c.code) : [...(p.wishCountries || []), c.code] }))}
+                        style={{ padding: '5px 10px', borderRadius: 2, border: `1.5px solid ${Selected? '#1E2A3A' : '#E2E0DC'}`, background: Selected? '#EEEDEA' : 'white', color: Selected? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: Selected? 700 : 500, cursor: 'pointer' }}>
                         {c.label}
                       </button>
                     );
@@ -301,8 +301,8 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveProfile} disabled={saving || uploading}
-                  style={{ flex: 1, padding: '9px', background: uploading ? '#8A919C' : '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer' }}>
-                  {uploading ? '업로드 중...' : saving ? 'SAVE 중...' : 'SAVE'}
+                  style={{ flex: 1, padding: '9px', background: uploading? '#8A919C' : '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: uploading? 'not-allowed' : 'pointer' }}>
+                  {uploading? 'Upload...' : saving? 'SAVE...' : 'SAVE'}
                 </button>
                 <button onClick={() => { setEditing(false); setImagePreview(''); }}
                   style={{ flex: 1, padding: '9px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>
@@ -310,73 +310,73 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 </button>
               </div>
 
-              {/* ── 계정 유형 관리 (PC만) ── */}
+              {/* ── Account type management (PC only) ── */}
               <div className="business-section" style={{ marginTop: 8, padding: 16, background: '#FAFAF8', borderRadius: 3, border: '1px solid #F0EEE9' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 8 }}>🏢 계정 유형</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', marginBottom: 8 }}>🏢 Account Type</div>
 
-                {bizAccount ? (
+                {bizAccount? (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#4A5568' }}>
-                        {bizAccount.account_type === 'official' ? '★ 공식 계정' : bizAccount.badge_type === 'verified' ? '✓ 인증된 비즈니스' : bizAccount.badge_type === 'premium' ? '♦ 프리미엄' : '🏢 비즈니스'}
+                        {bizAccount.account_type === 'official'? '★ Official Account' : bizAccount.badge_type === 'verified'? '✓ Verified Business' : bizAccount.badge_type === 'premium'? '♦ Premium' : '🏢 Business'}
                       </span>
                       <span style={{
                         fontSize: 10, padding: '2px 8px', borderRadius: 2,
-                        background: bizAccount.status === 'approved' ? '#ecfdf5' : bizAccount.status === 'pending' ? '#fffbeb' : '#fef2f2',
-                        color: bizAccount.status === 'approved' ? '#10b981' : bizAccount.status === 'pending' ? '#f59e0b' : '#ef4444',
+                        background: bizAccount.status === 'approved'? '#ecfdf5' : bizAccount.status === 'pending'? '#fffbeb' : '#fef2f2',
+                        color: bizAccount.status === 'approved'? '#10b981' : bizAccount.status === 'pending'? '#f59e0b' : '#ef4444',
                         fontWeight: 700
                       }}>
-                        {bizAccount.status === 'approved' ? '승인됨' : bizAccount.status === 'pending' ? '심사 중' : '거절'}
+                        {bizAccount.status === 'approved'? 'Approved' : bizAccount.status === 'pending'? 'Pending review ' : 'Rejected'}
                       </span>
                     </div>
                     <div style={{ fontSize: 12, color: '#8A919C' }}>
                       <div>{bizAccount.business_name}</div>
                       {bizAccount.business_description && <div style={{ marginTop: 2 }}>{bizAccount.business_description}</div>}
-                      {bizAccount.reject_reason && <div style={{ color: '#ef4444', marginTop: 4 }}>거절 사유: {bizAccount.reject_reason}</div>}
+                      {bizAccount.reject_reason && <div style={{ color: '#ef4444', marginTop: 4 }}>Rejected Reason: {bizAccount.reject_reason}</div>}
                     </div>
                   </div>
-                ) : showBizForm ? (
+                ) : showBizForm? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>카테고리 선택</div>
+                    <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 4 }}>Category SELECT</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {[
-                        { key: 'restaurant', icon: '🍽️', label: '음식점' },
-                        { key: 'hotel', icon: '🏨', label: '숙소' },
-                        { key: 'tour', icon: '🎒', label: '투어' },
-                        { key: 'city', icon: '🏙️', label: '관광청' },
-                        { key: 'transport', icon: '✈️', label: '교통' },
-                        { key: 'shopping', icon: '🛍️', label: '쇼핑' },
-                        { key: 'creator', icon: '🎬', label: '크리에이터' },
-                        { key: 'other', icon: '📢', label: '기타' },
+                        { key: 'restaurant', icon: '🍽️', label: 'Restaurant' },
+                        { key: 'hotel', icon: '🏨', label: 'Hotel' },
+                        { key: 'tour', icon: '🎒', label: 'Tour' },
+                        { key: 'city', icon: '🏙️', label: 'Tourism board' },
+                        { key: 'transport', icon: '✈️', label: 'TRANSIT' },
+                        { key: 'shopping', icon: '🛍️', label: 'Shopping' },
+                        { key: 'creator', icon: '🎬', label: 'Creator' },
+                        { key: 'other', icon: '📢', label: 'Other' },
                       ].map(cat => (
-                        <button key={cat.key} type="button" onClick={() => setBizForm(p => ({ ...p, category: cat.key }))}
+                        <button key={cat.key} type="button" onClick={() => setBizForm(p => ({...p, category: cat.key }))}
                           style={{
-                            padding: '5px 10px', borderRadius: 2, border: bizForm.category === cat.key ? '1.5px solid #1E2A3A' : '1px solid #E2E0DC',
-                            background: bizForm.category === cat.key ? '#FAFAF8' : 'white', color: bizForm.category === cat.key ? '#1E2A3A' : '#8A919C',
-                            fontSize: 11, fontWeight: bizForm.category === cat.key ? 700 : 500, cursor: 'pointer'
+                            padding: '5px 10px', borderRadius: 2, border: bizForm.category === cat.key? '1.5px solid #1E2A3A' : '1px solid #E2E0DC',
+                            background: bizForm.category === cat.key? '#FAFAF8' : 'white', color: bizForm.category === cat.key? '#1E2A3A' : '#8A919C',
+                            fontSize: 11, fontWeight: bizForm.category === cat.key? 700 : 500, cursor: 'pointer'
                           }}>
                           {cat.icon} {cat.label}
                         </button>
                       ))}
                     </div>
-                    <input placeholder="업체명/이름 *" value={bizForm.business_name} onChange={e => setBizForm(p => ({ ...p, business_name: e.target.value }))}
+                    <input placeholder="Business name/name *" value={bizForm.business_name} onChange={e => setBizForm(p => ({...p, business_name: e.target.value }))}
                       style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
-                    <textarea placeholder="소개 (선택)" rows={2} value={bizForm.business_description} onChange={e => setBizForm(p => ({ ...p, business_description: e.target.value }))}
+                    <textarea placeholder="Description (optional)" rows={2} value={bizForm.business_description} onChange={e => setBizForm(p => ({...p, business_description: e.target.value }))}
                       style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <input placeholder="국가" value={bizForm.business_country} onChange={e => setBizForm(p => ({ ...p, business_country: e.target.value }))}
+                      <input placeholder="Country" value={bizForm.business_country} onChange={e => setBizForm(p => ({...p, business_country: e.target.value }))}
                         style={{ flex: 1, padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
-                      <input placeholder="도시" value={bizForm.business_city} onChange={e => setBizForm(p => ({ ...p, business_city: e.target.value }))}
+                      <input placeholder="City" value={bizForm.business_city} onChange={e => setBizForm(p => ({...p, business_city: e.target.value }))}
                         style={{ flex: 1, padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                     </div>
-                    <input placeholder="웹사이트 (선택)" value={bizForm.business_website} onChange={e => setBizForm(p => ({ ...p, business_website: e.target.value }))}
+                    <input placeholder="Website (optional)" value={bizForm.business_website} onChange={e => setBizForm(p => ({...p, business_website: e.target.value }))}
                       style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
-                    <input placeholder="연락처 (선택)" value={bizForm.business_phone} onChange={e => setBizForm(p => ({ ...p, business_phone: e.target.value }))}
+                    <input placeholder="Contact (optional)" value={bizForm.business_phone} onChange={e => setBizForm(p => ({...p, business_phone: e.target.value }))}
                       style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none' }} />
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={registerBusiness} disabled={bizLoading}
                         style={{ flex: 1, padding: '9px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                        {bizLoading ? '신청 중...' : '🚀 비즈니스 신청'}
+                        {bizLoading? 'APPLY...' : '🚀 Business APPLY'}
                       </button>
                       <button onClick={() => setShowBizForm(false)}
                         style={{ padding: '9px 16px', background: '#F5F4F0', color: '#555', border: 'none', borderRadius: 2, fontSize: 13, cursor: 'pointer' }}>CANCEL</button>
@@ -384,10 +384,10 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8 }}>일반 계정입니다. 비즈니스 계정으로 전환하면 인증 배지와 통계 기능을 사용할 수 있어요.</div>
+                    <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8 }}>Regular account. Upgrade to Business to get verified badge and stats features. </div>
                     <button onClick={() => setShowBizForm(true)}
                       style={{ padding: '8px 16px', background: '#1E2A3A', color: 'white', border: 'none', borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      🏢 비즈니스 계정으로 전환
+                      🏢 Business account upgrade
                     </button>
                   </div>
                 )}
@@ -420,13 +420,13 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               </div>
               {!isMe && currentUser && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button className={isFollowing ? 'btn-following' : 'btn-follow'}
+                  <button className={isFollowing? 'btn-following' : 'btn-follow'}
                     onClick={() => handleFollow(userId, isFollowing)}>
-                    {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                    {isFollowing? 'FOLLOWING' : 'FOLLOW'}
                   </button>
                   <button onClick={() => setShowBlockConfirm(true)}
-                    style={{ padding: '9px 16px', borderRadius: 2, border: '1px solid #E2E0DC', background: 'white', fontSize: 13, color: isBlocked ? '#ef4444' : '#8A919C', fontWeight: 600, cursor: 'pointer' }}>
-                    {isBlocked ? '차단 해제' : '차단'}
+                    style={{ padding: '9px 16px', borderRadius: 2, border: '1px solid #E2E0DC', background: 'white', fontSize: 13, color: isBlocked? '#ef4444' : '#8A919C', fontWeight: 600, cursor: 'pointer' }}>
+                    {isBlocked? 'Unblock' : 'BLOCK'}
                   </button>
                 </div>
               )}
@@ -435,28 +435,28 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         </div>
       </div>
 
-      {/* 차단 확인 */}
+      {/* BLOCK OK */}
       {showBlockConfirm && (
         <div className="modal-overlay" onClick={() => setShowBlockConfirm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
-            <div className="modal-title">{isBlocked ? '차단 해제' : `${user.nickname}님을 차단할까요?`}</div>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ Width: 360 }}>
+            <div className="modal-title">{isBlocked? 'Unblock' : `Block ${user.nickname}?`}</div>
             <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>
               {isBlocked
-                ? '차단을 해제하면 상대방의 POSTS이 다시 보여요.'
-                : '차단하면 상대방의 POSTS이 보이지 않고, FOLLOW 관계가 해제돼요.'}
+               ? 'Unblock to see their posts again.'
+                : 'Blocking hides their posts and removes the follow connection.'}
             </p>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowBlockConfirm(false)}>CANCEL</button>
-              <button className="btn-cancel" onClick={handleBlock}>{isBlocked ? '차단 해제' : '차단'}</button>
+              <button className="btn-cancel" onClick={handleBlock}>{isBlocked? 'Unblock' : 'BLOCK'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* FOLLOWERS/FOLLOWING 모달 */}
+      {/* FOLLOWERS/FOLLOWING Modal */}
       {modal && (
         <UserListModal
-          title={modal === 'followers' ? 'FOLLOWERS' : 'FOLLOWING'}
+          title={modal === 'followers'? 'FOLLOWERS' : 'FOLLOWING'}
           users={modalUsers}
           currentUser={currentUser}
           onClose={() => setModal(null)}
@@ -465,30 +465,30 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         />
       )}
 
-      {/* 프로필 탭 */}
+      {/* PROFILE Tab */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E2E0DC' }}>
         {[
           { key: 'posts', label: `📷 POSTS ${visiblePosts.length}` },
-          ...(isMe ? [{ key: 'saved', label: `🔖 SAVED` }] : []),
+         ...(isMe? [{ key: 'saved', label: `🔖 SAVED` }] : []),
           { key: 'badges', label: `🏅 BADGES ${user.badges?.length || 0}` },
         ].map(t => (
           <button key={t.key} onClick={() => setProfileTab(t.key)}
-            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', borderBottom: `2px solid ${profileTab === t.key ? '#1E2A3A' : 'transparent'}`, color: profileTab === t.key ? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: profileTab === t.key ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
+            style={{ flex: 1, padding: '12px 0', background: 'none', border: 'none', borderBottom: `2px solid ${profileTab === t.key? '#1E2A3A' : 'transparent'}`, color: profileTab === t.key? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: profileTab === t.key? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* POSTS 탭 */}
+      {/* POSTS Tab */}
       {profileTab === 'posts' && (
-        visiblePosts.length === 0 ? (
-          <div className="empty">아직 POSTS이 없어요.</div>
+        visiblePosts.length === 0? (
+          <div className="empty">No posts None.</div>
         ) : (
           <div className="profile-grid">
             {visiblePosts.map(post => (
               <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
                 {post.images?.[0]
-                  ? <img src={getThumbUrl(post.images[0])} alt={post.title} />
+                 ? <img src={getThumbUrl(post.images[0])} alt={post.title} />
                   : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
                 }
                 {post.visibility === 'private' && (
@@ -500,12 +500,12 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         )
       )}
 
-      {/* SAVE된 POSTS 탭 (본인만) */}
+      {/* Saved posts tab (only mine) */}
       {profileTab === 'saved' && isMe && (
         <SavedPosts userId={userId} savedPostIds={user.savedPostIds || []} onOpenPost={onOpenPost} />
       )}
 
-      {/* BADGES 탭 */}
+      {/* BADGES Tab */}
       {profileTab === 'badges' && (
         <BadgeGrid badges={user.badges || []} posts={visiblePosts} user={user} />
       )}
@@ -513,7 +513,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   );
 }
 
-// ── SAVE된 POSTS ───────────────────────────────────────
+// ── Saved posts ───────────────────────────────────────
 function SavedPosts({ userId, savedPostIds, onOpenPost }) {
   const [savedPosts, setSavedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -530,15 +530,15 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
     load();
   }, [savedPostIds]);
 
-  if (loading) return <div className="empty">불러오는 중...</div>;
-  if (!savedPosts.length) return <div className="empty">SAVE된 POSTS이 없어요.<br />POSTS 상세에서 🔖 버튼으로 SAVE해보세요!</div>;
+  if (loading) return <div className="empty">Loading...</div>;
+  if (!savedPosts.length) return <div className="empty">No saved posts.<br />Tap 🔖 in post details to save.</div>;
 
   return (
     <div className="profile-grid">
       {savedPosts.map(post => (
         <div key={post.id} className="profile-grid-item" onClick={() => onOpenPost?.(post)}>
           {post.images?.[0]
-            ? <img src={getThumbUrl(post.images[0])} alt={post.title} />
+           ? <img src={getThumbUrl(post.images[0])} alt={post.title} />
             : <div style={{ width: '100%', height: '100%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✈️</div>
           }
         </div>
@@ -547,35 +547,35 @@ function SavedPosts({ userId, savedPostIds, onOpenPost }) {
   );
 }
 
-// ── BADGES 그리드 ─────────────────────────────────────────
+// ── BADGES grid ─────────────────────────────────────────
 const BADGE_INFO = {
-  first_post: { icon: '✏️', name: '첫 POSTS', desc: '첫 번째 여행 이야기 작성' },
-  ten_posts: { icon: '📝', name: '여행 작가', desc: 'POSTS 10개 달성' },
-  fifty_posts: { icon: '📚', name: '여행 전문가', desc: 'POSTS 50개 달성' },
-  likes_100: { icon: '❤️', name: '인기 여행자', desc: '좋아요 100개 달성' },
-  likes_1000: { icon: '🔥', name: '여행 인플루언서', desc: '좋아요 1000개 달성' },
-  followers_10: { icon: '👥', name: '친구 만들기', desc: 'FOLLOWERS 10명 달성' },
-  followers_100: { icon: '🌟', name: '여행 스타', desc: 'FOLLOWERS 100명 달성' },
-  countries_5: { icon: '🗺️', name: '세계 탐험가', desc: '5개국 방문' },
-  countries_10: { icon: '✈️', name: '글로벌 여행자', desc: '10개국 방문' },
-  countries_30: { icon: '🌍', name: '세계 일주', desc: '30개국 방문' },
+  First_post: { icon: '✏️', name: 'First POSTS', desc: 'First Travel stories Write' },
+  ten_posts: { icon: '📝', name: 'Travel Writer', desc: 'POSTS 10 achieved' },
+  fifty_posts: { icon: '📚', name: 'Travel Expert', desc: 'POSTS 50 achieved' },
+  likes_100: { icon: '❤️', name: 'Popular Traveler', desc: '100 likes received' },
+  likes_1000: { icon: '🔥', name: 'TRAVEL influencer', desc: '1,000 likes received' },
+  followers_10: { icon: '👥', name: 'Community Starter', desc: 'First 10 followers' },
+  followers_100: { icon: '🌟', name: 'Travel Star', desc: 'Reached 100 followers' },
+  countries_5: { icon: '🗺️', name: 'World Explorer', desc: '5 countries explored' },
+  countries_10: { icon: '✈️', name: 'Global Traveler', desc: '10 countries explored' },
+  countries_30: { icon: '🌍', name: 'Globetrotter', desc: '30 countries explored' },
 };
 
 function BadgeGrid({ badges, posts, user }) {
   const allBadgeKeys = Object.keys(BADGE_INFO);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ fontSize: 12, color: '#8A919C' }}>획득한 BADGES {badges.length}개 / 전체 {allBadgeKeys.length}개</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+      <div style={{ fontSize: 12, color: '#8A919C' }}>Earned BADGES {badges} / ALL {allBadgeKeys}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, min(140px, 1fr))', gap: 10 }}>
         {allBadgeKeys.map(key => {
           const info = BADGE_INFO[key];
           const earned = badges.includes(key);
           return (
-            <div key={key} style={{ border: `1px solid ${earned ? '#c7d2fe' : '#E2E0DC'}`, borderRadius: 3, padding: '14px 12px', textAlign: 'center', background: earned ? '#fafbff' : '#FAFAF8', opacity: earned ? 1 : 0.5 }}>
+            <div key={key} style={{ border: `1px solid ${earned? '#c7d2fe' : '#E2E0DC'}`, borderRadius: 3, padding: '14px 12px', textAlign: 'center', background: earned? '#fafbff' : '#FAFAF8', opacity: earned? 1 : 0.5 }}>
               <div style={{ fontSize: 28, marginBottom: 6 }}>{info.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: earned ? '#1E2A3A' : '#8A919C', marginBottom: 3 }}>{info.name}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: earned? '#1E2A3A' : '#8A919C', marginBottom: 3 }}>{info.name}</div>
               <div style={{ fontSize: 11, color: '#8A919C', lineHeight: 1.4 }}>{info.desc}</div>
-              {earned && <div style={{ fontSize: 10, color: '#1E2A3A', fontWeight: 700, marginTop: 6 }}>✓ 획득</div>}
+              {earned && <div style={{ fontSize: 10, color: '#1E2A3A', fontWeight: 700, marginTop: 6 }}>✓ Earned</div>}
             </div>
           );
         })}

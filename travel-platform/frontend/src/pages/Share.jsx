@@ -5,11 +5,11 @@ import { TRAVEL_STYLES } from '../travelStyles';
 function timeUntil(dateStr) {
   if (!dateStr) return null;
   const diff = new Date(dateStr).getTime() - Date.now();
-  if (diff < 0) return '여행 중';
+  if (diff < 0) return 'TRAVEL ';
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return '오늘 출발!';
-  if (days === 1) return '내일 출발';
-  return `${days}일 후 출발`;
+  if (days === 0) return 'Today From!';
+  if (days === 1) return 'MyD From';
+  return `${days}D after From`;
 }
 
 function isSamePlace(items1, items2) {
@@ -22,10 +22,10 @@ export default function Share({ currentUser, onProfile }) {
   const [myPlans, setMyPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState('all');       // all | schedule | places
+  const [tab, setTab] = useState('all'); // all | schedule | places
   const [searchQuery, setSearchQuery] = useState('');
   const [showMine, setShowMine] = useState(false);
-  const [styleFilter, setStyleFilter] = useState(''); // 여행 스타일 필터
+  const [styleFilter, setStyleFilter] = useState(''); // TRAVEL Style Filter
 
   useEffect(() => {
     if (currentUser) load();
@@ -51,23 +51,23 @@ export default function Share({ currentUser, onProfile }) {
 
   const myAllItems = myPlans.flatMap(p => p.items || []);
 
-  // 내 공유 일정 (public/friends로 설정한 것)
+  // My shared schedules (public/friends as set as )
   const mySharedPlans = myPlans.filter(p => p.shareType === 'public' || p.shareType === 'friends');
 
-  // 탭 필터
-  const basePlans = showMine ? mySharedPlans : plans;
-  const allPlans      = basePlans;
+  // Tab Filter
+  const basePlans = showMine? mySharedPlans : plans;
+  const allPlans = basePlans;
   const schedulePlans = basePlans.filter(p => p.shareSchedule && p.startDate);
-  const placePlans    = basePlans.filter(p => p.sharePlaces && p.items?.length > 0);
+  const placePlans = basePlans.filter(p => p.sharePlaces && p.items?.length > 0);
 
-  const tabFiltered = tab === 'schedule' ? schedulePlans
-                    : tab === 'places'   ? placePlans
+  const tabFiltered = tab === 'schedule'? schedulePlans
+                    : tab === 'places'? placePlans
                     : allPlans;
 
-  // 검색 필터 (제목 or 작성자 닉네임 or 장소명)
+  // Search filter (Title or Write chars Nickname or place names)
   const q = searchQuery.trim().toLowerCase();
   const filtered = tabFiltered.filter(p => {
-    const matchSearch = !q || (
+    const matchSearch =!q || (
       p.title?.toLowerCase().includes(q) ||
       p.userNickname?.toLowerCase().includes(q) ||
       p.items?.some(i => i.placeName?.toLowerCase().includes(q))
@@ -75,33 +75,33 @@ export default function Share({ currentUser, onProfile }) {
     return matchSearch;
   });
 
-  // 같은 장소 가는 친구 (내 공유정보 모드 아닐 때만)
-  const sameDestFriends = !showMine
-    ? placePlans.filter(p => myAllItems.length > 0 && isSamePlace(myAllItems, p.items || []))
+  // Friends going to the same place (when not in my-shared mode)
+  const sameDestFriends =!showMine
+   ? placePlans.filter(p => myAllItems.length > 0 && isSamePlace(myAllItems, p.items || []))
     : [];
 
-  if (!currentUser) return <div className="empty">로그인이 필요해요.</div>;
+  if (!currentUser) return <div className="empty">LOGIN required.</div>;
 
   const emptyMsg = {
-    all:      { icon: showMine ? '🔗' : '✈', title: showMine ? '공유한 일정이 없어요' : '공유된 일정이 없어요', sub: showMine ? '일정을 전체공개 또는 친구공개로 설정하면 여기에 표시돼요.' : '친구들이 일정을 전체공개 또는 친구공개로 설정하면 여기서 볼 수 있어요.' },
-    schedule: { icon: '📅', title: '공유된 일정이 없어요', sub: '일정 공유를 켜면 여행 날짜를 볼 수 있어요.' },
-    places:   { icon: '📍', title: '공유된 장소가 없어요', sub: '장소 공유를 켜면 방문 예정 장소를 볼 수 있어요.' },
+    all: { icon: showMine? '🔗' : '✈', title: showMine? 'No shared schedules yet' : 'No schedules shared with you', sub: showMine? 'Set your schedule to public or friends-only and it will appear here.' : 'Schedules appear here when friends set them to public or friends-only.' },
+    schedule: { icon: '📅', title: 'No schedules shared with you', sub: 'Turn on schedule sharing to see travel dates.' },
+    places: { icon: '📍', title: 'No shared places', sub: 'Turn on place sharing to see planned places.' },
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div className="page-header">
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>✈ 정보공유</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>✈ InfoSHARE</div>
       </div>
 
-      {/* 검색 + 내 공유정보 토글 */}
+      {/* SEARCH + My shared toggle */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: '#8A919C', pointerEvents: 'none' }}>🔍</span>
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="일정 이름, 작성자, 장소명으로 검색"
+            placeholder="Search by schedule name, author, or place"
             style={{ width: '100%', padding: '10px 14px 10px 36px', border: '1px solid #E2E0DC', borderRadius: 3, fontSize: 13, outline: 'none', boxSizing: 'border-box', background: 'white' }}
           />
           {searchQuery && (
@@ -109,35 +109,35 @@ export default function Share({ currentUser, onProfile }) {
               style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#8A919C', padding: '0 4px' }}>✕</button>
           )}
         </div>
-        {/* 내 공유정보 토글 */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', flexShrink: 0, padding: '8px 14px', borderRadius: 3, border: `2px solid ${showMine ? '#1E2A3A' : '#E2E0DC'}`, background: showMine ? '#EEEDEA' : 'white', transition: 'all 0.15s', userSelect: 'none' }}>
+        {/* My shared toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', flexShrink: 0, padding: '8px 14px', borderRadius: 3, border: `2px solid ${showMine? '#1E2A3A' : '#E2E0DC'}`, background: showMine? '#EEEDEA' : 'white', transition: 'all 0.15s', userSelect: 'none' }}>
           <input type="checkbox" checked={showMine} onChange={e => setShowMine(e.target.checked)}
             style={{ width: 15, height: 15, accentColor: '#1E2A3A', cursor: 'pointer' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: showMine ? '#1E2A3A' : '#8A919C', whiteSpace: 'nowrap' }}>🔗 내 공유정보</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: showMine? '#1E2A3A' : '#8A919C', whiteSpace: 'nowrap' }}>🔗 My shared</span>
         </label>
       </div>
 
-      {/* 여행 스타일 필터 */}
+      {/* TRAVEL Style Filter */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button onClick={() => setStyleFilter('')}
-          style={{ padding: '6px 14px', borderRadius: 2, border: `1.5px solid ${!styleFilter ? '#1E2A3A' : '#E2E0DC'}`, background: !styleFilter ? '#EEEDEA' : 'white', color: !styleFilter ? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight: !styleFilter ? 700 : 500, cursor: 'pointer' }}>
-          🌍 전체
+          style={{ padding: '6px 14px', borderRadius: 2, border: `1.5px solid ${!styleFilter? '#1E2A3A' : '#E2E0DC'}`, background:!styleFilter? '#EEEDEA' : 'white', color:!styleFilter? '#1E2A3A' : '#8A919C', fontSize: 12, fontWeight:!styleFilter? 700 : 500, cursor: 'pointer' }}>
+          🌍 ALL
         </button>
         {TRAVEL_STYLES.map(s => {
           const isSel = styleFilter === s.key;
           return (
-            <button key={s.key} onClick={() => setStyleFilter(isSel ? '' : s.key)}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 2, border: `1.5px solid ${isSel ? s.color : '#E2E0DC'}`, background: isSel ? s.bg : 'white', color: isSel ? s.color : '#8A919C', fontSize: 12, fontWeight: isSel ? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
+            <button key={s.key} onClick={() => setStyleFilter(isSel? '' : s.key)}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 2, border: `1.5px solid ${isSel? s.color : '#E2E0DC'}`, background: isSel? s.bg : 'white', color: isSel? s.color : '#8A919C', fontSize: 12, fontWeight: isSel? 700 : 500, cursor: 'pointer', transition: 'all 0.1s' }}>
               <span style={{ fontSize: 14 }}>{s.icon}</span> {s.label}
             </button>
           );
         })}
       </div>
 
-      {/* 같은 곳 가는 친구 알림 */}
+      {/* friends going to the same places ALERTS */}
       {!showMine && sameDestFriends.length > 0 && (
         <div style={{ background: 'linear-gradient(135deg, #1E2A3A, #818cf8)', borderRadius: 3, padding: '16px 20px', color: 'white' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>🎉 같은 곳 가는 친구가 있어요!</div>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>🎉 There are friends going to the same places!</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {sameDestFriends.slice(0, 3).map(p => (
               <div key={p.id} onClick={() => onProfile?.(p.userId)}
@@ -154,50 +154,50 @@ export default function Share({ currentUser, onProfile }) {
         </div>
       )}
 
-      {/* 탭 */}
+      {/* Tab */}
       <div style={{ display: 'flex', gap: 8 }}>
         {[
-          ['all',      `전체${allPlans.length > 0 ? ` (${allPlans.length})` : ''}`],
-          ['schedule', `📅 일정 공유${schedulePlans.length > 0 ? ` (${schedulePlans.length})` : ''}`],
-          ['places',   `📍 장소 공유${placePlans.length > 0 ? ` (${placePlans.length})` : ''}`],
+          ['all', `ALL${allPlans.length > 0? ` (${allPlans.length})` : ''}`],
+          ['schedule', `📅 SCHEDULE SHARE${schedulePlans.length > 0? ` (${schedulePlans.length})` : ''}`],
+          ['places', `📍 Place SHARE${placePlans.length > 0? ` (${placePlans.length})` : ''}`],
         ].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`feed-tab${tab === key ? ' active' : ''}`}>{label}</button>
+            className={`feed-tab${tab === key? ' active' : ''}`}>{label}</button>
         ))}
       </div>
 
-      {/* 검색 결과 카운트 */}
+      {/* Search results */}
       {q && (
         <div style={{ fontSize: 13, color: '#8A919C' }}>
-          "{searchQuery}" 검색 결과 <strong style={{ color: '#1E2A3A' }}>{filtered.length}개</strong>
+          "{searchQuery}" Search results <strong style={{ color: '#1E2A3A' }}>{filtered}</strong>
         </div>
       )}
 
-      {/* 내 공유정보 모드 안내 */}
+      {/* My shared mode Guide */}
       {showMine && (
         <div style={{ background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 3, padding: '10px 14px', fontSize: 13, color: '#1E2A3A', fontWeight: 600 }}>
-          🔗 내가 공유한 일정만 표시하고 있어요. 전체공개 {mySharedPlans.filter(p=>p.shareType==='public').length}개 · 친구공개 {mySharedPlans.filter(p=>p.shareType==='friends').length}개
+          🔗 I SHAREone SCHEDULE only Display Public {mySharedPlans.filter(p=>p.shareType==='public')} · Friends-only {mySharedPlans.filter(p=>p.shareType==='friends')}
         </div>
       )}
 
-      {/* 에러 */}
+      {/* Error */}
       {error && (
         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 3, padding: '12px 16px', fontSize: 13, color: '#dc2626' }}>
-          ⚠️ 데이터를 불러오지 못했어요.<br/>
+          ⚠️ Could not load data.<br/>
           <span style={{ fontSize: 11, color: '#8A919C' }}>{error}</span>
         </div>
       )}
 
-      {loading ? (
-        <div className="empty">불러오는 중...</div>
-      ) : filtered.length === 0 ? (
+      {loading? (
+        <div className="empty">Loading...</div>
+      ) : filtered.length === 0? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: '#8A919C' }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>{q ? '🔍' : emptyMsg[tab].icon}</div>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>{q? '🔍' : emptyMsg[tab].icon}</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#4A5568', marginBottom: 6 }}>
-            {q ? `"${searchQuery}"에 해당하는 일정이 없어요` : emptyMsg[tab].title}
+            {q? `"${searchQuery}" matches — no schedules` : emptyMsg[tab].title}
           </div>
           <div style={{ fontSize: 13 }}>
-            {q ? '다른 키워드로 검색해보세요' : emptyMsg[tab].sub}
+            {q? 'other keyword as search again' : emptyMsg[tab].sub}
           </div>
         </div>
       ) : (
@@ -222,12 +222,12 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
   const [copyTarget, setCopyTarget] = useState('');
 
   const until = timeUntil(plan.startDate);
-  const samePlace = !isMyPlan && myItems.length > 0 && isSamePlace(myItems, plan.items || []);
+  const samePlace =!isMyPlan && myItems.length > 0 && isSamePlace(myItems, plan.items || []);
   const showSchedule = plan.shareSchedule && plan.startDate;
-  const showPlaces   = plan.sharePlaces && plan.items?.length > 0;
+  const showPlaces = plan.sharePlaces && plan.items?.length > 0;
 
   const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-  // 오늘 이후 일정만 복사 대상 (endDate가 오늘 이상이거나 날짜 미설정)
+  // From today onwards Only future schedules can be copied (endDate today or lateror Date TBD)
   const copyablePlans = (myPlans || []).filter(p =>
     p.userId === currentUser.id &&
     (!p.endDate || p.endDate >= today)
@@ -249,7 +249,7 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
           tip: item.tip || '',
           category: item.category || 'attraction',
           date: item.date || '',
-          memo: item.memo ? `[${plan.userNickname || '공유'}] ${item.memo}` : `[${plan.userNickname || '공유'} 일정에서 복사]`,
+          memo: item.memo? `[${plan.userNickname || 'SHARE'}] ${item.memo}` : `[${plan.userNickname || 'SHARE'} copied from schedule]`,
           fromPostTitle: plan.title,
           fromUserNickname: plan.userNickname || '',
         });
@@ -257,8 +257,8 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
       setCopyDone(true);
       setTimeout(() => setCopyDone(false), 3000);
     } catch (e) {
-      console.error('복사 실패:', e);
-      alert('복사 중 오류가 발생했어요.');
+      console.error('COPY failed:', e);
+      alert('Copy error.');
     } finally {
       setCopying(false);
     }
@@ -267,20 +267,20 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
   return (
     <div style={{
       background: 'white',
-      border: `1px solid ${isMyPlan ? '#E2E0DC' : samePlace ? '#bbf7d0' : '#E2E0DC'}`,
+      border: `1px solid ${isMyPlan? '#E2E0DC' : samePlace? '#bbf7d0' : '#E2E0DC'}`,
       borderRadius: 2, overflow: 'hidden',
-      boxShadow: isMyPlan ? '0 0 0 2px #EEEDEA' : samePlace ? '0 0 0 2px #f0fdf4' : 'none',
+      boxShadow: isMyPlan? '0 0 0 2px #EEEDEA' : samePlace? '0 0 0 2px #f0fdf4' : 'none',
       position: 'relative',
     }}>
-      {/* 복사 완료 토스트 */}
+      {/* COPY DONE Toast */}
       {copyDone && (
         <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', background: '#1E2A3A', color: 'white', fontSize: 12, fontWeight: 700, padding: '8px 18px', borderRadius: 2, zIndex: 10, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-          ✅ "{copyTarget}"에 {plan.items?.length}개 장소 복사 완료!
+          ✅ "{copyTarget}" has Place COPY DONE!
         </div>
       )}
 
       <div style={{ padding: '16px 20px' }}>
-        {/* 유저 헤더 */}
+        {/* User header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
           <img
             src={plan.userProfileImage || `https://ui-avatars.com/api/?name=${plan.userNickname || '?'}&background=1E2A3A&color=fff&size=40`}
@@ -289,48 +289,48 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: '#1E2A3A', cursor: 'pointer' }}
-                onClick={() => onProfile?.(plan.userId)}>{plan.userNickname || '알 수 없음'}</span>
-              {isMyPlan && <span style={{ fontSize: 10, background: '#1E2A3A', color: 'white', borderRadius: 6, padding: '1px 7px', fontWeight: 700 }}>내 일정</span>}
+                onClick={() => onProfile?.(plan.userId)}>{plan.userNickname || 'Unknown'}</span>
+              {isMyPlan && <span style={{ fontSize: 10, background: '#1E2A3A', color: 'white', borderRadius: 6, padding: '1px 7px', fontWeight: 700 }}>My SCHEDULE</span>}
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, color: plan.shareType === 'public' ? '#16a34a' : '#1E2A3A',
-                background: plan.shareType === 'public' ? '#f0fdf4' : '#EEEDEA',
-                border: `1px solid ${plan.shareType === 'public' ? '#bbf7d0' : '#E2E0DC'}`,
+              <span style={{ fontSize: 11, color: plan.shareType === 'public'? '#16a34a' : '#1E2A3A',
+                background: plan.shareType === 'public'? '#f0fdf4' : '#EEEDEA',
+                border: `1px solid ${plan.shareType === 'public'? '#bbf7d0' : '#E2E0DC'}`,
                 borderRadius: 6, padding: '1px 7px', fontWeight: 600 }}>
-                {plan.shareType === 'public' ? '🌍 전체공개' : '👥 친구공개'}
+                {plan.shareType === 'public'? '🌍 Public' : '👥 Friends-only'}
               </span>
-              {showSchedule && <span style={{ fontSize: 11, color: '#8A919C' }}>📅 일정공유</span>}
-              {showPlaces   && <span style={{ fontSize: 11, color: '#8A919C' }}>📍 장소공유</span>}
+              {showSchedule && <span style={{ fontSize: 11, color: '#8A919C' }}>📅 SCHEDULESHARE</span>}
+              {showPlaces && <span style={{ fontSize: 11, color: '#8A919C' }}>📍 PlaceSHARE</span>}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {samePlace && (
               <div style={{ background: '#f0fdf4', color: '#16a34a', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 2, border: '1px solid #bbf7d0' }}>
-                같은 곳 여행 🎉
+                Same places TRAVEL 🎉
               </div>
             )}
-            {/* 내 일정에 복사 버튼 — 내 일정이 아니고 (장소공유 or 일정공유)=ON이고 items가 있을 때 */}
+            {/* my schedule COPY button — My the schedule not (PlaceSHARE or SCHEDULESHARE)=ON items when */}
             {!isMyPlan && (plan.sharePlaces || plan.shareSchedule) && plan.items?.length > 0 && (
               <div style={{ position: 'relative' }}>
                 <button
-                  onClick={() => setShowCopyMenu(v => !v)}
+                  onClick={() => setShowCopyMenu(v =>!v)}
                   disabled={copying}
-                  style={{ padding: '6px 12px', background: copying ? '#E2E0DC' : '#f0fdf4', color: copying ? '#8A919C' : '#16a34a', border: `1px solid ${copying ? '#E2E0DC' : '#bbf7d0'}`, borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: copying ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
-                  {copying ? '복사 중...' : '📋 내 일정에 복사'}
+                  style={{ padding: '6px 12px', background: copying? '#E2E0DC' : '#f0fdf4', color: copying? '#8A919C' : '#16a34a', border: `1px solid ${copying? '#E2E0DC' : '#bbf7d0'}`, borderRadius: 2, fontSize: 12, fontWeight: 700, cursor: copying? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                  {copying? 'COPY...' : '📋 my schedule COPY'}
                 </button>
-                {/* 일정 선택 드롭다운 */}
+                {/* SCHEDULE SELECT Dropdown */}
                 {showCopyMenu && (
                   <div style={{ position: 'absolute', right: 0, top: '110%', background: 'white', border: '1px solid #E2E0DC', borderRadius: 3, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 100, minWidth: 220, overflow: 'hidden' }}>
                     <div style={{ padding: '10px 14px', borderBottom: '1px solid #F5F4F0', fontSize: 12, fontWeight: 700, color: '#8A919C' }}>
-                      어느 일정에 추가할까요?
+                      Add to which schedule?
                     </div>
-                    {copyablePlans.length === 0 ? (
+                    {copyablePlans.length === 0? (
                       <div style={{ padding: '14px', fontSize: 13, color: '#8A919C', textAlign: 'center' }}>
-                        추가 가능한 일정이 없어요.<br />
-                        <span style={{ fontSize: 12 }}>오늘 이후 일정을 먼저 만들어주세요!</span>
+                        ADD availableone the schedule None.<br />
+                        <span style={{ fontSize: 12 }}>From today onwards the schedule first Please create one!</span>
                       </div>
                     ) : (
-                      <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                      <div style={{ Height: 240, overflowY: 'auto' }}>
                         {copyablePlans.map(p => (
                           <button key={p.id} onClick={() => copyToPlan(p.id, p.title)}
                             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #FAFAF8', transition: 'background 0.1s' }}
@@ -340,17 +340,17 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                               <div style={{ fontSize: 11, color: '#8A919C' }}>
-                                {p.startDate || '날짜 미설정'} · {p.items?.length || 0}개 장소
+                                {p.startDate || 'Date TBD'} · {p.items?.length || 0} Place
                               </div>
                             </div>
-                            <span style={{ fontSize: 11, color: '#1E2A3A', fontWeight: 700, flexShrink: 0 }}>+{plan.items.length}개 추가</span>
+                            <span style={{ fontSize: 11, color: '#1E2A3A', fontWeight: 700, flexShrink: 0 }}>+{plan.items} ADD</span>
                           </button>
                         ))}
                       </div>
                     )}
                     <button onClick={() => setShowCopyMenu(false)}
                       style={{ width: '100%', padding: '10px', border: 'none', borderTop: '1px solid #F5F4F0', background: '#FAFAF8', fontSize: 12, color: '#8A919C', cursor: 'pointer' }}>
-                      닫기
+                      CLOSE
                     </button>
                   </div>
                 )}
@@ -359,36 +359,36 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
           </div>
         </div>
 
-        {/* 제목 */}
+        {/* Title */}
         <div style={{ fontWeight: 800, fontSize: 16, color: '#1E2A3A', marginBottom: 8 }}>{plan.title}</div>
 
-        {/* 날짜 */}
+        {/* Date */}
         {showSchedule && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 2, padding: '5px 12px' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
-                📅 {plan.startDate}{plan.endDate ? ` ~ ${plan.endDate}` : ''}
+                📅 {plan.startDate}{plan.endDate? ` ~ ${plan.endDate}` : ''}
               </span>
             </div>
             {until && (
-              <div style={{ background: until === '여행 중' ? '#fffbeb' : '#EEEDEA', border: `1px solid ${until === '여행 중' ? '#fde68a' : '#E2E0DC'}`, borderRadius: 2, padding: '5px 12px' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: until === '여행 중' ? '#d97706' : '#1E2A3A' }}>✈ {until}</span>
+              <div style={{ background: until === 'TRAVEL '? '#fffbeb' : '#EEEDEA', border: `1px solid ${until === 'TRAVEL '? '#fde68a' : '#E2E0DC'}`, borderRadius: 2, padding: '5px 12px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: until === 'TRAVEL '? '#d97706' : '#1E2A3A' }}>✈ {until}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* 장소 */}
+        {/* Place */}
         {showPlaces && (
           <>
-            <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8 }}>📍 방문 예정 장소 {plan.items.length}곳</div>
+            <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8 }}>📍 Visit Planned Place {plan.items.length}places</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {plan.items.slice(0, expanded ? plan.items.length : 4).map((item, i) => {
-                const isSame = !isMyPlan && myItems.some(m => m.placeName?.toLowerCase() === item.placeName?.toLowerCase());
+              {plan.items.slice(0, expanded? plan.items.length : 4).map((item, i) => {
+                const isSame =!isMyPlan && myItems.some(m => m.placeName?.toLowerCase() === item.placeName?.toLowerCase());
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, background: isSame ? '#EEEDEA' : '#FAFAF8', border: `1px solid ${isSame ? '#E2E0DC' : '#E2E0DC'}`, borderRadius: 2, padding: '5px 12px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: isSame ? '#1E2A3A' : '#4A5568' }}>
-                      {isSame ? '🎉 ' : ''}{item.placeName}
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, background: isSame? '#EEEDEA' : '#FAFAF8', border: `1px solid ${isSame? '#E2E0DC' : '#E2E0DC'}`, borderRadius: 2, padding: '5px 12px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: isSame? '#1E2A3A' : '#4A5568' }}>
+                      {isSame? '🎉 ' : ''}{item.placeName}
                     </span>
                     {item.date && <span style={{ fontSize: 11, color: '#8A919C' }}>· {item.date}</span>}
                   </div>
@@ -397,22 +397,22 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
               {!expanded && plan.items.length > 4 && (
                 <button onClick={() => setExpanded(true)}
                   style={{ background: '#F5F4F0', border: '1px solid #eee', borderRadius: 2, padding: '5px 12px', fontSize: 12, color: '#8A919C', cursor: 'pointer', fontWeight: 600 }}>
-                  +{plan.items.length - 4}곳 더 보기
+                  +{plan.items.length - 4}places View more
                 </button>
               )}
             </div>
             {expanded && (
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {plan.items.map((item, i) => {
-                  const isSame = !isMyPlan && myItems.some(m => m.placeName?.toLowerCase() === item.placeName?.toLowerCase());
+                  const isSame =!isMyPlan && myItems.some(m => m.placeName?.toLowerCase() === item.placeName?.toLowerCase());
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: isSame ? '#EEEDEA' : '#FAFAF8', border: `1px solid ${isSame ? '#E2E0DC' : '#E2E0DC'}`, borderRadius: 3 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: isSame ? '#1E2A3A' : '#E2E0DC', color: isSame ? 'white' : '#8A919C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i+1}</div>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: isSame? '#EEEDEA' : '#FAFAF8', border: `1px solid ${isSame? '#E2E0DC' : '#E2E0DC'}`, borderRadius: 3 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: isSame? '#1E2A3A' : '#E2E0DC', color: isSame? 'white' : '#8A919C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i+1}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{item.placeName} {isSame && '🎉'}</div>
                         {item.address && <div style={{ fontSize: 11, color: '#8A919C', marginTop: 1 }}>{item.address}</div>}
-                        {item.date    && <div style={{ fontSize: 11, color: '#1E2A3A', marginTop: 1 }}>📅 {item.date}</div>}
-                        {item.memo    && <div style={{ fontSize: 11, color: '#8A919C', marginTop: 1 }}>📝 {item.memo}</div>}
+                        {item.date && <div style={{ fontSize: 11, color: '#1E2A3A', marginTop: 1 }}>📅 {item.date}</div>}
+                        {item.memo && <div style={{ fontSize: 11, color: '#8A919C', marginTop: 1 }}>📝 {item.memo}</div>}
                       </div>
                       {item.lat && item.lng && (
                         <a href={`https://maps.google.com/?q=${item.lat},${item.lng}`} target="_blank" rel="noreferrer"
@@ -422,14 +422,14 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
                   );
                 })}
                 <button onClick={() => setExpanded(false)}
-                  style={{ fontSize: 12, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>접기 ▲</button>
+                  style={{ fontSize: 12, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>Collapse ▲</button>
               </div>
             )}
           </>
         )}
 
-        {!showSchedule && !showPlaces && (
-          <div style={{ fontSize: 12, color: '#8A919C', padding: '4px 0' }}>일정이나 장소를 공유하지 않았어요.</div>
+        {!showSchedule &&!showPlaces && (
+          <div style={{ fontSize: 12, color: '#8A919C', padding: '4px 0' }}>No schedule or place shared yet.</div>
         )}
       </div>
     </div>
