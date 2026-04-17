@@ -27,6 +27,12 @@ const getTabs = (post) => {
 
 export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark }) {
   const [post, setPost] = useState(initialPost);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [activeImg, setActiveImg] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [showPlanModal, setShowPlanModal] = useState(null);
@@ -71,7 +77,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
       const updated = await api.updatePost(post.id, { title: editData.title, content: editData.content });
       if (updated) { setPost(updated); onUpdate?.(updated); }
       setEditing(false);
-    } catch (e) { alert('Edit failed: ' + e.message); }
+    } catch (e) { showToast('Edit failed: ' + e.message); }
     finally { setSaving(false); }
   };
 
@@ -80,7 +86,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
       await api.deletePost(post.id);
       onDelete?.(post.id);
       onBack?.();
-    } catch (e) { alert('Delete failed: ' + e.message); }
+    } catch (e) { showToast('Delete failed: ' + e.message); }
   };
 
   const handleAddToPlanner = () => {
@@ -431,6 +437,22 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           </div>
         </div>
       )}
-    </div>
+    
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#1E2A3A' : '#fef2f2',
+          color: toast.type === 'success' ? 'white' : '#991b1b',
+          border: toast.type === 'success' ? 'none' : '1px solid #fecaca',
+          borderRadius: 3, padding: '14px 20px',
+          fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 9999, maxWidth: 420, textAlign: 'center',
+          fontFamily: "'Inter', sans-serif", letterSpacing: 0.2,
+        }}>
+          {toast.type === 'success' ? '✓ ' : '⚠ '}{toast.message}
+        </div>
+      )}
+      </div>
   );
 }

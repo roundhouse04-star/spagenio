@@ -19,6 +19,12 @@ function isSamePlace(items1, items2) {
 
 export default function Share({ currentUser, onProfile }) {
   const [plans, setPlans] = useState([]);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [myPlans, setMyPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -284,7 +290,7 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
       setTimeout(() => setCopyDone(false), 3000);
     } catch (e) {
       console.error('COPY failed:', e);
-      alert('Copy error.');
+      showToast('Copy error.');
     } finally {
       setCopying(false);
     }
@@ -458,6 +464,22 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
           <div style={{ fontSize: 12, color: '#8A919C', padding: '4px 0' }}>No schedule or place shared yet.</div>
         )}
       </div>
-    </div>
+    
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#1E2A3A' : '#fef2f2',
+          color: toast.type === 'success' ? 'white' : '#991b1b',
+          border: toast.type === 'success' ? 'none' : '1px solid #fecaca',
+          borderRadius: 3, padding: '14px 20px',
+          fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 9999, maxWidth: 420, textAlign: 'center',
+          fontFamily: "'Inter', sans-serif", letterSpacing: 0.2,
+        }}>
+          {toast.type === 'success' ? '✓ ' : '⚠ '}{toast.message}
+        </div>
+      )}
+      </div>
   );
 }

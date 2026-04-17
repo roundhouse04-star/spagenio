@@ -54,6 +54,12 @@ function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow
 
 export default function Profile({ userId, currentUser, onOpenPost, onChangeUser, onProfile }) {
   const [user, setUser] = useState(null);
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
@@ -77,19 +83,19 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   };
 
   const registerBusiness = async () => {
-    if (!bizForm.business_name) { alert('Business name '); return; }
+    if (!bizForm.business_name) { showToast('Business name '); return; }
     setBizLoading(true);
     try {
       const res = await fetch('/api/business/register?' + new URLSearchParams({...bizForm, user_id: user.id }), { method: 'POST' });
       if (res.ok) {
-        alert('Business account application submitted. Pending admin review.');
+        showToast('Business account application submitted. Pending admin review.', 'success');
         loadBizAccount(user.id);
         setShowBizForm(false);
       } else {
         const data = await res.json();
-        alert(data.detail || 'REGISTER failed');
+        showToast(data.detail || 'REGISTER failed');
       }
-    } catch (e) { alert('Server error'); }
+    } catch (e) { showToast('Server error'); }
     setBizLoading(false);
   };
 
@@ -150,7 +156,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 30 * 1024 * 1024) { alert('Image must be under 30MB.'); return; }
+    if (file.size > 30 * 1024 * 1024) { showToast('Image must be under 30MB.'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
@@ -171,7 +177,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       const savedUser = JSON.parse(sessionStorage.getItem('auth_user') || '{}');
       sessionStorage.setItem('auth_user', JSON.stringify({...savedUser, profileImage: uploadedUrl }));
     } catch (err) {
-      alert('Image Upload failed: ' + err.message);
+      showToast('Image Upload failed: ' + err.message);
     }
   };
 
@@ -190,7 +196,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       sessionStorage.setItem('auth_user', JSON.stringify({...savedUser, nationality: editData.nationality, wishCountries: JSON.stringify(editData.wishCountries) }));
       setEditing(false);
       setImagePreview('');
-    } catch (e) { alert('SAVE failed: ' + e.message); }
+    } catch (e) { showToast('SAVE failed: ' + e.message); }
     finally { setSaving(false); }
   };
 
@@ -580,6 +586,22 @@ function BadgeGrid({ badges, posts, user }) {
           );
         })}
       </div>
-    </div>
+    
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#1E2A3A' : '#fef2f2',
+          color: toast.type === 'success' ? 'white' : '#991b1b',
+          border: toast.type === 'success' ? 'none' : '1px solid #fecaca',
+          borderRadius: 3, padding: '14px 20px',
+          fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 9999, maxWidth: 420, textAlign: 'center',
+          fontFamily: "'Inter', sans-serif", letterSpacing: 0.2,
+        }}>
+          {toast.type === 'success' ? '✓ ' : '⚠ '}{toast.message}
+        </div>
+      )}
+      </div>
   );
 }
