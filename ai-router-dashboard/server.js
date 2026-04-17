@@ -82,6 +82,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_telegram (chat_id TEXT PRIMARY KEY, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id TEXT NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS lotto_schedule (chat_id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+  CREATE TABLE IF NOT EXISTS lotto_predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, based_on_round INTEGER NOT NULL, predicted_for_round INTEGER, picks TEXT NOT NULL, hit_count INTEGER, result_checked INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS trade_setting_type4 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, broker_key_id INTEGER DEFAULT NULL, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, broker_key_id), FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
@@ -1002,17 +1003,20 @@ async function lottoCheckAndSendSchedules() {
       const isCatchup = sch.hour < currentHour;
       const catchupNote = isCatchup ? `\n⏰ (${sch.hour}시 예정이었으나 ${currentHour}시에 캐치업 발송)` : '';
 
-      // 텔레그램 발송
+      // 텔레그램 발송 (curl 기반 — Node fetch IPv6 이슈 회피)
       if (token && sch.chat_id) {
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        try {
+          const { execSync } = await import('child_process');
+          const bodyStr = JSON.stringify({
             chat_id: sch.chat_id,
             text: `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n📅 ${dayNames[currentDay]}요일 ${sch.hour}시 자동발송${catchupNote}`,
             parse_mode: 'Markdown'
-          })
-        }).catch(() => { });
+          });
+          const curlCmd = `curl -s -X POST https://api.telegram.org/bot${token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
+          const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
+          const data = JSON.parse(result);
+          if (!data.ok) console.log('[auto-send telegram FAIL]', sch.chat_id, '→', data.description);
+        } catch (e) { console.log('[auto-send telegram EXCEPTION]', sch.chat_id, '→', e.message); }
       }
 
       // 발송 이력 기록 (다음 중복 체크 기준점)

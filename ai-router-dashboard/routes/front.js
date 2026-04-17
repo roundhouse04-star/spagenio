@@ -1,6 +1,22 @@
 import express from 'express';
 import path from 'path';
+import { execSync } from 'child_process';
 const router = express.Router();
+
+// ============================================================
+// 텔레그램 발송 헬퍼 (curl 기반 — Node fetch의 IPv6 이슈 회피)
+// ============================================================
+function sendTelegramViaCurl(token, chatId, text, parseMode = 'Markdown') {
+  try {
+    const bodyStr = JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode });
+    const curlCmd = `curl -s -X POST https://api.telegram.org/bot${token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
+    const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
+    const data = JSON.parse(result);
+    return { ok: !!data.ok, description: data.description, error_code: data.error_code };
+  } catch (e) {
+    return { ok: false, description: e.message };
+  }
+}
 
 // ============================================================
 // 거래량 급등 감지
@@ -476,22 +492,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         return res.json({ ok: false, error: '등록된 텔레그램 사용자가 없습니다.' });
       }
 
-      // 모든 chat_id에 병렬 발송
-      const results = await Promise.all(recipients.map(async (r) => {
+      // 모든 chat_id에 발송 (curl 기반 — Node fetch IPv6 이슈 회피)
+      const results = recipients.map((r) => {
         const token = r.bot_token || process.env.TG_BOT_TOKEN;
         if (!token) return { chat_id: r.chat_id, ok: false, error: 'no token' };
-        try {
-          const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: r.chat_id, text, parse_mode: 'Markdown' })
-          });
-          const data = await resp.json();
-          return { chat_id: r.chat_id, ok: !!data.ok, error: data.description };
-        } catch (e) {
-          return { chat_id: r.chat_id, ok: false, error: e.message };
-        }
-      }));
+        const out = sendTelegramViaCurl(token, r.chat_id, text, 'Markdown');
+        if (!out.ok) console.log('[lotto/telegram/broadcast FAIL]', r.chat_id, '→', out.description);
+        return { chat_id: r.chat_id, ok: out.ok, error: out.description };
+      });
 
       const sent = results.filter(r => r.ok).length;
       const failed = results.filter(r => !r.ok).length;
@@ -755,23 +763,17 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
         const msg = `🎯 *로또 예측 번호* (${latest.drw_no + 1}회 예측)\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n🕐 ${new Date().toLocaleString('ko-KR')}`;
 
-        const results = await Promise.all(recipients.map(async (r) => {
+        const results = recipients.map((r) => {
           const token = r.bot_token || process.env.TG_BOT_TOKEN;
-          if (!token) return { chat_id: r.chat_id, ok: false, error: 'no token' };
-          try {
-            const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: r.chat_id, text: msg, parse_mode: 'Markdown' })
-            });
-            const data = await resp.json();
-            return { chat_id: r.chat_id, ok: !!data.ok, error: data.description };
-          } catch (e) {
-            return { chat_id: r.chat_id, ok: false, error: e.message };
-          }
-        }));
+          if (!token) { console.log('[prediction/run telegram] no token for', r.chat_id); return { chat_id: r.chat_id, ok: false, error: 'no token' }; }
+          const out = sendTelegramViaCurl(token, r.chat_id, msg, 'Markdown');
+          if (!out.ok) console.log('[prediction/run telegram FAIL]', r.chat_id, '→', out.description, '(code:', out.error_code + ')');
+          return { chat_id: r.chat_id, ok: out.ok, error: out.description };
+        });
         sent = results.filter(r => r.ok).length;
         failed = results.filter(r => !r.ok).length;
+        var errorList = results.filter(r => !r.ok).map(r => `${r.chat_id}: ${r.error}`);
+        if (failed > 0) console.log('[prediction/run telegram SUMMARY]', { sent, failed, errors: errorList });
       }
 
       res.json({
@@ -780,7 +782,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         based_on_round: latest.drw_no,
         predicted_for_round: latest.drw_no + 1,
         games,
-        telegram: { total: recipients.length, sent, failed }
+        telegram: { total: recipients.length, sent, failed, errors: (typeof errorList !== 'undefined' ? errorList : []) }
       });
     } catch (e) {
       console.error('[prediction/run]', e);
