@@ -8,7 +8,7 @@ function distLabel(km) {
   return `${km.toFixed(1)}km`;
 }
 
-// 저장한 장소 근처 알림 배너
+// SAVED NEARBY 알림 배너
 function SavedNearbyBanner({ places, onOpenMaps }) {
   if (!places.length) return null;
   return (
@@ -165,7 +165,7 @@ export default function Nearby({ currentUser, onOpenPost }) {
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>📍 내 주변</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.8 }}>Nearby</div>
           {location && (
             <div style={{ fontSize: 12, color: '#8A919C', marginTop: 2 }}>
               Current location · 반경 {radius}km
@@ -189,7 +189,7 @@ export default function Nearby({ currentUser, onOpenPost }) {
         </div>
       )}
 
-      {/* 저장한 장소 근처 배너 */}
+      {/* SAVED NEARBY 배너 */}
       {savedNearby.length > 0 && (
         <SavedNearbyBanner places={savedNearby} onOpenMaps={openMaps} />
       )}
@@ -209,7 +209,7 @@ export default function Nearby({ currentUser, onOpenPost }) {
 
       {/* 탭 */}
       <div style={{ display: 'flex', gap: 4, background: '#F5F4F0', borderRadius: 3, padding: 4 }}>
-        {[['around', 'AROUND'], ['saved', `🔖 저장한 장소 근처 ${savedNearby.length > 0 ? `(${savedNearby.length})` : ''}`]].map(([key, label]) => (
+        {[['around', 'AROUND'], ['saved', `🔖 SAVED NEARBY ${savedNearby.length > 0 ? `(${savedNearby.length})` : ''}`]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ flex: 1, padding: '9px 4px', borderRadius: 9, border: 'none', background: tab === key ? 'white' : 'transparent', color: tab === key ? '#1E2A3A' : '#8A919C', fontSize: 13, fontWeight: tab === key ? 700 : 500, cursor: 'pointer', boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
             {label}
