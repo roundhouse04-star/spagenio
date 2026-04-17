@@ -603,6 +603,95 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     } catch (e) { console.error(e); }
   };
 
+  const ROUTES_DB = {
+    'Seoul_Osaka': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Kansai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩89,000 – ₩180,000', priceNum: 130000, steps: ['Check in 2h before at ICN', 'Board Korean Air, Asiana, or Jeju Air', 'Arrive KIX', 'Nankai Rapit into central Osaka (~50m)'] },
+      { type: 'ferry', icon: '🚢', name: 'Ferry + train (Busan→Shimonoseki→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~18h', price: '₩60,000 – ₩90,000', priceNum: 75000, steps: ['KTX Seoul→Busan (~2h 30m, KRW 59,800)', 'Board ferry at Busan Port (overnight)', 'Arrive Shimonoseki, then JR to Osaka'] },
+    ],
+    'Seoul_Tokyo': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Narita/Haneda)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩110,000 – ₩280,000', priceNum: 165000, steps: ['Depart ICN', 'Board Korean Air, Asiana, Jeju Air, or T\'way', 'Arrive NRT (Narita) or HND (Haneda)', 'Narita Express/Keisei Skyliner to city center (~1h)'] },
+      { type: 'airplane', icon: '✈', name: 'Low-cost carriers (Incheon→Narita)', tag: 'Cheapest', tagColor: '#f59e0b', time: '2h 30m', price: '₩70,000 – ₩150,000', priceNum: 95000, steps: ['Depart ICN', 'Board Jeju Air, T\'way, Peach, or Jin Air', 'Arrive NRT'] },
+    ],
+    'Osaka_Tokyo': [
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥15,000 (₩135,000)', priceNum: 135000, steps: ['Shin-Osaka Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Tokyo Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Osaka→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥4,000 – ¥8,000 (₩36,000 – ₩72,000)', priceNum: 54000, steps: ['Namba Stn — 10-11 PM', 'Board night express bus', 'Arrive at Shinjuku/Tokyo Stn (6-7 AM)'] },
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Kansai→Haneda)', tag: '', tagColor: '', time: '1h 10m', price: '¥8,000 – ¥15,000 (₩72,000 – ₩135,000)', priceNum: 100000, steps: ['Depart KIX', 'Board ANA, JAL, or Peach Aviation', 'Arrive HND'] },
+    ],
+    'Seoul_Bangkok': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Suvarnabhumi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '5h 30m', price: '₩150,000 – ₩280,000', priceNum: 215000, steps: ['Depart ICN', 'Board Korean Air or Thai Airways', 'Arrive BKK', 'BTS or Taxi to city center'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Bangkok)', tag: 'Cheapest', tagColor: '#f59e0b', time: '8-12h', price: '₩100,000 – ₩180,000', priceNum: 140000, steps: ['Depart ICN', 'Hong Kong/Singapore transit', 'Arrive Suvarnabhumi or Don Mueang'] },
+    ],
+    'Seoul_Paris': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Paris CDG)', tag: 'Recommended', tagColor: '#1E2A3A', time: '13h', price: '₩700,000 – ₩1,400,000', priceNum: 1000000, steps: ['Depart ICN', 'Board Korean Air or Air France', 'Arrive CDG', 'RER B to city center (~45m)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Paris)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-22h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Singapore transit', 'Arrive CDG'] },
+    ],
+    'Seoul_Jeju': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Gimpo/Incheon→Jeju)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h', price: '₩40,000 – ₩120,000', priceNum: 70000, steps: ['Depart from Gimpo or Incheon Airport', 'Board Jeju Air, Jin Air, or T\'way Air', 'Arrive CJU', 'Rental car or bus'] },
+      { type: 'ferry', icon: '🚢', name: 'Ferry (Mokpo/Wando→Jeju)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~3-5h', price: '₩30,000 – ₩60,000', priceNum: 45000, steps: ['Depart from Mokpo or Wando Port', 'Board Hanil Express or Seastar Cruise', 'Arrive at Jeju Port'] },
+    ],
+    'Seoul_Singapore': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Changi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '6h 30m', price: '₩200,000 – ₩400,000', priceNum: 280000, steps: ['Depart ICN', 'Board Singapore Airlines, Scoot, or Jin Air', 'Arrive SIN', 'MRT to city center (~30m)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Singapore)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-14h', price: '₩150,000 – ₩250,000', priceNum: 200000, steps: ['Depart ICN', 'Kuala Lumpur/Hong Kong transit', 'Arrive SIN'] },
+    ],
+    'Seoul_Bali': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Ngurah Rai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '7h', price: '₩250,000 – ₩500,000', priceNum: 350000, steps: ['Depart ICN', 'Board Jin Air or Lion Air', 'Arrive DPS', 'Taxi to hotel'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Kuala Lumpur→Bali)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-13h', price: '₩180,000 – ₩320,000', priceNum: 250000, steps: ['Depart ICN', 'Board AirAsia or Malaysia Airlines', 'Via Kuala Lumpur (2-4h)', 'Arrive Bali'] },
+    ],
+    'Seoul_London': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Heathrow)', tag: 'Recommended', tagColor: '#1E2A3A', time: '12h', price: '₩700,000 – ₩1,500,000', priceNum: 1050000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive at Heathrow', 'Elizabeth Line to city center (~40m)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→London)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-24h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Abu Dhabi transit', 'Arrive Gatwick or Heathrow'] },
+    ],
+    'Seoul_New York': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→JFK)', tag: 'Recommended', tagColor: '#1E2A3A', time: '14h', price: '₩900,000 – ₩2,000,000', priceNum: 1300000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive JFK', 'Airtrain+Subway to city center'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→New York)', tag: 'Cheapest', tagColor: '#f59e0b', time: '18-26h', price: '₩700,000 – ₩1,300,000', priceNum: 1000000, steps: ['Depart ICN', 'Tokyo/Osaka/LA transit', 'Arrive JFK or Newark'] },
+    ],
+    'Seoul_Hong Kong': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hong Kong Chek Lap Kok)', tag: 'Recommended', tagColor: '#1E2A3A', time: '3h 30m', price: '₩100,000 – ₩250,000', priceNum: 175000, steps: ['Depart ICN', 'Board Korean Air, Cathay Pacific, or HK Express', 'Arrive at Hong Kong Airport', 'AEL to city center (~24m)'] },
+    ],
+    'Seoul_Vietnam': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hanoi/Danang/Ho Chi Minh)', tag: 'Recommended', tagColor: '#1E2A3A', time: '4-5h', price: '₩120,000 – ₩280,000', priceNum: 180000, steps: ['Depart ICN', 'Board Vietnam Airlines, VietJet, or Jin Air', 'Arrive at Noi Bai, Danang, or Tan Son Nhat', 'Grab or taxi'] },
+    ],
+    'Seoul_Taiwan': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Taoyuan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩100,000 – ₩200,000', priceNum: 150000, steps: ['Depart ICN', 'Board China Airlines, Eva Air, or T\'way Air', 'Arrive TPE', 'MRT to city center (~35m)'] },
+    ],
+    'Seoul_Dubai': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Dubai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '9h', price: '₩400,000 – ₩900,000', priceNum: 600000, steps: ['Depart ICN', 'Board Emirates or Etihad', 'Arrive DXB', 'Metro to city center'] },
+    ],
+    'Seoul_Sydney': [
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Sydney)', tag: 'Recommended', tagColor: '#1E2A3A', time: '10h 30m', price: '₩600,000 – ₩1,200,000', priceNum: 850000, steps: ['Depart ICN', 'Board Korean Air or Qantas', 'Arrive SYD (Kingsford Smith)', 'Airport Link to city center'] },
+    ],
+    'Osaka_Kyoto': [
+      { type: 'train', icon: '🚄', name: 'Express Haruka (Osaka→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '75m', price: '~¥2,850 (₩25,000)', priceNum: 25000, steps: ['Depart from Osaka Stn or Shin-Osaka Stn', 'Board JR Sanyo Main Line', 'Arrive at Kyoto Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Osaka→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~1h', price: '¥600 – ¥1,000 (₩5,000 – ₩9,000)', priceNum: 7000, steps: ['Depart from Umeda or Namba bus terminal', 'Board express bus', 'Arrive Kyoto Stn or city center'] },
+    ],
+    'Tokyo_Kyoto': [
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 15m', price: '¥13,750 (₩123,000)', priceNum: 123000, steps: ['Tokyo Stn — Nozomi', 'Arrive at Kyoto Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥3,500 – ¥7,000 (₩31,000 – ₩63,000)', priceNum: 47000, steps: ['Depart from Shinjuku Stn Bus Terminal (10 PM)', 'Board night bus', 'Arrive at Kyoto Stn (6 AM)'] },
+    ],
+    'Bangkok_Chiang Mai': [
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Suvarnabhumi→Chiang Mai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 20m', price: '฿800 – ฿3,000 (₩30,000 – ₩112,000)', priceNum: 60000, steps: ['Depart BKK', 'Board Thai Airways, Nok Air, or AirAsia', 'Arrive CNX'] },
+      { type: 'train', icon: '🚄', name: 'NightTrain (Bangkok→Chiang Mai)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~12-13h (Night)', price: '฿600 – ฿1,500 (₩22,000 – ₩56,000)', priceNum: 38000, steps: ['Depart from Hua Lamphong Stn (6-8 PM)', 'Board 2nd class sleeper', 'Arrive at Chiang Mai Stn (7-9 AM)'] },
+    ],
+    'Seoul_Busan': [
+      { type: 'train', icon: '🚄', name: 'KTX (Seoul→Busan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 20m', price: '₩59,800 (Regular)', priceNum: 59800, steps: ['Depart from Seoul Stn or Suseo Stn', 'Board KTX or SRT', 'Arrive at Busan Stn', 'Subway or taxi'] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Busan)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~4h', price: '₩20,000 – ₩35,000', priceNum: 27500, steps: ['Depart from Gangnam/East Seoul Terminal', 'Board express bus', 'Arrive at Busan Express Bus Terminal'] },
+      { type: 'airplane', icon: '✈', name: 'Flight (Gimpo→Gimhae)', tag: '', tagColor: '', time: '55m', price: '₩50,000 – ₩100,000', priceNum: 70000, steps: ['Depart from Gimpo Airport', 'Board Korean Air or Asiana', 'Arrive at Gimhae Airport'] },
+    ],
+    'Seoul_Gangneung': [
+      { type: 'train', icon: '🚄', name: 'KTX-Eum (Seoul→Gangneung)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩27,600', priceNum: 27600, steps: ['Depart from Cheongnyangni Stn', 'Board KTX-Eum', 'Arrive at Gangneung Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Gangneung)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~2h 30m', price: '₩13,000 – ₩18,000', priceNum: 15500, steps: ['Depart from East Seoul Terminal', 'Board express bus', 'Arrive at Gangneung Terminal'] },
+    ],
+    'Paris_London': [
+      { type: 'train', icon: '🚄', name: 'Eurostar (Paris→London)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 16m', price: '€39 – €350 (₩56,000 – ₩504,000)', priceNum: 160000, steps: ['Depart from Paris Gare du Nord', 'Board Eurostar', 'Via Channel Tunnel', 'Arrive at Arrive at London St Pancras'] },
+      { type: 'airplane', icon: '✈', name: 'Flight (CDG→Heathrow)', tag: 'Fastest', tagColor: '#10b981', time: '1h 15m', price: '€50 – €200 (₩72,000 – ₩288,000)', priceNum: 130000, steps: ['Depart CDG', 'Board Air France or BA', 'Arrive LHR'] },
+    ],
+    'Tokyo_Osaka': [
+      { type: 'train', icon: '🚄', name: 'JR Shinkansen Nozomi (Tokyo→Shin-Osaka)', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥14,000 – ¥15,500 (₩126,000 – ₩140,000)', priceNum: 132000, steps: ['Tokyo Stn — JR Nozomi platform', 'Direct to Shin-Osaka (no transfer needed)', 'Arrive Shin-Osaka Stn'] },
+      { type: 'train', icon: '🚆', name: 'JR Shinkansen Hikari (cheaper, slower)', tag: '', tagColor: '', time: '3h', price: '¥13,000 – ¥14,500 (₩117,000 – ₩130,000)', priceNum: 125000, steps: ['Tokyo Stn — JR Hikari platform', 'Arrive Shin-Osaka Stn'] },
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Haneda→Itami/Kansai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 10m', price: '¥8,000 – ¥18,000 (₩72,000 – ₩162,000)', priceNum: 115000, steps: ['Depart HND or NRT', 'Board ANA, JAL, Peach, or Jetstar Japan', 'Arrive ITM (Itami) or KIX (Kansai)'] },
+      { type: 'bus', icon: '🚌', name: 'Willer Express night bus', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (overnight)', price: '¥3,000 – ¥8,000 (₩27,000 – ₩72,000)', priceNum: 48000, steps: ['Shinjuku Bus Terminal — 10-11 PM', 'Board Willer Express or JR Bus', 'Arrive Osaka Umeda / Namba (6-7 AM)'] },
+    ],
+  };
 
 
   // ── Popular Route Recommended ──
@@ -648,177 +737,106 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     setAddedPlaces(prev => [...prev,...newPlaces]);
   };
 
-  // Helper: search routes for a specific city pair (local DB first, then AI)
-  const searchSingleRoute = async (fromRaw, toRaw) => {
+  const searchRoutes = async () => {
+    const from = newPlan.from.trim();
+    const to = newPlan.to.trim();
+    if (!from ||!to) return;
+    setRouteLoading(true);
+    setRouteResults([]);
+    setSelectedRoute(null);
+
+    // 1) Normalize city names (Korean → English alias)
     const CITY_ALIAS = {
+      // Korea
       '서울': 'Seoul', '인천': 'Seoul', '김포': 'Seoul', '부산': 'Busan',
       '제주': 'Jeju', '제주도': 'Jeju', '강릉': 'Gangneung',
+      // Japan
       '도쿄': 'Tokyo', '동경': 'Tokyo', '나리타': 'Tokyo', '하네다': 'Tokyo',
       '오사카': 'Osaka', '간사이': 'Osaka', '교토': 'Kyoto', '후쿠오카': 'Fukuoka',
       '삿포로': 'Sapporo', '나고야': 'Nagoya',
+      // SE Asia
       '방콕': 'Bangkok', '치앙마이': 'Chiang Mai', '푸켓': 'Phuket',
       '싱가포르': 'Singapore', '발리': 'Bali', '호치민': 'Ho Chi Minh',
       '하노이': 'Hanoi', '다낭': 'Danang', '타이베이': 'Taipei', '대만': 'Taipei',
+      // Other
       '파리': 'Paris', '런던': 'London', '뉴욕': 'New York',
       '홍콩': 'Hong Kong', '두바이': 'Dubai', '시드니': 'Sydney',
     };
 
     const normalize = (input) => {
       const s = input.trim();
+      // Exact Korean match
       if (CITY_ALIAS[s]) return CITY_ALIAS[s];
+      // Partial Korean match (handles "인천공항", "도쿄 나리타")
       for (const [kor, eng] of Object.entries(CITY_ALIAS)) {
         if (s.includes(kor)) return eng;
       }
-      const engCities = ['Seoul', 'Tokyo', 'Osaka', 'Bangkok', 'Chiang Mai', 'Paris', 'Jeju', 'London', 'Singapore', 'Bali', 'New York', 'Hong Kong', 'Sydney', 'Kyoto', 'Busan', 'Gangneung', 'Taipei', 'Fukuoka', 'Sapporo', 'Los Angeles', 'Hawaii', 'Las Vegas', 'San Francisco', 'Rome', 'Milan', 'Venice', 'Florence', 'Madrid', 'Barcelona', 'Seville', 'Berlin', 'Munich', 'Frankfurt', 'Ho Chi Minh', 'Hanoi', 'Danang', 'Jakarta', 'Melbourne', 'Toronto', 'Vancouver', 'Mexico City', 'Cancun', 'Abu Dhabi', 'Amsterdam', 'Marrakech', 'Casablanca', 'Prague', 'Istanbul', 'Cappadocia', 'Beijing', 'Shanghai', 'Edinburgh', 'Manchester', 'Nice', 'Lyon'];
+      // English city list for partial English input
+      const engCities = ['Seoul', 'Tokyo', 'Osaka', 'Bangkok', 'Chiang Mai', 'Paris', 'Jeju', 'London', 'Singapore', 'Bali', 'New York', 'Hong Kong', 'Sydney', 'Kyoto', 'Busan', 'Gangneung', 'Taipei', 'Fukuoka', 'Sapporo'];
       const eng = engCities.find(c => s.toLowerCase().includes(c.toLowerCase()));
       return eng || s;
     };
 
-    const f = normalize(fromRaw);
-    const t = normalize(toRaw);
+    const f = normalize(from);
+    const t = normalize(to);
+    const key = f + '_' + t;
+    const revKey = t + '_' + f;
+    const localResults = ROUTES_DB[key] || ROUTES_DB[revKey] || [];
 
-    // 1) Try DB first (pre-curated routes with prices)
-    try {
-      const dbResults = await api.getTransitRoutes(f, t);
-      if (Array.isArray(dbResults) && dbResults.length > 0) {
-        return dbResults;
-      }
-      // Try reversed direction
-      const reversed = await api.getTransitRoutes(t, f);
-      if (Array.isArray(reversed) && reversed.length > 0) {
-        return reversed;
-      }
-    } catch (e) {
-      console.warn('DB transit lookup failed, falling back to AI:', e);
-    }
-
-    // 2) Fallback: AI with aggressive scrubbing
-    try {
-      const rawJson = await api.getAiTransport(f, t);
-      const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
-      const aiRoutes = Array.isArray(parsed) ? parsed : [];
-
-      const BRAND_PATTERN = /스카이스캐너|Skyscanner|skyscanner|네이버\s*항공(권|)?|Naver\s*Flight|Booking\.com|Expedia|Kayak|Agoda/gi;
-      const KOREAN_FALLBACK_PATTERN = /검색\s*필요|확인하세요|예약\s*필요|준비\s*중|항공편|공항\s*출발|도착|예약/g;
-      const HAS_KOREAN = /[가-힣]/;
-
-      const scrub = (v) => {
-        if (typeof v !== 'string') return v;
-        return v.replace(BRAND_PATTERN, '').replace(KOREAN_FALLBACK_PATTERN, '').replace(/\s+/g, ' ').trim();
-      };
-
-      return aiRoutes
-        .filter(r => r && r.name)
-        .map(r => {
-          const scrubbed = { ...r, from: f, to: t };
-          ['name', 'tag', 'time', 'price', 'type', 'icon', 'tagColor'].forEach(k => {
-            if (scrubbed[k] != null) scrubbed[k] = scrub(String(scrubbed[k]));
-          });
-          if (Array.isArray(scrubbed.steps)) {
-            scrubbed.steps = scrubbed.steps.map(s => scrub(String(s))).filter(Boolean);
-          }
-          delete scrubbed.links;
-          return scrubbed;
-        })
-        .filter(r => {
-          if (!r.name || r.name.length < 3) return false;
-          const allText = [r.name, r.tag, r.time, r.price, ...(r.steps || [])].join(' ');
-          if (HAS_KOREAN.test(allText)) return false;
-          if ((r.priceNum === 0 || !r.priceNum) && (!r.price || r.price.length < 3)) return false;
-          return true;
-        });
-    } catch (e) {
-      console.error('AI transport error:', e);
-      return [];
-    }
-  };
-
-  // If destination is a country, expand to major cities
-  const COUNTRY_CITIES = {
-    '미국': ['New York', 'Los Angeles', 'Hawaii', 'Las Vegas', 'San Francisco'],
-    'USA': ['New York', 'Los Angeles', 'Hawaii', 'Las Vegas', 'San Francisco'],
-    'United States': ['New York', 'Los Angeles', 'Hawaii', 'Las Vegas', 'San Francisco'],
-    'America': ['New York', 'Los Angeles', 'Hawaii', 'Las Vegas', 'San Francisco'],
-    '일본': ['Tokyo', 'Osaka', 'Kyoto', 'Fukuoka', 'Sapporo'],
-    'Japan': ['Tokyo', 'Osaka', 'Kyoto', 'Fukuoka', 'Sapporo'],
-    '중국': ['Beijing', 'Shanghai', 'Hong Kong'],
-    'China': ['Beijing', 'Shanghai', 'Hong Kong'],
-    '한국': ['Seoul', 'Busan', 'Jeju'],
-    'Korea': ['Seoul', 'Busan', 'Jeju'],
-    '태국': ['Bangkok', 'Chiang Mai', 'Phuket'],
-    'Thailand': ['Bangkok', 'Chiang Mai', 'Phuket'],
-    '프랑스': ['Paris', 'Nice', 'Lyon'],
-    'France': ['Paris', 'Nice', 'Lyon'],
-    '영국': ['London', 'Edinburgh', 'Manchester'],
-    'UK': ['London', 'Edinburgh', 'Manchester'],
-    'United Kingdom': ['London', 'Edinburgh', 'Manchester'],
-    '이탈리아': ['Rome', 'Milan', 'Venice', 'Florence'],
-    'Italy': ['Rome', 'Milan', 'Venice', 'Florence'],
-    '스페인': ['Madrid', 'Barcelona', 'Seville'],
-    'Spain': ['Madrid', 'Barcelona', 'Seville'],
-    '독일': ['Berlin', 'Munich', 'Frankfurt'],
-    'Germany': ['Berlin', 'Munich', 'Frankfurt'],
-    '베트남': ['Ho Chi Minh', 'Hanoi', 'Danang'],
-    'Vietnam': ['Ho Chi Minh', 'Hanoi', 'Danang'],
-    '인도네시아': ['Bali', 'Jakarta'],
-    'Indonesia': ['Bali', 'Jakarta'],
-    '호주': ['Sydney', 'Melbourne'],
-    'Australia': ['Sydney', 'Melbourne'],
-    '캐나다': ['Toronto', 'Vancouver'],
-    'Canada': ['Toronto', 'Vancouver'],
-    '멕시코': ['Mexico City', 'Cancun'],
-    'Mexico': ['Mexico City', 'Cancun'],
-    'UAE': ['Dubai', 'Abu Dhabi'],
-    '아랍에미리트': ['Dubai', 'Abu Dhabi'],
-    '네덜란드': ['Amsterdam'],
-    'Netherlands': ['Amsterdam'],
-    '모로코': ['Marrakech', 'Casablanca'],
-    'Morocco': ['Marrakech', 'Casablanca'],
-    '체코': ['Prague'],
-    'Czechia': ['Prague'],
-    'Czech': ['Prague'],
-    '터키': ['Istanbul', 'Cappadocia'],
-    'Turkey': ['Istanbul', 'Cappadocia'],
-    'Türkiye': ['Istanbul', 'Cappadocia'],
-  };
-
-  const searchRoutes = async () => {
-    const from = newPlan.from.trim();
-    const to = newPlan.to.trim();
-    if (!from || !to) return;
-    setRouteLoading(true);
-    setRouteResults([]);
-    setSelectedRoute(null);
-
-    // Destination is a country? Expand to major cities and merge all routes
-    const cities = COUNTRY_CITIES[to];
-    if (cities && cities.length > 0) {
-      const allResults = [];
-      for (const city of cities) {
-        try {
-          const res = await searchSingleRoute(from, city);
-          // Label route with city so user can distinguish
-          for (const r of res) {
-            allResults.push({
-              ...r,
-              name: r.name && !r.name.includes(city) ? `${r.name} (${city})` : r.name || `${from} → ${city}`,
-              destCity: city,
-            });
-          }
-        } catch (e) { /* skip */ }
-      }
-      setRouteResults(allResults);
-      setRouteLoading(false);
-      if (allResults.length === 0) {
-        showToast(`No routes found for ${to}. Try specific city names.`);
-      }
+    if (localResults.length > 0) {
+      setTimeout(() => { setRouteResults(localResults); setRouteLoading(false); }, 600);
       return;
     }
 
-    // Single city-to-city search
-    const results = await searchSingleRoute(from, to);
-    setRouteResults(results);
-    setRouteLoading(false);
+    // 2) If not in local DB, ask Claude AI (English response requested)
+    try {
+      const rawJson = await api.getAiTransport(f, t);
+      let parsed;
+      if (typeof rawJson === 'string') {
+        parsed = JSON.parse(rawJson);
+      } else {
+        parsed = rawJson;
+      }
+      const aiRoutes = Array.isArray(parsed)? parsed : [];
+      // Comprehensive scrub: strip brand mentions AND Korean filler text from all fields
+      const BRAND_PATTERN = /스카이스캐너|Skyscanner|skyscanner|네이버\s*항공(권|)?|Naver\s*Flight|Booking\.com|Expedia|Kayak|Agoda/gi;
+      const KOREAN_FALLBACK_PATTERN = /검색\s*필요|확인하세요|예약\s*필요|준비\s*중/g;
+
+      const scrub = (v) => {
+        if (typeof v !== 'string') return v;
+        return v
+          .replace(BRAND_PATTERN, '')
+          .replace(KOREAN_FALLBACK_PATTERN, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      // Filter out completely invalid entries and scrub every string field
+      const cleaned = aiRoutes
+        .filter(r => r && r.name)
+        .map(r => {
+          const scrubbed = { ...r };
+          // Scrub all known string fields
+          ['name', 'tag', 'time', 'price', 'type', 'icon', 'tagColor'].forEach(k => {
+            if (scrubbed[k] != null) scrubbed[k] = scrub(String(scrubbed[k]));
+          });
+          // Scrub steps array
+          if (Array.isArray(scrubbed.steps)) {
+            scrubbed.steps = scrubbed.steps.map(s => scrub(String(s))).filter(Boolean);
+          }
+          // Drop any links field entirely (we don't want external booking links)
+          delete scrubbed.links;
+          return scrubbed;
+        })
+        // Drop entries that became empty after scrub
+        .filter(r => r.name && r.name.length > 2);
+      setRouteResults(cleaned);
+    } catch (e) {
+      console.error('AI transport error:', e);
+      setRouteResults([]);
+    } finally {
+      setRouteLoading(false);
+    }
   };
 
   const searchPlaces = async () => {
