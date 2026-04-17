@@ -1046,40 +1046,40 @@
         </div>
 
         <!-- 텔레그램 + 자동발송 통합 등록 -->
-        <div class="card" style="margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div style="font-weight:700;">📱 신규 텔레그램 + 자동발송 등록</div>
+        <div class="card" style="margin-bottom:16px;max-width:560px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-weight:700;font-size:0.95rem;">📱 신규 텔레그램 + 자동발송 등록</div>
             <button onclick="lottoTestTg()" class="btn"
-              style="background:var(--panel2);color:var(--text);font-size:0.82rem;">🔔 테스트 발송</button>
+              style="background:var(--panel2);color:var(--text);font-size:0.75rem;padding:4px 10px;">🔔 테스트</button>
           </div>
-          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">
-            새 Chat ID를 등록합니다. 같은 ID는 등록 불가 — 기존 등록 항목은 아래 리스트에서 직접 수정/삭제하세요.
+          <div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;">
+            새 Chat ID 등록. 같은 ID는 등록 불가 — 기존은 아래 리스트에서 수정.
           </div>
 
           <!-- 텔레그램 입력 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-            <input id="lotto-tg-chatid" placeholder="Chat ID" class="input-box">
-            <input id="lotto-tg-token" type="password" placeholder="Bot Token (선택)" class="input-box">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+            <input id="lotto-tg-chatid" placeholder="Chat ID" class="input-box" style="font-size:0.85rem;padding:6px 10px;">
+            <input id="lotto-tg-token" type="password" placeholder="Bot Token (선택)" class="input-box" style="font-size:0.85rem;padding:6px 10px;">
           </div>
 
           <!-- 요일 선택 -->
-          <div style="margin-bottom:12px;">
-            <div style="font-size:0.82rem;color:var(--muted);margin-bottom:6px;">요일 선택</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)">월</button>
-              <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)">화</button>
-              <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)">수</button>
-              <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)">목</button>
-              <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)">금</button>
-              <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)">토</button>
+          <div style="margin-bottom:10px;">
+            <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;">요일 선택</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)" style="padding:4px 10px;font-size:0.78rem;min-width:36px;">월</button>
+              <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)" style="padding:4px 10px;font-size:0.78rem;min-width:36px;">화</button>
+              <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)" style="padding:4px 10px;font-size:0.78rem;min-width:36px;">수</button>
+              <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)" style="padding:4px 10px;font-size:0.78rem;min-width:36px;">목</button>
+              <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)" style="padding:4px 10px;font-size:0.78rem;min-width:36px;">금</button>
+              <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)" style="padding:4px 10px;font-size:0.78rem;min-width:36px;">토</button>
             </div>
           </div>
 
           <!-- 시각/게임수 -->
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
             <div style="flex:1;">
-              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">발송 시각</div>
-              <select id="lotto-sch-hour" class="input-box">
+              <div style="font-size:0.75rem;color:var(--muted);margin-bottom:3px;">발송 시각</div>
+              <select id="lotto-sch-hour" class="input-box" style="font-size:0.85rem;padding:6px 8px;">
                 <option value="" disabled selected>시각 선택</option>
                 <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option>
                 <option value="3">03시</option><option value="4">04시</option><option value="5">05시</option>
@@ -1092,8 +1092,8 @@
               </select>
             </div>
             <div style="flex:1;">
-              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">게임 수</div>
-              <select id="lotto-sch-count" class="input-box">
+              <div style="font-size:0.75rem;color:var(--muted);margin-bottom:3px;">게임 수</div>
+              <select id="lotto-sch-count" class="input-box" style="font-size:0.85rem;padding:6px 8px;">
                 <option value="" disabled selected>게임 선택</option>
                 <option value="1">1게임</option>
                 <option value="3">3게임</option>
@@ -1105,9 +1105,9 @@
 
           <!-- 등록 버튼 -->
           <button onclick="lottoRegisterAll()" class="btn"
-            style="width:100%;background:#6366f1;color:#fff;padding:10px;font-weight:700;">✅ 등록</button>
+            style="width:100%;background:#6366f1;color:#fff;padding:7px;font-weight:700;font-size:0.85rem;">✅ 등록</button>
 
-          <div style="font-size:0.78rem;color:#f97316;margin-top:8px;">⚠️ 토요일 20시 이후는 판매 마감</div>
+          <div style="font-size:0.72rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감</div>
         </div>
 
         <!-- 텔레그램 등록자 관리 -->
