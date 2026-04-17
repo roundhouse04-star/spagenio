@@ -798,15 +798,38 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
         parsed = rawJson;
       }
       const aiRoutes = Array.isArray(parsed)? parsed : [];
-      // Filter out any routes that contain disallowed brand references
+      // Comprehensive scrub: strip brand mentions AND Korean filler text from all fields
+      const BRAND_PATTERN = /스카이스캐너|Skyscanner|skyscanner|네이버\s*항공(권|)?|Naver\s*Flight|Booking\.com|Expedia|Kayak|Agoda/gi;
+      const KOREAN_FALLBACK_PATTERN = /검색\s*필요|확인하세요|예약\s*필요|준비\s*중/g;
+
+      const scrub = (v) => {
+        if (typeof v !== 'string') return v;
+        return v
+          .replace(BRAND_PATTERN, '')
+          .replace(KOREAN_FALLBACK_PATTERN, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      // Filter out completely invalid entries and scrub every string field
       const cleaned = aiRoutes
-        .filter(r => r && r.name && r.price)
-        .map(r => ({
-          ...r,
-          // Strip any Skyscanner/booking mentions from AI response
-          name: String(r.name).replace(/스카이스캐너|Skyscanner|skyscanner/gi, '').trim(),
-          steps: (r.steps || []).map(s => String(s).replace(/스카이스캐너|Skyscanner|skyscanner/gi, '').trim()),
-        }));
+        .filter(r => r && r.name)
+        .map(r => {
+          const scrubbed = { ...r };
+          // Scrub all known string fields
+          ['name', 'tag', 'time', 'price', 'type', 'icon', 'tagColor'].forEach(k => {
+            if (scrubbed[k] != null) scrubbed[k] = scrub(String(scrubbed[k]));
+          });
+          // Scrub steps array
+          if (Array.isArray(scrubbed.steps)) {
+            scrubbed.steps = scrubbed.steps.map(s => scrub(String(s))).filter(Boolean);
+          }
+          // Drop any links field entirely (we don't want external booking links)
+          delete scrubbed.links;
+          return scrubbed;
+        })
+        // Drop entries that became empty after scrub
+        .filter(r => r.name && r.name.length > 2);
       setRouteResults(cleaned);
     } catch (e) {
       console.error('AI transport error:', e);
@@ -1076,7 +1099,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                               <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{r.name}</span>
                               {r.tag && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 2, background: r.tagColor + '20', color: r.tagColor, border: `1px solid ${r.tagColor}40` }}>{r.tag}</span>}
                             </div>
-                            <div style={{ fontSize: 12, color: '#8A919C' }}>⏱ {r.time} · 💰 {r.price}</div>
+                            <div style={{ fontSize: 12, color: '#8A919C' }}>⏱ {r.time || 'varies'} · 💰 {r.price || 'estimate not available'}</div>
                           </div>
                           <button onClick={e => {
                               e.stopPropagation();
@@ -1312,7 +1335,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                         {r.tag && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 2, background: r.tagColor + '20', color: r.tagColor, border: `1px solid ${r.tagColor}40` }}>{r.tag}</span>}
                       </div>
                       <div style={{ fontSize: 11, color: '#8A919C' }}>
-                        ✈ {r.from} → {r.to}{r.date && ` · 📅 ${r.date}`} · ⏱ {r.time} · 💰 {r.price}
+                        ✈ {r.from} → {r.to}{r.date && ` · 📅 ${r.date}`} · ⏱ {r.time || 'varies'} · 💰 {r.price || 'estimate N/A'}
                       </div>
                     </div>
                     <button onClick={() => setAddedRoutes(prev => prev.filter((_, idx) => idx!== i))}
