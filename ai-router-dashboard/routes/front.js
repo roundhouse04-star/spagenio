@@ -728,8 +728,8 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  // ✅ 예측 실행 — 서버에서 lottoBuildGames(N) 실행 → lotto_predictions에 저장 → 결과 리턴
-  router.post('/api/lotto/prediction/run', (req, res) => {
+  // ✅ 예측 실행 — 서버에서 lottoBuildGames(N) 실행 → lotto_predictions 저장 → 텔레그램 브로드캐스트
+  router.post('/api/lotto/prediction/run', async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: '로그인 필요' });
       const count = parseInt(req.body?.count) || 10;
@@ -741,19 +741,46 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const latest = db.prepare('SELECT drw_no FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
       if (!latest) return res.json({ ok: false, error: '최신 회차 조회 실패' });
 
-      // 10게임 INSERT
+      // 1) lotto_predictions에 INSERT
       const stmt = db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks) VALUES (?,?,?)');
       const tx = db.transaction(() => {
         games.forEach(picks => stmt.run(latest.drw_no, latest.drw_no + 1, JSON.stringify(picks)));
       });
       tx();
 
+      // 2) 텔레그램 브로드캐스트 (lotto_telegram 등록된 모든 chat_id)
+      const recipients = db.prepare('SELECT chat_id, bot_token FROM lotto_telegram').all();
+      let sent = 0, failed = 0;
+      if (recipients.length > 0) {
+        const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
+        const msg = `🎯 *로또 예측 번호* (${latest.drw_no + 1}회 예측)\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n🕐 ${new Date().toLocaleString('ko-KR')}`;
+
+        const results = await Promise.all(recipients.map(async (r) => {
+          const token = r.bot_token || process.env.TG_BOT_TOKEN;
+          if (!token) return { chat_id: r.chat_id, ok: false, error: 'no token' };
+          try {
+            const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: r.chat_id, text: msg, parse_mode: 'Markdown' })
+            });
+            const data = await resp.json();
+            return { chat_id: r.chat_id, ok: !!data.ok, error: data.description };
+          } catch (e) {
+            return { chat_id: r.chat_id, ok: false, error: e.message };
+          }
+        }));
+        sent = results.filter(r => r.ok).length;
+        failed = results.filter(r => !r.ok).length;
+      }
+
       res.json({
         ok: true,
         saved: games.length,
         based_on_round: latest.drw_no,
         predicted_for_round: latest.drw_no + 1,
-        games
+        games,
+        telegram: { total: recipients.length, sent, failed }
       });
     } catch (e) {
       console.error('[prediction/run]', e);
