@@ -28,8 +28,11 @@ function DetailVideo({ uri }) {
   );
 }
 
-export default function PostDetailScreen({ route, navigation }) {
-  const { post: initialPost, user } = route.params;
+export default function PostDetailScreen({ route, navigation, user: userProp, setUser }) {
+  // Support both: user from route.params (back-compat) or from props
+  const { post: initialPost } = route.params;
+  const user = userProp || route.params?.user;
+
   const [post, setPost] = useState(initialPost);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -60,8 +63,14 @@ export default function PostDetailScreen({ route, navigation }) {
       const res = await fetch(`${API_BASE}/api/users/${user.id}/bookmark/${post.id}`, { method: 'POST' });
       if (res.ok) {
         const updated = await res.json();
-        user.savedPostIds = updated.savedPostIds;
-        setPost(p => ({ ...p }));
+        // Properly update user state so other screens re-render
+        if (setUser) {
+          setUser(prev => ({ ...prev, savedPostIds: updated.savedPostIds }));
+        } else {
+          // Fallback for back-compat
+          user.savedPostIds = updated.savedPostIds;
+          setPost(p => ({ ...p }));
+        }
       }
     } catch (e) {}
   };
@@ -72,8 +81,12 @@ export default function PostDetailScreen({ route, navigation }) {
       const res = await fetch(`${API_BASE}/api/users/${user.id}/wishlist/${post.id}`, { method: 'POST' });
       if (res.ok) {
         const updated = await res.json();
-        user.wishlistPostIds = updated.wishlistPostIds;
-        setPost(p => ({ ...p }));
+        if (setUser) {
+          setUser(prev => ({ ...prev, wishlistPostIds: updated.wishlistPostIds }));
+        } else {
+          user.wishlistPostIds = updated.wishlistPostIds;
+          setPost(p => ({ ...p }));
+        }
       }
     } catch (e) {}
   };
@@ -103,9 +116,9 @@ export default function PostDetailScreen({ route, navigation }) {
   };
 
   const deleteComment = (commentId) => {
-    Alert.alert('댓글 삭제', '댓글을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => {
+    Alert.alert('Delete comment', 'Delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           const res = await fetch(`${API_BASE}/api/posts/${post.id}/comments/${commentId}`, { method: 'DELETE' });
           if (res.ok) setPost(await res.json());

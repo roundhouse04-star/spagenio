@@ -22,29 +22,29 @@ import ExchangeScreen from './src/screens/ExchangeScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-function FeedStack({ user }) {
+function FeedStack({ user, setUser }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="FeedMain">{() => <FeedScreen user={user} />}</Stack.Screen>
-      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} />}</Stack.Screen>
+      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} user={user} setUser={setUser} />}</Stack.Screen>
     </Stack.Navigator>
   );
 }
 
-function ExploreStack({ user }) {
+function ExploreStack({ user, setUser }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ExploreMain">{() => <ExploreScreen user={user} />}</Stack.Screen>
-      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} />}</Stack.Screen>
+      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} user={user} setUser={setUser} />}</Stack.Screen>
     </Stack.Navigator>
   );
 }
 
-function ProfileStack({ user, onLogout }) {
+function ProfileStack({ user, setUser, onLogout }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProfileMain">{() => <ProfileScreen user={user} onLogout={onLogout} />}</Stack.Screen>
-      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} />}</Stack.Screen>
+      <Stack.Screen name="ProfileMain">{() => <ProfileScreen user={user} setUser={setUser} onLogout={onLogout} />}</Stack.Screen>
+      <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} user={user} setUser={setUser} />}</Stack.Screen>
     </Stack.Navigator>
   );
 }
@@ -61,7 +61,7 @@ function MoreStack({ user }) {
   );
 }
 
-function TabNavigator({ user, onLogout }) {
+function TabNavigator({ user, setUser, onLogout }) {
   return (
     <Tab.Navigator screenOptions={{
       headerShown: false,
@@ -71,10 +71,10 @@ function TabNavigator({ user, onLogout }) {
       tabBarLabelStyle: { fontFamily: 'Inter_500Medium', fontSize: 9, letterSpacing: 1.5 },
     }}>
       <Tab.Screen name="HOME" options={{ tabBarIcon: ({ focused }) => <Home size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
-        {() => <FeedStack user={user} />}
+        {() => <FeedStack user={user} setUser={setUser} />}
       </Tab.Screen>
       <Tab.Screen name="EXPLORE" options={{ tabBarIcon: ({ focused }) => <Search size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
-        {() => <ExploreStack user={user} />}
+        {() => <ExploreStack user={user} setUser={setUser} />}
       </Tab.Screen>
       <Tab.Screen name="WRITE" options={{ tabBarIcon: ({ focused }) => <PenLine size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
         {() => <WriteScreen user={user} />}
@@ -83,7 +83,7 @@ function TabNavigator({ user, onLogout }) {
         {() => <MoreStack user={user} />}
       </Tab.Screen>
       <Tab.Screen name="PROFILE" options={{ tabBarIcon: ({ focused }) => <User size={20} color={focused ? '#1E2A3A' : '#9ca3af'} strokeWidth={focused ? 2 : 1.5} /> }}>
-        {() => <ProfileStack user={user} onLogout={onLogout} />}
+        {() => <ProfileStack user={user} setUser={setUser} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -115,7 +115,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
-      <TabNavigator user={user} onLogout={() => setUser(null)} />
+      <TabNavigator user={user} setUser={setUser} onLogout={() => setUser(null)} />
     </NavigationContainer>
   );
 }

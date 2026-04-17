@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, SafeAreaView, TextInput, Modal, Alert, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { Settings, LogOut, Edit2, X, Play } from 'lucide-react-native';
+import { Settings, LogOut, Edit2, X, Play, Bookmark, Send } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 
 const API_BASE = 'https://travel.spagenio.com';
@@ -14,10 +14,13 @@ const toFullUrl = (url) => {
   return API_BASE + url;
 };
 
-export default function ProfileScreen({ user, onLogout }) {
+export default function ProfileScreen({ user, setUser, onLogout }) {
   const navigation = useNavigation();
   const [profile, setProfile] = useState(user);
   const [posts, setPosts] = useState([]);
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [wishlistPosts, setWishlistPosts] = useState([]);
+  const [tab, setTab] = useState('posts'); // 'posts' | 'saved' | 'wishlist'
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ nickname: '', bio: '', profileImage: '' });
@@ -37,13 +40,41 @@ export default function ProfileScreen({ user, onLogout }) {
         const u = await userRes.json();
         setProfile(u);
         setPushConsent(u.pushConsent !== false);
+        // Also sync App-level user state so saved/wishlist arrays are fresh
+        if (setUser) setUser(prev => ({ ...prev, ...u }));
       }
       if (postsRes.ok) setPosts(await postsRes.json());
     } catch (e) {}
     setLoading(false);
   };
 
+  // Fetch posts for an array of post IDs
+  const fetchPostsByIds = async (ids) => {
+    if (!ids?.length) return [];
+    try {
+      const results = await Promise.all(
+        ids.map(id => fetch(`${API_BASE}/api/posts/${id}`).then(r => r.ok ? r.json() : null).catch(() => null))
+      );
+      return results.filter(Boolean);
+    } catch (e) {
+      return [];
+    }
+  };
+
   useEffect(() => { loadData(); }, []);
+
+  // When user's savedPostIds or wishlistPostIds change (from PostDetail), re-fetch those posts
+  useEffect(() => {
+    (async () => {
+      setSavedPosts(await fetchPostsByIds(user?.savedPostIds || []));
+    })();
+  }, [user?.savedPostIds?.join(',')]);
+
+  useEffect(() => {
+    (async () => {
+      setWishlistPosts(await fetchPostsByIds(user?.wishlistPostIds || []));
+    })();
+  }, [user?.wishlistPostIds?.join(',')]);
 
   const openEdit = () => {
     setEditForm({
@@ -57,7 +88,7 @@ export default function ProfileScreen({ user, onLogout }) {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '갤러리 접근 권한이 필요해요.');
+      Alert.alert('Permission needed', 'Gallery access is required.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -79,7 +110,7 @@ export default function ProfileScreen({ user, onLogout }) {
           setEditForm(f => ({ ...f, profileImage: data.url }));
         }
       } catch (e) {
-        Alert.alert('오류', '이미지 업로드 실패');
+        Alert.alert('Error', 'Image upload failed');
       }
     }
   };
@@ -96,7 +127,7 @@ export default function ProfileScreen({ user, onLogout }) {
         loadData();
       }
     } catch (e) {
-      Alert.alert('오류', '저장 실패');
+      Alert.alert('Error', 'Save failed');
     }
   };
 
@@ -131,6 +162,42 @@ export default function ProfileScreen({ user, onLogout }) {
       <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
     </SafeAreaView>
   );
+
+  // Pick which posts to show based on tab
+  const activePosts = tab === 'saved' ? savedPosts : tab === 'wishlist' ? wishlistPosts : posts;
+  const emptyLabel = tab === 'saved' ? 'NO SAVED POSTS' : tab === 'wishlist' ? 'NO WISHLIST ITEMS' : 'NO POSTS YET';
+
+  const renderGrid = () => {
+    if (activePosts.length === 0) {
+      return <Text style={S.empty}>{emptyLabel}</Text>;
+    }
+    return (
+      <View style={S.grid}>
+        {activePosts.map(item => {
+          const firstImg = item.images?.[0];
+          const isVideo = firstImg?.endsWith('.mp4');
+          const thumbUrl = isVideo ? firstImg.replace('_video.mp4', '_thumb.jpg') : firstImg;
+          return (
+            <TouchableOpacity key={item.id} style={S.gridCell} activeOpacity={0.9}
+              onPress={() => navigation.navigate('PostDetail', { post: item })}>
+              {firstImg ? (
+                <>
+                  <Image source={{ uri: toFullUrl(thumbUrl) }} style={S.gridImg} />
+                  {isVideo && (
+                    <View style={S.videoIcon}>
+                      <Play size={14} color="white" fill="white" strokeWidth={1.5} />
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={[S.gridImg, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}><Text>✈</Text></View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={S.container}>
@@ -187,36 +254,20 @@ export default function ProfileScreen({ user, onLogout }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={S.sectionLabel}>POSTS</Text>
+        {/* Tab bar */}
+        <View style={S.tabBar}>
+          <TouchableOpacity style={[S.tabBtn, tab === 'posts' && S.tabBtnActive]} onPress={() => setTab('posts')}>
+            <Text style={[S.tabBtnText, tab === 'posts' && S.tabBtnTextActive]}>POSTS {posts.length > 0 ? `· ${posts.length}` : ''}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[S.tabBtn, tab === 'saved' && S.tabBtnActive]} onPress={() => setTab('saved')}>
+            <Text style={[S.tabBtnText, tab === 'saved' && S.tabBtnTextActive]}>SAVED {savedPosts.length > 0 ? `· ${savedPosts.length}` : ''}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[S.tabBtn, tab === 'wishlist' && S.tabBtnActive]} onPress={() => setTab('wishlist')}>
+            <Text style={[S.tabBtnText, tab === 'wishlist' && S.tabBtnTextActive]}>WISH {wishlistPosts.length > 0 ? `· ${wishlistPosts.length}` : ''}</Text>
+          </TouchableOpacity>
+        </View>
 
-        {posts.length === 0 ? (
-          <Text style={S.empty}>NO POSTS YET</Text>
-        ) : (
-          <View style={S.grid}>
-            {posts.map(item => {
-              const firstImg = item.images?.[0];
-              const isVideo = firstImg?.endsWith('.mp4');
-              const thumbUrl = isVideo ? firstImg.replace('_video.mp4', '_thumb.jpg') : firstImg;
-              return (
-                <TouchableOpacity key={item.id} style={S.gridCell} activeOpacity={0.9}
-                  onPress={() => navigation.navigate('PostDetail', { post: item, user })}>
-                  {firstImg ? (
-                    <>
-                      <Image source={{ uri: toFullUrl(thumbUrl) }} style={S.gridImg} />
-                      {isVideo && (
-                        <View style={S.videoIcon}>
-                          <Play size={14} color="white" fill="white" strokeWidth={1.5} />
-                        </View>
-                      )}
-                    </>
-                  ) : (
-                    <View style={[S.gridImg, { backgroundColor: colors.bgTertiary, justifyContent: 'center', alignItems: 'center' }]}><Text>✈</Text></View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
+        {renderGrid()}
       </ScrollView>
 
       {/* Edit Modal */}
@@ -322,12 +373,17 @@ const S = StyleSheet.create({
   switchOn: { backgroundColor: colors.primary },
   switchDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'white' },
   switchDotOn: { marginLeft: 16 },
+  tabBar: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
+  tabBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabBtnActive: { borderBottomColor: colors.primary },
+  tabBtnText: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
+  tabBtnTextActive: { fontFamily: 'Inter_600SemiBold', color: colors.primary },
   sectionLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2, color: colors.primary, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   gridCell: { width: '33.33%', aspectRatio: 1, padding: 0.5 },
   gridImg: { width: '100%', height: '100%' },
   videoIcon: { position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(30,42,58,0.7)', justifyContent: 'center', alignItems: 'center' },
-  empty: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 2, color: colors.textTertiary, textAlign: 'center', marginTop: 60 },
+  empty: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 2, color: colors.textTertiary, textAlign: 'center', marginTop: 60, marginBottom: 60 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 0.5, borderBottomColor: colors.borderLight },
   modalTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 2.5, color: colors.primary },
   modalCancel: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.textTertiary },
