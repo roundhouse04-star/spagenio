@@ -691,6 +691,7 @@ function App() {
 function Router() {
   const path = window.location.pathname;
   if (path.startsWith('/admin')) return <Admin />;
+  if (path.startsWith('/change-password')) return <ForgotPassword />;
   if (path.startsWith('/terms')) return <Terms />;
   if (path.startsWith('/register')) return <Register />;
   if (path.startsWith('/forgot-password')) return <ForgotPassword />;
