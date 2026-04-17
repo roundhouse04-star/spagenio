@@ -427,34 +427,6 @@
         } catch(err) { lottoShowToast('❌', '오류', err.message); }
       };
 
-      window.lottoSaveAndSend = async function lottoSaveAndSend() {
-        if (!lottoLastGames.length) { lottoShowToast('⚠️', '번호 없음', '먼저 번호 추천받기를 눌러주세요!'); return; }
-        const date = new Date().toISOString().split('T')[0];
-        const algosStr = lottoAlgos.filter(a=>a.weight>0).sort((a,b)=>b.weight-a.weight).slice(0,3).map(a=>a.name).join('+');
-        try {
-          const r = await fetch('/api/lotto/picks', {method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({pick_date:date, games:lottoLastGames.map(g=>g.numbers), algorithms:algosStr})});
-          const d = await r.json();
-          if (!d.ok) throw new Error(d.error);
-        } catch(e) { lottoShowToast('❌', '저장 실패', e.message); return; }
-        const lines = lottoLastGames.map((g,i)=>String.fromCharCode(65+i)+'게임: '+g.numbers.join(' ')).join('\n');
-        const msg = '🍀 *로또 번호 추천* ('+date+')\n\n'+lines+'\n\n📊 '+algosStr+'\n🕐 '+new Date().toLocaleString('ko-KR');
-        try {
-          // ✅ broadcast: lotto_telegram에 등록된 모든 사용자에게 발송
-          const r = await fetch('/api/lotto/telegram/broadcast', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})});
-          const d = await r.json();
-          if (d.ok) {
-            const failMsg = d.failed > 0 ? ' ('+d.failed+'명 실패)' : '';
-            lottoShowToast('🍀', '전송 완료!', '번호 저장 + '+d.sent+'명에게 텔레그램 전송됨'+failMsg);
-          } else {
-            lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램: '+(d.error || '실패')+')');
-          }
-        } catch(e) { lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 오류)'); }
-        lottoLoadHistory();
-      };
-
-      window.lottoSendTelegram = window.lottoSaveAndSend;
-
       async function lottoLoadTgConfig() {
         try {
           // localStorage 또는 입력란의 chat_id로 조회
@@ -607,7 +579,6 @@
         }).join(' ');
       }
 
-      let lottoHistoryPage = 1;
       const LOTTO_PAGE_SIZE = 10;
 
       // ── 텔레그램 등록자 관리 ──
@@ -752,51 +723,6 @@
         });
       };
 
-      window.lottoLoadHistory = async function(page = 1) {
-        lottoHistoryPage = page;
-        const el = $id('lotto-history-list');
-        if (!el) return;
-        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
-        try {
-          const r = await fetch(`/api/lotto/picks?page=${page}&limit=${LOTTO_PAGE_SIZE}`);
-          const d = await r.json();
-          if (!d.picks?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">추천 이력이 없습니다</div>'; return; }
-
-          const isAdmin = d.is_admin;
-
-          // 관리자: 유저명 + 날짜별 개별 표시
-          // 일반 유저: 날짜별 표시
-          const thead = isAdmin
-            ? '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">유저</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">상세</th>'
-            : '<th style="padding:8px;text-align:left;">날짜</th><th style="padding:8px;text-align:center;">게임수</th><th style="padding:8px;text-align:center;">회차</th><th style="padding:8px;text-align:center;">최고 등수</th><th style="padding:8px;text-align:center;">최다 일치</th><th style="padding:8px;text-align:center;">상세</th>';
-
-          el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">' +
-            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' + thead + '</tr></thead><tbody>' +
-            d.picks.map(p =>
-              '<tr style="border-bottom:1px solid #f3f4f6;">' +
-              '<td style="padding:8px;">'+p.pick_date+'</td>' +
-              (isAdmin ? '<td style="padding:8px;text-align:center;"><span style="padding:2px 8px;border-radius:999px;background:#eef2ff;color:#6366f1;font-size:0.78rem;font-weight:700;">'+(p.username||'-')+'</span></td>' : '') +
-              '<td style="padding:8px;text-align:center;">'+p.game_count+'게임</td>' +
-              '<td style="padding:8px;text-align:center;">'+(p.drw_no ? p.drw_no+'회' : '미확인')+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+(p.best_rank ? '<span class="lotto-rank-badge rank-'+p.best_rank+'">'+p.best_rank+'등</span>' : '<span class="lotto-rank-badge rank-0">미확인</span>')+'</td>' +
-              '<td style="padding:8px;text-align:center;">'+(p.max_match != null ? p.max_match+'개' : '-')+'</td>' +
-              '<td style="padding:8px;text-align:center;"><button class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:3px 10px;" data-date="' + p.pick_date + '" data-userid="' + (p.user_id||'') + '" onclick="lottoShowDetail(this.dataset.date, this.dataset.userid)">보기</button></td>' +
-              '</tr>'
-            ).join('') + '</tbody></table>';
-
-          // 페이징 버튼
-          if (d.totalPages > 1) {
-            const totalPages = d.totalPages;
-            let pagingHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;">';
-            pagingHtml += `<button onclick="lottoLoadHistory(${page-1})" ${page<=1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page<=1?'#f9fafb':'#fff'};cursor:${page<=1?'default':'pointer'};font-size:0.82rem;">← 이전</button>`;
-            pagingHtml += `<span style="font-size:0.82rem;color:#6b7280;">${page} / ${totalPages}</span>`;
-            pagingHtml += `<button onclick="lottoLoadHistory(${page+1})" ${page>=totalPages?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #e5e7eb;background:${page>=totalPages?'#f9fafb':'#fff'};cursor:${page>=totalPages?'default':'pointer'};font-size:0.82rem;">다음 →</button>`;
-            pagingHtml += '</div>';
-            el.innerHTML += pagingHtml;
-          }
-        } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
-      };
-
       const DAY_NAMES = ['일','월','화','수','목','금','토'];
 
       let lottoScheduleLogPage = 1;
@@ -895,78 +821,6 @@
           }
         } catch(e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">이력 로드 실패</div>'; }
       };
-      window.lottoShowDetail = async function(date, userId) {
-        const card = $id('lotto-detail-card');
-        const title = $id('lotto-detail-title');
-        const gamesEl = $id('lotto-detail-games');
-        if (!card || !gamesEl) return;
-        card.style.display = 'block';
-        title.textContent = '📅 ' + date + ' 추천 번호';
-        card.dataset.date = date;
-        card.dataset.userId = userId || '';
-        gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;">로딩 중...</div>';
-        card.scrollIntoView({behavior:'smooth', block:'start'});
-        try {
-          const url = userId ? `/api/lotto/picks?date=${date}&user_id=${userId}` : `/api/lotto/picks?date=${date}`;
-          const r = await fetch(url);
-          const d = await r.json();
-          gamesEl.innerHTML = d.picks.map(p => {
-            const rankLabel = p.rank
-              ? '<span class="lotto-rank-badge rank-'+p.rank+'">'+p.rank+'등 ('+p.matched_count+'개 일치)</span>'
-              : (p.matched_count != null ? '<span class="lotto-rank-badge rank-0">'+p.matched_count+'개 일치</span>' : '<span class="lotto-rank-badge rank-0">미확인</span>');
-            return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-              '<span style="font-weight:700;font-size:0.85rem;">'+String.fromCharCode(65+p.game_index)+'게임</span>'+rankLabel+'</div>' +
-              '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(p.numbers)+'</div></div>';
-          }).join('');
-        } catch(e) { gamesEl.innerHTML = '<div style="color:#ef4444;">로드 실패</div>'; }
-      };
-
-      window.lottoCheckResult = async function() {
-        const card = $id('lotto-detail-card');
-        const date = card?.dataset.date;
-        const drw_no = $id('lotto-check-drwno')?.value?.trim();
-        const btn = document.querySelector('button[onclick="lottoCheckResult()"]');
-
-        if (!date) { await spAlert('먼저 추천 이력에서 "보기"를 눌러주세요.', '안내', '⚠️'); return; }
-        if (!drw_no) { await spAlert('회차를 입력하세요.', '입력 오류', '⚠️'); return; }
-
-        if (btn) { btn.disabled = true; btn.textContent = '확인 중...'; }
-        const gamesEl = $id('lotto-detail-games');
-        if (gamesEl) gamesEl.innerHTML = '<div style="color:#6b7280;padding:16px;text-align:center;">⏳ 당첨번호 확인 중...</div>';
-
-        try {
-          const r = await fetch('/api/lotto/picks/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pick_date: date, drw_no: parseInt(drw_no) })
-          });
-          const d = await r.json();
-          if (!d.ok) throw new Error(d.error || '확인 실패');
-
-          gamesEl.innerHTML =
-            '<div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:12px;">' +
-            '<span style="font-size:0.82rem;font-weight:700;color:#6b7280;">'+d.drw_no+'회 당첨 번호</span>' +
-            '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(d.winning)+
-            ' <span style="margin-left:4px;font-size:0.82rem;color:#6b7280;">보너스: <span class="lotto-ball lb5">'+d.bonus+'</span></span></div></div>' +
-            d.results.map(res => {
-              const rankLabel = res.rank
-                ? '<span class="lotto-rank-badge rank-'+res.rank+'">'+res.rank+'등!</span>'
-                : '<span class="lotto-rank-badge rank-0">'+res.matched+'개 일치</span>';
-              return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;">' +
-                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-                '<span style="font-weight:700;font-size:0.85rem;">'+String.fromCharCode(65+res.game_index)+'게임</span>'+rankLabel+'</div>' +
-                '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+lottoRenderBalls(res.numbers, d.winning)+'</div></div>';
-            }).join('');
-          lottoLoadHistory(lottoHistoryPage);
-        } catch(e) {
-          console.error('lottoCheckResult error:', e);
-          if (gamesEl) gamesEl.innerHTML = '<div style="color:#ef4444;padding:16px;">❌ ' + e.message + '</div>';
-          await spAlert(e.message, '확인 실패', '❌');
-        } finally {
-          if (btn) { btn.disabled = false; btn.textContent = '당첨 확인'; }
-        }
-      };
 
       // ── streak 캐시 (예측 실행 시 1회만 계산) ──
       let _streakCache = null;
@@ -1038,7 +892,6 @@
         await lottoLoadTgConfig(); if (typeof lottoLoadTgList === "function") lottoLoadTgList();
         await lottoLoadSchedule();
         lottoLoadTgList();
-        lottoLoadHistory();
         lottoLoadAutoHistory();
         lottoLoadScheduleLog();
       }

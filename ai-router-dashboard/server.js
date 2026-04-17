@@ -2126,16 +2126,6 @@ async function lottoHistoryFn() {
   if (!data.drwtNo1) return;
   const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
   db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)').run(drw_no, JSON.stringify(winning), data.bnusNo, data.drwNoDate || today);
-  const picks = db.prepare('SELECT * FROM lotto_picks WHERE pick_date=? AND rank IS NULL').all(today);
-  picks.forEach(pick => {
-    const nums = JSON.parse(pick.numbers);
-    const matched = nums.filter(n => winning.includes(n)).length;
-    const hasBonus = nums.includes(data.bnusNo);
-    let rank = null;
-    if (matched === 6) rank = 1; else if (matched === 5 && hasBonus) rank = 2;
-    else if (matched === 5) rank = 3; else if (matched === 4) rank = 4; else if (matched === 3) rank = 5;
-    db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?').run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
-  });
   console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료`);
 }
 
@@ -2174,22 +2164,6 @@ setInterval(async () => {
     const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
     db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
       .run(drw_no, JSON.stringify(winning), data.bnusNo, data.drwNoDate || today);
-
-    // 미확인 픽 일괄 당첨확인
-    const picks = db.prepare('SELECT * FROM lotto_picks WHERE pick_date=? AND rank IS NULL').all(today);
-    picks.forEach(pick => {
-      const nums = JSON.parse(pick.numbers);
-      const matched = nums.filter(n => winning.includes(n)).length;
-      const hasBonus = nums.includes(data.bnusNo);
-      let rank = null;
-      if (matched === 6) rank = 1;
-      else if (matched === 5 && hasBonus) rank = 2;
-      else if (matched === 5) rank = 3;
-      else if (matched === 4) rank = 4;
-      else if (matched === 3) rank = 5;
-      db.prepare('UPDATE lotto_picks SET drw_no=?, rank=?, matched_count=?, bonus_match=? WHERE id=?')
-        .run(drw_no, rank, matched, hasBonus ? 1 : 0, pick.id);
-    });
 
     console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료: ${winning.join(', ')} + ${data.bnusNo}`);
 
