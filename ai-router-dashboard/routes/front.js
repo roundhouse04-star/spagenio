@@ -464,6 +464,46 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { console.error('[telegram error]', e.message, e.stack); res.status(500).json({ ok: false, error: e.message }); }
   });
 
+  // ✅ 로또 텔레그램 broadcast — lotto_telegram 등록된 모든 사용자에게 발송
+  router.post('/api/lotto/telegram/broadcast', async (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const { text } = req.body;
+      if (!text) return res.status(400).json({ ok: false, error: 'text 필요' });
+
+      const recipients = db.prepare('SELECT chat_id, bot_token FROM lotto_telegram').all();
+      if (recipients.length === 0) {
+        return res.json({ ok: false, error: '등록된 텔레그램 사용자가 없습니다.' });
+      }
+
+      // 모든 chat_id에 병렬 발송
+      const results = await Promise.all(recipients.map(async (r) => {
+        const token = r.bot_token || process.env.TG_BOT_TOKEN;
+        if (!token) return { chat_id: r.chat_id, ok: false, error: 'no token' };
+        try {
+          const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: r.chat_id, text, parse_mode: 'Markdown' })
+          });
+          const data = await resp.json();
+          return { chat_id: r.chat_id, ok: !!data.ok, error: data.description };
+        } catch (e) {
+          return { chat_id: r.chat_id, ok: false, error: e.message };
+        }
+      }));
+
+      const sent = results.filter(r => r.ok).length;
+      const failed = results.filter(r => !r.ok).length;
+      const errors = results.filter(r => !r.ok).map(r => `${r.chat_id}: ${r.error}`).slice(0, 5);
+
+      res.json({ ok: sent > 0, sent, failed, total: recipients.length, errors });
+    } catch (e) {
+      console.error('[lotto/telegram/broadcast]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   router.get('/api/lotto/picks/unconfirmed', (req, res) => {
     if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
     try {

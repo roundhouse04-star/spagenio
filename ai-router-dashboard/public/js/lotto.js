@@ -397,10 +397,15 @@
         const lines = lottoLastGames.map((g,i)=>String.fromCharCode(65+i)+'게임: '+g.numbers.join(' ')).join('\n');
         const msg = '🍀 *로또 번호 추천* ('+date+')\n\n'+lines+'\n\n📊 '+algosStr+'\n🕐 '+new Date().toLocaleString('ko-KR');
         try {
-          const r = await fetch('/api/lotto/telegram', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})});
+          // ✅ broadcast: lotto_telegram에 등록된 모든 사용자에게 발송
+          const r = await fetch('/api/lotto/telegram/broadcast', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})});
           const d = await r.json();
-          if (d.ok) lottoShowToast('🍀', '전송 완료!', '번호가 저장되고 텔레그램으로 전송되었습니다.');
-          else lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 실패: '+d.error+')');
+          if (d.ok) {
+            const failMsg = d.failed > 0 ? ' ('+d.failed+'명 실패)' : '';
+            lottoShowToast('🍀', '전송 완료!', '번호 저장 + '+d.sent+'명에게 텔레그램 전송됨'+failMsg);
+          } else {
+            lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램: '+(d.error || '실패')+')');
+          }
         } catch(e) { lottoShowToast('💾', '저장 완료', '번호가 저장되었습니다. (텔레그램 오류)'); }
         lottoLoadHistory();
       };
