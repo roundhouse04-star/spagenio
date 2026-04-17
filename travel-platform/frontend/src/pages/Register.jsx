@@ -24,10 +24,10 @@ const S = {
 };
 
 const STEPS = [
-  { n: 1, label: 'InfoEnter' },
-  { n: 2, label: 'EmailVerify' },
-  { n: 3, label: 'TRAVELPreferences' },
-  { n: 4, label: 'DONE' },
+  { n: 1, label: 'Your Info' },
+  { n: 2, label: 'Verify' },
+  { n: 3, label: 'Preferences' },
+  { n: 4, label: 'Done' },
 ];
 
 export default function Register() {
