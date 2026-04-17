@@ -382,14 +382,17 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (error) { return res.status(500).json({ error: error.message }); }
   });
 
-  // ✅ 로또 API
+  // ✅ 로또 API — chat_id 키값 기반 (로그인 아이디 매핑 불필요)
   router.get('/api/lotto/telegram/config', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
+    // chat_id query로 조회 (없으면 빈 응답)
+    const { chat_id } = req.query;
+    if (!chat_id) return res.json({ chat_id: '', has_token: false });
+    const row = db.prepare('SELECT chat_id, bot_token FROM lotto_telegram WHERE chat_id = ?').get(String(chat_id));
     res.json({ chat_id: row?.chat_id || '', has_token: !!row?.bot_token });
   });
 
-  // ✅ 텔레그램 설정 공통 API (성과 대시보드용)
+  // ✅ 텔레그램 설정 공통 API (성과 대시보드용 - 기존 user_telegram 유지)
   router.get('/api/user/telegram', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     const row = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
@@ -410,26 +413,45 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     res.json({ ok: true });
   });
 
+  // ✅ 로또 텔레그램 설정 저장 - chat_id를 키값으로만 사용
   router.post('/api/lotto/telegram/config', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { chat_id } = req.body;
-    let { bot_token } = req.body;
-    if (!chat_id) return res.status(400).json({ error: 'chat_id 필요' });
-    if (bot_token && bot_token.startsWith('bot')) bot_token = bot_token.slice(3);
-    const existing = db.prepare('SELECT id FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
-    if (existing) { db.prepare(`UPDATE user_telegram SET chat_id=?, bot_token=COALESCE(NULLIF(?,''),bot_token), updated_at=CURRENT_TIMESTAMP WHERE user_id=?`).run(chat_id, bot_token || '', req.user.user_id || req.user.id); }
-    else { db.prepare('INSERT INTO user_telegram (user_id, chat_id, bot_token) VALUES (?,?,?)').run(req.user.user_id || req.user.id, chat_id, bot_token || ''); }
-    res.json({ ok: true });
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const { chat_id } = req.body;
+      let { bot_token } = req.body;
+      if (!chat_id) return res.status(400).json({ ok: false, error: 'chat_id 필요' });
+      if (bot_token && bot_token.startsWith('bot')) bot_token = bot_token.slice(3);
+
+      const cid = String(chat_id);
+      const existing = db.prepare('SELECT chat_id FROM lotto_telegram WHERE chat_id = ?').get(cid);
+      if (existing) {
+        // 같은 chat_id가 이미 등록된 경우 → 안내 + bot_token이 있으면 갱신
+        if (bot_token) {
+          db.prepare(`UPDATE lotto_telegram SET bot_token=?, updated_at=CURRENT_TIMESTAMP WHERE chat_id=?`).run(bot_token, cid);
+        }
+        return res.json({ ok: true, duplicate: true, message: '이미 등록된 Chat ID입니다.' });
+      }
+      db.prepare('INSERT INTO lotto_telegram (chat_id, bot_token) VALUES (?,?)').run(cid, bot_token || '');
+      res.json({ ok: true });
+    } catch (e) {
+      console.error('[lotto/telegram/config POST]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
   });
 
   router.post('/api/lotto/telegram', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     let { token, chatid, text } = req.body;
     if (!chatid) {
-      const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id = ?').get(req.user.user_id || req.user.id);
+      // chat_id 미지정 시 → 가장 최근 등록된 lotto_telegram 사용
+      const tg = db.prepare('SELECT chat_id, bot_token FROM lotto_telegram ORDER BY updated_at DESC LIMIT 1').get();
       if (!tg) return res.status(400).json({ ok: false, error: '텔레그램 Chat ID를 먼저 등록하세요.' });
       chatid = tg.chat_id;
       token = token || tg.bot_token || process.env.TG_BOT_TOKEN;
+    } else {
+      // chat_id 지정 시 → 해당 chat_id의 bot_token 사용
+      const tg = db.prepare('SELECT bot_token FROM lotto_telegram WHERE chat_id=?').get(String(chatid));
+      token = token || tg?.bot_token || process.env.TG_BOT_TOKEN;
     }
     if (!token) return res.status(400).json({ ok: false, error: 'Bot Token 없음' });
     try {
@@ -562,46 +584,71 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.get('/api/lotto/schedule', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const row = db.prepare('SELECT * FROM lotto_schedule WHERE user_id=?').get(req.user.user_id || req.user.id);
+    const { chat_id } = req.query;
+    if (!chat_id) return res.json(null);
+    const row = db.prepare('SELECT * FROM lotto_schedule WHERE chat_id=?').get(String(chat_id));
     res.json(row || null);
   });
 
   router.post('/api/lotto/schedule', (req, res) => {
-    if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { enabled, days, hour, game_count } = req.body;
-    const existing = db.prepare('SELECT id, updated_at FROM lotto_schedule WHERE user_id=?').get(req.user.user_id || req.user.id);
-    if (existing && existing.updated_at) {
-      const diffDays = (Date.now() - new Date(existing.updated_at).getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays < 7) return res.json({ ok: false, remain_days: Math.ceil(7 - diffDays) });
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const { chat_id, enabled, days, hour, game_count } = req.body;
+      if (!chat_id) return res.json({ ok: false, error: '먼저 텔레그램 설정(Chat ID)을 저장해주세요.' });
+
+      const cid = String(chat_id);
+
+      // ✅ chat_id가 lotto_telegram에 등록되어 있어야 자동발송 JOIN 매칭이 됨
+      const tgExists = db.prepare('SELECT chat_id FROM lotto_telegram WHERE chat_id=?').get(cid);
+      if (!tgExists) {
+        return res.json({ ok: false, error: '먼저 텔레그램 설정(Chat ID)을 저장해주세요.' });
+      }
+
+      const existing = db.prepare('SELECT chat_id, updated_at FROM lotto_schedule WHERE chat_id=?').get(cid);
+      if (existing && existing.updated_at) {
+        const diffDays = (Date.now() - new Date(existing.updated_at).getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays < 7) return res.json({ ok: false, remain_days: Math.ceil(7 - diffDays) });
+      }
+      if (existing) {
+        db.prepare('UPDATE lotto_schedule SET enabled=?,days=?,hour=?,game_count=?,updated_at=CURRENT_TIMESTAMP WHERE chat_id=?')
+          .run(enabled ? 1 : 0, days, hour, game_count, cid);
+      } else {
+        db.prepare('INSERT INTO lotto_schedule (chat_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)')
+          .run(cid, enabled ? 1 : 0, days, hour, game_count);
+      }
+      // 스케줄 변경 이력 저장 (현재 날짜 기준 회차 계산)
+      const today = new Date().toISOString().split('T')[0];
+      const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
+      db.prepare('INSERT INTO lotto_schedule_log (chat_id, days, hour, game_count, drw_no) VALUES (?,?,?,?,?)')
+        .run(cid, days, hour, game_count, drw_no);
+      res.json({ ok: true });
+    } catch (e) {
+      console.error('[lotto/schedule POST]', e);
+      res.status(500).json({ ok: false, error: e.message });
     }
-    if (existing) { db.prepare('UPDATE lotto_schedule SET enabled=?,days=?,hour=?,game_count=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=?').run(enabled ? 1 : 0, days, hour, game_count, req.user.id); }
-    else { db.prepare('INSERT INTO lotto_schedule (user_id,enabled,days,hour,game_count) VALUES (?,?,?,?,?)').run(req.user.id, enabled ? 1 : 0, days, hour, game_count); }
-    // 스케줄 변경 이력 저장 (현재 날짜 기준 회차 계산)
-    const today = new Date().toISOString().split('T')[0];
-    const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
-    const userId = req.user.user_id || req.user.id;
-    db.prepare('INSERT INTO lotto_schedule_log (user_id, days, hour, game_count, drw_no) VALUES (?,?,?,?,?)').run(userId, days, hour, game_count, drw_no);
-    res.json({ ok: true });
   });
 
   router.delete('/api/lotto/schedule', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    db.prepare('DELETE FROM lotto_schedule WHERE user_id=?').run(req.user.id);
+    const chat_id = req.query.chat_id || req.body?.chat_id;
+    if (!chat_id) return res.json({ ok: false, error: 'chat_id 필요' });
+    db.prepare('DELETE FROM lotto_schedule WHERE chat_id=?').run(String(chat_id));
     res.json({ ok: true });
   });
 
   router.get('/api/lotto/schedule/log', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
-    const { page = 1, limit = 5 } = req.query;
+    const { page = 1, limit = 5, chat_id } = req.query;
     const isAdmin = req.user.is_admin;
     const pageSize = parseInt(limit);
     const offset = (parseInt(page) - 1) * pageSize;
+    // 관리자는 모든 chat_id, 일반 유저는 query의 chat_id로 필터
     const total = isAdmin
       ? db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log').get()?.cnt || 0
-      : db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log WHERE user_id=?').get(req.user.user_id || req.user.id)?.cnt || 0;
+      : (chat_id ? db.prepare('SELECT COUNT(*) as cnt FROM lotto_schedule_log WHERE chat_id=?').get(String(chat_id))?.cnt || 0 : 0);
     const rows = isAdmin
-      ? db.prepare('SELECT sl.*, u.username FROM lotto_schedule_log sl LEFT JOIN users u ON sl.user_id=u.id ORDER BY sl.created_at DESC LIMIT ? OFFSET ?').all(pageSize, offset)
-      : db.prepare('SELECT * FROM lotto_schedule_log WHERE user_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(req.user.id, pageSize, offset);
+      ? db.prepare('SELECT * FROM lotto_schedule_log ORDER BY created_at DESC LIMIT ? OFFSET ?').all(pageSize, offset)
+      : (chat_id ? db.prepare('SELECT * FROM lotto_schedule_log WHERE chat_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(String(chat_id), pageSize, offset) : []);
     res.json({ logs: rows, total, page: parseInt(page), totalPages: Math.ceil(total / pageSize) });
   });
 

@@ -79,8 +79,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS user_telegram (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, chat_id TEXT NOT NULL, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS lotto_picks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, pick_date TEXT NOT NULL, game_index INTEGER NOT NULL, numbers TEXT NOT NULL, algorithms TEXT, drw_no INTEGER, rank INTEGER, matched_count INTEGER, bonus_match INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS lotto_history (drw_no INTEGER PRIMARY KEY, numbers TEXT NOT NULL, bonus INTEGER, drw_date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
-  CREATE TABLE IF NOT EXISTS lotto_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+  CREATE TABLE IF NOT EXISTS lotto_telegram (chat_id TEXT PRIMARY KEY, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+  CREATE TABLE IF NOT EXISTS lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id TEXT NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+  CREATE TABLE IF NOT EXISTS lotto_schedule (chat_id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS trade_setting_type4 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, broker_key_id INTEGER DEFAULT NULL, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, broker_key_id), FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
@@ -519,6 +520,50 @@ if (!superAdminRole) {
 // created_by 컬럼 없으면 추가 (기존 DB 마이그레이션)
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch (e) { }
 try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch (e) { }
+
+// ── 로또 chat_id 키값 마이그레이션 (user_id → chat_id) ──
+// 기존 user_id 기반 lotto_schedule / lotto_schedule_log를 chat_id 기반으로 재생성
+try {
+  const schCols = db.prepare("PRAGMA table_info(lotto_schedule)").all();
+  if (schCols.length > 0 && !schCols.some(c => c.name === 'chat_id')) {
+    const ts = Date.now();
+    db.exec(`ALTER TABLE lotto_schedule RENAME TO lotto_schedule_old_${ts}`);
+    db.exec(`CREATE TABLE lotto_schedule (chat_id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    // 기존 데이터 보존: user_telegram에서 chat_id 매핑 가능하면 옮기기
+    try {
+      db.exec(`
+        INSERT OR IGNORE INTO lotto_schedule (chat_id, enabled, days, hour, game_count, last_sent_at, updated_at)
+        SELECT ut.chat_id, ls.enabled, ls.days, ls.hour, ls.game_count, ls.last_sent_at, ls.updated_at
+        FROM lotto_schedule_old_${ts} ls
+        JOIN user_telegram ut ON ls.user_id = ut.user_id
+        WHERE ut.chat_id IS NOT NULL
+      `);
+    } catch (e) { console.log('[lotto_schedule migration] data copy skipped:', e.message); }
+    console.log(`[lotto_schedule] migrated to chat_id key (backup: lotto_schedule_old_${ts})`);
+  }
+} catch (e) { console.log('[lotto_schedule migration] error:', e.message); }
+
+try {
+  const logCols = db.prepare("PRAGMA table_info(lotto_schedule_log)").all();
+  if (logCols.length > 0 && !logCols.some(c => c.name === 'chat_id')) {
+    const ts = Date.now();
+    db.exec(`ALTER TABLE lotto_schedule_log RENAME TO lotto_schedule_log_old_${ts}`);
+    db.exec(`CREATE TABLE lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id TEXT NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    try {
+      db.exec(`
+        INSERT INTO lotto_schedule_log (chat_id, days, hour, game_count, drw_no, action, created_at)
+        SELECT ut.chat_id, sl.days, sl.hour, sl.game_count, sl.drw_no, sl.action, sl.created_at
+        FROM lotto_schedule_log_old_${ts} sl
+        JOIN user_telegram ut ON sl.user_id = ut.user_id
+        WHERE ut.chat_id IS NOT NULL
+      `);
+    } catch (e) { console.log('[lotto_schedule_log migration] data copy skipped:', e.message); }
+    console.log(`[lotto_schedule_log] migrated to chat_id key (backup: lotto_schedule_log_old_${ts})`);
+  }
+} catch (e) { console.log('[lotto_schedule_log migration] error:', e.message); }
+
+try { db.exec(`CREATE TABLE IF NOT EXISTS lotto_telegram (chat_id TEXT PRIMARY KEY, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`); } catch (e) { }
+
 try { db.prepare("ALTER TABLE trade_setting_type4 ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch (e) { }
 // ── broker_key_id 마이그레이션 ──
 try { db.exec('ALTER TABLE trade_setting_type2 ADD COLUMN broker_key_id INTEGER DEFAULT NULL'); } catch (e) { }
@@ -925,21 +970,16 @@ setInterval(async () => {
     updateSchedulerRun('lotto_send');
     const currentHour = now.getHours(), currentDay = now.getDay(), today = now.toISOString().split('T')[0];
     if (currentDay === 6 && currentHour >= 20) return;
-    const schedules = db.prepare('SELECT ls.*, ut.chat_id, ut.bot_token FROM lotto_schedule ls JOIN user_telegram ut ON ls.user_id=ut.user_id WHERE ls.enabled=1 AND ls.hour=?').all(currentHour);
+    const schedules = db.prepare('SELECT ls.chat_id, ls.days, ls.hour, ls.game_count, ls.last_sent_at, lt.bot_token FROM lotto_schedule ls JOIN lotto_telegram lt ON ls.chat_id=lt.chat_id WHERE ls.enabled=1 AND ls.hour=?').all(currentHour);
     for (const sch of schedules) {
-      const days = sch.days.split(',').map(Number);
+      const days = (sch.days || '').split(',').map(Number);
       if (!days.includes(currentDay) || sch.last_sent_at?.startsWith(today)) continue;
       const DEFAULT_WEIGHTS = { freq: 20, hot: 20, cold: 10, balance: 15, zone: 10, ac: 10, prime: 5, delta: 10 };
-      const wRow = db.prepare('SELECT weights FROM lotto_algorithm_weights WHERE user_id=?').get(sch.user_id);
       let algos = { ...DEFAULT_WEIGHTS };
-      if (wRow) { try { algos = { ...DEFAULT_WEIGHTS, ...JSON.parse(wRow.weights) }; } catch { } }
       const HOT_SET = new Set([3, 7, 14, 18, 23, 27, 34, 40, 42]), COLD_SET = new Set([1, 5, 9, 12, 20, 28, 33, 38, 44]), PRIME_SET = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
       function getScore(n) { let s = 1; if (algos.freq > 0) s += algos.freq * (n % 9 + 1) * 0.01; if (algos.hot > 0 && HOT_SET.has(n)) s += algos.hot * 0.08; if (algos.cold > 0 && COLD_SET.has(n)) s += algos.cold * 0.07; if (algos.balance > 0 && n % 2 === 0) s += algos.balance * 0.02; if (algos.zone > 0) s += algos.zone * 0.015; if (algos.ac > 0) s += algos.ac * ((n * 7) % 11) * 0.005; if (algos.prime > 0 && PRIME_SET.has(n)) s += algos.prime * 0.04; if (algos.delta > 0) s += algos.delta * ((46 - n) % 6) * 0.005; return s; }
       function generateAlgoGame() { const picked = new Set(); while (picked.size < 6) { const pool = []; for (let n = 1; n <= 45; n++) { if (!picked.has(n)) pool.push({ n, w: getScore(n) }); } const total = pool.reduce((s, x) => s + x.w, 0); let r = Math.random() * total; for (const item of pool) { r -= item.w; if (r <= 0) { picked.add(item.n); break; } } if (picked.size < 6 && pool.length > 0) picked.add(pool[pool.length - 1].n); } return [...picked].sort((a, b) => a - b); }
       const games = Array.from({ length: sch.game_count }, () => generateAlgoGame());
-      db.prepare('DELETE FROM lotto_picks WHERE user_id=? AND pick_date=?').run(sch.user_id, today);
-      const stmt = db.prepare('INSERT INTO lotto_picks (user_id,pick_date,game_index,numbers,algorithms) VALUES (?,?,?,?,?)');
-      games.forEach((nums, i) => stmt.run(sch.user_id, today, i, JSON.stringify(nums), '자동발송'));
       const token = sch.bot_token || process.env.TG_BOT_TOKEN;
       const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
       const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
@@ -949,36 +989,8 @@ setInterval(async () => {
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: sch.chat_id, text: `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`, parse_mode: 'Markdown' }) }).catch(() => { });
       }
 
-      // 메일 발송
-      try {
-        const userRow = db.prepare('SELECT email FROM users WHERE id=?').get(sch.user_id);
-        if (userRow?.email) {
-          const htmlLines = games.map((g, i) => `
-            <tr>
-              <td style="padding:8px 14px;font-weight:700;color:#6366f1;font-size:0.95rem;">${String.fromCharCode(65 + i)}게임</td>
-              <td style="padding:8px 14px;">
-                ${g.map(n => `<span style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;background:#6366f1;color:#fff;font-weight:700;margin:2px;font-size:0.85rem;">${n}</span>`).join('')}
-              </td>
-            </tr>`).join('');
-          await sendMail({
-            to: userRow.email,
-            subject: `🍀 로또 자동 추천번호 (${today})`,
-            html: `
-              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-                <div style="background:#6366f1;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;">
-                  <h2 style="margin:0;font-size:1.2rem;">🍀 로또 자동 추천번호</h2>
-                  <p style="margin:6px 0 0;opacity:0.85;font-size:0.88rem;">${today} · ${dayNames[currentDay]}요일 ${currentHour}시 자동발송</p>
-                </div>
-                <div style="background:#fff;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;overflow:hidden;">
-                  <table style="width:100%;border-collapse:collapse;">${htmlLines}</table>
-                </div>
-                <p style="color:#9ca3af;font-size:0.78rem;text-align:center;margin-top:12px;">이 메일은 로또 스케줄에 의해 자동 발송됩니다.</p>
-              </div>`
-          });
-        }
-      } catch (e) { saveErrorLog({ event_type: 'LOTTO_MAIL_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId: sch.user_id } }); }
-      db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE user_id=?').run(sch.user_id);
-      db.prepare('INSERT INTO lotto_schedule_log (user_id,day,hour,game_count) VALUES (?,?,?,?)').run(sch.user_id, currentDay, currentHour, sch.game_count);
+      db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(sch.chat_id);
+      db.prepare('INSERT INTO lotto_schedule_log (chat_id,days,hour,game_count,action) VALUES (?,?,?,?,?)').run(sch.chat_id, String(currentDay), currentHour, sch.game_count, 'send');
     }
   } catch (e) { saveErrorLog({ event_type: 'LOTTO_SCHEDULE_SAVE_ERROR', error_message: e.message, stack_trace: e.stack }); }
 }, 60 * 1000);
@@ -2068,7 +2080,7 @@ async function lottoAutoSendFn() {
   if (now.getMinutes() !== 0) return;
   const currentHour = now.getUTCHours() + 9; // KST
   const kstHour = currentHour >= 24 ? currentHour - 24 : currentHour;
-  const schedules = db.prepare('SELECT ls.*, ut.chat_id, ut.bot_token FROM lotto_schedule ls JOIN user_telegram ut ON ls.user_id=ut.user_id WHERE ls.enabled=1 AND ls.hour=?').all(kstHour);
+  const schedules = db.prepare('SELECT ls.chat_id, ls.days, ls.hour, ls.game_count, ls.last_sent_at, lt.bot_token FROM lotto_schedule ls JOIN lotto_telegram lt ON ls.chat_id=lt.chat_id WHERE ls.enabled=1 AND ls.hour=?').all(kstHour);
   // 기존 로또 발송 로직은 아래 setInterval에서 처리
 }
 

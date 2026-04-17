@@ -363,8 +363,15 @@
         try {
           const r = await fetch('/api/lotto/telegram/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,bot_token:cleanToken})});
           const d = await r.json();
-          if (d.ok) { lottoShowToast('✅', '저장 완료', '텔레그램 설정이 저장되었습니다.'); lottoLoadTgConfig(); }
-          else lottoShowToast('❌', '저장 실패', d.error || '알 수 없는 오류');
+          if (d.duplicate) {
+            lottoShowToast('ℹ️', '이미 등록됨', d.message || '이미 등록된 Chat ID입니다.');
+            lottoLoadTgConfig();
+          } else if (d.ok) {
+            lottoShowToast('✅', '저장 완료', '텔레그램 설정이 저장되었습니다.');
+            lottoLoadTgConfig();
+          } else {
+            lottoShowToast('❌', '저장 실패', d.error || '알 수 없는 오류');
+          }
         } catch(e) { lottoShowToast('❌', '오류', e.message); }
       };
 
@@ -402,7 +409,10 @@
 
       async function lottoLoadTgConfig() {
         try {
-          const r = await fetch('/api/lotto/telegram/config');
+          // localStorage 또는 입력란의 chat_id로 조회
+          const chatId = ($id('lotto-tg-chatid')?.value?.trim() || localStorage.getItem(LOTTO_TG_CHATID_KEY) || '').trim();
+          const url = chatId ? '/api/lotto/telegram/config?chat_id=' + encodeURIComponent(chatId) : '/api/lotto/telegram/config';
+          const r = await fetch(url);
           const d = await r.json();
           const chatEl = $id('lotto-tg-chatid');
           const tokenEl = $id('lotto-tg-token');
@@ -410,8 +420,9 @@
           if (tokenEl && d.bot_token) tokenEl.value = d.bot_token;
           const status = $id('lotto-tg-status');
           if (status) {
-            status.textContent = d.chat_id ? '✅ 등록됨' : '미등록';
-            status.style.color = d.chat_id ? '#10b981' : '#6b7280';
+            const registered = !!d.chat_id;
+            status.textContent = registered ? '✅ 등록됨' : '미등록';
+            status.style.color = registered ? '#10b981' : '#6b7280';
           }
         } catch(e) {}
       }
@@ -426,7 +437,9 @@
       window.lottoResetSchedule = async function() {
         lottoConfirm('⚠️', '초기화 확인', '자동 발송 설정을 초기화하시겠습니까?\n설정이 삭제되고 자동 발송이 중단됩니다.', async () => {
           try {
-            const r = await fetch('/api/lotto/schedule', { method: 'DELETE' });
+            const chatId = ($id('lotto-tg-chatid')?.value?.trim() || localStorage.getItem(LOTTO_TG_CHATID_KEY) || '').trim();
+            if (!chatId) { lottoShowToast('⚠️', '안내', '먼저 텔레그램 Chat ID를 입력하세요'); return; }
+            const r = await fetch('/api/lotto/schedule?chat_id=' + encodeURIComponent(chatId), { method: 'DELETE' });
             const d = await r.json();
             if (d.ok) {
               document.querySelectorAll('.lotto-day-btn').forEach(btn => btn.classList.remove('active'));
@@ -444,6 +457,10 @@
       };
 
       window.lottoSaveSchedule = async function() {
+        // ✅ chat_id 필수
+        const chatId = ($id('lotto-tg-chatid')?.value?.trim() || localStorage.getItem(LOTTO_TG_CHATID_KEY) || '').trim();
+        if (!chatId) { lottoShowToast('⚠️', '텔레그램 미설정', '먼저 텔레그램 Chat ID를 저장해주세요'); return; }
+
         // ✅ [FIX] 요일 - 반드시 1개만 선택
         const activeDays = [...document.querySelectorAll('.lotto-day-btn.active')].map(b => b.dataset.day);
         if (activeDays.length === 0) { lottoShowToast('⚠️', '요일 미선택', '발송 요일을 선택해주세요'); return; }
@@ -466,7 +483,7 @@
 
         try {
           // ✅ [FIX] 일주일 수정 제한 - DB(updated_at) 기준, 서버 응답 status로 분기
-          const r = await fetch('/api/lotto/schedule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:1, days, hour, game_count})});
+          const r = await fetch('/api/lotto/schedule', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId, enabled:1, days, hour, game_count})});
           const d = await r.json();
           if (d.remain_days) {
             // 수정 제한 (일주일 미경과)
@@ -483,8 +500,11 @@
 
       async function lottoLoadSchedule() {
         try {
-          const r = await fetch('/api/lotto/schedule');
+          const chatId = ($id('lotto-tg-chatid')?.value?.trim() || localStorage.getItem(LOTTO_TG_CHATID_KEY) || '').trim();
+          if (!chatId) return; // chat_id 없으면 빈 상태로 둠
+          const r = await fetch('/api/lotto/schedule?chat_id=' + encodeURIComponent(chatId));
           const d = await r.json();
+          if (!d) return;
 
           // ✅ [FIX] 설정한 적 없는 유저는 요일/시각/게임수 모두 미선택 상태로
           // ✅ [FIX] DB 직접 수정 등으로 여러 개 저장된 경우 → 첫 번째 값만 사용
@@ -596,7 +616,8 @@
         if (!el) return;
         el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
         try {
-          const r = await fetch(`/api/lotto/schedule/log?page=${page}&limit=5`);
+          const _chatId = ($id("lotto-tg-chatid")?.value?.trim() || localStorage.getItem(LOTTO_TG_CHATID_KEY) || "").trim();
+          const r = await fetch(`/api/lotto/schedule/log?page=${page}&limit=5` + (_chatId ? "&chat_id=" + encodeURIComponent(_chatId) : ""));
           const d = await r.json();
           if (!d.logs?.length) {
             el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">스케줄 변경 이력이 없습니다</div>';
@@ -643,7 +664,8 @@
         if (!el) return;
         el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
         try {
-          const r = await fetch(`/api/lotto/schedule/log?page=${page}&limit=5`);
+          const _chatId = ($id("lotto-tg-chatid")?.value?.trim() || localStorage.getItem(LOTTO_TG_CHATID_KEY) || "").trim();
+          const r = await fetch(`/api/lotto/schedule/log?page=${page}&limit=5` + (_chatId ? "&chat_id=" + encodeURIComponent(_chatId) : ""));
           const d = await r.json();
           if (!d.logs?.length) {
             el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동발송 설정 이력이 없습니다</div>';
