@@ -13,7 +13,7 @@ import java.util.Map;
 @Service
 public class ClaudeAiService {
 
-    // yml/properties 설정 불필요 — CLAUDE_API_KEY 환경변수만 있으면 동작
+    // No yml/properties config needed — just set CLAUDE_API_KEY env var
     private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
     private static final String MODEL = "claude-sonnet-4-20250514";
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -31,15 +31,21 @@ public class ClaudeAiService {
         String apiKey = getApiKey();
         if (apiKey.isBlank()) return getFallbackTransportInfo(from, to);
 
-        String systemPrompt = "당신은 여행 교통편 전문가입니다. 출발지와 목적지 사이의 교통 수단 정보를 JSON 형식으로 제공하세요.\n" +
-            "반드시 다음 JSON 배열 형식만 반환하세요 (다른 텍스트 없이):\n" +
-            "[{\"type\":\"airplane|train|bus|ferry\",\"icon\":\"✈|🚄|🚌|🚢\",\"name\":\"교통편 이름\"," +
-            "\"tag\":\"추천|최저가|최단시간|\",\"tagColor\":\"#4f46e5|#f59e0b|#10b981|\"," +
-            "\"time\":\"소요 시간\",\"price\":\"가격 범위 (원)\",\"priceNum\":숫자," +
-            "\"steps\":[\"단계1\",\"단계2\"],\"links\":[{\"t\":\"링크명\",\"u\":\"https://...\"}]}]\n" +
-            "최대 3개 옵션. 한국어로 답변하세요.";
+        String systemPrompt = "You are a travel transit expert. Return transit options between two cities as a JSON array ONLY (no other text).\n" +
+            "Format (English only):\n" +
+            "[{\"type\":\"airplane|train|bus|ferry\",\"icon\":\"✈|🚄|🚌|🚢\",\"name\":\"route name\"," +
+            "\"tag\":\"Recommended|Cheapest|Fastest|\",\"tagColor\":\"#1E2A3A|#f59e0b|#10b981|\"," +
+            "\"time\":\"duration (e.g. 2h 30m)\",\"price\":\"estimated price range in KRW (e.g. '₩110,000 – ₩220,000')\",\"priceNum\":average number as integer," +
+            "\"steps\":[\"step 1\",\"step 2\"]}]\n" +
+            "Rules:\n" +
+            "- Maximum 3 options.\n" +
+            "- Always English text.\n" +
+            "- Use estimated RANGES based on typical recent averages. Do NOT quote any real-time prices.\n" +
+            "- Never mention or link to Skyscanner, Booking.com, Expedia, Kayak, Naver Flight, or any other booking brand.\n" +
+            "- Never include 'links' field.\n" +
+            "- Do not tell users to check external sites. Just provide the route and the price estimate.";
 
-        String userMessage = from + "에서 " + to + "까지 이동 방법을 알려주세요.";
+        String userMessage = "Transit options from " + from + " to " + to + ".";
 
         Map<String, Object> requestBody = Map.of(
             "model", MODEL,
@@ -65,19 +71,27 @@ public class ClaudeAiService {
         String text = (String) ((Map<?, ?>) content.get(0)).get("text");
         if (text == null || text.isBlank()) return getFallbackTransportInfo(from, to);
 
-        return text.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+        String cleaned = text.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+        // Safety scrub: strip any brand mentions that slipped through
+        cleaned = scrubBrands(cleaned);
+        return cleaned;
     }
 
     public String getTravelTip(String destination, String category) throws Exception {
         String apiKey = getApiKey();
         if (apiKey.isBlank()) return getFallbackTip(destination, category);
 
-        String systemPrompt = "당신은 여행 전문가입니다. 여행지 팁을 JSON으로만 반환하세요.\n" +
-            "{\"destination\":\"여행지\",\"tips\":[{\"icon\":\"💡\",\"title\":\"제목\",\"content\":\"내용\"}]," +
-            "\"bestSeason\":\"시기\",\"currency\":\"통화\",\"language\":\"언어\",\"timezone\":\"시간대\"}";
+        String systemPrompt = "You are a travel expert. Return travel tips for a destination as JSON only.\n" +
+            "Format (English only):\n" +
+            "{\"destination\":\"city name\",\"tips\":[{\"icon\":\"💡\",\"title\":\"title\",\"content\":\"tip content\"}]," +
+            "\"bestSeason\":\"best time to visit\",\"currency\":\"local currency\",\"language\":\"local language\",\"timezone\":\"local timezone\"}\n" +
+            "Rules:\n" +
+            "- Always English text.\n" +
+            "- Never mention Skyscanner, Booking.com, or any specific booking brand.\n" +
+            "- Provide 3-5 practical, actionable tips.";
 
-        String cat = (category != null && !category.isBlank()) ? category : "전반적인";
-        String userMessage = destination + " 여행 팁을 " + cat + " 카테고리로 알려주세요.";
+        String cat = (category != null && !category.isBlank()) ? category : "general";
+        String userMessage = "Travel tips for " + destination + " (" + cat + ").";
 
         Map<String, Object> requestBody = Map.of(
             "model", MODEL,
@@ -103,23 +117,41 @@ public class ClaudeAiService {
         String text = (String) ((Map<?, ?>) content.get(0)).get("text");
         if (text == null || text.isBlank()) return getFallbackTip(destination, category);
 
-        return text.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+        String cleaned = text.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+        cleaned = scrubBrands(cleaned);
+        return cleaned;
+    }
+
+    /**
+     * Remove any booking-brand mentions from AI-returned JSON.
+     * This is a safety net in case the model ignores the prompt instruction.
+     */
+    private String scrubBrands(String s) {
+        if (s == null) return s;
+        return s
+            .replaceAll("(?i)스카이스캐너", "")
+            .replaceAll("(?i)skyscanner", "")
+            .replaceAll("(?i)네이버\\s*항공(권|)?", "")
+            .replaceAll("(?i)naver\\s*flight", "")
+            .replaceAll("(?i)booking\\.com", "")
+            .replaceAll("(?i)expedia", "")
+            .replaceAll("(?i)kayak", "")
+            .replaceAll("(?i)agoda", "");
     }
 
     private String getFallbackTransportInfo(String from, String to) {
-        return "[{\"type\":\"airplane\",\"icon\":\"✈\",\"name\":\"" + from + " → " + to + " 항공편\"," +
-            "\"tag\":\"추천\",\"tagColor\":\"#4f46e5\",\"time\":\"검색 필요\"," +
-            "\"price\":\"스카이스캐너에서 확인하세요\",\"priceNum\":0," +
-            "\"steps\":[\"" + from + " 공항 출발\",\"항공권 예약\",\"" + to + " 도착\"]," +
-            "\"links\":[{\"t\":\"스카이스캐너\",\"u\":\"https://www.skyscanner.co.kr\"}," +
-            "{\"t\":\"네이버항공\",\"u\":\"https://flight.naver.com\"}]}]";
+        // Generic English fallback — no external brand references
+        return "[{\"type\":\"airplane\",\"icon\":\"✈\",\"name\":\"" + from + " → " + to + " flight\"," +
+            "\"tag\":\"Recommended\",\"tagColor\":\"#1E2A3A\",\"time\":\"varies\"," +
+            "\"price\":\"Estimate unavailable — please check your preferred booking service\",\"priceNum\":0," +
+            "\"steps\":[\"Depart from " + from + "\",\"Board flight\",\"Arrive at " + to + "\"]}]";
     }
 
     private String getFallbackTip(String destination, String category) {
         return "{\"destination\":\"" + destination + "\",\"tips\":[" +
-            "{\"icon\":\"💡\",\"title\":\"현지 교통\",\"content\":\"대중교통 앱을 미리 설치하세요\"}," +
-            "{\"icon\":\"💰\",\"title\":\"환전\",\"content\":\"공항 또는 현지 ATM 이용 추천\"}," +
-            "{\"icon\":\"🌐\",\"title\":\"인터넷\",\"content\":\"포켓 와이파이 또는 현지 유심 추천\"}]," +
-            "\"bestSeason\":\"봄, 가을\",\"currency\":\"현지 통화\",\"language\":\"현지어 기초 표현 숙지\",\"timezone\":\"현지 시간 확인\"}";
+            "{\"icon\":\"💡\",\"title\":\"Local transit\",\"content\":\"Install local transit apps in advance\"}," +
+            "{\"icon\":\"💰\",\"title\":\"Currency\",\"content\":\"Use airport or local ATMs for the best rates\"}," +
+            "{\"icon\":\"🌐\",\"title\":\"Connectivity\",\"content\":\"Consider a pocket Wi-Fi device or local SIM card\"}]," +
+            "\"bestSeason\":\"Spring, Fall\",\"currency\":\"local currency\",\"language\":\"Learn basic local phrases\",\"timezone\":\"Check local time\"}";
     }
 }
