@@ -2340,7 +2340,7 @@
 
       // 2) 서버에서 선택한 개수만큼 예측 생성 + lotto_predictions 저장 + 텔레그램 브로드캐스트
       try {
-        const _t = localStorage.getItem('token');
+        const _t = sessionStorage.getItem('admin_token') || sessionStorage.getItem('auth_token') || '';
         const predCount = parseInt(document.getElementById('lotto-pred-count')?.value) || 10;
         const r = await fetch('/api/lotto/prediction/run', {
           method: 'POST',
