@@ -10,7 +10,7 @@ const getThumbUrl = (url) => {
   return url;
 };
 
-// 팔로워/팔로잉 목록 모달
+// FOLLOWERS/FOLLOWING 목록 모달
 function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -208,7 +208,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         <div className="profile-info">
           {editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>프로필 편집</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>프로필 EDIT</div>
 
               {/* 사진 변경 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -401,7 +401,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 {isMe && (
                   <button onClick={() => { setEditing(true); setEditData({ nickname: user.nickname, bio: user.bio || '', profileImage: '', preferredStyles: user.preferredStyles || [], nationality: user.nationality || 'KR', wishCountries: JSON.parse(user.wishCountries || '[]') }); setImagePreview(''); }}
                     style={{ padding: '5px 12px', background: '#F5F4F0', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 12, fontWeight: 600, color: '#555', cursor: 'pointer' }}>
-                    ✏️ 편집
+                    ✏️ EDIT
                   </button>
                 )}
               </div>
@@ -410,13 +410,13 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
                 <div className="stat"><div className="stat-num">{visiblePosts.length}</div><div className="stat-label">POSTS</div></div>
                 <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followers')}>
                   <div className="stat-num">{user.followerIds?.length || 0}</div>
-                  <div className="stat-label">팔로워</div>
+                  <div className="stat-label">FOLLOWERS</div>
                 </div>
                 <div className="stat" style={{ cursor: 'pointer' }} onClick={() => openModal('followings')}>
                   <div className="stat-num">{user.followingIds?.length || 0}</div>
-                  <div className="stat-label">팔로잉</div>
+                  <div className="stat-label">FOLLOWING</div>
                 </div>
-                <div className="stat"><div className="stat-num">{user.visitedCountries || 0}</div><div className="stat-label">방문국가</div></div>
+                <div className="stat"><div className="stat-num">{user.visitedCountries || 0}</div><div className="stat-label">COUNTRIES</div></div>
               </div>
               {!isMe && currentUser && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -453,7 +453,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         </div>
       )}
 
-      {/* 팔로워/팔로잉 모달 */}
+      {/* FOLLOWERS/FOLLOWING 모달 */}
       {modal && (
         <UserListModal
           title={modal === 'followers' ? 'FOLLOWERS' : 'FOLLOWING'}
@@ -554,8 +554,8 @@ const BADGE_INFO = {
   fifty_posts: { icon: '📚', name: '여행 전문가', desc: 'POSTS 50개 달성' },
   likes_100: { icon: '❤️', name: '인기 여행자', desc: '좋아요 100개 달성' },
   likes_1000: { icon: '🔥', name: '여행 인플루언서', desc: '좋아요 1000개 달성' },
-  followers_10: { icon: '👥', name: '친구 만들기', desc: '팔로워 10명 달성' },
-  followers_100: { icon: '🌟', name: '여행 스타', desc: '팔로워 100명 달성' },
+  followers_10: { icon: '👥', name: '친구 만들기', desc: 'FOLLOWERS 10명 달성' },
+  followers_100: { icon: '🌟', name: '여행 스타', desc: 'FOLLOWERS 100명 달성' },
   countries_5: { icon: '🗺️', name: '세계 탐험가', desc: '5개국 방문' },
   countries_10: { icon: '✈️', name: '글로벌 여행자', desc: '10개국 방문' },
   countries_30: { icon: '🌍', name: '세계 일주', desc: '30개국 방문' },
