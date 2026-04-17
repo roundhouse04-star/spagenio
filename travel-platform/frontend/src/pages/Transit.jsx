@@ -122,7 +122,7 @@ function LineView({ lines, stations, connections, stationMap, onSelectStation, f
                   </div>
                 </div>
                 <div style={{ padding: '0 16px', fontSize: 11, color: '#8A919C' }}>
-                  Total {orderedStations} Station
+                  Total {orderedStations.length} stations
                 </div>
               </div>
             )}
