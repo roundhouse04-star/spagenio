@@ -962,20 +962,28 @@ process.on('uncaughtException', (err) => {
 // ============================================================
 // 로또 자동 발송 스케줄러
 // ============================================================
-setInterval(async () => {
+// ============================================================
+// 로또 자동발송 체크 & 발송 (서버 시작 시 + 매 1분마다 호출)
+// lotto_schedule_log의 오늘 'send' 기록으로 중복 방지 →
+// 서버가 죽어있던 시간대 미발송분도 재시작 후 자동 캐치업
+// ============================================================
+async function lottoCheckAndSendSchedules() {
   try {
     if (!isSchedulerEnabled('lotto_send')) return;
     const now = new Date();
-    if (now.getMinutes() !== 0) return;
     updateSchedulerRun('lotto_send');
     const currentHour = now.getHours(), currentDay = now.getDay(), today = now.toISOString().split('T')[0];
-    if (currentDay === 6 && currentHour >= 20) return;
-    const schedules = db.prepare('SELECT ls.chat_id, ls.days, ls.hour, ls.game_count, lt.bot_token FROM lotto_schedule ls JOIN lotto_telegram lt ON ls.chat_id=lt.chat_id WHERE ls.enabled=1 AND ls.hour=?').all(currentHour);
+    if (currentDay === 6 && currentHour >= 20) return;  // 토요일 20시 이후 판매 마감
+
+    // hour <= currentHour: 현재 시각까지의 모든 예정 스케줄 조회
+    // (이미 발송된 것은 log 체크에서 걸러짐)
+    const schedules = db.prepare('SELECT ls.chat_id, ls.days, ls.hour, ls.game_count, lt.bot_token FROM lotto_schedule ls JOIN lotto_telegram lt ON ls.chat_id=lt.chat_id WHERE ls.enabled=1 AND ls.hour<=?').all(currentHour);
     for (const sch of schedules) {
       const days = (sch.days || '').split(',').map(Number);
       if (!days.includes(currentDay)) continue;
 
-      // ✅ 중복 체크: lotto_schedule_log에서 오늘 'send' 기록 있는지 확인
+      // ✅ 핵심: lotto_schedule_log 기반 중복 체크
+      // 오늘 같은 chat_id에 'send' 기록이 있으면 스킵 → 서버 재시작/다중 인스턴스 모두 안전
       const alreadySent = db.prepare(`
         SELECT id FROM lotto_schedule_log
         WHERE chat_id=? AND action='send' AND DATE(created_at)=DATE('now','localtime')
@@ -983,24 +991,42 @@ setInterval(async () => {
       `).get(sch.chat_id);
       if (alreadySent) continue;
 
-      // ✅ 예측실행과 동일 로직 사용 (이월확률 + 구간균형 + streak + bias_map + baseZoneSpecs)
+      // 예측실행과 동일 로직 (이월확률 + 구간균형 + streak + bias_map + baseZoneSpecs)
       const games = lottoBuildGames(sch.game_count);
       if (!games.length) continue;
       const token = sch.bot_token || process.env.TG_BOT_TOKEN;
       const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
       const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
 
+      // 캐치업 여부 판단 (예정 시각보다 현재 시각이 늦으면 catch-up)
+      const isCatchup = sch.hour < currentHour;
+      const catchupNote = isCatchup ? `\n⏰ (${sch.hour}시 예정이었으나 ${currentHour}시에 캐치업 발송)` : '';
+
       // 텔레그램 발송
       if (token && sch.chat_id) {
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: sch.chat_id, text: `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n📅 ${dayNames[currentDay]}요일 ${currentHour}시 자동발송`, parse_mode: 'Markdown' }) }).catch(() => { });
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: sch.chat_id,
+            text: `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n📅 ${dayNames[currentDay]}요일 ${sch.hour}시 자동발송${catchupNote}`,
+            parse_mode: 'Markdown'
+          })
+        }).catch(() => { });
       }
 
-      // 발송 이력 기록 (중복 체크 기준점)
+      // 발송 이력 기록 (다음 중복 체크 기준점)
       db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(sch.chat_id);
-      db.prepare('INSERT INTO lotto_schedule_log (chat_id,days,hour,game_count,action) VALUES (?,?,?,?,?)').run(sch.chat_id, String(currentDay), currentHour, sch.game_count, 'send');
+      db.prepare('INSERT INTO lotto_schedule_log (chat_id,days,hour,game_count,action) VALUES (?,?,?,?,?)')
+        .run(sch.chat_id, String(currentDay), sch.hour, sch.game_count, 'send');
+
+      if (isCatchup) console.log(`[로또] 캐치업 발송: chat_id=${sch.chat_id}, 예정=${sch.hour}시, 현재=${currentHour}시`);
     }
   } catch (e) { saveErrorLog({ event_type: 'LOTTO_SCHEDULE_SAVE_ERROR', error_message: e.message, stack_trace: e.stack }); }
-}, 60 * 1000);
+}
+
+// 매 1분마다 체크
+setInterval(() => lottoCheckAndSendSchedules(), 60 * 1000);
 
 // ============================================================
 // ============================================================
@@ -2406,4 +2432,10 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`  ${C.cyan}포트${C.reset}     : ${C.white}${port}${C.reset}`);
   console.log(`  ${C.cyan}Claude${C.reset}   : ${CONFIG.hasKeys.anthropic ? C.green + '✅ 연결됨' : C.red + '❌ API 키 없음'}${C.reset}`);
   console.log('');
+
+  // 🍀 서버 시작 시 로또 자동발송 캐치업 (서버가 죽어있던 동안 놓친 발송 복구)
+  setTimeout(() => {
+    console.log(`  ${C.cyan}[로또]${C.reset}  자동발송 캐치업 체크 시작...`);
+    lottoCheckAndSendSchedules();
+  }, 3000);
 });
