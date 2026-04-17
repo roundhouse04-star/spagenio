@@ -2335,7 +2335,10 @@
       el.style.display = '';
       el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">⏳ 예측 분석 중...</div>';
 
-      // ✅ 서버에서 선택한 개수만큼 예측 생성 + lotto_predictions 자동 저장
+      // 1) 기존 UI 렌더링 (이월 확률, 예상 이월 개수, 이월 유력 번호)
+      await _runLottoPrediction(el);
+
+      // 2) 서버에서 선택한 개수만큼 예측 생성 + lotto_predictions 저장 + 텔레그램 브로드캐스트
       try {
         const _t = localStorage.getItem('token');
         const predCount = parseInt(document.getElementById('lotto-pred-count')?.value) || 10;
@@ -2345,14 +2348,46 @@
           body: JSON.stringify({ count: predCount })
         });
         const d = await r.json();
-        if (d.ok) {
-          console.log(`✅ 예측 ${d.saved}건 저장됨 (${d.based_on_round}회 기반)`);
-          // 예측 이력 카드 자동 새로고침
-          if (typeof loadPredictionHistoryTab === 'function') loadPredictionHistoryTab();
+        if (!d.ok) {
+          el.innerHTML += `<div style="color:#ef4444;padding:12px;margin-top:8px;">오류: ${d.error || '실행 실패'}</div>`;
+          return;
         }
-      } catch (e) { console.log('예측 저장 실패:', e.message); }
 
-      await _runLottoPrediction(el);
+        // 3) 예측 이력 카드 자동 새로고침
+        if (typeof loadPredictionHistoryTab === 'function') loadPredictionHistoryTab();
+
+        // 4) N게임 리스트 렌더링 (기존 UI 아래에 추가)
+        const bColors = ['#f59e0b', '#3b82f6', '#ef4444', '#888888', '#22c55e'];
+        const getC = n => n <= 9 ? bColors[0] : n <= 19 ? bColors[1] : n <= 29 ? bColors[2] : n <= 39 ? bColors[3] : bColors[4];
+        const ballHtml = n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:${getC(n)};color:#fff;font-weight:800;font-size:14px;margin:3px;">${n}</span>`;
+
+        const gamesHtml = (d.games || []).map((nums, idx) => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:8px;background:#1E242C;border-radius:10px;border:1px solid #2A2A2A;">
+            <span style="min-width:60px;font-size:0.85rem;font-weight:700;color:#a5b4fc;">${String.fromCharCode(65 + idx)}게임</span>
+            <div style="display:flex;flex-wrap:wrap;">${nums.map(ballHtml).join('')}</div>
+          </div>
+        `).join('');
+
+        const tg = d.telegram || {};
+        const tgMsg = tg.total > 0
+          ? `📱 텔레그램 ${tg.sent || 0}명 발송${tg.failed > 0 ? ` (${tg.failed}명 실패)` : ''}`
+          : '📱 등록된 텔레그램 없음';
+
+        const gamesCard = document.createElement('div');
+        gamesCard.innerHTML = `
+          <div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #6366f1;margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:0.85rem;color:#a5b4fc;font-weight:700;">✨ 추천 번호 (${d.saved}게임 · ${d.predicted_for_round}회 예측 · 저장 완료)</div>
+              <div style="font-size:0.75rem;color:#22c55e;font-weight:700;">${tgMsg}</div>
+            </div>
+            ${gamesHtml}
+            <div style="font-size:0.72rem;color:#636366;margin-top:10px;text-align:center;">※ 통계 기반 확률 예측이며 당첨을 보장하지 않습니다</div>
+          </div>
+        `;
+        el.appendChild(gamesCard);
+      } catch (e) {
+        el.innerHTML += `<div style="color:#ef4444;padding:12px;margin-top:8px;">오류: ${e.message}</div>`;
+      }
     }
 
     async function _runLottoPrediction(el) {
@@ -2512,7 +2547,7 @@
         const carryBalls=latestNums.sort((a,b)=>a-b).map(n=>{const p=Math.round(carryPct[n]*100);const c=getC(n);const isCP=carryPicks.includes(n);return`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:4px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:${isCP?c:c+'22'};border:2px solid ${c};color:${isCP?'#fff':c};font-weight:800;font-size:15px;">${n}</span><span style="font-size:10px;color:${p>=15?'#22c55e':p>=10?'#f59e0b':'#9CA3AF'};font-weight:700;">${p}%</span></div>`;}).join('');
         const pickBalls=finalPicks.map(n=>{const c=getC(n);const isC=carryPicks.includes(n);return`<span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:${c};color:#fff;font-weight:800;font-size:16px;margin:4px;box-shadow:${isC?'0 0 0 3px '+c:'none'};">${n}</span>`;}).join('');
         const expectedCarry=Math.round([...latestNums].map(n=>carryPct[n]).reduce((a,b)=>a+b,0)*10)/10;
-        el.innerHTML=`<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div></div></div><div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #6366f1;"><div style="font-size:0.78rem;color:#a5b4fc;margin-bottom:12px;font-weight:700;">✨ 추천 번호</div><div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">${pickBalls}</div><div style="font-size:0.72rem;color:#636366;margin-top:10px;text-align:center;">※ 통계 기반 확률 예측이며 당첨을 보장하지 않습니다</div></div><div style="display:flex;gap:8px;margin-top:12px;"><button onclick="savePrediction(${latest.drw_no},[${finalPicks}])" style="flex:1;padding:10px;border:none;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">💾 저장하기</button></div></div>`;
+        el.innerHTML=`<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div></div></div></div>`;
       } catch(e) { el.innerHTML=`<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
     }
 
