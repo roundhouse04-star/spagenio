@@ -504,6 +504,86 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
   });
 
+  // ✅ 로또 텔레그램 등록자 + 스케줄 통합 리스트 (관리자 화면용)
+  router.get('/api/lotto/telegram/list', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const rows = db.prepare(`
+        SELECT lt.chat_id, lt.bot_token, lt.created_at, lt.updated_at AS tg_updated_at,
+               ls.enabled, ls.days, ls.hour, ls.game_count, ls.last_sent_at, ls.updated_at AS sch_updated_at
+        FROM lotto_telegram lt
+        LEFT JOIN lotto_schedule ls ON ls.chat_id = lt.chat_id
+        ORDER BY lt.created_at DESC
+      `).all();
+      res.json({ ok: true, rows });
+    } catch (e) {
+      console.error('[lotto/telegram/list]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // ✅ 텔레그램+스케줄 통합 수정 (chat_id 자체 변경도 지원)
+  router.put('/api/lotto/telegram/:oldChatId', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const oldId = String(req.params.oldChatId);
+      const { chat_id, days, hour, game_count, enabled } = req.body;
+      const newId = String(chat_id || oldId);
+
+      // chat_id 변경 시 새 ID가 이미 존재하면 충돌
+      if (newId !== oldId) {
+        const dup = db.prepare('SELECT chat_id FROM lotto_telegram WHERE chat_id=?').get(newId);
+        if (dup) return res.json({ ok: false, error: '이미 등록된 Chat ID입니다.' });
+      }
+
+      const tx = db.transaction(() => {
+        if (newId !== oldId) {
+          db.prepare('UPDATE lotto_telegram SET chat_id=?, updated_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(newId, oldId);
+          db.prepare('UPDATE lotto_schedule SET chat_id=? WHERE chat_id=?').run(newId, oldId);
+        }
+        // 스케줄 upsert
+        const existing = db.prepare('SELECT chat_id FROM lotto_schedule WHERE chat_id=?').get(newId);
+        if (existing) {
+          db.prepare('UPDATE lotto_schedule SET enabled=?, days=?, hour=?, game_count=?, updated_at=CURRENT_TIMESTAMP WHERE chat_id=?')
+            .run(enabled ? 1 : 0, days, hour, game_count, newId);
+        } else {
+          db.prepare('INSERT INTO lotto_schedule (chat_id, enabled, days, hour, game_count) VALUES (?,?,?,?,?)')
+            .run(newId, enabled ? 1 : 0, days, hour, game_count);
+        }
+        // 변경 이력
+        const today = new Date().toISOString().split('T')[0];
+        const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
+        db.prepare('INSERT INTO lotto_schedule_log (chat_id, days, hour, game_count, drw_no, action) VALUES (?,?,?,?,?,?)')
+          .run(newId, days, hour, game_count, drw_no, 'update');
+      });
+      tx();
+
+      res.json({ ok: true, chat_id: newId });
+    } catch (e) {
+      console.error('[lotto/telegram PUT]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // ✅ 텔레그램 등록자 삭제 (스케줄도 같이 삭제)
+  router.delete('/api/lotto/telegram', (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: '로그인 필요' });
+      const chatId = req.query.chat_id || req.body?.chat_id;
+      if (!chatId) return res.json({ ok: false, error: 'chat_id 필요' });
+      const cid = String(chatId);
+      const tx = db.transaction(() => {
+        db.prepare('DELETE FROM lotto_schedule WHERE chat_id=?').run(cid);
+        db.prepare('DELETE FROM lotto_telegram WHERE chat_id=?').run(cid);
+      });
+      tx();
+      res.json({ ok: true });
+    } catch (e) {
+      console.error('[lotto/telegram DELETE]', e);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   router.get('/api/lotto/picks/unconfirmed', (req, res) => {
     if (!req.user?.is_admin) return res.status(403).json({ error: '관리자 권한 필요' });
     try {

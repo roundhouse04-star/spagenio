@@ -1138,6 +1138,21 @@
           </div>
         </div>
 
+        <!-- 텔레그램 등록자 관리 -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-weight:700;">📱 텔레그램 등록자 관리</div>
+            <button onclick="lottoLoadTgList()" class="btn"
+              style="background:var(--panel2);color:var(--text);font-size:0.82rem;">새로고침</button>
+          </div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">
+            등록된 Chat ID별로 발송 스케줄을 직접 수정할 수 있습니다. (요일/시각/게임수 변경 후 저장)
+          </div>
+          <div id="lotto-tg-list">
+            <div style="text-align:center;color:var(--muted);padding:24px;">로딩 중...</div>
+          </div>
+        </div>
+
         <!-- 추천 이력 -->
         <div class="card" style="margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">

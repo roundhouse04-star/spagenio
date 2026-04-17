@@ -365,10 +365,10 @@
           const d = await r.json();
           if (d.duplicate) {
             lottoShowToast('ℹ️', '이미 등록됨', d.message || '이미 등록된 Chat ID입니다.');
-            lottoLoadTgConfig();
+            lottoLoadTgConfig(); if (typeof lottoLoadTgList === "function") lottoLoadTgList();
           } else if (d.ok) {
             lottoShowToast('✅', '저장 완료', '텔레그램 설정이 저장되었습니다.');
-            lottoLoadTgConfig();
+            lottoLoadTgConfig(); if (typeof lottoLoadTgList === "function") lottoLoadTgList();
           } else {
             lottoShowToast('❌', '저장 실패', d.error || '알 수 없는 오류');
           }
@@ -497,6 +497,7 @@
             const dayNames = ['','월','화','수','목','금','토','일'];
             lottoShowToast('✅', '저장 완료', '매주 ' + dayNames[parseInt(days)] + '요일 ' + String(hour).padStart(2,'0') + '시에 자동 발송됩니다.');
             lottoLoadSchedule();
+            if (typeof lottoLoadTgList === 'function') lottoLoadTgList();
           } else {
             lottoShowToast('❌', '저장 실패', d.error || '다시 시도해주세요');
           }
@@ -565,6 +566,129 @@
 
       let lottoHistoryPage = 1;
       const LOTTO_PAGE_SIZE = 10;
+
+      // ── 텔레그램 등록자 관리 ──
+      window.lottoLoadTgList = async function() {
+        const el = $id('lotto-tg-list');
+        if (!el) return;
+        el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:16px;">로딩 중...</div>';
+        try {
+          const r = await fetch('/api/lotto/telegram/list');
+          const d = await r.json();
+          if (!d.ok) throw new Error(d.error || '로드 실패');
+          if (!d.rows?.length) {
+            el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">등록된 텔레그램이 없습니다</div>';
+            return;
+          }
+
+          const dayBtnsHtml = (selectedDay) => ['1','2','3','4','5','6'].map(d => {
+            const names = {'1':'월','2':'화','3':'수','4':'목','5':'금','6':'토'};
+            const isActive = String(selectedDay) === d;
+            return `<button type="button" data-day="${d}" onclick="lottoTgRowDayToggle(this)" style="padding:4px 10px;border-radius:6px;border:1px solid ${isActive?'#6366f1':'#e5e7eb'};background:${isActive?'#6366f1':'#fff'};color:${isActive?'#fff':'#374151'};cursor:pointer;font-size:0.78rem;font-weight:${isActive?'700':'500'};">${names[d]}</button>`;
+          }).join('');
+
+          const hourOptionsHtml = (selectedHour) => {
+            let html = '<option value="">시각</option>';
+            for (let h = 0; h <= 23; h++) {
+              html += `<option value="${h}" ${parseInt(selectedHour)===h?'selected':''}>${String(h).padStart(2,'0')}시</option>`;
+            }
+            return html;
+          };
+
+          const countOptionsHtml = (selectedCount) => {
+            return [1,3,5,10].map(n => `<option value="${n}" ${parseInt(selectedCount)===n?'selected':''}>${n}게임</option>`).join('');
+          };
+
+          el.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:780px;">' +
+            '<thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">' +
+            '<th style="padding:8px;text-align:left;">Chat ID</th>' +
+            '<th style="padding:8px;text-align:center;">요일</th>' +
+            '<th style="padding:8px;text-align:center;">발송시각</th>' +
+            '<th style="padding:8px;text-align:center;">게임수</th>' +
+            '<th style="padding:8px;text-align:center;">활성</th>' +
+            '<th style="padding:8px;text-align:center;">작업</th></tr></thead><tbody>' +
+            d.rows.map((row, idx) => {
+              const safeOldId = row.chat_id;
+              return `<tr data-old-chatid="${safeOldId}" style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:8px;"><input type="text" value="${row.chat_id}" data-field="chat_id" style="width:140px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;" /></td>
+                <td style="padding:8px;text-align:center;"><div data-field="days" data-value="${row.days||''}" style="display:flex;gap:3px;justify-content:center;">${dayBtnsHtml(row.days)}</div></td>
+                <td style="padding:8px;text-align:center;"><select data-field="hour" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;">${hourOptionsHtml(row.hour)}</select></td>
+                <td style="padding:8px;text-align:center;"><select data-field="game_count" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.82rem;">${countOptionsHtml(row.game_count)}</select></td>
+                <td style="padding:8px;text-align:center;"><input type="checkbox" data-field="enabled" ${row.enabled?'checked':''} style="width:18px;height:18px;cursor:pointer;" /></td>
+                <td style="padding:8px;text-align:center;white-space:nowrap;">
+                  <button onclick="lottoSaveTgRow(this, '${safeOldId}')" class="sp-btn" style="font-size:0.78rem;padding:4px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:4px;">저장</button>
+                  <button onclick="lottoDeleteTgRow('${safeOldId}')" class="sp-btn sp-btn-ghost" style="font-size:0.78rem;padding:4px 10px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;cursor:pointer;">삭제</button>
+                </td>
+              </tr>`;
+            }).join('') + '</tbody></table></div>';
+        } catch(e) {
+          el.innerHTML = '<div style="color:#ef4444;padding:16px;">로드 실패: ' + e.message + '</div>';
+        }
+      };
+
+      // 행 안에서 요일 버튼 단일 선택 토글
+      window.lottoTgRowDayToggle = function(btn) {
+        const wrap = btn.parentElement;
+        wrap.querySelectorAll('button').forEach(b => {
+          b.style.background = '#fff';
+          b.style.color = '#374151';
+          b.style.borderColor = '#e5e7eb';
+          b.style.fontWeight = '500';
+        });
+        btn.style.background = '#6366f1';
+        btn.style.color = '#fff';
+        btn.style.borderColor = '#6366f1';
+        btn.style.fontWeight = '700';
+        wrap.dataset.value = btn.dataset.day;
+      };
+
+      // 행 저장
+      window.lottoSaveTgRow = async function(btn, oldChatId) {
+        const tr = btn.closest('tr');
+        const newChatId = tr.querySelector('[data-field="chat_id"]').value.trim();
+        const days = tr.querySelector('[data-field="days"]').dataset.value || '';
+        const hour = tr.querySelector('[data-field="hour"]').value;
+        const game_count = tr.querySelector('[data-field="game_count"]').value;
+        const enabled = tr.querySelector('[data-field="enabled"]').checked ? 1 : 0;
+
+        if (!newChatId) { lottoShowToast('⚠️', '입력 오류', 'Chat ID를 입력하세요'); return; }
+        if (!days)      { lottoShowToast('⚠️', '입력 오류', '요일을 선택하세요'); return; }
+        if (hour === '' || hour === null) { lottoShowToast('⚠️', '입력 오류', '발송 시각을 선택하세요'); return; }
+        if (!game_count) { lottoShowToast('⚠️', '입력 오류', '게임 수를 선택하세요'); return; }
+
+        btn.disabled = true; btn.textContent = '저장 중...';
+        try {
+          const r = await fetch('/api/lotto/telegram/' + encodeURIComponent(oldChatId), {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ chat_id: newChatId, days, hour: parseInt(hour), game_count: parseInt(game_count), enabled })
+          });
+          const d = await r.json();
+          if (d.ok) {
+            lottoShowToast('✅', '저장 완료', 'Chat ID ' + newChatId + ' 스케줄이 저장되었습니다.');
+            lottoLoadTgList();
+          } else {
+            lottoShowToast('❌', '저장 실패', d.error || '다시 시도해주세요');
+          }
+        } catch(e) { lottoShowToast('❌', '오류', e.message); }
+        finally { btn.disabled = false; btn.textContent = '저장'; }
+      };
+
+      // 행 삭제
+      window.lottoDeleteTgRow = function(chatId) {
+        lottoConfirm('⚠️', '삭제 확인', 'Chat ID ' + chatId + '의 텔레그램 등록 + 자동발송 설정을 모두 삭제할까요?', async () => {
+          try {
+            const r = await fetch('/api/lotto/telegram?chat_id=' + encodeURIComponent(chatId), { method: 'DELETE' });
+            const d = await r.json();
+            if (d.ok) {
+              lottoShowToast('✅', '삭제 완료', 'Chat ID ' + chatId + ' 삭제됨');
+              lottoLoadTgList();
+            } else {
+              lottoShowToast('❌', '삭제 실패', d.error || '다시 시도해주세요');
+            }
+          } catch(e) { lottoShowToast('❌', '오류', e.message); }
+        });
+      };
 
       window.lottoLoadHistory = async function(page = 1) {
         lottoHistoryPage = page;
@@ -849,8 +973,9 @@
         renderGames([]);
         loadTelegramSettings();
         await lottoFetchHistoryData();
-        await lottoLoadTgConfig();
+        await lottoLoadTgConfig(); if (typeof lottoLoadTgList === "function") lottoLoadTgList();
         await lottoLoadSchedule();
+        lottoLoadTgList();
         lottoLoadHistory();
         lottoLoadAutoHistory();
         lottoLoadScheduleLog();
