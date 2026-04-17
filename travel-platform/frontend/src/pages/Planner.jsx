@@ -407,7 +407,7 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
 
   if (!dates.length &&!undated.length) return (
     <div style={{ textAlign: 'center', color: '#bbb', fontSize: 13, padding: '20px 0' }}>
-      Set a date for each place Thaito can!
+      Assign dates to places to see the timeline!
     </div>
   );
 
@@ -424,11 +424,11 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A3A' }}>{date}</div>
-                <div style={{ fontSize: 11, color: '#8A919C' }}>{dayItems} Place</div>
+                <div style={{ fontSize: 11, color: '#8A919C' }}>{dayItems.length} places</div>
               </div>
             </div>
             {dayItems.length === 0? (
-              <div style={{ marginLeft: 46, fontSize: 12, color: '#B8BCC4', padding: '8px 0' }}> day Place none</div>
+              <div style={{ marginLeft: 46, fontSize: 12, color: '#B8BCC4', padding: '8px 0' }}>No places this day</div>
             ) : (
               <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {dayItems.map((item, idx) => (
@@ -458,7 +458,7 @@ function PlanTimeline({ items, startDate, endDate, readOnly, onRemove }) {
       })}
       {undated.length > 0 && (
         <div>
-          <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, paddingLeft: 46 }}>📌 Date TBD ({undated})</div>
+          <div style={{ fontSize: 12, color: '#8A919C', marginBottom: 8, paddingLeft: 46 }}>📌 Date TBD ({undated.length})</div>
           <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {undated.map(item => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#FAFAF8', border: '1px solid #eee', borderRadius: 3 }}>
@@ -1446,8 +1446,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                       {/* Tab button */}
                       <div style={{ display: 'flex', gap: 4, background: '#F5F4F0', borderRadius: 2, padding: 3, marginBottom: 12 }}>
                         {(isPast
-                         ? [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778']]
-                          : [['list', '\uD83D\uDCCB \uC7A5\uC18C \uBAA9\uB85D'], ['timeline', '\uD83D\uDCC5 \uD0C0\uC784\uB77C\uC778'], ['map', '\uD83D\uDDFA\uFE0F \uC9C0\uB3C4 \uAC80\uC0C9'], ['chat', '\uD83D\uDCAC \uCC44\uD305']]
+                         ? [['list', '📋 Places'], ['timeline', '📅 Timeline']]
+                          : [['list', '📋 Places'], ['timeline', '📅 Timeline'], ['map', '🗺️ Map'], ['chat', '💬 Chat']]
                         ).map(([key, label]) => (
                           <button key={key}
                             onClick={() => { setViewMode(key); if (key === 'chat') loadMessages(); }}

@@ -169,14 +169,14 @@ export default function Share({ currentUser, onProfile }) {
       {/* Search results */}
       {q && (
         <div style={{ fontSize: 13, color: '#8A919C' }}>
-          "{searchQuery}" Search results <strong style={{ color: '#1E2A3A' }}>{filtered}</strong>
+          "{searchQuery}" · <strong style={{ color: '#1E2A3A' }}>{filtered.length}</strong> results
         </div>
       )}
 
       {/* My shared mode Guide */}
       {showMine && (
         <div style={{ background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 3, padding: '10px 14px', fontSize: 13, color: '#1E2A3A', fontWeight: 600 }}>
-          🔗 I SHAREone SCHEDULE only Display Public {mySharedPlans.filter(p=>p.shareType==='public')} · Friends-only {mySharedPlans.filter(p=>p.shareType==='friends')}
+          🔗 Showing only my shared schedules · Public {mySharedPlans.filter(p=>p.shareType==='public').length} · Friends-only {mySharedPlans.filter(p=>p.shareType==='friends').length}
         </div>
       )}
 
@@ -343,7 +343,7 @@ function PlanShareCard({ plan, currentUser, myItems, onProfile, isMyPlan, myPlan
                                 {p.startDate || 'Date TBD'} · {p.items?.length || 0} Place
                               </div>
                             </div>
-                            <span style={{ fontSize: 11, color: '#1E2A3A', fontWeight: 700, flexShrink: 0 }}>+{plan.items} ADD</span>
+                            <span style={{ fontSize: 11, color: '#1E2A3A', fontWeight: 700, flexShrink: 0 }}>+{plan.items.length} places</span>
                           </button>
                         ))}
                       </div>
