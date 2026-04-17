@@ -66,14 +66,39 @@ export default function Share({ currentUser, onProfile }) {
 
   // Search filter (Title or Write chars Nickname or place names)
   const q = searchQuery.trim().toLowerCase();
+  // Map travel style keys to plan item categories/keywords
+  const STYLE_TO_KEYWORDS = {
+    food:      ['restaurant', 'cafe', 'food', 'bar', 'pub', 'bakery'],
+    culture:   ['attraction', 'museum', 'gallery', 'temple', 'shrine', 'castle', 'historic'],
+    local:     ['market', 'local'],
+    longstay:  ['hotel', 'apartment', 'stay', 'hostel'],
+    workcation:['cowork', 'office', 'cafe', 'hotel'],
+    activity:  ['activity', 'sport', 'adventure', 'tour'],
+    festival:  ['festival', 'event', 'concert', 'show'],
+    nature:    ['park', 'nature', 'beach', 'mountain', 'hiking', 'trail'],
+    photo:     ['photo', 'viewpoint', 'scenic'],
+    shopping:  ['shopping', 'mall', 'store', 'shop'],
+  };
+
+  const planMatchesStyle = (p, style) => {
+    if (!style) return true;
+    // 1) If plan itself has travelStyles (from post-derived plans)
+    if ((p.travelStyles || []).includes(style)) return true;
+    // 2) Otherwise match any item's category/placeName against keywords
+    const kws = STYLE_TO_KEYWORDS[style] || [];
+    return (p.items || []).some(i => {
+      const txt = `${i.category || ''} ${i.placeName || ''} ${i.memo || ''}`.toLowerCase();
+      return kws.some(k => txt.includes(k));
+    });
+  };
+
   const filtered = tabFiltered.filter(p => {
     const matchSearch =!q || (
       p.title?.toLowerCase().includes(q) ||
       p.userNickname?.toLowerCase().includes(q) ||
       p.items?.some(i => i.placeName?.toLowerCase().includes(q))
     );
-    const matchStyle = !styleFilter || (p.travelStyles || []).includes(styleFilter);
-    return matchSearch && matchStyle;
+    return matchSearch && planMatchesStyle(p, styleFilter);
   });
 
   // Friends going to the same place (when not in my-shared mode)
