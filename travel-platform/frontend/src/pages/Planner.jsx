@@ -484,6 +484,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   const [loading, setLoading] = useState(true);
   const [showNewPlan, setShowNewPlan] = useState(false);
   const [editPlan, setEditPlan] = useState(null);
+  const [toast, setToast] = useState(null); // { message, type: 'error' | 'success' }
+  const showToast = (message, type = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   const [newPlan, setNewPlan] = useState({ title: '', startDate: '', endDate: '', from: '', to: '', pax: 1, shareType: 'private', shareSchedule: false, sharePlaces: false });
   const [routeResults, setRouteResults] = useState([]);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -838,11 +843,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     if (!newPlan.endDate) missing.push('arrival date');
 
     if (missing.length > 0) {
-      alert('Please enter: ' + missing.join(', '));
+      showToast('Please enter: ' + missing.join(', '));
       return;
     }
     if (new Date(newPlan.endDate) < new Date(newPlan.startDate)) {
-      alert('Arrival date must be on or after departure date.');
+      showToast('Arrival date must be on or after departure date.');
       return;
     }
 
@@ -911,11 +916,11 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     if (!editPlan.endDate) missing.push('arrival date');
 
     if (missing.length > 0) {
-      alert('Please enter: ' + missing.join(', '));
+      showToast('Please enter: ' + missing.join(', '));
       return;
     }
     if (new Date(editPlan.endDate) < new Date(editPlan.startDate)) {
-      alert('Arrival date must be on or after departure date.');
+      showToast('Arrival date must be on or after departure date.');
       return;
     }
     try {
@@ -965,7 +970,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
   };
 
   const addPlaceToSelected = async (place) => {
-    if (!Selected) { alert('Please select a schedule First.'); return; }
+    if (!Selected) { showToast('Please select a schedule first.'); return; }
     try {
       const item = {
         placeName: place.name, lat: place.lat || 0, lng: place.lng || 0,
@@ -976,7 +981,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       const updated = await api.addPlanItem(Selected.id, item);
       setSelected(updated);
       onUpdatePlans?.((plans || []).map(p => p.id === updated.id? updated : p));
-      alert(`"${place.name}" to schedule Added! ✅`);
+      showToast(`"${place.name}" added to schedule`, 'success');
     } catch (e) { console.error(e); }
   };
 
@@ -1682,6 +1687,22 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
           </div>
         </div>
       )}
-    </div>
+    
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#1E2A3A' : '#fef2f2',
+          color: toast.type === 'success' ? 'white' : '#991b1b',
+          border: toast.type === 'success' ? 'none' : '1px solid #fecaca',
+          borderRadius: 3, padding: '14px 20px',
+          fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 9999, maxWidth: 420, textAlign: 'center',
+          fontFamily: "'Inter', sans-serif", letterSpacing: 0.2,
+        }}>
+          {toast.type === 'success' ? '✓ ' : '⚠ '}{toast.message}
+        </div>
+      )}
+      </div>
   );
 }
