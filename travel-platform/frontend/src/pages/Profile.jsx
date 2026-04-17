@@ -14,7 +14,7 @@ const getThumbUrl = (url) => {
 function UserListModal({ title, users, currentUser, onClose, onProfile, onFollow }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ width: 400 }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400, width: '100%' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div className="modal-title" style={{ marginBottom: 0 }}>{title}</div>
           <button onClick={onClose} style={{ fontSize: 20, color: '#8A919C', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
@@ -438,7 +438,7 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       {/* BLOCK OK */}
       {showBlockConfirm && (
         <div className="modal-overlay" onClick={() => setShowBlockConfirm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: 360 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360, width: '100%' }}>
             <div className="modal-title">{isBlocked? 'Unblock' : `Block ${user.nickname}?`}</div>
             <p style={{ fontSize: 14, color: '#8A919C', lineHeight: 1.7 }}>
               {isBlocked

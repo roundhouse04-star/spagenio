@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const S = {
   wrap: { minHeight: '100vh', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
   logo: { fontSize: 28, fontWeight: 500, fontFamily: "'Playfair Display', serif", color: '#1E2A3A', letterSpacing: -0.5, marginBottom: 24, textAlign: 'center' },
-  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '36px', width: '100%', width: 440, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
+  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '36px', width: '100%', maxWidth: 440, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
   icon: { fontSize: 40, textAlign: 'center', marginBottom: 12 },
   title: { fontSize: 18, fontWeight: 800, color: '#1E2A3A', marginBottom: 6, textAlign: 'center' },
   desc: { fontSize: 13, color: '#8A919C', marginBottom: 24, textAlign: 'center', lineHeight: 1.6 },

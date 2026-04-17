@@ -441,7 +441,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
   const feedItems = buildFeedItems(posts, promotions.filter(p => p.active));
 
   return (
-    <div style={{ width: 680, margin: '0 auto', width: '100%' }}>
+    <div style={{ width: 680, margin: '0 auto', maxWidth: '100%' }}>
 
       {/* Tab — ALL / FOLLOWING */}
       <div style={{ display: 'flex', borderBottom: '1px solid #E2E0DC', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>

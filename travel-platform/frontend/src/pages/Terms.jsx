@@ -4,7 +4,7 @@ const S = {
   wrap: { minHeight: '100vh', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 },
   logo: { fontSize: 28, fontWeight: 500, fontFamily: "'Playfair Display', serif", color: '#1E2A3A', letterSpacing: -0.5, marginBottom: 8, textAlign: 'center' },
   sub: { fontSize: 14, color: '#8A919C', marginBottom: 24, textAlign: 'center' },
-  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '32px 36px 28px', width: '100%', width: 520, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
+  box: { background: 'white', border: '1px solid #eee', borderRadius: 3, padding: '32px 36px 28px', width: '100%', maxWidth: 520, boxShadow: '0 4px 20px rgba(30,42,58,0.08)' },
   title: { fontSize: 15, fontWeight: 800, color: '#1E2A3A', marginBottom: 20 },
   allAgree: { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#EEEDEA', border: '1.5px solid #E2E0DC', borderRadius: 3, marginBottom: 14, cursor: 'pointer' },
   termItem: { border: '1px solid #eee', borderRadius: 3, marginBottom: 10, overflow: 'hidden' },

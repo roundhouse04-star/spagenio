@@ -314,7 +314,7 @@ export default function Transit() {
   };
 
   const S = {
-    wrap: { width: 680, margin: '0 auto', padding: '0 0 80px' },
+    wrap: { maxWidth: 680, margin: '0 auto', padding: '0 0 80px' },
     cityTabs: { display: 'flex', gap: 8, overflowX: 'auto', padding: '16px 16px 8px', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' },
     cityBtn: (active) => ({
       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,

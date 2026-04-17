@@ -1592,7 +1592,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       )}
       {showInvite && (
         <div className="modal-overlay" onClick={() => setShowInvite(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ width: 400 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400, width: '100%' }}>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#1E2A3A', marginBottom: 16 }}>👥 friends Invite</div>
             {followings.length === 0? (
               <div style={{ textAlign: 'center', color: '#bbb', padding: '24px 0', fontSize: 14 }}>No followed friends.</div>
