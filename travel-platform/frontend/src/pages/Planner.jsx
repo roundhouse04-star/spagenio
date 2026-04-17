@@ -600,89 +600,89 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
 
   const ROUTES_DB = {
     'Seoul_Osaka': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Kansai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩89,000 – ₩180,000', priceNum: 130000, steps: ['Check in 2h before at ICN', 'Board Korean Air, Asiana, or Jeju Air', 'Arrive KIX', 'Nankai Rapit into central Osaka (~50m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }, { t: 'Naver Flight', u: 'https://flight.naver.com' }] },
-      { type: 'ferry', icon: '🚢', name: 'Ferry + train (Busan→Shimonoseki→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~18h', price: '₩60,000 – ₩90,000', priceNum: 75000, steps: ['KTX Seoul→Busan (~2h 30m, KRW 59,800)', 'Board ferry at Busan Port (overnight)', 'Arrive Shimonoseki, then JR to Osaka'], links: [{ t: 'Kampu Ferry', u: 'https://www.pukuanferry.com' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Kansai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩89,000 – ₩180,000', priceNum: 130000, steps: ['Check in 2h before at ICN', 'Board Korean Air, Asiana, or Jeju Air', 'Arrive KIX', 'Nankai Rapit into central Osaka (~50m)'] },
+      { type: 'ferry', icon: '🚢', name: 'Ferry + train (Busan→Shimonoseki→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~18h', price: '₩60,000 – ₩90,000', priceNum: 75000, steps: ['KTX Seoul→Busan (~2h 30m, KRW 59,800)', 'Board ferry at Busan Port (overnight)', 'Arrive Shimonoseki, then JR to Osaka'] },
     ],
     'Seoul_Tokyo': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Narita/Haneda)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩110,000 – ₩220,000', priceNum: 165000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive Narita or Haneda', 'Narita Express to city center (~1h)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }, { t: 'Naver Flight', u: 'https://flight.naver.com' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '6-9h', price: '₩70,000 – ₩110,000', priceNum: 90000, steps: ['Depart ICN', 'Layover (2-4h)', 'Arrive Narita'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Narita/Haneda)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩110,000 – ₩220,000', priceNum: 165000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive Narita or Haneda', 'Narita Express to city center (~1h)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '6-9h', price: '₩70,000 – ₩110,000', priceNum: 90000, steps: ['Depart ICN', 'Layover (2-4h)', 'Arrive Narita'] },
     ],
     'Osaka_Tokyo': [
-      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥15,000 (₩135,000)', priceNum: 135000, steps: ['Shin-Osaka Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Tokyo Stn'], links: [{ t: 'JR Pass', u: 'https://www.jrpass.com' }, { t: 'Eki-net', u: 'https://www.eki-net.com' }] },
-      { type: 'bus', icon: '🚌', name: 'Night bus (Osaka→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥4,000 – ¥8,000 (₩36,000 – ₩72,000)', priceNum: 54000, steps: ['Namba Stn — 10-11 PM', 'Board night express bus', 'Arrive at Shinjuku/Tokyo Stn (6-7 AM)'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
-      { type: 'airplane', icon: '✈', name: 'Domestic flight (Kansai→Haneda)', tag: '', tagColor: '', time: '1h 10m', price: '¥8,000 – ¥15,000 (₩72,000 – ₩135,000)', priceNum: 100000, steps: ['Depart KIX', 'Board ANA, JAL, or Peach Aviation', 'Arrive HND'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥15,000 (₩135,000)', priceNum: 135000, steps: ['Shin-Osaka Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Tokyo Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Osaka→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥4,000 – ¥8,000 (₩36,000 – ₩72,000)', priceNum: 54000, steps: ['Namba Stn — 10-11 PM', 'Board night express bus', 'Arrive at Shinjuku/Tokyo Stn (6-7 AM)'] },
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Kansai→Haneda)', tag: '', tagColor: '', time: '1h 10m', price: '¥8,000 – ¥15,000 (₩72,000 – ₩135,000)', priceNum: 100000, steps: ['Depart KIX', 'Board ANA, JAL, or Peach Aviation', 'Arrive HND'] },
     ],
     'Seoul_Bangkok': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Suvarnabhumi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '5h 30m', price: '₩150,000 – ₩280,000', priceNum: 215000, steps: ['Depart ICN', 'Board Korean Air or Thai Airways', 'Arrive BKK', 'BTS or Taxi to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Bangkok)', tag: 'Cheapest', tagColor: '#f59e0b', time: '8-12h', price: '₩100,000 – ₩180,000', priceNum: 140000, steps: ['Depart ICN', 'Hong Kong/Singapore transit', 'Arrive Suvarnabhumi or Don Mueang'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Suvarnabhumi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '5h 30m', price: '₩150,000 – ₩280,000', priceNum: 215000, steps: ['Depart ICN', 'Board Korean Air or Thai Airways', 'Arrive BKK', 'BTS or Taxi to city center'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Bangkok)', tag: 'Cheapest', tagColor: '#f59e0b', time: '8-12h', price: '₩100,000 – ₩180,000', priceNum: 140000, steps: ['Depart ICN', 'Hong Kong/Singapore transit', 'Arrive Suvarnabhumi or Don Mueang'] },
     ],
     'Seoul_Paris': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Paris CDG)', tag: 'Recommended', tagColor: '#1E2A3A', time: '13h', price: '₩700,000 – ₩1,400,000', priceNum: 1000000, steps: ['Depart ICN', 'Board Korean Air or Air France', 'Arrive CDG', 'RER B to city center (~45m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Paris)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-22h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Singapore transit', 'Arrive CDG'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Paris CDG)', tag: 'Recommended', tagColor: '#1E2A3A', time: '13h', price: '₩700,000 – ₩1,400,000', priceNum: 1000000, steps: ['Depart ICN', 'Board Korean Air or Air France', 'Arrive CDG', 'RER B to city center (~45m)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Paris)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-22h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Singapore transit', 'Arrive CDG'] },
     ],
     'Seoul_Jeju': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Gimpo/Incheon→Jeju)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h', price: '₩40,000 – ₩120,000', priceNum: 70000, steps: ['Depart from Gimpo or Incheon Airport', 'Board Jeju Air, Jin Air, or T\'way Air', 'Arrive CJU', 'Rental car or bus'], links: [{ t: 'Naver Flight', u: 'https://flight.naver.com' }] },
-      { type: 'ferry', icon: '🚢', name: 'Ferry (Mokpo/Wando→Jeju)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~3-5h', price: '₩30,000 – ₩60,000', priceNum: 45000, steps: ['Depart from Mokpo or Wando Port', 'Board Hanil Express or Seastar Cruise', 'Arrive at Jeju Port'], links: [{ t: 'Island travel', u: 'https://www.island.go.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Gimpo/Incheon→Jeju)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h', price: '₩40,000 – ₩120,000', priceNum: 70000, steps: ['Depart from Gimpo or Incheon Airport', 'Board Jeju Air, Jin Air, or T\'way Air', 'Arrive CJU', 'Rental car or bus'] },
+      { type: 'ferry', icon: '🚢', name: 'Ferry (Mokpo/Wando→Jeju)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~3-5h', price: '₩30,000 – ₩60,000', priceNum: 45000, steps: ['Depart from Mokpo or Wando Port', 'Board Hanil Express or Seastar Cruise', 'Arrive at Jeju Port'] },
     ],
     'Seoul_Singapore': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Changi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '6h 30m', price: '₩200,000 – ₩400,000', priceNum: 280000, steps: ['Depart ICN', 'Board Singapore Airlines, Scoot, or Jin Air', 'Arrive SIN', 'MRT to city center (~30m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }, { t: 'Naver Flight', u: 'https://flight.naver.com' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Singapore)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-14h', price: '₩150,000 – ₩250,000', priceNum: 200000, steps: ['Depart ICN', 'Kuala Lumpur/Hong Kong transit', 'Arrive SIN'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Changi)', tag: 'Recommended', tagColor: '#1E2A3A', time: '6h 30m', price: '₩200,000 – ₩400,000', priceNum: 280000, steps: ['Depart ICN', 'Board Singapore Airlines, Scoot, or Jin Air', 'Arrive SIN', 'MRT to city center (~30m)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Singapore)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-14h', price: '₩150,000 – ₩250,000', priceNum: 200000, steps: ['Depart ICN', 'Kuala Lumpur/Hong Kong transit', 'Arrive SIN'] },
     ],
     'Seoul_Bali': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Ngurah Rai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '7h', price: '₩250,000 – ₩500,000', priceNum: 350000, steps: ['Depart ICN', 'Board Jin Air or Lion Air', 'Arrive DPS', 'Taxi to hotel'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Kuala Lumpur→Bali)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-13h', price: '₩180,000 – ₩320,000', priceNum: 250000, steps: ['Depart ICN', 'Board AirAsia or Malaysia Airlines', 'Via Kuala Lumpur (2-4h)', 'Arrive Bali'], links: [{ t: 'AirAsia', u: 'https://www.airasia.com' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Ngurah Rai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '7h', price: '₩250,000 – ₩500,000', priceNum: 350000, steps: ['Depart ICN', 'Board Jin Air or Lion Air', 'Arrive DPS', 'Taxi to hotel'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Kuala Lumpur→Bali)', tag: 'Cheapest', tagColor: '#f59e0b', time: '10-13h', price: '₩180,000 – ₩320,000', priceNum: 250000, steps: ['Depart ICN', 'Board AirAsia or Malaysia Airlines', 'Via Kuala Lumpur (2-4h)', 'Arrive Bali'] },
     ],
     'Seoul_London': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Heathrow)', tag: 'Recommended', tagColor: '#1E2A3A', time: '12h', price: '₩700,000 – ₩1,500,000', priceNum: 1050000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive at Heathrow', 'Elizabeth Line to city center (~40m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→London)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-24h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Abu Dhabi transit', 'Arrive Gatwick or Heathrow'], links: [{ t: 'Skyscanner', u: 'https://www.kayak.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Heathrow)', tag: 'Recommended', tagColor: '#1E2A3A', time: '12h', price: '₩700,000 – ₩1,500,000', priceNum: 1050000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive at Heathrow', 'Elizabeth Line to city center (~40m)'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→London)', tag: 'Cheapest', tagColor: '#f59e0b', time: '16-24h', price: '₩500,000 – ₩900,000', priceNum: 700000, steps: ['Depart ICN', 'Dubai/Abu Dhabi transit', 'Arrive Gatwick or Heathrow'] },
     ],
     'Seoul_New York': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→JFK)', tag: 'Recommended', tagColor: '#1E2A3A', time: '14h', price: '₩900,000 – ₩2,000,000', priceNum: 1300000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive JFK', 'Airtrain+Subway to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→New York)', tag: 'Cheapest', tagColor: '#f59e0b', time: '18-26h', price: '₩700,000 – ₩1,300,000', priceNum: 1000000, steps: ['Depart ICN', 'Tokyo/Osaka/LA transit', 'Arrive JFK or Newark'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→JFK)', tag: 'Recommended', tagColor: '#1E2A3A', time: '14h', price: '₩900,000 – ₩2,000,000', priceNum: 1300000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive JFK', 'Airtrain+Subway to city center'] },
+      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→New York)', tag: 'Cheapest', tagColor: '#f59e0b', time: '18-26h', price: '₩700,000 – ₩1,300,000', priceNum: 1000000, steps: ['Depart ICN', 'Tokyo/Osaka/LA transit', 'Arrive JFK or Newark'] },
     ],
     'Seoul_Hong Kong': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hong Kong Chek Lap Kok)', tag: 'Recommended', tagColor: '#1E2A3A', time: '3h 30m', price: '₩100,000 – ₩250,000', priceNum: 175000, steps: ['Depart ICN', 'Board Korean Air, Cathay Pacific, or HK Express', 'Arrive at Hong Kong Airport', 'AEL to city center (~24m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hong Kong Chek Lap Kok)', tag: 'Recommended', tagColor: '#1E2A3A', time: '3h 30m', price: '₩100,000 – ₩250,000', priceNum: 175000, steps: ['Depart ICN', 'Board Korean Air, Cathay Pacific, or HK Express', 'Arrive at Hong Kong Airport', 'AEL to city center (~24m)'] },
     ],
     'Seoul_Vietnam': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hanoi/Danang/Ho Chi Minh)', tag: 'Recommended', tagColor: '#1E2A3A', time: '4-5h', price: '₩120,000 – ₩280,000', priceNum: 180000, steps: ['Depart ICN', 'Board Vietnam Airlines, VietJet, or Jin Air', 'Arrive at Noi Bai, Danang, or Tan Son Nhat', 'Grab or taxi'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Hanoi/Danang/Ho Chi Minh)', tag: 'Recommended', tagColor: '#1E2A3A', time: '4-5h', price: '₩120,000 – ₩280,000', priceNum: 180000, steps: ['Depart ICN', 'Board Vietnam Airlines, VietJet, or Jin Air', 'Arrive at Noi Bai, Danang, or Tan Son Nhat', 'Grab or taxi'] },
     ],
     'Seoul_Taiwan': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Taoyuan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩100,000 – ₩200,000', priceNum: 150000, steps: ['Depart ICN', 'Board China Airlines, Eva Air, or T\'way Air', 'Arrive TPE', 'MRT to city center (~35m)'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Taoyuan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩100,000 – ₩200,000', priceNum: 150000, steps: ['Depart ICN', 'Board China Airlines, Eva Air, or T\'way Air', 'Arrive TPE', 'MRT to city center (~35m)'] },
     ],
     'Seoul_Dubai': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Dubai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '9h', price: '₩400,000 – ₩900,000', priceNum: 600000, steps: ['Depart ICN', 'Board Emirates or Etihad', 'Arrive DXB', 'Metro to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Dubai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '9h', price: '₩400,000 – ₩900,000', priceNum: 600000, steps: ['Depart ICN', 'Board Emirates or Etihad', 'Arrive DXB', 'Metro to city center'] },
     ],
     'Seoul_Sydney': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Sydney)', tag: 'Recommended', tagColor: '#1E2A3A', time: '10h 30m', price: '₩600,000 – ₩1,200,000', priceNum: 850000, steps: ['Depart ICN', 'Board Korean Air or Qantas', 'Arrive SYD (Kingsford Smith)', 'Airport Link to city center'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Sydney)', tag: 'Recommended', tagColor: '#1E2A3A', time: '10h 30m', price: '₩600,000 – ₩1,200,000', priceNum: 850000, steps: ['Depart ICN', 'Board Korean Air or Qantas', 'Arrive SYD (Kingsford Smith)', 'Airport Link to city center'] },
     ],
     'Osaka_Kyoto': [
-      { type: 'train', icon: '🚄', name: 'Express Haruka (Osaka→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '75m', price: '~¥2,850 (₩25,000)', priceNum: 25000, steps: ['Depart from Osaka Stn or Shin-Osaka Stn', 'Board JR Sanyo Main Line', 'Arrive at Kyoto Stn'], links: [{ t: 'JR West', u: 'https://www.westjr.co.jp' }] },
-      { type: 'bus', icon: '🚌', name: 'Express bus (Osaka→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~1h', price: '¥600 – ¥1,000 (₩5,000 – ₩9,000)', priceNum: 7000, steps: ['Depart from Umeda or Namba bus terminal', 'Board express bus', 'Arrive Kyoto Stn or city center'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
+      { type: 'train', icon: '🚄', name: 'Express Haruka (Osaka→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '75m', price: '~¥2,850 (₩25,000)', priceNum: 25000, steps: ['Depart from Osaka Stn or Shin-Osaka Stn', 'Board JR Sanyo Main Line', 'Arrive at Kyoto Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Osaka→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~1h', price: '¥600 – ¥1,000 (₩5,000 – ₩9,000)', priceNum: 7000, steps: ['Depart from Umeda or Namba bus terminal', 'Board express bus', 'Arrive Kyoto Stn or city center'] },
     ],
     'Tokyo_Kyoto': [
-      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 15m', price: '¥13,750 (₩123,000)', priceNum: 123000, steps: ['Tokyo Stn — Nozomi', 'Arrive at Kyoto Stn'], links: [{ t: 'JR Pass', u: 'https://www.jrpass.com' }] },
-      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥3,500 – ¥7,000 (₩31,000 – ₩63,000)', priceNum: 47000, steps: ['Depart from Shinjuku Stn Bus Terminal (10 PM)', 'Board night bus', 'Arrive at Kyoto Stn (6 AM)'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Kyoto)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 15m', price: '¥13,750 (₩123,000)', priceNum: 123000, steps: ['Tokyo Stn — Nozomi', 'Arrive at Kyoto Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Kyoto)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (Night)', price: '¥3,500 – ¥7,000 (₩31,000 – ₩63,000)', priceNum: 47000, steps: ['Depart from Shinjuku Stn Bus Terminal (10 PM)', 'Board night bus', 'Arrive at Kyoto Stn (6 AM)'] },
     ],
     'Bangkok_Chiang Mai': [
-      { type: 'airplane', icon: '✈', name: 'Domestic flight (Suvarnabhumi→Chiang Mai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 20m', price: '฿800 – ฿3,000 (₩30,000 – ₩112,000)', priceNum: 60000, steps: ['Depart BKK', 'Board Thai Airways, Nok Air, or AirAsia', 'Arrive CNX'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
-      { type: 'train', icon: '🚄', name: 'NightTrain (Bangkok→Chiang Mai)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~12-13h (Night)', price: '฿600 – ฿1,500 (₩22,000 – ₩56,000)', priceNum: 38000, steps: ['Depart from Hua Lamphong Stn (6-8 PM)', 'Board 2nd class sleeper', 'Arrive at Chiang Mai Stn (7-9 AM)'], links: [{ t: 'Thailandmore', u: 'https://www.thairailway.go.th' }] },
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Suvarnabhumi→Chiang Mai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 20m', price: '฿800 – ฿3,000 (₩30,000 – ₩112,000)', priceNum: 60000, steps: ['Depart BKK', 'Board Thai Airways, Nok Air, or AirAsia', 'Arrive CNX'] },
+      { type: 'train', icon: '🚄', name: 'NightTrain (Bangkok→Chiang Mai)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~12-13h (Night)', price: '฿600 – ฿1,500 (₩22,000 – ₩56,000)', priceNum: 38000, steps: ['Depart from Hua Lamphong Stn (6-8 PM)', 'Board 2nd class sleeper', 'Arrive at Chiang Mai Stn (7-9 AM)'] },
     ],
     'Seoul_Busan': [
-      { type: 'train', icon: '🚄', name: 'KTX (Seoul→Busan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 20m', price: '₩59,800 (Regular)', priceNum: 59800, steps: ['Depart from Seoul Stn or Suseo Stn', 'Board KTX or SRT', 'Arrive at Busan Stn', 'Subway or taxi'], links: [{ t: 'Korail', u: 'https://www.letskorail.com' }, { t: 'SRT', u: 'https://www.srail.or.kr' }] },
-      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Busan)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~4h', price: '₩20,000 – ₩35,000', priceNum: 27500, steps: ['Depart from Gangnam/East Seoul Terminal', 'Board express bus', 'Arrive at Busan Express Bus Terminal'], links: [{ t: 'Express bus', u: 'https://www.kobus.co.kr' }] },
-      { type: 'airplane', icon: '✈', name: 'Flight (Gimpo→Gimhae)', tag: '', tagColor: '', time: '55m', price: '₩50,000 – ₩100,000', priceNum: 70000, steps: ['Depart from Gimpo Airport', 'Board Korean Air or Asiana', 'Arrive at Gimhae Airport'], links: [{ t: 'Naver Flight', u: 'https://flight.naver.com' }] },
+      { type: 'train', icon: '🚄', name: 'KTX (Seoul→Busan)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 20m', price: '₩59,800 (Regular)', priceNum: 59800, steps: ['Depart from Seoul Stn or Suseo Stn', 'Board KTX or SRT', 'Arrive at Busan Stn', 'Subway or taxi'] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Busan)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~4h', price: '₩20,000 – ₩35,000', priceNum: 27500, steps: ['Depart from Gangnam/East Seoul Terminal', 'Board express bus', 'Arrive at Busan Express Bus Terminal'] },
+      { type: 'airplane', icon: '✈', name: 'Flight (Gimpo→Gimhae)', tag: '', tagColor: '', time: '55m', price: '₩50,000 – ₩100,000', priceNum: 70000, steps: ['Depart from Gimpo Airport', 'Board Korean Air or Asiana', 'Arrive at Gimhae Airport'] },
     ],
     'Seoul_Gangneung': [
-      { type: 'train', icon: '🚄', name: 'KTX-Eum (Seoul→Gangneung)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩27,600', priceNum: 27600, steps: ['Depart from Cheongnyangni Stn', 'Board KTX-Eum', 'Arrive at Gangneung Stn'], links: [{ t: 'Korail', u: 'https://www.letskorail.com' }] },
-      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Gangneung)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~2h 30m', price: '₩13,000 – ₩18,000', priceNum: 15500, steps: ['Depart from East Seoul Terminal', 'Board express bus', 'Arrive at Gangneung Terminal'], links: [{ t: 'Express bus', u: 'https://www.kobus.co.kr' }] },
+      { type: 'train', icon: '🚄', name: 'KTX-Eum (Seoul→Gangneung)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 50m', price: '₩27,600', priceNum: 27600, steps: ['Depart from Cheongnyangni Stn', 'Board KTX-Eum', 'Arrive at Gangneung Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Express bus (Seoul→Gangneung)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~2h 30m', price: '₩13,000 – ₩18,000', priceNum: 15500, steps: ['Depart from East Seoul Terminal', 'Board express bus', 'Arrive at Gangneung Terminal'] },
     ],
     'Paris_London': [
-      { type: 'train', icon: '🚄', name: 'Eurostar (Paris→London)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 16m', price: '€39 – €350 (₩56,000 – ₩504,000)', priceNum: 160000, steps: ['Depart from Paris Gare du Nord', 'Board Eurostar', 'Via Channel Tunnel', 'Arrive at Arrive at London St Pancras'], links: [{ t: 'Eurostar', u: 'https://www.eurostar.com' }] },
-      { type: 'airplane', icon: '✈', name: 'Flight (CDG→Heathrow)', tag: 'Fastest', tagColor: '#10b981', time: '1h 15m', price: '€50 – €200 (₩72,000 – ₩288,000)', priceNum: 130000, steps: ['Depart CDG', 'Board Air France or BA', 'Arrive LHR'], links: [{ t: 'Skyscanner', u: 'https://www.skyscanner.co.kr' }] },
+      { type: 'train', icon: '🚄', name: 'Eurostar (Paris→London)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 16m', price: '€39 – €350 (₩56,000 – ₩504,000)', priceNum: 160000, steps: ['Depart from Paris Gare du Nord', 'Board Eurostar', 'Via Channel Tunnel', 'Arrive at Arrive at London St Pancras'] },
+      { type: 'airplane', icon: '✈', name: 'Flight (CDG→Heathrow)', tag: 'Fastest', tagColor: '#10b981', time: '1h 15m', price: '€50 – €200 (₩72,000 – ₩288,000)', priceNum: 130000, steps: ['Depart CDG', 'Board Air France or BA', 'Arrive LHR'] },
     ],
     'Tokyo_Osaka': [
-      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Osaka)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '¥14,720 (₩132,000)', priceNum: 132000, steps: ['Tokyo Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Shin-Osaka Stn'], links: [{ t: 'JR Pass', u: 'https://www.jrpass.com' }] },
-      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h', price: '¥3,000 – ¥8,000 (₩27,000 – ₩72,000)', priceNum: 48000, steps: ['Shinjuku Stn — overnight', 'Arrive Osaka Namba'], links: [{ t: 'Bus booking', u: 'https://www.bushikaku.net' }] },
+      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Osaka)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '¥14,720 (₩132,000)', priceNum: 132000, steps: ['Tokyo Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Shin-Osaka Stn'] },
+      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h', price: '¥3,000 – ¥8,000 (₩27,000 – ₩72,000)', priceNum: 48000, steps: ['Shinjuku Stn — overnight', 'Arrive Osaka Namba'] },
     ],
   };
 
@@ -990,6 +990,9 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                 {!routeLoading && routeResults.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ fontSize: 11, color: '#8A919C' }}>{newPlan.from} → {newPlan.to} · {newPlan.pax} Basis · After adding, keep searching next segments</div>
+                    <div style={{ fontSize: 10, color: '#8A919C', textAlign: 'center', padding: '4px 0 8px', fontStyle: 'italic' }}>
+                      Estimated price ranges based on recent 3-month averages. Actual fares vary by date and availability.
+                    </div>
                     {routeResults.map((r, i) => (
                       <div key={i} onClick={() => setSelectedRoute(SelectedRoute === r? null : r)}
                         style={{ border: `2px solid ${SelectedRoute === r? '#1E2A3A' : '#E2E0DC'}`, borderRadius: 2, padding: '10px 12px', cursor: 'pointer', background: SelectedRoute === r? '#EEEDEA' : 'white' }}>
@@ -1024,30 +1027,18 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
                             <div style={{ fontSize: 12, color: '#1E2A3A', fontWeight: 600, marginTop: 4 }}>
                               {newPlan.pax} Total: ≈ {(r.priceNum * newPlan.pax).toLocaleString()} KRW~
                             </div>
-                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                              {r.links?.map(l => (
-                                <a key={l.t} href={l.u} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
-                                  style={{ fontSize: 11, padding: '3px 8px', background: '#F5F4F0', border: '1px solid #eee', borderRadius: 6, color: '#555', textDecoration: 'none' }}>{l.t} →</a>
-                              ))}
-                            </div>
+
                           </div>
                         )}
                       </div>
                     ))}
-                    <div style={{ textAlign: 'center', fontSize: 11, color: '#bbb' }}>
-                      Other transit: <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ color: '#1E2A3A' }}>Skyscanner</a>from OK
-                    </div>
+
                   </div>
                 )}
                 {!routeLoading && routeResults.length === 0 && newPlan.from && newPlan.to && (
                   <div style={{ textAlign: 'center', fontSize: 12, color: '#8A919C', padding: '10px 0' }}>
                     <div style={{ fontSize: 20, marginBottom: 4 }}>🔍</div>
-                    <div style={{ fontWeight: 600, color: '#4A5568', marginBottom: 6 }}>Searched transit options none</div>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <a href="https://www.skyscanner.co.kr" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#EEEDEA', border: '1px solid #E2E0DC', borderRadius: 2, color: '#1E2A3A', textDecoration: 'none', fontWeight: 600 }}>✈ Skyscanner</a>
-                      <a href="https://flight.naver.com" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 2, color: '#16a34a', textDecoration: 'none', fontWeight: 600 }}>🛫 Naver Flight</a>
-                      <a href="https://www.letskorail.com" target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: '4px 10px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 2, color: '#d97706', textDecoration: 'none', fontWeight: 600 }}>🚄 Korail</a>
-                    </div>
+                    <div style={{ fontWeight: 600, color: '#4A5568', marginBottom: 6 }}>No transit options found for this route yet.</div>
                   </div>
                 )}
               </div>
