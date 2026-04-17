@@ -46,7 +46,7 @@ export const api = {
   removePlanItem: (planId, itemId) => req(`/api/plans/${planId}/items/${itemId}`, { method: 'DELETE' }),
   deletePlan: (id) => req(`/api/plans/${id}`, { method: 'DELETE' }),
 
-  // Plan 협업
+  // Plan collaboration
   inviteMember: (planId, userId) => req(`/api/plans/${planId}/members/${userId}`, { method: 'POST' }),
   removeMember: (planId, userId) => req(`/api/plans/${planId}/members/${userId}`, { method: 'DELETE' }),
   getMessages: (planId) => req(`/api/plans/${planId}/messages`),
@@ -67,11 +67,11 @@ export const api = {
   updateNotice: (id, data) => req(`/api/notices/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteNotice: (id) => req(`/api/notices/${id}`, { method: 'DELETE' }),
 
-  // 위치 기반 검색
+  // Location-based search
   getPostsNearby: (lat, lng, radius = 2.0) => req(`/api/posts/nearby?lat=${lat}&lng=${lng}&radius=${radius}`),
   getSavedPlacesNearby: (userId, lat, lng, radius = 1.0) => req(`/api/users/${userId}/saved-nearby?lat=${lat}&lng=${lng}&radius=${radius}`),
 
-  // 메뉴 관리
+  // Menu management
   getMenus: () => req('/api/menus'),
   saveMenus: (items) => req('/api/menus', { method: 'POST', body: JSON.stringify(items) }),
 

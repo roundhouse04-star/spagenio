@@ -1,4 +1,4 @@
-// 광고 페이지 리다이렉트
+// Ads page redirect
 if (window.location.pathname === '/ads' || window.location.pathname === '/ads/') {
   window.location.href = '/ads/index.html';
 }
@@ -23,7 +23,7 @@ import Terms from './pages/Terms';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 
-// ── SVG 로고 컴포넌트 ──
+// ── SVG logo component ──
 function LogoSvg({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,7 +45,7 @@ function LogoFull({ onClick }) {
   );
 }
 
-// ── 로그인 페이지 ──
+// ── Login page ──
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,7 +54,7 @@ function LoginPage({ onLogin }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!email || !password) { setError('이메일과 비밀번호를 입력해주세요.'); return; }
+    if (!email || !password) { setError('Please enter email and password.'); return; }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/auth/login', {
@@ -69,17 +69,17 @@ function LoginPage({ onLogin }) {
         sessionStorage.setItem('auth_user', JSON.stringify(userData));
         onLogin(data.user);
       } else {
-        setError(data.error || '이메일 또는 비밀번호가 올바르지 않습니다.');
+        setError(data.error || 'Invalid email or password.');
       }
     } catch (e) {
-      setError('서버 연결 오류가 발생했습니다.');
+      setError('Server connection error.');
     } finally { setLoading(false); }
   };
 
   return (
     <div className="login-container">
       <div className="login-grid">
-        {/* 왼쪽: Ink Navy 패널 */}
+        {/* Left: Ink Navy panel */}
         <div className="login-left">
           <LogoSvg size={56} />
           <div style={{ textAlign: 'center' }}>
@@ -94,7 +94,7 @@ function LoginPage({ onLogin }) {
           </div>
         </div>
 
-        {/* 오른쪽: 로그인 폼 */}
+        {/* Right: login form */}
         <div className="login-right">
           <div style={{ marginBottom: 36, textAlign: 'center' }}>
             <LogoSvg size={48} />
@@ -143,7 +143,7 @@ function LoginPage({ onLogin }) {
   );
 }
 
-// ── 메인 앱 ──
+// ── Main app ──
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [page, setPage] = useState('feed');
@@ -283,7 +283,7 @@ function App() {
         if (data.ok) {
           const mRes = await fetch(`/api/dm/conversations/${activeConvo.id}/messages`);
           if (mRes.ok) setMessages(await mRes.json());
-        } else { alert(data.message || '전송 실패'); }
+        } else { alert(data.message || 'Failed to send'); }
       }
     } catch (e) {}
   };
@@ -324,25 +324,25 @@ function App() {
     try {
       const updated = await api.addComment(postId, { userId: currentUser.id, content: text });
       if (openedPost?.id === postId) setOpenedPost(updated);
-      addNotif({ type: 'comment', icon: '💬', message: `"${text.slice(0, 20)}${text.length > 20 ? '...' : ''}" 댓글을 달았어요` });
+      addNotif({ type: 'comment', icon: '💬', message: `"${text.slice(0, 20)}${text.length > 20 ? '...' : ''} commented"` });
       return updated;
     } catch (e) { console.error(e); }
   };
 
-  const handleDeletePost = (postId) => { setOpenedPost(null); setFeedKey(k => k + 1); addNotif({ type: 'delete', icon: '🗑', message: '게시물을 삭제했어요' }); };
+  const handleDeletePost = (postId) => { setOpenedPost(null); setFeedKey(k => k + 1); addNotif({ type: 'delete', icon: '🗑', message: 'Post deleted' }); };
   const handleUpdatePost = (updated) => { setOpenedPost(updated); setFeedKey(k => k + 1); };
-  const handleBookmark = (updatedUser) => { setCurrentUser(prev => ({ ...prev, savedPostIds: updatedUser.savedPostIds })); addNotif({ type: 'bookmark', icon: '🔖', message: '게시물을 저장했어요' }); };
-  const handleWishlist = (updatedUser) => { setCurrentUser(prev => ({ ...prev, wishlistPostIds: updatedUser.wishlistPostIds })); addNotif({ type: 'wishlist', icon: '✈️', message: '가고 싶다 목록에 추가했어요' }); };
+  const handleBookmark = (updatedUser) => { setCurrentUser(prev => ({ ...prev, savedPostIds: updatedUser.savedPostIds })); addNotif({ type: 'bookmark', icon: '🔖', message: 'Post saved' }); };
+  const handleWishlist = (updatedUser) => { setCurrentUser(prev => ({ ...prev, wishlistPostIds: updatedUser.wishlistPostIds })); addNotif({ type: 'wishlist', icon: '✈️', message: 'Added to wishlist' }); };
 
   const handleConvertToPost = (plan) => {
     const draft = {
-      title: `[${plan.title}] 여행 후기`,
+      title: `[${plan.title}] Travel story`,
       content: `📅 ${plan.startDate} ~ ${plan.endDate}\n\n` +
         (plan.items || []).map((item, i) => `${i + 1}. ${item.placeName}${item.memo ? ' — ' + item.memo : ''}`).join('\n'),
-      country: '', city: plan.title, tags: ['여행후기'],
+      country: '', city: plan.title, tags: ['travel-story'],
     };
     setWriteDraft(draft); setPage('write'); setOpenedPost(null);
-    addNotif({ type: 'convert', icon: '✍️', message: '일정을 후기 초안으로 변환했어요' });
+    addNotif({ type: 'convert', icon: '✍️', message: 'Converted schedule to draft post' });
   };
 
   const handleAddToPlanner = async (planId, place, post) => {
@@ -356,14 +356,14 @@ function App() {
       };
       const updated = await api.addPlanItem(planId, item);
       setPlans(prev => prev.map(p => p.id === planId ? updated : p));
-      alert(`"${place.name}"을 일정에 추가했어요! ✅`);
+      alert(`"${place.name}" added to schedule! ✅`);
     } catch (e) { console.error(e); }
   };
 
   const handleTagClick = (tag) => { setSearchTag(tag); setPage('explore'); setOpenedPost(null); };
 
   const goPage = (key) => {
-    if ((key === 'write' || key === 'planner') && !currentUser) { alert('로그인이 필요합니다.'); return; }
+    if ((key === 'write' || key === 'planner') && !currentUser) { alert('Login required.'); return; }
     if (key !== 'explore') setSearchTag('');
     setPage(key); setOpenedPost(null); setShowLogoutMenu(false);
     if (key === 'profile') setProfileUserId(currentUser?.id);
@@ -405,7 +405,7 @@ function App() {
           </div>
         ))}
 
-        {/* 알림 벨 */}
+        {/* Notification bell */}
         <div style={{ position: 'relative' }}>
           <div className="nav-item" onClick={e => { e.stopPropagation(); setShowNotif(v => !v); setNotifications(prev => prev.map(n => ({ ...n, read: true }))); }}>
             <span className="nav-icon">🔔</span>
@@ -443,7 +443,7 @@ function App() {
           )}
         </div>
 
-        {/* 로그아웃 메뉴 */}
+        {/* Logout menu */}
         <div style={{ marginTop: 'auto', position: 'relative' }}>
           {showLogoutMenu && (
             <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, background: 'white', border: '0.5px solid #E2E0DC', boxShadow: '0 8px 24px rgba(30,42,58,0.1)', overflow: 'hidden', zIndex: 200 }}
@@ -484,7 +484,7 @@ function App() {
             onBookmark={handleBookmark} onWishlist={handleWishlist} />
         ) : page === 'feed' ? (
           <>
-            {/* 모바일 피드 헤더 */}
+            {/* Mobile feed header */}
             <div className="mobile-feed-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '0.5px solid #F0EEE9', background: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
               <LogoFull onClick={() => goPage('feed')} />
               <div style={{ display: 'flex', gap: 4 }}>
@@ -507,7 +507,7 @@ function App() {
                 </button>
               </div>
             </div>
-            {/* 알림 모달 */}
+            {/* Notifications modal */}
             {showNotifModal && (
               <div onClick={() => setShowNotifModal(false)} className="modal-overlay" style={{ alignItems: 'flex-start', paddingTop: 60 }}>
                 <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 420, maxHeight: '70vh' }}>
@@ -544,7 +544,7 @@ function App() {
                           <div style={{ fontSize: 18 }}>{icons[n.type] || '🔔'}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#1E2A3A', lineHeight: 1.4 }}>
-                              <strong>{n.actorNickname}</strong>님이 {n.message}
+                              <strong>{n.actorNickname}</strong> {n.message}
                             </div>
                             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#8A919C', marginTop: 2 }}>{new Date(n.createdAt).toLocaleString('ko-KR')}</div>
                           </div>
@@ -555,7 +555,7 @@ function App() {
                 </div>
               </div>
             )}
-            {/* DM 모달 */}
+            {/* DM modal */}
             {showDmModal && (
               <div onClick={() => { setShowDmModal(false); setActiveConvo(null); }} className="modal-overlay">
                 <div onClick={e => e.stopPropagation()} className="modal-content" style={{ height: '80vh' }}>
@@ -605,7 +605,7 @@ function App() {
                               style={{ width: 40, height: 40, borderRadius: 20 }} alt="" />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 600, color: '#1E2A3A' }}>{c.otherNickname}</div>
-                              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#8A919C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{c.lastMessage || '(메시지 없음)'}</div>
+                              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#8A919C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{c.lastMessage || '(no messages)'}</div>
                             </div>
                             {c.unreadCount > 0 && (
                               <span style={{ background: '#FF5A5F', color: 'white', fontFamily: "'Inter', sans-serif", fontSize: 9, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{c.unreadCount}</span>
@@ -618,7 +618,7 @@ function App() {
                 </div>
               </div>
             )}
-            {/* 데스크탑 피드 상단 아이콘 */}
+            {/* Desktop feed top icons */}
             <div className="desktop-feed-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0 12px', borderBottom: '0.5px solid #F0EEE9' }}>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 500, color: '#1E2A3A', letterSpacing: -0.5 }}>Feed</div>
               <div style={{ display: 'flex', gap: 6 }}>
@@ -653,7 +653,7 @@ function App() {
         ) : page === 'explore' ? (
           <Explore currentUser={currentUser} onOpenPost={handleOpenPost} onProfile={handleProfile} searchTag={searchTag} />
         ) : page === 'write' ? (
-          <Write currentUser={currentUser} draft={writeDraft} onDone={() => { setFeedKey(k => k + 1); setPage('feed'); setWriteDraft(null); addNotif({ type: 'post', icon: '✏️', message: '게시물을 작성했어요' }); }} />
+          <Write currentUser={currentUser} draft={writeDraft} onDone={() => { setFeedKey(k => k + 1); setPage('feed'); setWriteDraft(null); addNotif({ type: 'post', icon: '✏️', message: 'Post published' }); }} />
         ) : page === 'planner' ? (
           <Planner currentUser={currentUser} plans={plans} onUpdatePlans={setPlans} onConvertToPost={handleConvertToPost} />
         ) : page === 'share' ? (
@@ -668,7 +668,7 @@ function App() {
         ) : null}
       </main>
 
-      {/* 모바일 하단 네비 */}
+      {/* Mobile bottom nav */}
       <nav className="bottom-nav" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
         {navItems.filter(item => item.visible !== false).map(item => (
           item.key === 'write' ? (
