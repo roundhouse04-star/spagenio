@@ -437,7 +437,7 @@ export default function PostDetail({ post: initialPost, currentUserId, plans, on
           </div>
         </div>
       )}
-    
+      
       {toast && (
         <div style={{
           position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',

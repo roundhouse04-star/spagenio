@@ -515,7 +515,23 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       {profileTab === 'badges' && (
         <BadgeGrid badges={user.badges || []} posts={visiblePosts} user={user} />
       )}
-    </div>
+    
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#1E2A3A' : '#fef2f2',
+          color: toast.type === 'success' ? 'white' : '#991b1b',
+          border: toast.type === 'success' ? 'none' : '1px solid #fecaca',
+          borderRadius: 3, padding: '14px 20px',
+          fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 9999, maxWidth: 420, textAlign: 'center',
+          fontFamily: "'Inter', sans-serif", letterSpacing: 0.2,
+        }}>
+          {toast.type === 'success' ? '✓ ' : '⚠ '}{toast.message}
+        </div>
+      )}
+      </div>
   );
 }
 
@@ -586,22 +602,6 @@ function BadgeGrid({ badges, posts, user }) {
           );
         })}
       </div>
-    
-      {toast && (
-        <div style={{
-          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
-          background: toast.type === 'success' ? '#1E2A3A' : '#fef2f2',
-          color: toast.type === 'success' ? 'white' : '#991b1b',
-          border: toast.type === 'success' ? 'none' : '1px solid #fecaca',
-          borderRadius: 3, padding: '14px 20px',
-          fontSize: 13, fontWeight: 500,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          zIndex: 9999, maxWidth: 420, textAlign: 'center',
-          fontFamily: "'Inter', sans-serif", letterSpacing: 0.2,
-        }}>
-          {toast.type === 'success' ? '✓ ' : '⚠ '}{toast.message}
-        </div>
-      )}
       </div>
   );
 }

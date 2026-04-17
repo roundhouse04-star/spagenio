@@ -1687,7 +1687,7 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
           </div>
         </div>
       )}
-    
+      
       {toast && (
         <div style={{
           position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
