@@ -355,7 +355,7 @@ export default function Feed({ currentUser, onOpenPost, onProfile, onTagClick })
           const likes = (p.likedUserIds?.length || 0) * 3;
           const comments = (p.comments?.length || 0) * 2;
           const hoursAgo = (now - new Date(p.createdAt).getTime()) / (1000 * 60 * 60);
-          const timeBoost = Math.(0, 10 - hoursAgo * 0.1);
+          const timeBoost = Math.max(0, 10 - hoursAgo * 0.1);
           return {...p, _score: likes + comments + timeBoost };
         });
         const sorted = scored.sort((a, b) => b._score - a._score);

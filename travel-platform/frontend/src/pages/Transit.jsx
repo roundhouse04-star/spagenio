@@ -456,7 +456,7 @@ export default function Transit() {
                         </div>
                         <div style={{ width: 1, background: '#F0EEE9' }} />
                         <div style={{ textAlign: 'center', flex: 1 }}>
-                          <div style={{ fontSize: 22, fontWeight: 800, color: '#1E2A3A' }}>{Math.(0, pathResult.transfers)}</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: '#1E2A3A' }}>{Math.max(0, pathResult.transfers)}</div>
                           <div style={{ fontSize: 11, color: '#8A919C' }}>Transfer</div>
                         </div>
                       </div>

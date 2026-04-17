@@ -26,7 +26,7 @@ function SearchPanel({ initialSearch, onSearch }) {
         <label>Destination<input value={form.destination} onChange={(e) => update('destination', e.target.value)} placeholder="e.g. Osaka, Tokyo, Bali" /></label>
         <label>Departure date<input type="date" value={form.startDate} onChange={(e) => update('startDate', e.target.value)} /></label>
         <label>Arrival date<input type="date" value={form.endDate} onChange={(e) => update('endDate', e.target.value)} /></label>
-        <label>Travelers<input type="number" min="1" ="10" value={form.travelers} onChange={(e) => update('travelers', Number(e.target.value))} /></label>
+        <label>Travelers<input type="number" min="1" max="10" value={form.travelers} onChange={(e) => update('travelers', Number(e.target.value))} /></label>
         <label>Budget<select value={form.budget} onChange={(e) => update('budget', e.target.value)}>{budgetOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
         <label>TRAVELType<select value={form.category} onChange={(e) => update('category', e.target.value)}>{categoryOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
       </div>

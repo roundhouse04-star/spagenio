@@ -247,7 +247,7 @@ export default function Register() {
             <p style={{ fontSize: 13, color: '#8A919C', marginBottom: 16, lineHeight: 1.6 }}>
               <strong>{form.email}</strong>to Enter the 6-digit code.sent.
             </p>
-            <input style={S.code} placeholder="000000" Length={6} value={form.verifyCode}
+            <input style={S.code} placeholder="000000" maxLength={6} value={form.verifyCode}
               onChange={e => setForm(p => ({...p, verifyCode: e.target.value.replace(/[^0-9]/g, '')}))} />
             {timer > 0? (
               <div style={S.timer}>Time left: {fmtTimer(timer)}</div>

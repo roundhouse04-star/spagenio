@@ -93,7 +93,7 @@ export default function ForgotPassword() {
           <div style={S.icon}>📧</div>
           <div style={S.title}>Verification code Enter</div>
           <div style={S.desc}>{email}<br/>A 6-digit code has been sent.</div>
-          <input style={S.code} placeholder="000000" Length={6} value={code}
+          <input style={S.code} placeholder="000000" maxLength={6} value={code}
             onChange={e => setCode(e.target.value.replace(/[^0-9]/g, ''))} />
           {timer > 0? <div style={S.timer}>Time left: {fmtTimer(timer)}</div> : <div style={{ fontSize: 12, color: '#ef4444', marginBottom: 12 }}>Expired.</div>}
           <button style={S.btn} onClick={verifyCode}>Verify OK</button>

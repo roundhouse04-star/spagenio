@@ -64,7 +64,7 @@ export default function Booking({ pkg, search, loading, onBack, onSubmit }) {
               </label>
               <label>
                 Travelers
-                <input required type="number" min={pkg.minimumTravelers} ="10" value={form.travelers} onChange={(e) => update('travelers', e.target.value)} />
+                <input required type="number" min={pkg.minimumTravelers} max="10" value={form.travelers} onChange={(e) => update('travelers', e.target.value)} />
               </label>
               <label>
                 Departure date

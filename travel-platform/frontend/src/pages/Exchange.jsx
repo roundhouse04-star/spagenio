@@ -296,7 +296,7 @@ export default function Exchange() {
               <div>
                 <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 6, fontWeight: 600 }}>Stays</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button onClick={() => setNights(n => Math.(1, n-1))}
+                  <button onClick={() => setNights(n => Math.max(1, n-1))}
                     style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#F5F4F0', fontSize: 16, cursor: 'pointer' }}>−</button>
                   <span style={{ fontSize: 14, fontWeight: 700, minWidth: 30, textAlign: 'center' }}>{nights}N</span>
                   <button onClick={() => setNights(n => n+1)}
@@ -306,7 +306,7 @@ export default function Exchange() {
               <div>
                 <div style={{ fontSize: 11, color: '#8A919C', marginBottom: 6, fontWeight: 600 }}>TRAVELDcan</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button onClick={() => setDays(d => Math.(1, d-1))}
+                  <button onClick={() => setDays(d => Math.max(1, d-1))}
                     style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #eee', background: '#F5F4F0', fontSize: 16, cursor: 'pointer' }}>−</button>
                   <span style={{ fontSize: 14, fontWeight: 700, minWidth: 30, textAlign: 'center' }}>{days}D</span>
                   <button onClick={() => setDays(d => d+1)}

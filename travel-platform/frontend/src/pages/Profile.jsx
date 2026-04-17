@@ -224,10 +224,10 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
               </div>
 
               <input value={editData.nickname} onChange={e => setEditData(p => ({...p, nickname: e.target.value }))}
-                placeholder="Nickname" Length={20}
+                placeholder="Nickname" maxLength={20}
                 style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 14, outline: 'none' }} />
               <textarea value={editData.bio} onChange={e => setEditData(p => ({...p, bio: e.target.value }))}
-                placeholder="Short bio (optional)" rows={3} Length={100}
+                placeholder="Short bio (optional)" rows={3} maxLength={100}
                 style={{ padding: '9px 12px', border: '1px solid #E2E0DC', borderRadius: 2, fontSize: 13, outline: 'none', resize: 'vertical' }} />
 
               {/* TRAVEL Preferences */}
