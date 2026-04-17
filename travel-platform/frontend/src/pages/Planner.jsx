@@ -604,8 +604,8 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       { type: 'ferry', icon: '🚢', name: 'Ferry + train (Busan→Shimonoseki→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~18h', price: '₩60,000 – ₩90,000', priceNum: 75000, steps: ['KTX Seoul→Busan (~2h 30m, KRW 59,800)', 'Board ferry at Busan Port (overnight)', 'Arrive Shimonoseki, then JR to Osaka'] },
     ],
     'Seoul_Tokyo': [
-      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Narita/Haneda)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩110,000 – ₩220,000', priceNum: 165000, steps: ['Depart ICN', 'Board Korean Air or Asiana', 'Arrive Narita or Haneda', 'Narita Express to city center (~1h)'] },
-      { type: 'airplane', icon: '✈', name: 'Transit (Incheon→Transit→Tokyo)', tag: 'Cheapest', tagColor: '#f59e0b', time: '6-9h', price: '₩70,000 – ₩110,000', priceNum: 90000, steps: ['Depart ICN', 'Layover (2-4h)', 'Arrive Narita'] },
+      { type: 'airplane', icon: '✈', name: 'Direct (Incheon→Narita/Haneda)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '₩110,000 – ₩280,000', priceNum: 165000, steps: ['Depart ICN', 'Board Korean Air, Asiana, Jeju Air, or T\'way', 'Arrive NRT (Narita) or HND (Haneda)', 'Narita Express/Keisei Skyliner to city center (~1h)'] },
+      { type: 'airplane', icon: '✈', name: 'Low-cost carriers (Incheon→Narita)', tag: 'Cheapest', tagColor: '#f59e0b', time: '2h 30m', price: '₩70,000 – ₩150,000', priceNum: 95000, steps: ['Depart ICN', 'Board Jeju Air, T\'way, Peach, or Jin Air', 'Arrive NRT'] },
     ],
     'Osaka_Tokyo': [
       { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥15,000 (₩135,000)', priceNum: 135000, steps: ['Shin-Osaka Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Tokyo Stn'] },
@@ -681,8 +681,10 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       { type: 'airplane', icon: '✈', name: 'Flight (CDG→Heathrow)', tag: 'Fastest', tagColor: '#10b981', time: '1h 15m', price: '€50 – €200 (₩72,000 – ₩288,000)', priceNum: 130000, steps: ['Depart CDG', 'Board Air France or BA', 'Arrive LHR'] },
     ],
     'Tokyo_Osaka': [
-      { type: 'train', icon: '🚄', name: 'Shinkansen Nozomi (Tokyo→Osaka)', tag: 'Recommended', tagColor: '#1E2A3A', time: '2h 30m', price: '¥14,720 (₩132,000)', priceNum: 132000, steps: ['Tokyo Stn — Nozomi', 'Transfer at Nagoya', 'Arrive at Shin-Osaka Stn'] },
-      { type: 'bus', icon: '🚌', name: 'Night bus (Tokyo→Osaka)', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h', price: '¥3,000 – ¥8,000 (₩27,000 – ₩72,000)', priceNum: 48000, steps: ['Shinjuku Stn — overnight', 'Arrive Osaka Namba'] },
+      { type: 'train', icon: '🚄', name: 'JR Shinkansen Nozomi (Tokyo→Shin-Osaka)', tag: 'Fastest', tagColor: '#10b981', time: '2h 30m', price: '¥14,000 – ¥15,500 (₩126,000 – ₩140,000)', priceNum: 132000, steps: ['Tokyo Stn — JR Nozomi platform', 'Direct to Shin-Osaka (no transfer needed)', 'Arrive Shin-Osaka Stn'] },
+      { type: 'train', icon: '🚆', name: 'JR Shinkansen Hikari (cheaper, slower)', tag: '', tagColor: '', time: '3h', price: '¥13,000 – ¥14,500 (₩117,000 – ₩130,000)', priceNum: 125000, steps: ['Tokyo Stn — JR Hikari platform', 'Arrive Shin-Osaka Stn'] },
+      { type: 'airplane', icon: '✈', name: 'Domestic flight (Haneda→Itami/Kansai)', tag: 'Recommended', tagColor: '#1E2A3A', time: '1h 10m', price: '¥8,000 – ¥18,000 (₩72,000 – ₩162,000)', priceNum: 115000, steps: ['Depart HND or NRT', 'Board ANA, JAL, Peach, or Jetstar Japan', 'Arrive ITM (Itami) or KIX (Kansai)'] },
+      { type: 'bus', icon: '🚌', name: 'Willer Express night bus', tag: 'Cheapest', tagColor: '#f59e0b', time: '~8h (overnight)', price: '¥3,000 – ¥8,000 (₩27,000 – ₩72,000)', priceNum: 48000, steps: ['Shinjuku Bus Terminal — 10-11 PM', 'Board Willer Express or JR Bus', 'Arrive Osaka Umeda / Namba (6-7 AM)'] },
     ],
   };
 
@@ -738,10 +740,40 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
     setRouteResults([]);
     setSelectedRoute(null);
 
-    // 1) Local DBfrom first Find
-    const cities = ['Seoul', 'Tokyo', 'Osaka', 'Bangkok', 'Chiang Mai', 'Paris', 'Jeju', 'London', 'Singapore', 'Bali', 'New York', 'Hong Kong', 'Vietnam', 'Taiwan', 'Dubai', 'Sydney', 'Kyoto', 'Busan', 'Gangneung'];
-    const f = cities.find(c => from.includes(c)) || from;
-    const t = cities.find(c => to.includes(c)) || to;
+    // 1) Normalize city names (Korean → English alias)
+    const CITY_ALIAS = {
+      // Korea
+      '서울': 'Seoul', '인천': 'Seoul', '김포': 'Seoul', '부산': 'Busan',
+      '제주': 'Jeju', '제주도': 'Jeju', '강릉': 'Gangneung',
+      // Japan
+      '도쿄': 'Tokyo', '동경': 'Tokyo', '나리타': 'Tokyo', '하네다': 'Tokyo',
+      '오사카': 'Osaka', '간사이': 'Osaka', '교토': 'Kyoto', '후쿠오카': 'Fukuoka',
+      '삿포로': 'Sapporo', '나고야': 'Nagoya',
+      // SE Asia
+      '방콕': 'Bangkok', '치앙마이': 'Chiang Mai', '푸켓': 'Phuket',
+      '싱가포르': 'Singapore', '발리': 'Bali', '호치민': 'Ho Chi Minh',
+      '하노이': 'Hanoi', '다낭': 'Danang', '타이베이': 'Taipei', '대만': 'Taipei',
+      // Other
+      '파리': 'Paris', '런던': 'London', '뉴욕': 'New York',
+      '홍콩': 'Hong Kong', '두바이': 'Dubai', '시드니': 'Sydney',
+    };
+
+    const normalize = (input) => {
+      const s = input.trim();
+      // Exact Korean match
+      if (CITY_ALIAS[s]) return CITY_ALIAS[s];
+      // Partial Korean match (handles "인천공항", "도쿄 나리타")
+      for (const [kor, eng] of Object.entries(CITY_ALIAS)) {
+        if (s.includes(kor)) return eng;
+      }
+      // English city list for partial English input
+      const engCities = ['Seoul', 'Tokyo', 'Osaka', 'Bangkok', 'Chiang Mai', 'Paris', 'Jeju', 'London', 'Singapore', 'Bali', 'New York', 'Hong Kong', 'Sydney', 'Kyoto', 'Busan', 'Gangneung', 'Taipei', 'Fukuoka', 'Sapporo'];
+      const eng = engCities.find(c => s.toLowerCase().includes(c.toLowerCase()));
+      return eng || s;
+    };
+
+    const f = normalize(from);
+    const t = normalize(to);
     const key = f + '_' + t;
     const revKey = t + '_' + f;
     const localResults = ROUTES_DB[key] || ROUTES_DB[revKey] || [];
@@ -751,9 +783,9 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
       return;
     }
 
-    // 2) If not in local DB, ask Claude AI
+    // 2) If not in local DB, ask Claude AI (English response requested)
     try {
-      const rawJson = await api.getAiTransport(from, to);
+      const rawJson = await api.getAiTransport(f, t);
       let parsed;
       if (typeof rawJson === 'string') {
         parsed = JSON.parse(rawJson);
@@ -761,7 +793,16 @@ export default function Planner({ currentUser, plans, onUpdatePlans, onConvertTo
         parsed = rawJson;
       }
       const aiRoutes = Array.isArray(parsed)? parsed : [];
-      setRouteResults(aiRoutes.length > 0? aiRoutes : []);
+      // Filter out any routes that contain disallowed brand references
+      const cleaned = aiRoutes
+        .filter(r => r && r.name && r.price)
+        .map(r => ({
+          ...r,
+          // Strip any Skyscanner/booking mentions from AI response
+          name: String(r.name).replace(/스카이스캐너|Skyscanner|skyscanner/gi, '').trim(),
+          steps: (r.steps || []).map(s => String(s).replace(/스카이스캐너|Skyscanner|skyscanner/gi, '').trim()),
+        }));
+      setRouteResults(cleaned);
     } catch (e) {
       console.error('AI transport error:', e);
       setRouteResults([]);
