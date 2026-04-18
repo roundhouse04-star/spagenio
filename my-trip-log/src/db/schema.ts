@@ -4,12 +4,13 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
 CREATE TABLE IF NOT EXISTS user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  anon_id TEXT,
   nickname TEXT NOT NULL,
   email TEXT,
   nationality TEXT,
@@ -17,6 +18,9 @@ CREATE TABLE IF NOT EXISTS user (
   home_currency TEXT DEFAULT 'KRW',
   agree_terms INTEGER DEFAULT 0,
   agree_privacy INTEGER DEFAULT 0,
+  agree_stats INTEGER DEFAULT 0,
+  agree_sns_alert INTEGER DEFAULT 0,
+  server_registered INTEGER DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -134,7 +138,7 @@ CREATE TABLE IF NOT EXISTS exchange_rates_cache (
   UNIQUE(base_currency, target_currency)
 );
 
--- 북마크 장소 (내가 저장한 곳)
+-- 북마크 장소
 CREATE TABLE IF NOT EXISTS bookmarks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
@@ -157,6 +161,19 @@ CREATE TABLE IF NOT EXISTS app_meta (
   updated_at TEXT NOT NULL
 );
 `;
+
+// 기존 v1에서 v2로 마이그레이션 (컬럼 추가)
+export const MIGRATIONS: { version: number; sql: string }[] = [
+  {
+    version: 2,
+    sql: `
+      ALTER TABLE user ADD COLUMN anon_id TEXT;
+      ALTER TABLE user ADD COLUMN agree_stats INTEGER DEFAULT 0;
+      ALTER TABLE user ADD COLUMN agree_sns_alert INTEGER DEFAULT 0;
+      ALTER TABLE user ADD COLUMN server_registered INTEGER DEFAULT 0;
+    `,
+  },
+];
 
 // 카테고리 상수
 export const EXPENSE_CATEGORIES = [

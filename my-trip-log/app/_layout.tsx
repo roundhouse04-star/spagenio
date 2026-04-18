@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initializeDatabase, isUserRegistered } from '@/db/database';
+import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { Colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -21,6 +22,11 @@ export default function RootLayout() {
         await initializeDatabase();
         const registered = await isUserRegistered();
         setHasUser(registered);
+
+        // 가입자라면 백그라운드에서 서버 동기화 (실패 무시)
+        if (registered) {
+          syncStatsOnAppStart().catch(() => {});
+        }
       } catch (err) {
         console.error('App init error:', err);
       } finally {

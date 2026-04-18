@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import TransitRoutesAdmin from './TransitRoutesAdmin';
+import AdminMyTripLog from '../components/AdminMyTripLog';
 
 const S = {
   wrap: { minHeight: '100vh', background: '#f5f6f8', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
@@ -46,6 +47,7 @@ const NAV = [
   { key: 'ads', icon: '📢', label: '광고 관리' },
   { key: 'business', icon: '🏢', label: '비즈니스/오피셜' },
   { key: 'transit', icon: '✈️', label: '교통 노선 관리' },
+  { key: 'mytriplog', icon: '📱', label: 'My Trip Log' },
 ];
 
 export default function Admin() {
@@ -1018,6 +1020,7 @@ export default function Admin() {
           )}
 
           {page === 'transit' && <TransitRoutesAdmin />}
+          {page === 'mytriplog' && <AdminMyTripLog styles={S} />}
         </main>
       </div>
 

@@ -51,7 +51,8 @@
           "cameraPermission": "앱이 카메라에 접근하려고 합니다."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

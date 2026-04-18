@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors, Typography, Spacing } from '@/theme/theme';
-import { getDB } from '@/db/database';
+import { getDB, generateAnonId } from '@/db/database';
 
 export default function NicknameScreen() {
   const [nickname, setNickname] = useState('');
@@ -18,10 +18,15 @@ export default function NicknameScreen() {
     if (!canProceed) return;
     const db = await getDB();
     const now = new Date().toISOString();
+    const anonId = generateAnonId();
+
     await db.runAsync(
-      `INSERT INTO user (nickname, nationality, home_currency, agree_terms, agree_privacy, created_at, updated_at)
-       VALUES (?, ?, 'KRW', 0, 0, ?, ?)`,
-      [nickname.trim(), nationality, now, now]
+      `INSERT INTO user
+        (anon_id, nickname, nationality, home_currency,
+         agree_terms, agree_privacy, agree_stats, agree_sns_alert,
+         server_registered, created_at, updated_at)
+       VALUES (?, ?, ?, 'KRW', 0, 0, 0, 0, 0, ?, ?)`,
+      [anonId, nickname.trim(), nationality, now, now]
     );
     router.push('/(onboarding)/terms');
   };

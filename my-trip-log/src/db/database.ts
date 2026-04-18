@@ -2,15 +2,12 @@
  * DB 연결 관리 및 초기화
  */
 import * as SQLite from 'expo-sqlite';
-import { CREATE_TABLES_SQL, SCHEMA_VERSION } from './schema';
+import { CREATE_TABLES_SQL, SCHEMA_VERSION, MIGRATIONS } from './schema';
 
 const DB_NAME = 'my_trip_log.db';
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
-/**
- * DB 인스턴스 획득 (싱글톤)
- */
 export async function getDB(): Promise<SQLite.SQLiteDatabase> {
   if (_db) return _db;
   _db = await SQLite.openDatabaseAsync(DB_NAME);
@@ -23,11 +20,27 @@ export async function getDB(): Promise<SQLite.SQLiteDatabase> {
 export async function initializeDatabase(): Promise<void> {
   const db = await getDB();
 
-  // foreign key 활성화
   await db.execAsync('PRAGMA foreign_keys = ON;');
-
-  // 스키마 생성 (IF NOT EXISTS로 멱등성 보장)
   await db.execAsync(CREATE_TABLES_SQL);
+
+  // 현재 스키마 버전 확인
+  const meta = await db.getFirstAsync<{ value: string }>(
+    `SELECT value FROM app_meta WHERE key = 'schema_version'`
+  );
+  const currentVersion = meta ? parseInt(meta.value, 10) : 0;
+
+  // 마이그레이션 실행
+  for (const m of MIGRATIONS) {
+    if (m.version > currentVersion) {
+      console.log(`[DB] Migrating to v${m.version}...`);
+      try {
+        await db.execAsync(m.sql);
+      } catch (err) {
+        // 컬럼이 이미 있는 경우 등은 무시
+        console.warn(`[DB] Migration v${m.version} partially failed:`, String(err));
+      }
+    }
+  }
 
   // 스키마 버전 기록
   const now = new Date().toISOString();
@@ -51,7 +64,7 @@ export async function isUserRegistered(): Promise<boolean> {
 }
 
 /**
- * DB 완전 초기화 (개발용 / 리셋 기능)
+ * DB 완전 초기화
  */
 export async function resetDatabase(): Promise<void> {
   const db = await getDB();
@@ -68,4 +81,15 @@ export async function resetDatabase(): Promise<void> {
   `);
   await initializeDatabase();
   console.log('[DB] Reset complete');
+}
+
+/**
+ * 익명 ID 생성 (간단한 UUID v4)
+ */
+export function generateAnonId(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
