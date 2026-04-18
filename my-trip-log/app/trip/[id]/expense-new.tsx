@@ -1,256 +1,260 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, Pressable, ScrollView,
-  KeyboardAvoidingView, Platform, Alert,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { Colors, Typography, Spacing } from '@/theme/theme';
-import { createExpense } from '@/db/expenses';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { addExpense } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
-import { ExpenseCategory } from '@/types';
+import { getRates } from '@/utils/exchange';
+import { haptic } from '@/utils/haptics';
 
-// 간단 환율표 (KRW 기준)
-const RATES: Record<string, number> = {
-  KRW: 1,
-  JPY: 9.1,
-  USD: 1380,
-  EUR: 1500,
-  THB: 40,
-  VND: 0.056,
-  CNY: 190,
-  GBP: 1750,
-};
+const CURRENCIES = [
+  { code: 'KRW', flag: '🇰🇷' },
+  { code: 'JPY', flag: '🇯🇵' },
+  { code: 'USD', flag: '🇺🇸' },
+  { code: 'EUR', flag: '🇪🇺' },
+  { code: 'GBP', flag: '🇬🇧' },
+  { code: 'CNY', flag: '🇨🇳' },
+  { code: 'THB', flag: '🇹🇭' },
+  { code: 'VND', flag: '🇻🇳' },
+];
 
-export default function NewExpenseScreen() {
+export default function ExpenseNewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const tripId = Number(id);
+  const tripId = parseInt(id);
 
-  const [expenseDate, setExpenseDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
-  const [category, setCategory] = useState<ExpenseCategory>('food');
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [expenseDate, setExpenseDate] = useState(today);
+  const [category, setCategory] = useState<string>('food');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('KRW');
   const [memo, setMemo] = useState('');
 
-  const canSave = parseFloat(amount) > 0;
+  // 환율 상태 (KRW 기준으로 가져옴)
+  const [rates, setRates] = useState<Record<string, number>>({});
+  const [ratesLoading, setRatesLoading] = useState(true);
 
-  // 자국 통화(KRW) 환산액
-  const amountNum = parseFloat(amount) || 0;
-  const convertedToKRW = amountNum * (RATES[currency] ?? 1);
+  useEffect(() => {
+    // 화면 진입 시 환율 미리 로드 (KRW 기준)
+    (async () => {
+      try {
+        const data = await getRates('KRW');
+        setRates(data);
+      } catch (err) {
+        console.warn('환율 로드 실패', err);
+      } finally {
+        setRatesLoading(false);
+      }
+    })();
+  }, []);
+
+  // amount in KRW 계산 (사용자에게 미리 보여줌)
+  const homeCurrencyAmount = (() => {
+    const num = parseFloat(amount);
+    if (!num || isNaN(num)) return null;
+    if (currency === 'KRW') return num;
+    // KRW 기준 rates에서 외화의 rate를 보면 1 KRW = X 외화
+    // 따라서 외화 금액 / rate = KRW
+    const rate = rates[currency];
+    if (!rate) return null;
+    return num / rate;
+  })();
+
+  const exchangeRate = (() => {
+    if (currency === 'KRW') return 1;
+    const r = rates[currency];
+    if (!r) return null;
+    return 1 / r; // 1 외화 = ? KRW
+  })();
+
+  const canSave = !!title.trim() && parseFloat(amount) > 0;
 
   const handleSave = async () => {
     if (!canSave) {
-      Alert.alert('금액을 입력해주세요');
+      haptic.warning();
       return;
     }
-    try {
-      await createExpense({
-        tripId,
-        expenseDate,
-        category,
-        title: title.trim() || null,
-        amount: amountNum,
-        currency,
-        amountInHomeCurrency: convertedToKRW,
-        exchangeRate: RATES[currency] ?? 1,
-        memo: memo.trim() || null,
-      });
-      router.back();
-    } catch (err) {
-      console.error(err);
-      Alert.alert('저장 실패');
-    }
+    await addExpense({
+      tripId,
+      expenseDate,
+      category,
+      title: title.trim(),
+      amount: parseFloat(amount),
+      currency,
+      amountInHomeCurrency: homeCurrencyAmount ?? undefined,
+      exchangeRate: exchangeRate ?? undefined,
+      paymentMethod: undefined,
+      memo: memo.trim() || undefined,
+    });
+    haptic.success();
+    router.back();
   };
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: '지출 추가',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Text style={styles.headerBtn}>취소</Text>
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable onPress={handleSave} disabled={!canSave}>
-              <Text
-                style={[styles.headerBtn, styles.saveBtn, !canSave && { opacity: 0.4 }]}
-              >
-                저장
-              </Text>
-            </Pressable>
-          ),
-        }}
-      />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView contentContainerStyle={styles.scroll}>
-            <Field label="카테고리" required>
-              <View style={styles.catGrid}>
-                {EXPENSE_CATEGORIES.map((c) => (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.header}>
+          <Pressable onPress={() => { haptic.tap(); router.back(); }}>
+            <Text style={styles.cancel}>취소</Text>
+          </Pressable>
+          <Text style={styles.headerTitle}>비용 추가</Text>
+          <Pressable onPress={handleSave} disabled={!canSave}>
+            <Text style={[styles.save, !canSave && styles.saveDisabled]}>저장</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <View style={styles.field}>
+            <Text style={styles.label}>날짜</Text>
+            <TextInput
+              style={styles.input}
+              value={expenseDate}
+              onChangeText={setExpenseDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={Colors.textTertiary}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>카테고리</Text>
+            <View style={styles.chipRow}>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <Pressable
+                  key={c.key}
+                  style={[styles.chip, category === c.key && styles.chipActive]}
+                  onPress={() => { haptic.select(); setCategory(c.key); }}
+                >
+                  <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>
+                    {c.icon} {c.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>내용 *</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="예: 라멘 점심"
+              placeholderTextColor={Colors.textTertiary}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>금액 *</Text>
+            <View style={styles.amountRow}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0"
+                placeholderTextColor={Colors.textTertiary}
+                keyboardType="numeric"
+              />
+              <View style={styles.currencyRow}>
+                {CURRENCIES.map((c) => (
                   <Pressable
-                    key={c.key}
-                    style={[
-                      styles.catChip,
-                      category === c.key && styles.catChipActive,
-                    ]}
-                    onPress={() => setCategory(c.key as ExpenseCategory)}
+                    key={c.code}
+                    style={[styles.currencyChip, currency === c.code && styles.currencyChipActive]}
+                    onPress={() => { haptic.select(); setCurrency(c.code); }}
                   >
-                    <Text style={styles.catIcon}>{c.icon}</Text>
-                    <Text
-                      style={[
-                        styles.catText,
-                        category === c.key && styles.catTextActive,
-                      ]}
-                    >
-                      {c.label}
+                    <Text style={[styles.currencyChipText, currency === c.code && styles.currencyChipTextActive]}>
+                      {c.flag}
                     </Text>
                   </Pressable>
                 ))}
               </View>
-            </Field>
+            </View>
 
-            <Field label="금액" required>
-              <View style={styles.amountRow}>
-                <TextInput
-                  style={[styles.input, { flex: 2 }]}
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="0"
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType="numeric"
-                  autoFocus
-                />
-                <View style={styles.currencyBox}>
-                  {['KRW', 'JPY', 'USD', 'EUR'].map((c) => (
-                    <Pressable
-                      key={c}
-                      style={[
-                        styles.currencyBtn,
-                        currency === c && styles.currencyBtnActive,
-                      ]}
-                      onPress={() => setCurrency(c)}
-                    >
-                      <Text
-                        style={[
-                          styles.currencyText,
-                          currency === c && styles.currencyTextActive,
-                        ]}
-                      >
-                        {c}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+            {/* 환산 결과 미리보기 */}
+            {currency !== 'KRW' && parseFloat(amount) > 0 && (
+              <View style={styles.conversionBox}>
+                {ratesLoading ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <ActivityIndicator size="small" color={Colors.accent} />
+                    <Text style={styles.conversionLabel}>환율 조회 중...</Text>
+                  </View>
+                ) : homeCurrencyAmount ? (
+                  <>
+                    <Text style={styles.conversionLabel}>
+                      ≈ ₩{Math.round(homeCurrencyAmount).toLocaleString()}
+                    </Text>
+                    <Text style={styles.conversionRate}>
+                      1 {currency} = ₩{exchangeRate?.toFixed(2)}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.conversionLabel}>환율 정보 없음</Text>
+                )}
               </View>
-              {currency !== 'KRW' && amountNum > 0 && (
-                <Text style={styles.conversionText}>
-                  ≈ {convertedToKRW.toLocaleString(undefined, {
-                    maximumFractionDigits: 0,
-                  })} KRW
-                </Text>
-              )}
-            </Field>
+            )}
+          </View>
 
-            <Field label="내용">
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="예: 라멘집"
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </Field>
-
-            <Field label="날짜">
-              <TextInput
-                style={styles.input}
-                value={expenseDate}
-                onChangeText={setExpenseDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </Field>
-
-            <Field label="메모">
-              <TextInput
-                style={[styles.input, styles.textarea]}
-                value={memo}
-                onChangeText={setMemo}
-                placeholder="추가 정보"
-                placeholderTextColor={Colors.textTertiary}
-                multiline
-                numberOfLines={3}
-              />
-            </Field>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
-  );
-}
-
-function Field({
-  label, required, children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>
-        {label} {required && <Text style={{ color: Colors.error }}>*</Text>}
-      </Text>
-      {children}
-    </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>메모 (선택)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={memo}
+              onChangeText={setMemo}
+              placeholder="결제 수단, 특이사항 등"
+              placeholderTextColor={Colors.textTertiary}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: Spacing.xl, gap: Spacing.lg },
-  headerBtn: {
-    fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
-    paddingHorizontal: Spacing.lg,
-    fontWeight: '500',
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  saveBtn: { color: Colors.primary, fontWeight: '700' },
-  field: { gap: Spacing.xs },
-  fieldLabel: {
-    fontSize: Typography.labelSmall,
+  cancel: { fontSize: Typography.bodyMedium, color: Colors.textTertiary },
+  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: Colors.textPrimary },
+  save: { fontSize: Typography.bodyMedium, color: Colors.primary, fontWeight: '700' },
+  saveDisabled: { color: Colors.textTertiary },
+  scroll: { padding: Spacing.xl, paddingBottom: Spacing.huge },
+  field: { marginBottom: Spacing.xl },
+  label: {
+    fontSize: Typography.labelMedium,
     color: Colors.textSecondary,
     fontWeight: '600',
+    marginBottom: Spacing.sm,
   },
   input: {
-    fontSize: Typography.bodyLarge,
+    fontSize: Typography.bodyMedium,
     color: Colors.textPrimary,
     backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
   },
-  textarea: { minHeight: 80, textAlignVertical: 'top' },
-  catGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  catChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  chip: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 999,
@@ -258,48 +262,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  catChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  catIcon: { fontSize: 18 },
-  catText: {
-    fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-  catTextActive: { color: Colors.textOnPrimary },
-  amountRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  currencyBox: {
-    flex: 1,
-    gap: 4,
-  },
-  currencyBtn: {
-    flex: 1,
-    paddingVertical: Spacing.xs,
-    borderRadius: 6,
+  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  chipText: { fontSize: Typography.labelMedium, color: Colors.textSecondary },
+  chipTextActive: { color: Colors.textOnPrimary, fontWeight: '600' },
+  amountRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
+  currencyRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap', maxWidth: 200 },
+  currencyChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  currencyBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  currencyChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  currencyChipText: { fontSize: 16 },
+  currencyChipTextActive: { fontSize: 16 },
+  conversionBox: {
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: 10,
+    alignItems: 'center',
   },
-  currencyText: {
-    fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+  conversionLabel: {
+    fontSize: Typography.bodyLarge,
     fontWeight: '700',
+    color: Colors.primary,
   },
-  currencyTextActive: { color: Colors.textOnPrimary },
-  conversionText: {
-    fontSize: Typography.labelMedium,
-    color: Colors.accent,
-    fontWeight: '600',
-    marginTop: Spacing.xs,
+  conversionRate: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
 });

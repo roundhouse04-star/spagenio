@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { router } from 'expo-router';
+import { getRates, refreshRates, getLastUpdated, SUPPORTED_CURRENCIES } from '@/utils/exchange';
+import { haptic } from '@/utils/haptics';
 
 type Currency = { code: string; name: string; flag: string };
 
@@ -12,40 +16,86 @@ const CURRENCIES: Currency[] = [
   { code: 'JPY', name: '엔', flag: '🇯🇵' },
   { code: 'USD', name: '달러', flag: '🇺🇸' },
   { code: 'EUR', name: '유로', flag: '🇪🇺' },
+  { code: 'GBP', name: '파운드', flag: '🇬🇧' },
+  { code: 'CNY', name: '위안', flag: '🇨🇳' },
   { code: 'THB', name: '바트', flag: '🇹🇭' },
   { code: 'VND', name: '동', flag: '🇻🇳' },
-  { code: 'CNY', name: '위안', flag: '🇨🇳' },
-  { code: 'GBP', name: '파운드', flag: '🇬🇧' },
+  { code: 'AUD', name: '호주달러', flag: '🇦🇺' },
+  { code: 'SGD', name: '싱가포르달러', flag: '🇸🇬' },
+  { code: 'HKD', name: '홍콩달러', flag: '🇭🇰' },
+  { code: 'CAD', name: '캐나다달러', flag: '🇨🇦' },
+  { code: 'TWD', name: '대만달러', flag: '🇹🇼' },
+  { code: 'PHP', name: '페소', flag: '🇵🇭' },
 ];
-
-// 데모 고정 환율 (실제로는 API에서 가져와야 함)
-const MOCK_RATES: Record<string, number> = {
-  KRW: 1,
-  JPY: 9.1,
-  USD: 1380,
-  EUR: 1500,
-  THB: 40,
-  VND: 0.056,
-  CNY: 190,
-  GBP: 1750,
-};
 
 export default function ToolsScreen() {
   const [amount, setAmount] = useState('10000');
   const [from, setFrom] = useState('KRW');
   const [to, setTo] = useState('JPY');
 
-  const convert = (amt: string, fromC: string, toC: string): string => {
+  const [rates, setRates] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // 환율 로드 (from 통화 기준)
+  const loadRates = useCallback(async (baseCurrency: string, force = false) => {
+    if (force) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const data = force
+        ? await refreshRates(baseCurrency)
+        : await getRates(baseCurrency);
+      setRates(data);
+      const updated = await getLastUpdated(baseCurrency);
+      setLastUpdated(updated);
+    } catch (err) {
+      setError('환율 정보를 가져오지 못했어요. 잠시 후 다시 시도해주세요.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRates(from);
+  }, [from, loadRates]);
+
+  const convertAmount = (amt: string, toCurr: string): string => {
     const num = parseFloat(amt) || 0;
-    const fromRate = MOCK_RATES[fromC] ?? 1;
-    const toRate = MOCK_RATES[toC] ?? 1;
-    const result = (num * fromRate) / toRate;
-    return result.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const rate = rates[toCurr];
+    if (!rate) return '-';
+    const result = num * rate;
+    // 소수점 처리: KRW/JPY/VND/IDR는 정수, 나머지는 2자리
+    const noDecimals = ['KRW', 'JPY', 'VND', 'IDR'];
+    return noDecimals.includes(toCurr)
+      ? Math.round(result).toLocaleString()
+      : result.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
   const swap = () => {
+    haptic.select();
     setFrom(to);
     setTo(from);
+  };
+
+  const handleRefresh = () => {
+    haptic.medium();
+    loadRates(from, true);
+  };
+
+  const fmtUpdated = (d: Date | null) => {
+    if (!d) return '';
+    const diff = Date.now() - d.getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return '방금 갱신';
+    if (min < 60) return `${min}분 전 갱신`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전 갱신`;
+    return `${Math.floor(hr / 24)}일 전 갱신`;
   };
 
   return (
@@ -54,49 +104,93 @@ export default function ToolsScreen() {
         <Text style={styles.title}>도구</Text>
         <Text style={styles.subtitle}>여행에 필요한 모든 도구를 한 곳에</Text>
 
-        <Text style={styles.sectionTitle}>💱 환율 계산기</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>💱 환율 계산기</Text>
+          <Pressable onPress={handleRefresh} disabled={refreshing}>
+            <Text style={styles.refreshLink}>
+              {refreshing ? '갱신 중...' : '🔄 새로고침'}
+            </Text>
+          </Pressable>
+        </View>
 
         <View style={styles.card}>
-          <View style={styles.currencyRow}>
-            <CurrencyPicker
-              label="보낼 통화"
-              value={from}
-              onChange={setFrom}
-              currencies={CURRENCIES}
-            />
-            <Pressable style={styles.swapBtn} onPress={swap}>
-              <Text style={styles.swapIcon}>⇄</Text>
-            </Pressable>
-            <CurrencyPicker
-              label="받을 통화"
-              value={to}
-              onChange={setTo}
-              currencies={CURRENCIES}
-            />
-          </View>
+          {loading ? (
+            <View style={{ padding: Spacing.xxl, alignItems: 'center' }}>
+              <ActivityIndicator color={Colors.primary} />
+              <Text style={{ marginTop: Spacing.md, color: Colors.textTertiary, fontSize: 13 }}>
+                실시간 환율 불러오는 중...
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.currencyRow}>
+                <CurrencyPicker
+                  label="보낼 통화"
+                  value={from}
+                  onChange={(v) => { haptic.select(); setFrom(v); }}
+                  currencies={CURRENCIES}
+                />
+                <Pressable style={styles.swapBtn} onPress={swap}>
+                  <Text style={styles.swapIcon}>⇄</Text>
+                </Pressable>
+                <CurrencyPicker
+                  label="받을 통화"
+                  value={to}
+                  onChange={(v) => { haptic.select(); setTo(v); }}
+                  currencies={CURRENCIES}
+                />
+              </View>
 
-          <View style={styles.amountGroup}>
-            <Text style={styles.amountLabel}>금액</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor={Colors.textTertiary}
-            />
-          </View>
+              <View style={styles.amountGroup}>
+                <Text style={styles.amountLabel}>금액</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                />
+              </View>
 
-          <View style={styles.resultBox}>
-            <Text style={styles.resultLabel}>
-              {CURRENCIES.find((c) => c.code === to)?.flag} {to}
-            </Text>
-            <Text style={styles.resultValue}>{convert(amount, from, to)}</Text>
-          </View>
+              <View style={styles.resultBox}>
+                <Text style={styles.resultLabel}>
+                  {CURRENCIES.find((c) => c.code === to)?.flag} {to}
+                </Text>
+                <Text style={styles.resultValue}>{convertAmount(amount, to)}</Text>
+              </View>
 
-          <Text style={styles.rateNote}>
-            ※ 실제 사용 시에는 실시간 환율이 반영됩니다
-          </Text>
+              {error ? (
+                <Text style={styles.errorNote}>⚠️ {error}</Text>
+              ) : (
+                <Text style={styles.rateNote}>
+                  ✅ frankfurter.dev 실시간 환율
+                  {lastUpdated && ` · ${fmtUpdated(lastUpdated)}`}
+                </Text>
+              )}
+
+              {/* 인기 환율 빠른 보기 */}
+              <View style={styles.quickRates}>
+                <Text style={styles.quickRatesTitle}>1 {from} 기준</Text>
+                <View style={styles.quickRatesGrid}>
+                  {['JPY', 'USD', 'EUR', 'CNY', 'THB', 'VND'].filter(c => c !== from).slice(0, 4).map(c => {
+                    const rate = rates[c];
+                    if (!rate) return null;
+                    const display = ['JPY', 'VND', 'IDR'].includes(c)
+                      ? rate.toFixed(2)
+                      : rate.toFixed(4);
+                    const flag = CURRENCIES.find(cc => cc.code === c)?.flag || '';
+                    return (
+                      <View key={c} style={styles.quickRateItem}>
+                        <Text style={styles.quickRateLabel}>{flag} {c}</Text>
+                        <Text style={styles.quickRateValue}>{display}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>🚇 지하철 노선도</Text>
@@ -107,25 +201,7 @@ export default function ToolsScreen() {
             { icon: '🇯🇵', label: '오사카 지하철', desc: 'Osaka Metro' },
             { icon: '🇹🇭', label: '방콕 BTS', desc: 'BTS, MRT' },
           ].map((m, i) => (
-            <Pressable key={i} style={styles.linkCard}>
-              <Text style={styles.linkIcon}>{m.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.linkLabel}>{m.label}</Text>
-                <Text style={styles.linkDesc}>{m.desc}</Text>
-              </View>
-              <Text style={styles.linkArrow}>›</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>📞 유용한 정보</Text>
-        <View style={styles.linkCards}>
-          {[
-            { icon: '🏥', label: '긴급 연락처', desc: '대사관, 보험' },
-            { icon: '🗣️', label: '여행 회화', desc: '기본 표현' },
-            { icon: '🔌', label: '전압 & 플러그', desc: '국가별 정보' },
-          ].map((m, i) => (
-            <Pressable key={i} style={styles.linkCard}>
+            <Pressable key={i} style={styles.linkCard} onPress={() => haptic.tap()}>
               <Text style={styles.linkIcon}>{m.icon}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.linkLabel}>{m.label}</Text>
@@ -148,79 +224,43 @@ function CurrencyPicker({
   onChange: (v: string) => void;
   currencies: Currency[];
 }) {
-  const current = currencies.find((c) => c.code === value);
   const [open, setOpen] = useState(false);
+  const current = currencies.find((c) => c.code === value);
 
   return (
     <View style={{ flex: 1 }}>
-      <Text style={pickerStyles.label}>{label}</Text>
-      <Pressable style={pickerStyles.picker} onPress={() => setOpen(!open)}>
-        <Text style={pickerStyles.flag}>{current?.flag}</Text>
-        <Text style={pickerStyles.code}>{value}</Text>
+      <Text style={styles.pickerLabel}>{label}</Text>
+      <Pressable style={styles.picker} onPress={() => { haptic.tap(); setOpen(!open); }}>
+        <Text style={styles.pickerText}>{current?.flag} {current?.code}</Text>
+        <Text style={styles.pickerArrow}>{open ? '▲' : '▼'}</Text>
       </Pressable>
       {open && (
-        <View style={pickerStyles.dropdown}>
-          {currencies.map((c) => (
-            <Pressable
-              key={c.code}
-              style={pickerStyles.item}
-              onPress={() => {
-                onChange(c.code);
-                setOpen(false);
-              }}
-            >
-              <Text style={pickerStyles.itemText}>
-                {c.flag} {c.code} · {c.name}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={styles.dropdown}>
+          <ScrollView style={{ maxHeight: 240 }}>
+            {currencies.map((c) => (
+              <Pressable
+                key={c.code}
+                style={[
+                  styles.dropdownItem,
+                  value === c.code && styles.dropdownItemActive,
+                ]}
+                onPress={() => {
+                  haptic.select();
+                  onChange(c.code);
+                  setOpen(false);
+                }}
+              >
+                <Text style={styles.dropdownText}>
+                  {c.flag} {c.code} · {c.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
       )}
     </View>
   );
 }
-
-const pickerStyles = StyleSheet.create({
-  label: {
-    fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
-    marginBottom: Spacing.xs,
-  },
-  picker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    backgroundColor: Colors.surfaceAlt,
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
-  },
-  flag: { fontSize: 20 },
-  code: {
-    fontSize: Typography.bodyMedium,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 70,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    ...Shadows.strong,
-    zIndex: 10,
-  },
-  item: {
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  itemText: {
-    fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
-  },
-});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
@@ -233,21 +273,33 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
     marginBottom: Spacing.xxl,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: Spacing.md,
+  },
   sectionTitle: {
-    fontSize: Typography.headlineSmall,
+    fontSize: Typography.titleMedium,
     fontWeight: '700',
     color: Colors.textPrimary,
-    marginTop: Spacing.xl,
+    marginTop: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  refreshLink: {
+    fontSize: Typography.labelMedium,
+    color: Colors.accent,
+    fontWeight: '600',
   },
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: Spacing.lg,
-    ...Shadows.soft,
+    borderRadius: 16,
+    padding: Spacing.xl,
+    marginBottom: Spacing.xl,
+    ...Shadows.sm,
   },
   currencyRow: {
     flexDirection: 'row',
@@ -259,24 +311,73 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   swapIcon: {
-    color: Colors.textOnPrimary,
     fontSize: 18,
-    fontWeight: '700',
+    color: Colors.primary,
   },
-  amountGroup: { marginBottom: Spacing.lg },
+  pickerLabel: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textTertiary,
+    marginBottom: Spacing.xs,
+  },
+  picker: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+  },
+  pickerText: {
+    fontSize: Typography.bodyMedium,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  pickerArrow: {
+    fontSize: 10,
+    color: Colors.textTertiary,
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 70,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    zIndex: 100,
+    ...Shadows.md,
+  },
+  dropdownItem: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+  },
+  dropdownItemActive: {
+    backgroundColor: Colors.surfaceAlt,
+  },
+  dropdownText: {
+    fontSize: Typography.bodyMedium,
+    color: Colors.textPrimary,
+  },
+  amountGroup: {
+    marginBottom: Spacing.lg,
+  },
   amountLabel: {
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
     marginBottom: Spacing.xs,
   },
   amountInput: {
-    fontSize: Typography.headlineMedium,
+    fontSize: Typography.titleLarge,
     fontWeight: '700',
     color: Colors.textPrimary,
     borderBottomWidth: 2,
@@ -284,20 +385,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   resultBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: Colors.primary,
     borderRadius: 12,
     padding: Spacing.lg,
-    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   resultLabel: {
-    fontSize: Typography.labelMedium,
+    fontSize: Typography.bodyMedium,
     color: Colors.accent,
     fontWeight: '600',
-    marginBottom: Spacing.xs,
-    letterSpacing: 1,
   },
   resultValue: {
-    fontSize: Typography.displayMedium,
+    fontSize: Typography.titleLarge,
     fontWeight: '700',
     color: Colors.textOnPrimary,
   },
@@ -305,31 +407,74 @@ const styles = StyleSheet.create({
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
     textAlign: 'center',
-    marginTop: Spacing.md,
+    fontStyle: 'italic',
   },
-  linkCards: { gap: Spacing.sm },
+  errorNote: {
+    fontSize: Typography.labelSmall,
+    color: Colors.error,
+    textAlign: 'center',
+  },
+  quickRates: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  quickRatesTitle: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textTertiary,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  quickRatesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  quickRateItem: {
+    flexBasis: '47%',
+    backgroundColor: Colors.surfaceAlt,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 10,
+  },
+  quickRateLabel: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textSecondary,
+  },
+  quickRateValue: {
+    fontSize: Typography.bodyMedium,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginTop: 2,
+  },
+  linkCards: {
+    gap: Spacing.sm,
+  },
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: Spacing.lg,
     gap: Spacing.md,
-    ...Shadows.soft,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: Spacing.md,
+    ...Shadows.sm,
   },
-  linkIcon: { fontSize: 28 },
+  linkIcon: {
+    fontSize: 24,
+  },
   linkLabel: {
-    fontSize: Typography.bodyLarge,
+    fontSize: Typography.bodyMedium,
     fontWeight: '600',
     color: Colors.textPrimary,
-    marginBottom: 2,
   },
   linkDesc: {
-    fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    fontSize: Typography.labelSmall,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
   linkArrow: {
-    fontSize: 24,
+    fontSize: 20,
     color: Colors.textTertiary,
   },
 });
