@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing } from '@/theme/theme';
+import { Colors, Typography, Spacing, Fonts } from '@/theme/theme';
 import { getDB } from '@/db/database';
 import { registerOnServer } from '@/utils/serverStats';
 import { haptic } from '@/utils/haptics';
@@ -60,7 +60,7 @@ export default function TermsScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.eyebrow}>STEP 02 / 02</Text>
-        <Text style={styles.title}>약관에 동의해주세요</Text>
+        <Text style={styles.title}>약관에{'\n'}동의해주세요</Text>
         <Text style={styles.subtitle}>
           My Trip Log 사용을 위해 아래 약관을 확인해주세요
         </Text>
@@ -114,7 +114,7 @@ export default function TermsScreen() {
         </View>
 
         <View style={styles.optionalSection}>
-          <Text style={styles.optionalLabel}>선택 동의</Text>
+          <Text style={styles.optionalLabel}>OPTIONAL</Text>
           <Text style={styles.optionalDesc}>
             동의하지 않아도 앱 이용에 제한은 없어요
           </Text>
@@ -185,23 +185,25 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: Spacing.xxl, paddingTop: Spacing.huge },
   eyebrow: {
+    fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
     color: Colors.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
-    fontWeight: '600',
     marginBottom: Spacing.md,
   },
   title: {
+    fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.displaySmall,
     color: Colors.textPrimary,
-    fontWeight: '700',
     marginBottom: Spacing.sm,
+    lineHeight: Typography.displaySmall * 1.3,
   },
   subtitle: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
     color: Colors.textSecondary,
     marginBottom: Spacing.xl,
-    lineHeight: Typography.bodyMedium * 1.5,
+    lineHeight: Typography.bodyMedium * 1.6,
   },
   allCard: {
     flexDirection: 'row',
@@ -213,8 +215,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   allText: {
+    fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.bodyMedium,
-    fontWeight: '700',
     color: Colors.textOnPrimary,
     flex: 1,
   },
@@ -251,17 +253,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   termTitle: {
+    fontFamily: Fonts.bodyKrMedium,
     fontSize: Typography.bodyMedium,
-    fontWeight: '600',
     color: Colors.textPrimary,
     flex: 1,
   },
-  required: { color: Colors.error, fontWeight: '700' },
-  optional: { color: Colors.tripPlanning, fontWeight: '700' },
+  required: { color: Colors.error, fontFamily: Fonts.bodyKrBold },
+  optional: { color: Colors.tripPlanning, fontFamily: Fonts.bodyKrBold },
   termBody: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodySmall,
     color: Colors.textSecondary,
-    lineHeight: Typography.bodySmall * 1.6,
+    lineHeight: Typography.bodySmall * 1.7,
     paddingLeft: Spacing.xxxl + Spacing.sm,
   },
   optionalSection: {
@@ -269,13 +272,14 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   optionalLabel: {
-    fontSize: Typography.labelMedium,
-    fontWeight: '700',
+    fontFamily: Fonts.bodyEnSemiBold,
+    fontSize: Typography.labelSmall,
     color: Colors.accent,
-    letterSpacing: 1,
+    letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.xs,
   },
   optionalDesc: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
   },
@@ -288,9 +292,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonDisabled: { backgroundColor: Colors.textTertiary },
   primaryButtonText: {
+    fontFamily: Fonts.bodyEnBold,
     color: Colors.textOnPrimary,
     fontSize: Typography.bodyLarge,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
 });

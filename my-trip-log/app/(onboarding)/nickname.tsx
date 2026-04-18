@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing } from '@/theme/theme';
+import { Colors, Typography, Spacing, Fonts } from '@/theme/theme';
 import { getDB, generateAnonId } from '@/db/database';
 import { haptic } from '@/utils/haptics';
 
@@ -47,13 +47,13 @@ export default function NicknameScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.eyebrow}>STEP 01 / 02</Text>
-          <Text style={styles.title}>어떻게 불러드릴까요?</Text>
+          <Text style={styles.title}>어떻게{'\n'}불러드릴까요?</Text>
           <Text style={styles.subtitle}>
             여행 기록에 표시될 닉네임을 입력해주세요
           </Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>닉네임</Text>
+            <Text style={styles.label}>NICKNAME</Text>
             <TextInput
               style={styles.input}
               value={nickname}
@@ -67,7 +67,7 @@ export default function NicknameScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>국적</Text>
+            <Text style={styles.label}>NATIONALITY</Text>
             <View style={styles.chipRow}>
               {[
                 { code: 'KR', label: '🇰🇷 한국' },
@@ -110,34 +110,38 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: Spacing.xxl, paddingTop: Spacing.huge, flexGrow: 1 },
   eyebrow: {
+    fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
     color: Colors.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
-    fontWeight: '600',
     marginBottom: Spacing.md,
   },
   title: {
+    fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.displaySmall,
     color: Colors.textPrimary,
-    fontWeight: '700',
     marginBottom: Spacing.sm,
+    lineHeight: Typography.displaySmall * 1.3,
   },
   subtitle: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
     color: Colors.textSecondary,
     marginBottom: Spacing.huge,
-    lineHeight: Typography.bodyMedium * 1.5,
+    lineHeight: Typography.bodyMedium * 1.6,
   },
   inputGroup: {
     marginBottom: Spacing.xxl,
   },
   label: {
-    fontSize: Typography.labelLarge,
-    color: Colors.textPrimary,
-    fontWeight: '600',
+    fontFamily: Fonts.bodyEnSemiBold,
+    fontSize: Typography.labelSmall,
+    color: Colors.accent,
+    letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.sm,
   },
   input: {
+    fontFamily: Fonts.bodyKrMedium,
     fontSize: Typography.bodyLarge,
     color: Colors.textPrimary,
     borderBottomWidth: 2,
@@ -145,6 +149,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   hint: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
     marginTop: Spacing.xs,
@@ -167,12 +172,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   chipText: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
     color: Colors.textSecondary,
   },
   chipTextActive: {
+    fontFamily: Fonts.bodyKrMedium,
     color: Colors.textOnPrimary,
-    fontWeight: '600',
   },
   footer: {
     padding: Spacing.xxl,
@@ -187,9 +193,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textTertiary,
   },
   primaryButtonText: {
+    fontFamily: Fonts.bodyEnBold,
     color: Colors.textOnPrimary,
     fontSize: Typography.bodyLarge,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
 });

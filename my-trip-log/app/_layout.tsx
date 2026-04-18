@@ -6,6 +6,25 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+// 폰트 import (3종)
+import {
+  useFonts as usePlayfair,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_500Medium,
+  PlayfairDisplay_700Bold,
+} from '@expo-google-fonts/playfair-display';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import {
+  NotoSansKR_400Regular,
+  NotoSansKR_500Medium,
+  NotoSansKR_700Bold,
+} from '@expo-google-fonts/noto-sans-kr';
+
 import { initializeDatabase, isUserRegistered } from '@/db/database';
 import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { Colors } from '@/theme/theme';
@@ -16,6 +35,20 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [hasUser, setHasUser] = useState(false);
 
+  // 폰트 로딩
+  const [fontsLoaded] = usePlayfair({
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_500Medium,
+    PlayfairDisplay_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    NotoSansKR_400Regular,
+    NotoSansKR_500Medium,
+    NotoSansKR_700Bold,
+  });
+
   useEffect(() => {
     (async () => {
       try {
@@ -23,7 +56,6 @@ export default function RootLayout() {
         const registered = await isUserRegistered();
         setHasUser(registered);
 
-        // 가입자라면 백그라운드에서 서버 동기화 (실패 무시)
         if (registered) {
           syncStatsOnAppStart().catch(() => {});
         }
@@ -31,20 +63,31 @@ export default function RootLayout() {
         console.error('App init error:', err);
       } finally {
         setIsReady(true);
-        await SplashScreen.hideAsync();
       }
     })();
   }, []);
 
+  // 폰트 + DB 둘 다 준비됐을 때만 splash 닫기
   useEffect(() => {
-    if (isReady && !hasUser) {
+    if (isReady && fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [isReady, fontsLoaded]);
+
+  useEffect(() => {
+    if (isReady && fontsLoaded && !hasUser) {
       router.replace('/(onboarding)/welcome');
     }
-  }, [isReady, hasUser]);
+  }, [isReady, fontsLoaded, hasUser]);
 
-  if (!isReady) {
+  if (!isReady || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary }}>
+      <View style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.primary,
+      }}>
         <ActivityIndicator size="large" color={Colors.accent} />
       </View>
     );

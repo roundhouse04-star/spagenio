@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing } from '@/theme/theme';
+import { Colors, Typography, Spacing, Fonts } from '@/theme/theme';
 import { haptic } from '@/utils/haptics';
 
 export default function WelcomeScreen() {
@@ -46,27 +46,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   eyebrow: {
+    fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
     color: Colors.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
-    fontWeight: '600',
     marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: Typography.displayLarge,
+    fontFamily: Fonts.display,             // ← Playfair Display Bold
+    fontSize: Typography.displayLarge + 8, // 살짝 더 크게 (44)
     color: Colors.textPrimary,
-    fontWeight: '700',
     letterSpacing: Typography.letterSpacingTight,
     marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   subtitle: {
+    fontFamily: Fonts.bodyKrMedium,
     fontSize: Typography.titleLarge,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: Typography.titleLarge * 1.4,
+    lineHeight: Typography.titleLarge * 1.5,
     marginBottom: Spacing.xxxl,
-    fontWeight: '400',
   },
   divider: {
     width: 50,
@@ -75,10 +75,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   body: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
     color: Colors.textTertiary,
     textAlign: 'center',
-    lineHeight: Typography.bodyMedium * 1.6,
+    lineHeight: Typography.bodyMedium * 1.7,
   },
   footer: {
     padding: Spacing.xxl,
@@ -92,12 +93,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   primaryButtonText: {
+    fontFamily: Fonts.bodyEnBold,         // ← Inter Bold
     color: Colors.textOnPrimary,
     fontSize: Typography.bodyLarge,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   note: {
+    fontFamily: Fonts.bodyKr,
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
     textAlign: 'center',
