@@ -84,6 +84,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS lotto_schedule (chat_id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS lotto_predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, based_on_round INTEGER NOT NULL, predicted_for_round INTEGER, picks TEXT NOT NULL, hit_count INTEGER, result_checked INTEGER DEFAULT 0, telegram_sent INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS lotto_send_retry (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, chat_id TEXT NOT NULL, bot_token TEXT, message TEXT NOT NULL, prediction_ids TEXT, attempt_count INTEGER DEFAULT 0, max_attempts INTEGER DEFAULT 3, next_retry_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_error TEXT, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+  CREATE TABLE IF NOT EXISTS lotto_cooccurrence (num1 INTEGER NOT NULL, num2 INTEGER NOT NULL, cnt INTEGER DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (num1, num2));
   CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS trade_setting_type4 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, broker_key_id INTEGER DEFAULT NULL, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, broker_key_id), FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
@@ -1096,12 +1097,14 @@ async function lottoCheckAndSendSchedules() {
       if (!days.includes(currentDay)) continue;
 
       // ✅ 핵심: lotto_schedule_log 기반 중복 체크
-      // 오늘 같은 chat_id에 'send' 기록이 있으면 스킵 → 서버 재시작/다중 인스턴스 모두 안전
+      // - created_at은 UTC 저장이므로 'localtime' 변환 후 비교 (시간대 일치 필수)
+      // - hour까지 체크: 같은 chat_id가 하루에 여러 시각 발송 가능하도록
       const alreadySent = db.prepare(`
         SELECT id FROM lotto_schedule_log
-        WHERE chat_id=? AND action='send' AND DATE(created_at)=DATE('now','localtime')
+        WHERE chat_id=? AND action='send' AND hour=?
+          AND DATE(created_at, 'localtime') = DATE('now', 'localtime')
         LIMIT 1
-      `).get(sch.chat_id);
+      `).get(sch.chat_id, sch.hour);
       if (alreadySent) continue;
 
       // 예측실행과 동일 로직 (이월확률 + 구간균형 + streak + bias_map + baseZoneSpecs)
@@ -2328,6 +2331,9 @@ setInterval(async () => {
 
     console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료: ${winning.join(', ')} + ${data.bnusNo}`);
 
+    // 새 회차 추가됐으니 동반출현 재계산
+    try { recomputeCooccurrence(); } catch (e) { }
+
     // ── 당첨번호 수집 후 lotto_weights 자동 업데이트 ──────────
     // 전체 이력 기반 반복출현 확률 + 연속 반복 패턴 재계산
     try {
@@ -2373,6 +2379,49 @@ setInterval(async () => {
     saveErrorLog({ event_type: 'LOTTO_HISTORY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack });
   }
 }, 60 * 1000); // 1분마다 체크
+
+// ============================================================
+// 번호 동반출현(co-occurrence) 재계산
+// 전체 회차를 DELETE + INSERT로 다시 계산
+// ============================================================
+function recomputeCooccurrence() {
+  try {
+    const allHistory = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all();
+    if (!allHistory.length) return { ok: false, reason: 'no history' };
+
+    const counts = {}; // "num1,num2" → count
+    for (const row of allHistory) {
+      const nums = JSON.parse(row.numbers).sort((a, b) => a - b);
+      for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+          const key = `${nums[i]},${nums[j]}`;
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      }
+    }
+
+    const tx = db.transaction(() => {
+      db.prepare('DELETE FROM lotto_cooccurrence').run();
+      const stmt = db.prepare('INSERT INTO lotto_cooccurrence (num1, num2, cnt) VALUES (?,?,?)');
+      for (const key in counts) {
+        const [n1, n2] = key.split(',').map(Number);
+        stmt.run(n1, n2, counts[key]);
+      }
+    });
+    tx();
+
+    const total = Object.keys(counts).length;
+    const maxCnt = Object.values(counts).length ? Math.max(...Object.values(counts)) : 0;
+    console.log(`[lotto] 동반출현 재계산 완료: ${total}쌍, 최대 ${maxCnt}회`);
+    return { ok: true, total, maxCnt };
+  } catch (e) {
+    console.log('[lotto] 동반출현 재계산 실패:', e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+// 서버 시작 시 1회 실행
+try { recomputeCooccurrence(); } catch (e) { console.log('[lotto] cooccurrence init 실패:', e.message); }
 
 // ============================================================
 // 로또 게임 생성 헬퍼 (③ 예측실행 로직 - 자동발송/예측발송 공통 사용)
@@ -2444,6 +2493,28 @@ function lottoBuildGames(count) {
     let s = carryPct[n] * 100 + decPct[getDec(n)] * 30 + recentBonus[n] * 20;
     if (latestNums.includes(n)) s += carryPct[n] * 50;
     scores[n] = s * (dbWeights[n] || 1.0) * streakMultiplier[n];
+  }
+
+  // 동반출현(co-occurrence) 테이블 Map 로드 (쿼리 1회, predictOne 내부에서 재사용)
+  const cooccMap = {};
+  try {
+    const rows = db.prepare('SELECT num1, num2, cnt FROM lotto_cooccurrence').all();
+    for (const r of rows) cooccMap[`${r.num1},${r.num2}`] = r.cnt;
+  } catch (e) { /* 테이블 없어도 진행 */ }
+
+  // 이미 뽑힌 번호들과의 동반출현 기반 boost
+  // 기준 (평균 19.62): 30회+ ×1.25 / 27회+ ×1.12 / 26회 이하 보정 없음, 상한 1.6
+  function coOccBoost(n, alreadyPicked) {
+    if (!alreadyPicked.length) return 1.0;
+    let boost = 1.0;
+    for (const p of alreadyPicked) {
+      if (p === n) continue;
+      const [a, b] = n < p ? [n, p] : [p, n];
+      const cnt = cooccMap[`${a},${b}`] || 0;
+      if (cnt >= 30) boost *= 1.25;
+      else if (cnt >= 27) boost *= 1.12;
+    }
+    return Math.min(boost, 1.6);
   }
 
   // bias_map 로드
@@ -2518,23 +2589,30 @@ function lottoBuildGames(count) {
       biasWeights = carryBiasMap[`${z1}+${z2}`] || null;
     }
 
-    // 구간별 선택
+    // 구간별 선택 (동반출현 boost 적용)
     for (let zi = 0; zi < baseZoneSpecs.length; zi++) {
       if (picks.size >= 6) break;
       const { range: [lo, hi], dist } = baseZoneSpecs[zi];
       const already = [...picks].filter(n => n >= lo && n <= hi).length;
       const need = Math.max(0, sampleCount(dist, zi, biasWeights) - already);
+      const pickedArr = [...picks];
       const candidates = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i)
-        .filter(n => !picks.has(n)).sort((a, b) => scores[b] - scores[a]);
-      for (let k = 0; k < need && k < candidates.length && picks.size < 6; k++) picks.add(candidates[k]);
+        .filter(n => !picks.has(n))
+        .map(n => ({ n, s: scores[n] * coOccBoost(n, pickedArr) }))
+        .sort((a, b) => b.s - a.s);
+      for (let k = 0; k < need && k < candidates.length && picks.size < 6; k++) picks.add(candidates[k].n);
     }
 
-    // 상위 15위 랜덤으로 채우기
-    const rem = Array.from({ length: 45 }, (_, i) => i + 1).filter(n => !picks.has(n)).sort((a, b) => scores[b] - scores[a]);
+    // 상위 15위 랜덤으로 채우기 (동반출현 boost 적용)
+    const pickedArr2 = [...picks];
+    const rem = Array.from({ length: 45 }, (_, i) => i + 1)
+      .filter(n => !picks.has(n))
+      .map(n => ({ n, s: scores[n] * coOccBoost(n, pickedArr2) }))
+      .sort((a, b) => b.s - a.s);
     const top15 = rem.slice(0, 15);
     while (picks.size < 6 && top15.length) {
       const idx = Math.floor(Math.random() * top15.length);
-      picks.add(top15.splice(idx, 1)[0]);
+      picks.add(top15.splice(idx, 1)[0].n);
     }
     return [...picks].sort((a, b) => a - b);
   }

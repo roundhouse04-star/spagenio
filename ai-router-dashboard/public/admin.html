@@ -2501,6 +2501,37 @@
           </div>
         `;
         el.appendChild(gamesCard);
+
+        // 💎 동반 유력 파트너 카드 (모든 게임의 unique 번호에 대해 Top 3 파트너 조회)
+        try {
+          const uniqueNums = [...new Set((d.games || []).flat())].sort((a, b) => a - b);
+          if (uniqueNums.length) {
+            const cor = await fetch('/api/lotto/cooccurrence', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _t },
+              body: JSON.stringify({ numbers: uniqueNums })
+            });
+            const cd = await cor.json();
+            if (cd.ok && cd.cooccurrence) {
+              const gameRows = (d.games || []).map((nums, idx) => {
+                const items = nums.map(n => {
+                  const partners = (cd.cooccurrence[n] || []).map(p => `${p.partner}(${p.cnt})`).join(', ');
+                  return partners ? `<span style="font-size:0.78rem;"><b style="color:#a5b4fc;">${n}</b> → <span style="color:#9CA3AF;">${partners}</span></span>` : '';
+                }).filter(Boolean).join(' · ');
+                return `<div style="padding:8px 0;border-bottom:1px solid #2A2A2A;"><div style="font-size:0.75rem;color:#6366f1;font-weight:700;margin-bottom:4px;">${String.fromCharCode(65 + idx)}게임</div><div style="display:flex;flex-wrap:wrap;gap:8px;">${items}</div></div>`;
+              }).join('');
+              const partnersCard = document.createElement('div');
+              partnersCard.innerHTML = `
+                <div style="background:#0d1117;border-radius:10px;padding:16px;border:1px solid #2A2A2A;margin-top:12px;">
+                  <div style="font-size:0.85rem;color:#a5b4fc;font-weight:700;margin-bottom:10px;">💎 동반 유력 파트너 (각 번호별 Top 3)</div>
+                  ${gameRows}
+                  <div style="font-size:0.7rem;color:#636366;margin-top:10px;">※ 전체 ${d.based_on_round}회차 기준 동반출현 횟수 (평균 19.6회)</div>
+                </div>
+              `;
+              el.appendChild(partnersCard);
+            }
+          }
+        } catch (e) { /* 파트너 조회 실패는 무시 */ }
       } catch (e) {
         el.innerHTML += `<div style="color:#ef4444;padding:12px;margin-top:8px;">오류: ${e.message}</div>`;
       }

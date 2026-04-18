@@ -913,6 +913,26 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  // ✅ 번호별 동반출현 Top 3 파트너 (주어진 번호들에 대해)
+  router.post('/api/lotto/cooccurrence', (req, res) => {
+    try {
+      const { numbers } = req.body;
+      if (!Array.isArray(numbers) || !numbers.length) return res.json({ ok: false, error: 'numbers 필요' });
+      const result = {};
+      for (const n of numbers) {
+        const rows = db.prepare(`
+          SELECT CASE WHEN num1=? THEN num2 ELSE num1 END AS partner, cnt
+          FROM lotto_cooccurrence
+          WHERE num1=? OR num2=?
+          ORDER BY cnt DESC
+          LIMIT 3
+        `).all(n, n, n);
+        result[n] = rows;
+      }
+      res.json({ ok: true, cooccurrence: result });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  });
+
   router.get('/api/lotto/prediction/history', (req, res) => {
     try {
       const rows = db.prepare('SELECT * FROM lotto_predictions ORDER BY created_at DESC LIMIT 20').all();
