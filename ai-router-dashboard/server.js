@@ -2494,13 +2494,15 @@ function lottoBuildGames(count) {
   }
 
   function predictOne() {
-    // 이월 선택 (60.2% 확률로 최소 1개)
+    // 이월 선택 — 최근 100회 통계 기반
+    // 0개: 47%, 1개: 40%, 2개: 12%, 3개+: 1%
+    // → 1개 이상 발생 확률: 53%, 2개 이상 / 1개 이상 = 12/52 = 23.1%
     const sortedByCarry = [...latestNums].sort((a, b) => carryPct[b] - carryPct[a]);
     const carryPicks = [];
     const cw = sortedByCarry.map(n => Math.max(carryPct[n], 0.01));
-    if (Math.random() < 0.602) {
+    if (Math.random() < 0.530) {
       carryPicks.push(weightedSample(sortedByCarry, cw));
-      if (Math.random() < 0.282) {
+      if (Math.random() < 0.231) {
         const rem2 = sortedByCarry.filter(n => !carryPicks.includes(n));
         const w2 = rem2.map(n => Math.max(carryPct[n], 0.01));
         if (rem2.length) carryPicks.push(weightedSample(rem2, w2));

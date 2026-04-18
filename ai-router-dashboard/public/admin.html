@@ -2534,23 +2534,18 @@
         try{const wr=await fetch('/api/lotto/weights');if(wr.ok){const wd=await wr.json();(wd.weights||[]).forEach(w=>{dbW[w.num]=w.weight;});}}catch(e){}
         const scores={};
         for(let n=1;n<=45;n++){let s=carryPct[n]*100+decPct[getDec(n)]*30+rBonus[n]*20;if(latestNums.includes(n))s+=carryPct[n]*50;scores[n]=s*(dbW[n]||1.0);}
-        // 이월 번호 1~2개 확률적 선택 (1217회 실제 통계)
-        // 0개:39.9%, 1개:41.7%, 2개:16.4%, 3개+:2.1%
+        // ── 이월 유력 번호 (결정론적) ──
+        // 최근 100회 통계: 0개 47%, 1개 40%, 2개 12%, 3개+ 1%
+        // 표시 규칙:
+        //   - carryPct 1순위가 12% 이상이면 1개 표시
+        //   - carryPct 2순위도 15% 이상이면 같이 표시 (이월 2개 가능성 12%)
+        //   - 모두 12% 미만이면 빈 배열 (이월 0개 예상 = 47% 가장 흔한 케이스)
         const sortedByCarry=[...latestNums].sort((a,b)=>carryPct[b]-carryPct[a]);
         const carryPicks=[];
-        const carryWeights=sortedByCarry.map(n=>Math.max(carryPct[n],0.01));
-        const totalW=carryWeights.reduce((a,b)=>a+b,0);
-        // 1개 선택 (41.7+16.4+2.1 = 60.2% 확률로 최소 1개)
-        if(Math.random() < 0.602) {
-          let r1=Math.random()*totalW,cum=0;
-          for(let i=0;i<sortedByCarry.length;i++){cum+=carryWeights[i];if(cum>=r1){carryPicks.push(sortedByCarry[i]);break;}}
-          // 2번째: 실제 통계상 이월1개 중 2개 비율 = 16.4/(41.7+16.4) = 28.2%
-          if(Math.random()<0.282){
-            const rem2=sortedByCarry.filter(n=>!carryPicks.includes(n));
-            const w2=rem2.map(n=>Math.max(carryPct[n],0.01));
-            const tw2=w2.reduce((a,b)=>a+b,0);
-            let r2=Math.random()*tw2,c2=0;
-            for(let i=0;i<rem2.length;i++){c2+=w2[i];if(c2>=r2){carryPicks.push(rem2[i]);break;}}
+        if(sortedByCarry.length>0 && carryPct[sortedByCarry[0]] >= 0.12) {
+          carryPicks.push(sortedByCarry[0]);
+          if(sortedByCarry.length>1 && carryPct[sortedByCarry[1]] >= 0.15) {
+            carryPicks.push(sortedByCarry[1]);
           }
         }
         const picks=new Set(carryPicks);
@@ -2663,7 +2658,10 @@
         const carryBalls=latestNums.sort((a,b)=>a-b).map(n=>{const p=Math.round(carryPct[n]*100);const c=getC(n);const isCP=carryPicks.includes(n);return`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:4px;"><span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:${isCP?c:c+'22'};border:2px solid ${c};color:${isCP?'#fff':c};font-weight:800;font-size:15px;">${n}</span><span style="font-size:10px;color:${p>=15?'#22c55e':p>=10?'#f59e0b':'#9CA3AF'};font-weight:700;">${p}%</span></div>`;}).join('');
         const pickBalls=finalPicks.map(n=>{const c=getC(n);const isC=carryPicks.includes(n);return`<span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:${c};color:#fff;font-weight:800;font-size:16px;margin:4px;box-shadow:${isC?'0 0 0 3px '+c:'none'};">${n}</span>`;}).join('');
         const expectedCarry=Math.round([...latestNums].map(n=>carryPct[n]).reduce((a,b)=>a+b,0)*10)/10;
-        el.innerHTML=`<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicks.join(', ')}번</div></div></div></div>`;
+        const carryPicksDisplay = carryPicks.length > 0
+          ? carryPicks.join(', ') + '번'
+          : '<span style="font-size:0.85rem;color:#9CA3AF;">없음 (이월 0개 예상)</span>';
+        el.innerHTML=`<div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:12px;padding:20px;border:1px solid #2A2A2A;"><div style="font-size:0.9rem;font-weight:800;color:#a5b4fc;margin-bottom:16px;">🎯 ${latest.drw_no}회 기반 다음 회차 예측</div><div style="margin-bottom:16px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📌 번호별 이월 확률</div><div style="display:flex;flex-wrap:wrap;gap:2px;">${carryBalls}</div></div><div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">예상 이월 개수</div><div style="font-size:1.4rem;font-weight:800;color:#6366f1;">${expectedCarry}개</div></div><div style="background:#1E242C;border-radius:8px;padding:12px 16px;border:1px solid #2A2A2A;flex:1;min-width:120px;"><div style="font-size:0.72rem;color:#9CA3AF;margin-bottom:4px;">이월 유력 번호</div><div style="font-size:1rem;font-weight:800;color:#22c55e;">${carryPicksDisplay}</div></div></div><div style="background:#1E242C;border-radius:8px;padding:10px 14px;border:1px solid #2A2A2A;font-size:0.72rem;color:#9CA3AF;"><span style="color:#a5b4fc;font-weight:700;">📊 최근 100회 이월 통계:</span> 0개 <b style="color:#fff;">47%</b> · 1개 <b style="color:#fff;">40%</b> · 2개 <b style="color:#fff;">12%</b> · 3개+ <b style="color:#fff;">1%</b></div></div>`;
       } catch(e) { el.innerHTML=`<div style="color:#ef4444;padding:16px;">오류: ${e.message}</div>`; }
     }
 
