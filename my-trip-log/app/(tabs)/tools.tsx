@@ -196,12 +196,31 @@ export default function ToolsScreen() {
         <Text style={styles.sectionTitle}>🚇 지하철 노선도</Text>
         <View style={styles.linkCards}>
           {[
-            { icon: '🇰🇷', label: '서울 지하철', desc: '1~9호선, 공항철도' },
-            { icon: '🇯🇵', label: '도쿄 지하철', desc: 'Tokyo Metro' },
-            { icon: '🇯🇵', label: '오사카 지하철', desc: 'Osaka Metro' },
-            { icon: '🇹🇭', label: '방콕 BTS', desc: 'BTS, MRT' },
+            { cityId: 'seoul', icon: '🇰🇷', label: '서울 지하철', desc: '1~9호선, 공항철도' },
+            { cityId: 'busan', icon: '🇰🇷', label: '부산 지하철', desc: 'Busan Metro' },
+            { cityId: 'tokyo', icon: '🇯🇵', label: '도쿄 지하철', desc: 'Tokyo Metro' },
+            { cityId: 'osaka', icon: '🇯🇵', label: '오사카 지하철', desc: 'Osaka Metro' },
+            { cityId: 'kyoto', icon: '🇯🇵', label: '교토 지하철', desc: 'Kyoto Subway' },
+            { cityId: 'fukuoka', icon: '🇯🇵', label: '후쿠오카 지하철', desc: 'Fukuoka Subway' },
+            { cityId: 'taipei', icon: '🇹🇼', label: '타이베이 MRT', desc: 'Taipei Metro' },
+            { cityId: 'bangkok', icon: '🇹🇭', label: '방콕 BTS/MRT', desc: 'BTS, MRT' },
+            { cityId: 'singapore', icon: '🇸🇬', label: '싱가포르 MRT', desc: 'Singapore MRT' },
+            { cityId: 'hongkong', icon: '🇭🇰', label: '홍콩 MTR', desc: 'Hong Kong MTR' },
+            { cityId: 'shanghai', icon: '🇨🇳', label: '상하이 지하철', desc: 'Shanghai Metro' },
+            { cityId: 'beijing', icon: '🇨🇳', label: '베이징 지하철', desc: 'Beijing Subway' },
+            { cityId: 'newyork', icon: '🇺🇸', label: '뉴욕 지하철', desc: 'New York Subway' },
+            { cityId: 'london', icon: '🇬🇧', label: '런던 지하철', desc: 'London Underground' },
+            { cityId: 'paris', icon: '🇫🇷', label: '파리 메트로', desc: 'Paris Metro' },
+            { cityId: 'berlin', icon: '🇩🇪', label: '베를린 지하철', desc: 'Berlin U-Bahn' },
           ].map((m, i) => (
-            <Pressable key={i} style={styles.linkCard} onPress={() => haptic.tap()}>
+            <Pressable
+              key={m.cityId}
+              style={styles.linkCard}
+              onPress={() => {
+                haptic.tap();
+                router.push(`/transit/${m.cityId}`);
+              }}
+            >
               <Text style={styles.linkIcon}>{m.icon}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.linkLabel}>{m.label}</Text>

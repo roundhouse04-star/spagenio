@@ -1,9 +1,9 @@
 /**
- * 교통 - 도시별 상세 화면
+ * 교통 - 도시별 상세
  *
- * - 노선 목록 (색상 배지)
- * - 역 검색
- * - 노선별 역 펼침
+ * - 노선 목록 (transit_lines, 색상)
+ * - 노선 클릭 → station_lines를 통해 역 펼침 (station_order 정렬)
+ * - 상단 검색 → transit_stations에서 역 검색
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -16,71 +16,96 @@ import { haptic } from '@/utils/haptics';
 import transitData from '@/data/transit.json';
 
 interface Line {
-  id: string | number;
-  city: string;
-  name?: string;
-  nameKo?: string;
-  nameEn?: string;
-  color?: string;
-  textColor?: string;
+  id: string;
+  cityId: string;
+  nameKo: string;
+  nameEn: string;
+  color: string;
+  textColor: string;
+  lineOrder: number;
 }
 
 interface Station {
-  id: string | number;
-  city: string;
-  lineId?: string | number;
-  name?: string;
-  nameKo?: string;
-  nameEn?: string;
-  isTransfer?: number;
+  id: string;
+  cityId: string;
+  nameKo: string;
+  nameEn: string;
+  x: number;
+  y: number;
+  isTransfer: number;
 }
 
-interface Connection {
-  fromStationId: string | number;
-  toStationId: string | number;
-  lineId: string | number;
+interface StationLine {
+  stationId: string;
+  lineId: string;
+  stationOrder: number;
 }
 
-const CITY_INFO: Record<string, { name: string; flag: string }> = {
-  seoul: { name: '서울', flag: '🇰🇷' },
-  tokyo: { name: '도쿄', flag: '🇯🇵' },
-  osaka: { name: '오사카', flag: '🇯🇵' },
-  bangkok: { name: '방콕', flag: '🇹🇭' },
-  singapore: { name: '싱가포르', flag: '🇸🇬' },
-  hongkong: { name: '홍콩', flag: '🇭🇰' },
-  paris: { name: '파리', flag: '🇫🇷' },
-  london: { name: '런던', flag: '🇬🇧' },
+const CITY_FLAGS: Record<string, string> = {
+  seoul: '🇰🇷', tokyo: '🇯🇵', osaka: '🇯🇵', kyoto: '🇯🇵',
+  bangkok: '🇹🇭', singapore: '🇸🇬', hongkong: '🇭🇰', taipei: '🇹🇼',
+  paris: '🇫🇷', london: '🇬🇧', newyork: '🇺🇸', berlin: '🇩🇪',
+  barcelona: '🇪🇸', rome: '🇮🇹', amsterdam: '🇳🇱',
 };
 
 export default function TransitCityScreen() {
   const { city } = useLocalSearchParams<{ city: string }>();
   const cityId = city as string;
-  const cityInfo = CITY_INFO[cityId] || { name: cityId, flag: '🌍' };
-
-  const [search, setSearch] = useState('');
-  const [openLine, setOpenLine] = useState<string | number | null>(null);
 
   const data = transitData as any;
-  const lines: Line[] = (data.lines || []).filter((l: Line) => l.city === cityId);
-  const stations: Station[] = (data.stations || []).filter((s: Station) => s.city === cityId);
+  const cityInfo = (data.cities || []).find((c: any) => c.id === cityId);
+  const flag = CITY_FLAGS[cityId] || '🌍';
+
+  const lines: Line[] = (data.lines || []).filter((l: Line) => l.cityId === cityId)
+    .sort((a: Line, b: Line) => a.lineOrder - b.lineOrder);
+
+  const stations: Station[] = (data.stations || []).filter((s: Station) => s.cityId === cityId);
+
+  const stationLines: StationLine[] = data.stationLines || [];
+
+  // station_id로 빠르게 lookup
+  const stationsById = useMemo(() => {
+    const map: Record<string, Station> = {};
+    stations.forEach((s) => { map[s.id] = s; });
+    return map;
+  }, [stations]);
+
+  // 노선별 역 목록 (station_order 정렬)
+  const stationsByLine = useMemo(() => {
+    const map: Record<string, Station[]> = {};
+    lines.forEach((line) => {
+      const ids = stationLines
+        .filter((sl) => sl.lineId === line.id)
+        .sort((a, b) => a.stationOrder - b.stationOrder)
+        .map((sl) => sl.stationId);
+      map[line.id] = ids.map((id) => stationsById[id]).filter(Boolean);
+    });
+    return map;
+  }, [lines, stationLines, stationsById]);
+
+  // 역마다 어떤 노선에 속하는지 (환승역 표시용)
+  const linesByStation = useMemo(() => {
+    const map: Record<string, Line[]> = {};
+    stationLines.forEach((sl) => {
+      const line = lines.find((l) => l.id === sl.lineId);
+      if (!line) return;
+      if (!map[sl.stationId]) map[sl.stationId] = [];
+      map[sl.stationId].push(line);
+    });
+    return map;
+  }, [stationLines, lines]);
+
+  const [search, setSearch] = useState('');
+  const [openLineId, setOpenLineId] = useState<string | null>(null);
 
   const filteredStations = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
     return stations.filter((s) => {
-      const ko = (s.nameKo || s.name || '').toLowerCase();
-      const en = (s.nameEn || '').toLowerCase();
-      return ko.includes(q) || en.includes(q);
-    }).slice(0, 30);
+      return (s.nameKo || '').toLowerCase().includes(q) ||
+             (s.nameEn || '').toLowerCase().includes(q);
+    }).slice(0, 50);
   }, [search, stations]);
-
-  const stationsByLine = (lineId: string | number) =>
-    stations.filter((s) => s.lineId === lineId);
-
-  const toggleLine = (lineId: string | number) => {
-    haptic.tap();
-    setOpenLine(openLine === lineId ? null : lineId);
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -88,7 +113,14 @@ export default function TransitCityScreen() {
         <Pressable onPress={() => { haptic.tap(); router.back(); }} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>{cityInfo.flag} {cityInfo.name}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>
+            {flag} {cityInfo?.nameKo || cityId}
+          </Text>
+          <Text style={styles.headerSub}>
+            {lines.length}개 노선 · {stations.length}개 역
+          </Text>
+        </View>
         <View style={{ width: 36 }} />
       </View>
 
@@ -98,7 +130,7 @@ export default function TransitCityScreen() {
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="역 이름 검색"
+          placeholder="역 이름 검색 (한글/영문)"
           placeholderTextColor={Colors.textTertiary}
         />
         {search ? (
@@ -109,8 +141,8 @@ export default function TransitCityScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* 검색 결과 */}
         {search ? (
+          // 검색 결과
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>
               검색 결과 ({filteredStations.length})
@@ -119,87 +151,100 @@ export default function TransitCityScreen() {
               <Text style={styles.emptyText}>일치하는 역이 없어요</Text>
             ) : (
               filteredStations.map((s) => {
-                const line = lines.find((l) => l.id === s.lineId);
+                const linesForStation = linesByStation[s.id] || [];
                 return (
                   <View key={s.id} style={styles.stationItem}>
-                    <View style={styles.stationDot}>
-                      {line && <View style={[styles.dotColor, { backgroundColor: line.color || '#888' }]} />}
-                    </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.stationName}>{s.nameKo || s.name}</Text>
-                      {s.nameEn && <Text style={styles.stationNameEn}>{s.nameEn}</Text>}
-                    </View>
-                    {line && (
-                      <View style={[styles.lineBadge, { backgroundColor: line.color || '#888' }]}>
-                        <Text style={[styles.lineBadgeText, { color: line.textColor || '#fff' }]}>
-                          {line.nameKo || line.name}
-                        </Text>
+                      <View style={styles.stationNameRow}>
+                        <Text style={styles.stationName}>{s.nameKo}</Text>
+                        {s.isTransfer ? (
+                          <Text style={styles.transferBadge}>환승</Text>
+                        ) : null}
                       </View>
-                    )}
-                    {s.isTransfer ? (
-                      <Text style={styles.transferIcon}>🔄</Text>
-                    ) : null}
+                      <Text style={styles.stationNameEn}>{s.nameEn}</Text>
+                    </View>
+                    <View style={styles.lineBadges}>
+                      {linesForStation.slice(0, 3).map((l) => (
+                        <View
+                          key={l.id}
+                          style={[styles.lineBadge, { backgroundColor: l.color }]}
+                        >
+                          <Text style={[styles.lineBadgeText, { color: l.textColor || '#fff' }]}>
+                            {l.nameKo}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 );
               })
             )}
           </View>
         ) : (
-          <>
-            {/* 노선 목록 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>노선 ({lines.length})</Text>
-              {lines.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <Text style={styles.emptyIcon}>🚧</Text>
-                  <Text style={styles.emptyText}>노선 데이터를 준비 중이에요</Text>
-                  <Text style={styles.emptyDesc}>곧 추가될 예정입니다</Text>
-                </View>
-              ) : (
-                lines.map((line) => {
-                  const isOpen = openLine === line.id;
-                  const stationsOnLine = stationsByLine(line.id);
-                  return (
-                    <View key={line.id} style={styles.lineWrap}>
-                      <Pressable
-                        style={[
-                          styles.lineCard,
-                          { backgroundColor: line.color || '#888' },
-                        ]}
-                        onPress={() => toggleLine(line.id)}
-                      >
+          // 노선 목록
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>노선</Text>
+            {lines.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyIcon}>🚧</Text>
+                <Text style={styles.emptyText}>이 도시의 노선 데이터가 없어요</Text>
+              </View>
+            ) : (
+              lines.map((line) => {
+                const isOpen = openLineId === line.id;
+                const stationsOnLine = stationsByLine[line.id] || [];
+                return (
+                  <View key={line.id} style={styles.lineWrap}>
+                    <Pressable
+                      style={[styles.lineCard, { backgroundColor: line.color }]}
+                      onPress={() => {
+                        haptic.tap();
+                        setOpenLineId(isOpen ? null : line.id);
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
                         <Text style={[styles.lineCardText, { color: line.textColor || '#fff' }]}>
-                          {line.nameKo || line.name}
+                          {line.nameKo}
                         </Text>
-                        <Text style={[styles.lineCardCount, { color: line.textColor || '#fff' }]}>
-                          {stationsOnLine.length}개 역 {isOpen ? '▲' : '▼'}
+                        <Text style={[styles.lineCardSub, { color: line.textColor || '#fff' }]}>
+                          {line.nameEn}
                         </Text>
-                      </Pressable>
-                      {isOpen && stationsOnLine.length > 0 && (
-                        <View style={styles.stationList}>
-                          {stationsOnLine.map((s, idx) => (
+                      </View>
+                      <Text style={[styles.lineCardCount, { color: line.textColor || '#fff' }]}>
+                        {stationsOnLine.length}역 {isOpen ? '▲' : '▼'}
+                      </Text>
+                    </Pressable>
+                    {isOpen && (
+                      <View style={styles.stationList}>
+                        {stationsOnLine.map((s, idx) => {
+                          const isLast = idx === stationsOnLine.length - 1;
+                          return (
                             <View key={s.id} style={styles.stationRow}>
                               <View style={styles.stationDotMini}>
-                                <View style={[styles.dotColorMini, { backgroundColor: line.color || '#888' }]} />
-                                {idx < stationsOnLine.length - 1 && (
-                                  <View style={[styles.dotLine, { backgroundColor: line.color || '#888' }]} />
+                                <View style={[styles.dotColor, { backgroundColor: line.color }]} />
+                                {!isLast && (
+                                  <View style={[styles.dotLine, { backgroundColor: line.color }]} />
                                 )}
                               </View>
-                              <View style={{ flex: 1, paddingVertical: 6 }}>
-                                <Text style={styles.stationName}>{s.nameKo || s.name}</Text>
-                                {s.nameEn && <Text style={styles.stationNameEn}>{s.nameEn}</Text>}
+                              <View style={{ flex: 1, paddingVertical: 8 }}>
+                                <View style={styles.stationNameRow}>
+                                  <Text style={styles.stationName}>{s.nameKo}</Text>
+                                  {s.isTransfer ? (
+                                    <Text style={styles.transferBadge}>환승</Text>
+                                  ) : null}
+                                </View>
+                                <Text style={styles.stationNameEn}>{s.nameEn}</Text>
                               </View>
-                              {s.isTransfer ? <Text style={styles.transferIcon}>🔄</Text> : null}
                             </View>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          </>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -211,7 +256,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
@@ -224,6 +268,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.titleMedium,
     fontWeight: '700',
     color: Colors.textPrimary,
+  },
+  headerSub: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
   searchBox: {
     flexDirection: 'row',
@@ -256,7 +305,7 @@ const styles = StyleSheet.create({
   },
   emptyBox: {
     backgroundColor: Colors.surface,
-    padding: Spacing.xxxl,
+    padding: Spacing.huge,
     borderRadius: 14,
     alignItems: 'center',
     borderWidth: 1,
@@ -269,11 +318,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
   },
-  emptyDesc: {
-    fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
-    marginTop: 4,
-  },
   lineWrap: {
     marginBottom: Spacing.sm,
     borderRadius: 12,
@@ -281,7 +325,6 @@ const styles = StyleSheet.create({
   },
   lineCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     padding: Spacing.lg,
   },
@@ -289,56 +332,52 @@ const styles = StyleSheet.create({
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
   },
-  lineCardCount: {
+  lineCardSub: {
     fontSize: Typography.labelSmall,
-    fontWeight: '600',
     opacity: 0.85,
+    marginTop: 1,
+  },
+  lineCardCount: {
+    fontSize: Typography.labelMedium,
+    fontWeight: '700',
+    opacity: 0.9,
   },
   stationList: {
     backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   stationRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.md,
   },
   stationDotMini: {
-    width: 16,
+    width: 18,
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingTop: 14,
+    position: 'relative',
   },
-  dotColorMini: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  dotColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#fff',
     zIndex: 2,
   },
   dotLine: {
     position: 'absolute',
-    width: 2,
-    top: 14,
+    width: 3,
+    top: 22,
     bottom: -10,
-    left: 7,
+    left: 7.5,
   },
-  stationItem: {
+  stationNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    borderRadius: 10,
-    marginBottom: Spacing.xs,
-  },
-  stationDot: {
-    width: 16,
-    alignItems: 'center',
-  },
-  dotColor: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    gap: Spacing.xs,
   },
   stationName: {
     fontSize: Typography.bodyMedium,
@@ -350,16 +389,37 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     marginTop: 1,
   },
+  transferBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  stationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: 10,
+    marginBottom: Spacing.xs,
+  },
+  lineBadges: {
+    flexDirection: 'row',
+    gap: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    maxWidth: 140,
+  },
   lineBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   lineBadgeText: {
-    fontSize: Typography.labelSmall,
+    fontSize: 10,
     fontWeight: '700',
-  },
-  transferIcon: {
-    fontSize: 14,
   },
 });
