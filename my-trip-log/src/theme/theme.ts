@@ -1,101 +1,139 @@
 /**
- * My Trip Log - Design System
- * Ink Navy + Warm Gold + Cream
+ * My Trip Log - Design System (with auto Dark Mode)
+ *
+ * iOS/Android 시스템 다크모드 설정에 따라 자동으로 색상 전환
+ * import 하는 쪽 코드 변경 불필요 - Colors 그대로 사용
  */
+import { Appearance } from 'react-native';
 
-// ============ COLORS ============
-export const Colors = {
-  // Primary palette
-  primary: '#1E2A3A',         // Ink Navy
+// ============ FONTS ============
+export const Fonts = {
+  display: 'PlayfairDisplay_700Bold',
+  displayMedium: 'PlayfairDisplay_500Medium',
+  displayRegular: 'PlayfairDisplay_400Regular',
+  bodyEn: 'Inter_400Regular',
+  bodyEnMedium: 'Inter_500Medium',
+  bodyEnSemiBold: 'Inter_600SemiBold',
+  bodyEnBold: 'Inter_700Bold',
+  bodyKr: 'NotoSansKR_400Regular',
+  bodyKrMedium: 'NotoSansKR_500Medium',
+  bodyKrBold: 'NotoSansKR_700Bold',
+};
+
+// ============ LIGHT PALETTE ============
+const LightColors = {
+  primary: '#1E2A3A',
   primaryLight: '#2D3E54',
   primaryDark: '#141E2B',
 
-  // Accent
-  accent: '#C9A96A',          // Warm Gold
+  accent: '#C9A96A',
   accentLight: '#D9BD85',
   accentDark: '#A88B4F',
 
-  // Background
-  background: '#FAF8F3',      // Cream
+  background: '#FAF8F3',
   surface: '#FFFFFF',
   surfaceAlt: '#F5F2EA',
 
-  // Text
   textPrimary: '#1E2A3A',
   textSecondary: '#5A6478',
   textTertiary: '#8E96A6',
   textOnPrimary: '#FAF8F3',
   textOnAccent: '#1E2A3A',
 
-  // Status
   success: '#5B8266',
   warning: '#C9A96A',
   error: '#B5564B',
   info: '#5C7A8E',
 
-  // Trip status
   tripPlanning: '#7B8FAA',
   tripOngoing: '#C9A96A',
   tripCompleted: '#5B8266',
 
-  // Borders
   border: '#E8E2D4',
   borderLight: '#F0EBE0',
   divider: '#EFEAE0',
 
-  // Overlay
   overlay: 'rgba(30, 42, 58, 0.6)',
   overlayLight: 'rgba(30, 42, 58, 0.3)',
 };
 
-// ============ FONTS ============
-export const Fonts = {
-  // 영문/숫자 디스플레이 (제목, 헤드라인)
-  display: 'PlayfairDisplay_700Bold',
-  displayMedium: 'PlayfairDisplay_500Medium',
-  displayRegular: 'PlayfairDisplay_400Regular',
+// ============ DARK PALETTE ============
+const DarkColors = {
+  primary: '#E8E2D4',
+  primaryLight: '#FAF8F3',
+  primaryDark: '#C9A96A',
 
-  // 영문 본문 / UI
-  bodyEn: 'Inter_400Regular',
-  bodyEnMedium: 'Inter_500Medium',
-  bodyEnSemiBold: 'Inter_600SemiBold',
-  bodyEnBold: 'Inter_700Bold',
+  accent: '#C9A96A',
+  accentLight: '#D9BD85',
+  accentDark: '#A88B4F',
 
-  // 한글 본문
-  bodyKr: 'NotoSansKR_400Regular',
-  bodyKrMedium: 'NotoSansKR_500Medium',
-  bodyKrBold: 'NotoSansKR_700Bold',
+  background: '#0F1620',
+  surface: '#1A2333',
+  surfaceAlt: '#243144',
+
+  textPrimary: '#FAF8F3',
+  textSecondary: '#B8B5AC',
+  textTertiary: '#7A8090',
+  textOnPrimary: '#1E2A3A',
+  textOnAccent: '#1E2A3A',
+
+  success: '#7BA68B',
+  warning: '#D9BD85',
+  error: '#D8847A',
+  info: '#8FA8BC',
+
+  tripPlanning: '#9DAEC2',
+  tripOngoing: '#D9BD85',
+  tripCompleted: '#7BA68B',
+
+  border: '#3A4658',
+  borderLight: '#2D3E54',
+  divider: '#2D3E54',
+
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  overlayLight: 'rgba(0, 0, 0, 0.4)',
 };
 
+// ============ COLORS - dynamic getter ============
+// import { Colors } 하면 시스템 모드에 따라 자동으로 라이트/다크 반환
+function getColors() {
+  const scheme = Appearance.getColorScheme();
+  return scheme === 'dark' ? DarkColors : LightColors;
+}
+
+// Proxy로 동적 색상 (모든 접근 시마다 시스템 체크)
+export const Colors = new Proxy({} as typeof LightColors, {
+  get(_, key: string) {
+    const colors = getColors();
+    return (colors as any)[key];
+  },
+});
+
+// 명시적으로 사용 시
+export const ColorsLight = LightColors;
+export const ColorsDark = DarkColors;
+
 // ============ TYPOGRAPHY ============
-// fontSize는 숫자만 그대로 유지 (StyleSheet에서 fontFamily 같이 쓸 수 있게)
 export const Typography = {
   displayLarge: 36,
   displayMedium: 30,
   displaySmall: 26,
-
   titleLarge: 22,
   titleMedium: 18,
   titleSmall: 16,
-
   bodyLarge: 16,
   bodyMedium: 14,
   bodySmall: 12,
-
   labelLarge: 14,
   labelMedium: 12,
   labelSmall: 11,
-
   letterSpacingTight: -0.5,
   letterSpacingNormal: 0,
   letterSpacingWide: 0.5,
   letterSpacingExtraWide: 1.5,
 };
 
-// ============ TEXT STYLES (편의용 헬퍼) ============
-// 사용: <Text style={[TextStyles.displayMedium, { color: Colors.primary }]}>...</Text>
 export const TextStyles = {
-  // 디스플레이 (영문 제목용 - 잡지 스타일)
   displayLarge: {
     fontFamily: Fonts.display,
     fontSize: Typography.displayLarge,
@@ -110,14 +148,10 @@ export const TextStyles = {
     fontFamily: Fonts.displayMedium,
     fontSize: Typography.displaySmall,
   },
-
-  // 한글 제목
   titleKr: {
     fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.titleMedium,
   },
-
-  // 본문
   bodyDefault: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
@@ -130,8 +164,6 @@ export const TextStyles = {
     fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.bodyMedium,
   },
-
-  // 라벨 (영문 작은 글자)
   labelEyebrow: {
     fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
@@ -144,7 +176,6 @@ export const TextStyles = {
   },
 };
 
-// ============ SPACING ============
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -157,7 +188,6 @@ export const Spacing = {
   giant: 64,
 };
 
-// ============ RADII ============
 export const Radii = {
   sm: 6,
   md: 10,
@@ -166,7 +196,6 @@ export const Radii = {
   pill: 999,
 };
 
-// ============ SHADOWS ============
 export const Shadows = {
   sm: {
     shadowColor: '#000',
