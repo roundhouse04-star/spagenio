@@ -27,6 +27,7 @@ import {
 
 import { initializeDatabase, isUserRegistered } from '@/db/database';
 import { syncStatsOnAppStart } from '@/utils/serverStats';
+import { setupGlobalFont } from '@/utils/globalFont';
 import { Colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -66,6 +67,13 @@ export default function RootLayout() {
       }
     })();
   }, []);
+
+  // 폰트 로드되자마자 전역 적용
+  useEffect(() => {
+    if (fontsLoaded) {
+      setupGlobalFont();
+    }
+  }, [fontsLoaded]);
 
   // 폰트 + DB 둘 다 준비됐을 때만 splash 닫기
   useEffect(() => {
