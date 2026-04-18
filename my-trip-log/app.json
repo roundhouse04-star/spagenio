@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "My Trip Log",
+    "slug": "my-trip-log",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "mytriplog",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E2A3A"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.spagenio.mytriplog",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "여행 기록에 사진을 추가하기 위해 사진 라이브러리 접근이 필요합니다.",
+        "NSCameraUsageDescription": "여행 기록에 사진을 촬영하기 위해 카메라 접근이 필요합니다.",
+        "NSLocationWhenInUseUsageDescription": "현재 위치를 여행 기록에 추가하기 위해 위치 접근이 필요합니다."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E2A3A"
+      },
+      "package": "com.spagenio.mytriplog",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "앱이 사진 라이브러리에 접근하려고 합니다.",
+          "cameraPermission": "앱이 카메라에 접근하려고 합니다."
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
