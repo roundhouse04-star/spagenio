@@ -16,17 +16,17 @@ import java.util.Map;
 /**
  * My Trip Log 관리자 API
  *
- * - GET /api/admin/mytriplog/stats          전체 통계
- * - GET /api/admin/mytriplog/users          사용자 목록 (페이징)
- * - GET /api/admin/mytriplog/by-nationality 국적별 분포
- * - GET /api/admin/mytriplog/by-os          OS별 분포
- * - GET /api/admin/mytriplog/by-app-version 앱 버전별 분포
- * - GET /api/admin/mytriplog/daily-signups  일별 가입 추이 (최근 30일)
+ * - GET /api/mtl-admin/stats          전체 통계
+ * - GET /api/mtl-admin/users          사용자 목록 (페이징)
+ * - GET /api/mtl-admin/by-nationality 국적별 분포
+ * - GET /api/mtl-admin/by-os          OS별 분포
+ * - GET /api/mtl-admin/by-app-version 앱 버전별 분포
+ * - GET /api/mtl-admin/daily-signups  일별 가입 추이 (최근 30일)
  *
  * 모든 정보는 익명 (개인 식별 불가).
  */
 @RestController
-@RequestMapping("/api/admin/mytriplog")
+@RequestMapping("/api/mtl-admin")
 public class AdminMyTripLogController {
 
     @Value("${spring.datasource.url}")

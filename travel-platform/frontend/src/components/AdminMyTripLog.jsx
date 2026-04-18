@@ -25,12 +25,12 @@ export default function AdminMyTripLog({ styles: S }) {
     setLoading(true);
     try {
       const [s, u, n, o, v, d] = await Promise.all([
-        fetch('/api/admin/mytriplog/stats').then((r) => r.json()),
-        fetch(`/api/admin/mytriplog/users?offset=${offset}&limit=${PAGE_SIZE}`).then((r) => r.json()),
-        fetch('/api/admin/mytriplog/by-nationality').then((r) => r.json()),
-        fetch('/api/admin/mytriplog/by-os').then((r) => r.json()),
-        fetch('/api/admin/mytriplog/by-app-version').then((r) => r.json()),
-        fetch('/api/admin/mytriplog/daily-signups').then((r) => r.json()),
+        fetch('/api/mtl-admin/stats').then((r) => r.json()),
+        fetch(`/api/mtl-admin/users?offset=${offset}&limit=${PAGE_SIZE}`).then((r) => r.json()),
+        fetch('/api/mtl-admin/by-nationality').then((r) => r.json()),
+        fetch('/api/mtl-admin/by-os').then((r) => r.json()),
+        fetch('/api/mtl-admin/by-app-version').then((r) => r.json()),
+        fetch('/api/mtl-admin/daily-signups').then((r) => r.json()),
       ]);
       setStats(s);
       setUsers(u.users || []);
