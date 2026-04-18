@@ -7,13 +7,21 @@ import { router, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { getDB } from '@/db/database';
 import { Trip } from '@/types';
+import { ItineraryTab } from '@/components/ItineraryTab';
+import { LogsTab } from '@/components/LogsTab';
+import { ExpensesTab } from '@/components/ExpensesTab';
+import { ChecklistTab } from '@/components/ChecklistTab';
+
+type Tab = 'overview' | 'itinerary' | 'logs' | 'expenses' | 'checklist';
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [tab, setTab] = useState<'overview' | 'itinerary' | 'expenses' | 'logs'>('overview');
-  const [summary, setSummary] = useState({ items: 0, logs: 0, expenses: 0, spent: 0 });
+  const [tab, setTab] = useState<Tab>('overview');
+  const [summary, setSummary] = useState({
+    items: 0, logs: 0, expenses: 0, checklist: 0, spent: 0,
+  });
 
   const load = useCallback(async () => {
     const db = await getDB();
@@ -48,10 +56,14 @@ export default function TripDetailScreen() {
       `SELECT COUNT(*) as c, COALESCE(SUM(amount_in_home_currency), 0) as total
        FROM expenses WHERE trip_id = ?`, [tripId]
     );
+    const checklist = await db.getFirstAsync<any>(
+      'SELECT COUNT(*) as c FROM checklists WHERE trip_id = ?', [tripId]
+    );
     setSummary({
       items: items?.c ?? 0,
       logs: logs?.c ?? 0,
       expenses: exp?.c ?? 0,
+      checklist: checklist?.c ?? 0,
       spent: exp?.total ?? 0,
     });
   }, [tripId]);
@@ -71,6 +83,19 @@ export default function TripDetailScreen() {
         },
       },
     ]);
+  };
+
+  const cycleStatus = async () => {
+    if (!trip) return;
+    const next = {
+      planning: 'ongoing',
+      ongoing: 'completed',
+      completed: 'planning',
+    }[trip.status] as Trip['status'];
+    const db = await getDB();
+    await db.runAsync('UPDATE trips SET status = ?, updated_at = ? WHERE id = ?',
+      [next, new Date().toISOString(), tripId]);
+    load();
   };
 
   if (!trip) {
@@ -101,64 +126,78 @@ export default function TripDetailScreen() {
           headerBackTitle: '뒤로',
           headerRight: () => (
             <Pressable onPress={handleDelete}>
-              <Text style={{ color: Colors.error, fontSize: 16, paddingHorizontal: 12 }}>
-                🗑️
-              </Text>
+              <Text style={{ fontSize: 18, paddingHorizontal: 12 }}>🗑️</Text>
             </Pressable>
           ),
         }}
       />
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.heroCard}>
-          <View style={styles.heroHeader}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-          </View>
-          <Text style={styles.heroTitle}>{trip.title}</Text>
-          <Text style={styles.heroLocation}>
-            📍 {[trip.city, trip.country].filter(Boolean).join(', ') || '장소 미정'}
-          </Text>
-          {(trip.startDate || trip.endDate) && (
-            <Text style={styles.heroDate}>
-              🗓️ {trip.startDate}{trip.endDate ? ` ~ ${trip.endDate}` : ''}
-            </Text>
-          )}
-          {trip.budget > 0 && (
-            <Text style={styles.heroBudget}>
-              💰 예산 {trip.budget.toLocaleString()} {trip.currency}
-              {summary.spent > 0 && (
-                <Text style={styles.spentText}> · 사용 {summary.spent.toLocaleString()}</Text>
-              )}
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.tabRow}>
-          {[
-            { key: 'overview', label: '개요' },
-            { key: 'itinerary', label: `일정 ${summary.items}` },
-            { key: 'logs', label: `기록 ${summary.logs}` },
-            { key: 'expenses', label: `비용 ${summary.expenses}` },
-          ].map((t) => (
-            <Pressable
-              key={t.key}
-              style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
-              onPress={() => setTab(t.key as any)}
-            >
-              <Text
-                style={[styles.tabText, tab === t.key && styles.tabTextActive]}
-              >
-                {t.label}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.heroCard}>
+            <Pressable onPress={cycleStatus} style={styles.heroHeader}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {statusLabel}
               </Text>
+              <Text style={styles.statusHint}>탭하여 변경</Text>
             </Pressable>
-          ))}
-        </View>
+            <Text style={styles.heroTitle}>{trip.title}</Text>
+            <Text style={styles.heroLocation}>
+              📍 {[trip.city, trip.country].filter(Boolean).join(', ') || '장소 미정'}
+            </Text>
+            {(trip.startDate || trip.endDate) && (
+              <Text style={styles.heroDate}>
+                🗓️ {trip.startDate}{trip.endDate ? ` ~ ${trip.endDate}` : ''}
+              </Text>
+            )}
+            {trip.budget > 0 && (
+              <Text style={styles.heroBudget}>
+                💰 예산 {trip.budget.toLocaleString()} {trip.currency}
+                {summary.spent > 0 && (
+                  <Text style={styles.spentText}>
+                    {' · '}사용 {summary.spent.toLocaleString()}
+                  </Text>
+                )}
+              </Text>
+            )}
+          </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
-          {tab === 'overview' && <OverviewTab trip={trip} summary={summary} />}
-          {tab === 'itinerary' && <EmptyTab icon="📅" title="일정 추가" desc="여행 일정을 추가해보세요" />}
-          {tab === 'logs' && <EmptyTab icon="📝" title="기록 추가" desc="여행의 순간을 기록해보세요" />}
-          {tab === 'expenses' && <EmptyTab icon="💰" title="비용 추가" desc="여행 비용을 관리하세요" />}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabRow}
+          >
+            {[
+              { key: 'overview', label: '개요' },
+              { key: 'itinerary', label: `일정 ${summary.items || ''}`.trim() },
+              { key: 'logs', label: `기록 ${summary.logs || ''}`.trim() },
+              { key: 'expenses', label: `비용 ${summary.expenses || ''}`.trim() },
+              { key: 'checklist', label: `체크 ${summary.checklist || ''}`.trim() },
+            ].map((t) => (
+              <Pressable
+                key={t.key}
+                style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
+                onPress={() => setTab(t.key as Tab)}
+              >
+                <Text
+                  style={[styles.tabText, tab === t.key && styles.tabTextActive]}
+                >
+                  {t.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <View style={styles.content}>
+            {tab === 'overview' && <OverviewTab trip={trip} summary={summary} />}
+            {tab === 'itinerary' && <ItineraryTab trip={trip} />}
+            {tab === 'logs' && <LogsTab trip={trip} />}
+            {tab === 'expenses' && <ExpensesTab trip={trip} />}
+            {tab === 'checklist' && <ChecklistTab trip={trip} />}
+          </View>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -172,7 +211,7 @@ function OverviewTab({ trip, summary }: { trip: Trip; summary: any }) {
         <StatCard icon="📅" label="일정" value={summary.items} />
         <StatCard icon="📝" label="기록" value={summary.logs} />
         <StatCard icon="💰" label="비용" value={summary.expenses} />
-        <StatCard icon="✅" label="체크" value="0" />
+        <StatCard icon="✅" label="체크" value={summary.checklist} />
       </View>
 
       {trip.memo && (
@@ -181,6 +220,12 @@ function OverviewTab({ trip, summary }: { trip: Trip; summary: any }) {
           <Text style={styles.memoText}>{trip.memo}</Text>
         </View>
       )}
+
+      <View style={styles.memoCard}>
+        <Text style={styles.memoTitle}>정보</Text>
+        <InfoRow label="생성일" value={trip.createdAt?.slice(0, 10)} />
+        <InfoRow label="최종 수정" value={trip.updatedAt?.slice(0, 10)} />
+      </View>
     </View>
   );
 }
@@ -195,21 +240,19 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
   );
 }
 
-function EmptyTab({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyIcon}>{icon}</Text>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyDesc}>{desc}</Text>
-      <Pressable style={styles.emptyBtn}>
-        <Text style={styles.emptyBtnText}>+ 추가하기</Text>
-      </Pressable>
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scrollContent: { paddingBottom: Spacing.huge },
   loading: { textAlign: 'center', padding: Spacing.huge, color: Colors.textSecondary },
   heroCard: {
     backgroundColor: Colors.primary,
@@ -230,6 +273,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.labelSmall,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  statusHint: {
+    fontSize: Typography.labelSmall,
+    color: 'rgba(250, 248, 243, 0.4)',
+    marginLeft: 'auto',
   },
   heroTitle: {
     fontSize: Typography.headlineLarge,
@@ -252,35 +300,31 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontWeight: '600',
   },
-  spentText: {
-    color: 'rgba(250, 248, 243, 0.6)',
-  },
+  spentText: { color: 'rgba(250, 248, 243, 0.6)' },
   tabRow: {
-    flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     gap: Spacing.xs,
   },
   tabBtn: {
-    flex: 1,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
     borderRadius: 999,
-    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   tabBtnActive: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   tabText: {
     fontSize: Typography.labelLarge,
     color: Colors.textSecondary,
     fontWeight: '600',
   },
-  tabTextActive: { color: Colors.primary, fontWeight: '700' },
-  content: {
-    padding: Spacing.lg,
-    paddingTop: 0,
-  },
+  tabTextActive: { color: Colors.textOnPrimary },
+  content: { paddingHorizontal: Spacing.lg },
   overview: { gap: Spacing.lg },
   statGrid: {
     flexDirection: 'row',
@@ -288,7 +332,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   statCard: {
-    width: '47%',
+    width: '48%',
     backgroundColor: Colors.surface,
     borderRadius: 14,
     padding: Spacing.md,
@@ -316,7 +360,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.labelMedium,
     fontWeight: '700',
     color: Colors.accent,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
     letterSpacing: 1,
   },
   memoText: {
@@ -324,30 +368,18 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     lineHeight: Typography.bodyMedium * 1.6,
   },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: Spacing.huge,
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.xs,
   },
-  emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
-  emptyTitle: {
-    fontSize: Typography.headlineSmall,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  emptyDesc: {
-    fontSize: Typography.bodyMedium,
+  infoLabel: {
+    fontSize: Typography.bodySmall,
     color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
   },
-  emptyBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.md,
-    borderRadius: 999,
-  },
-  emptyBtnText: {
-    color: Colors.textOnPrimary,
-    fontWeight: '700',
+  infoValue: {
+    fontSize: Typography.bodySmall,
+    color: Colors.textPrimary,
+    fontWeight: '500',
   },
 });

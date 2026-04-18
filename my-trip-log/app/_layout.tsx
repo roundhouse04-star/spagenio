@@ -31,11 +31,8 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (isReady) {
-      // 가입 안 되어 있으면 온보딩으로
-      if (!hasUser) {
-        router.replace('/(onboarding)/welcome');
-      }
+    if (isReady && !hasUser) {
+      router.replace('/(onboarding)/welcome');
     }
   }, [isReady, hasUser]);
 
@@ -54,8 +51,26 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(onboarding)" />
-          <Stack.Screen name="trip/[id]" options={{ presentation: 'card' }} />
-          <Stack.Screen name="trips/new" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="trip/[id]/index"
+            options={{ presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="trip/[id]/item-new"
+            options={{ presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="trip/[id]/log-new"
+            options={{ presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="trip/[id]/expense-new"
+            options={{ presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="trips/new"
+            options={{ presentation: 'modal' }}
+          />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
