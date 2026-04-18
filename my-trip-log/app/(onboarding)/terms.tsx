@@ -5,17 +5,19 @@ import { router } from 'expo-router';
 import { Colors, Typography, Spacing } from '@/theme/theme';
 import { getDB } from '@/db/database';
 import { registerOnServer } from '@/utils/serverStats';
+import { haptic } from '@/utils/haptics';
 
 export default function TermsScreen() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
-  const [agreeStats, setAgreeStats] = useState(true);   // 선택 - 기본 ON 추천
-  const [agreeSnsAlert, setAgreeSnsAlert] = useState(false); // 선택 - 기본 OFF
+  const [agreeStats, setAgreeStats] = useState(true);
+  const [agreeSnsAlert, setAgreeSnsAlert] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const canProceed = agreeTerms && agreePrivacy;
 
   const toggleAll = (val: boolean) => {
+    haptic.medium();
     setAgreeTerms(val);
     setAgreePrivacy(val);
     setAgreeStats(val);
@@ -24,7 +26,10 @@ export default function TermsScreen() {
   const allChecked = agreeTerms && agreePrivacy && agreeStats && agreeSnsAlert;
 
   const handleComplete = async () => {
-    if (!canProceed || submitting) return;
+    if (!canProceed || submitting) {
+      if (!canProceed) haptic.warning();
+      return;
+    }
     setSubmitting(true);
     try {
       const db = await getDB();
@@ -40,11 +45,11 @@ export default function TermsScreen() {
         [agreeStats ? 1 : 0, agreeSnsAlert ? 1 : 0, now]
       );
 
-      // 통계 동의했으면 서버 등록 시도 (실패해도 무시)
       if (agreeStats) {
         await registerOnServer();
       }
 
+      haptic.success();
       router.replace('/(tabs)');
     } finally {
       setSubmitting(false);
@@ -60,7 +65,6 @@ export default function TermsScreen() {
           My Trip Log 사용을 위해 아래 약관을 확인해주세요
         </Text>
 
-        {/* 모두 동의 */}
         <Pressable
           style={styles.allCard}
           onPress={() => toggleAll(!allChecked)}
@@ -71,11 +75,10 @@ export default function TermsScreen() {
           <Text style={styles.allText}>전체 동의 (선택 항목 포함)</Text>
         </Pressable>
 
-        {/* 필수 약관 */}
         <View style={styles.termCard}>
           <Pressable
             style={styles.termHeader}
-            onPress={() => setAgreeTerms(!agreeTerms)}
+            onPress={() => { haptic.select(); setAgreeTerms(!agreeTerms); }}
           >
             <View style={[styles.checkbox, agreeTerms && styles.checkboxActive]}>
               {agreeTerms && <Text style={styles.checkmark}>✓</Text>}
@@ -94,7 +97,7 @@ export default function TermsScreen() {
         <View style={styles.termCard}>
           <Pressable
             style={styles.termHeader}
-            onPress={() => setAgreePrivacy(!agreePrivacy)}
+            onPress={() => { haptic.select(); setAgreePrivacy(!agreePrivacy); }}
           >
             <View style={[styles.checkbox, agreePrivacy && styles.checkboxActive]}>
               {agreePrivacy && <Text style={styles.checkmark}>✓</Text>}
@@ -110,7 +113,6 @@ export default function TermsScreen() {
           </Text>
         </View>
 
-        {/* 선택 동의 */}
         <View style={styles.optionalSection}>
           <Text style={styles.optionalLabel}>선택 동의</Text>
           <Text style={styles.optionalDesc}>
@@ -121,7 +123,7 @@ export default function TermsScreen() {
         <View style={styles.termCard}>
           <Pressable
             style={styles.termHeader}
-            onPress={() => setAgreeStats(!agreeStats)}
+            onPress={() => { haptic.select(); setAgreeStats(!agreeStats); }}
           >
             <View style={[styles.checkbox, agreeStats && styles.checkboxActive]}>
               {agreeStats && <Text style={styles.checkmark}>✓</Text>}
@@ -142,7 +144,7 @@ export default function TermsScreen() {
         <View style={styles.termCard}>
           <Pressable
             style={styles.termHeader}
-            onPress={() => setAgreeSnsAlert(!agreeSnsAlert)}
+            onPress={() => { haptic.select(); setAgreeSnsAlert(!agreeSnsAlert); }}
           >
             <View style={[styles.checkbox, agreeSnsAlert && styles.checkboxActive]}>
               {agreeSnsAlert && <Text style={styles.checkmark}>✓</Text>}

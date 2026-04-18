@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors, Typography, Spacing } from '@/theme/theme';
 import { getDB, generateAnonId } from '@/db/database';
+import { haptic } from '@/utils/haptics';
 
 export default function NicknameScreen() {
   const [nickname, setNickname] = useState('');
@@ -15,7 +16,11 @@ export default function NicknameScreen() {
   const canProceed = nickname.trim().length >= 2;
 
   const handleNext = async () => {
-    if (!canProceed) return;
+    if (!canProceed) {
+      haptic.warning();
+      return;
+    }
+    haptic.medium();
     const db = await getDB();
     const now = new Date().toISOString();
     const anonId = generateAnonId();
@@ -73,7 +78,10 @@ export default function NicknameScreen() {
                 <Pressable
                   key={c.code}
                   style={[styles.chip, nationality === c.code && styles.chipActive]}
-                  onPress={() => setNationality(c.code)}
+                  onPress={() => {
+                    haptic.select();
+                    setNationality(c.code);
+                  }}
                 >
                   <Text style={[styles.chipText, nationality === c.code && styles.chipTextActive]}>
                     {c.label}

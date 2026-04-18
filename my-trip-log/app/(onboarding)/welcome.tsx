@@ -1,132 +1,105 @@
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors, Typography, Spacing } from '@/theme/theme';
+import { haptic } from '@/utils/haptics';
 
 export default function WelcomeScreen() {
+  const handleStart = () => {
+    haptic.medium();
+    router.push('/(onboarding)/nickname');
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>MY TRIP LOG</Text>
-          <Text style={styles.title}>당신의{'\n'}여행을 기록하세요</Text>
-          <Text style={styles.subtitle}>
-            모든 여행의 순간을{'\n'}당신의 기기에 안전하게 보관합니다
-          </Text>
-        </View>
-
-        <View style={styles.features}>
-          <Feature icon="📖" title="나만의 여행 일기" desc="사진과 함께 추억을 기록" />
-          <Feature icon="🗺️" title="스마트 플래너" desc="일정과 비용을 한눈에" />
-          <Feature icon="🔒" title="완전한 프라이버시" desc="모든 데이터는 기기에만" />
-        </View>
+      <View style={styles.hero}>
+        <Text style={styles.eyebrow}>SPAGENIO PRESENTS</Text>
+        <Text style={styles.title}>My Trip Log</Text>
+        <Text style={styles.subtitle}>
+          모든 여행은{'\n'}한 권의 책이 됩니다
+        </Text>
+        <View style={styles.divider} />
+        <Text style={styles.body}>
+          개인 여행 기록을{'\n'}
+          품격 있게 보관하세요.
+        </Text>
       </View>
 
       <View style={styles.footer}>
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => router.push('/(onboarding)/nickname')}
-        >
+        <Pressable style={styles.primaryButton} onPress={handleStart}>
           <Text style={styles.primaryButtonText}>시작하기</Text>
         </Pressable>
-        <Text style={styles.footerNote}>
-          가입 후 별도의 로그인은 필요하지 않습니다
+        <Text style={styles.note}>
+          오프라인 우선 · 광고 없음 · 데이터 소유권 100% 본인
         </Text>
       </View>
     </SafeAreaView>
   );
 }
 
-function Feature({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <View style={styles.feature}>
-      <Text style={styles.featureIcon}>{icon}</Text>
-      <View style={styles.featureText}>
-        <Text style={styles.featureTitle}>{title}</Text>
-        <Text style={styles.featureDesc}>{desc}</Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  content: {
+  container: { flex: 1, backgroundColor: Colors.background },
+  hero: {
     flex: 1,
     paddingHorizontal: Spacing.xxl,
-    paddingTop: Spacing.huge,
-  },
-  hero: {
-    marginBottom: Spacing.giant,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   eyebrow: {
-    fontSize: Typography.labelMedium,
+    fontSize: Typography.labelSmall,
     color: Colors.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
     fontWeight: '600',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: Typography.displayMedium,
-    color: Colors.textOnPrimary,
+    fontSize: Typography.displayLarge,
+    color: Colors.textPrimary,
     fontWeight: '700',
-    lineHeight: Typography.displayMedium * 1.2,
+    letterSpacing: Typography.letterSpacingTight,
     marginBottom: Spacing.lg,
-  },
-  subtitle: {
-    fontSize: Typography.bodyLarge,
-    color: 'rgba(250, 248, 243, 0.7)',
-    lineHeight: Typography.bodyLarge * 1.5,
-  },
-  features: {
-    gap: Spacing.xl,
-  },
-  feature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
-  },
-  featureIcon: {
-    fontSize: 32,
-    width: 48,
     textAlign: 'center',
   },
-  featureText: {
-    flex: 1,
+  subtitle: {
+    fontSize: Typography.titleLarge,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: Typography.titleLarge * 1.4,
+    marginBottom: Spacing.xxxl,
+    fontWeight: '400',
   },
-  featureTitle: {
-    fontSize: Typography.bodyLarge,
-    color: Colors.textOnPrimary,
-    fontWeight: '600',
-    marginBottom: 2,
+  divider: {
+    width: 50,
+    height: 1,
+    backgroundColor: Colors.accent,
+    marginBottom: Spacing.xl,
   },
-  featureDesc: {
-    fontSize: Typography.bodySmall,
-    color: 'rgba(250, 248, 243, 0.6)',
+  body: {
+    fontSize: Typography.bodyMedium,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    lineHeight: Typography.bodyMedium * 1.6,
   },
   footer: {
-    paddingHorizontal: Spacing.xxl,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.md,
+    padding: Spacing.xxl,
+    paddingBottom: Spacing.xxxl,
   },
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary,
     paddingVertical: Spacing.lg,
     borderRadius: 14,
     alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   primaryButtonText: {
-    color: Colors.primary,
+    color: Colors.textOnPrimary,
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  footerNote: {
+  note: {
     fontSize: Typography.labelSmall,
-    color: 'rgba(250, 248, 243, 0.5)',
+    color: Colors.textTertiary,
     textAlign: 'center',
   },
 });
