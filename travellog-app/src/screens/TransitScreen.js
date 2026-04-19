@@ -251,6 +251,28 @@ export default function TransitScreen() {
 
               {routeResult && !routeResult.error && (
                 <View style={S.resultWrap}>
+                  {/* 출발 → 도착 */}
+                  <View style={S.routeHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={S.routeHeaderLabel}>FROM</Text>
+                      <Text style={S.routeHeaderStation}>
+                        {routeResult.from?.nameKo || routeResult.from?.nameEn}
+                      </Text>
+                      {routeResult.from?.nameEn && routeResult.from?.nameKo && (
+                        <Text style={S.routeHeaderEn}>{routeResult.from.nameEn}</Text>
+                      )}
+                    </View>
+                    <Text style={S.routeArrow}>→</Text>
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <Text style={S.routeHeaderLabel}>TO</Text>
+                      <Text style={S.routeHeaderStation}>
+                        {routeResult.to?.nameKo || routeResult.to?.nameEn}
+                      </Text>
+                      {routeResult.to?.nameEn && routeResult.to?.nameKo && (
+                        <Text style={S.routeHeaderEn}>{routeResult.to.nameEn}</Text>
+                      )}
+                    </View>
+                  </View>
                   {/* 요약 카드 */}
                   <View style={S.summaryCard}>
                     <View style={S.summaryItem}>
@@ -402,6 +424,11 @@ const S = StyleSheet.create({
   errorText: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.5, color: colors.accent, textAlign: 'center', marginTop: 20 },
   resultWrap: { marginTop: 24, paddingTop: 24, borderTopWidth: 0.5, borderTopColor: colors.borderLight },
   resultTime: { fontFamily: 'PlayfairDisplay_500Medium', fontSize: 36, color: colors.primary, letterSpacing: -1 },
+  routeHeader: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 4, marginBottom: 4, gap: 12 },
+  routeHeaderLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: '#8A919C', letterSpacing: 1.5, marginBottom: 4 },
+  routeHeaderStation: { fontFamily: 'Inter_700Bold', fontSize: 18, color: colors.primary },
+  routeHeaderEn: { fontFamily: 'Inter_400Regular', fontSize: 11, color: '#8A919C', marginTop: 2 },
+  routeArrow: { fontFamily: 'Inter_400Regular', fontSize: 20, color: '#8A919C' },
   summaryCard: { flexDirection: 'row', backgroundColor: '#FAFAF8', borderRadius: 3, padding: 14, marginBottom: 18, gap: 12 },
   summaryItem: { flex: 1, alignItems: 'center' },
   summaryNum: { fontFamily: 'Inter_700Bold', fontSize: 22, color: colors.primary },
