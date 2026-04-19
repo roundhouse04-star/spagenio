@@ -25,7 +25,7 @@ const getTabs = (post) => {
   return tabs;
 };
 
-export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark }) {
+export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark, onWishlist }) {
   const [post, setPost] = useState(initialPost);
   const [toast, setToast] = useState(null);
   const showToast = (message, type = 'error') => {

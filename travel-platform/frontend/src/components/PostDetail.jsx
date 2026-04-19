@@ -25,7 +25,7 @@ const getTabs = (post) => {
   return tabs;
 };
 
-export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark }) {
+export default function PostDetail({ post: initialPost, currentUserId, plans, onLike, onComment, onProfile, onAddToPlanner, onBack, onDelete, onUpdate, currentUser, onBookmark, onWishlist }) {
   const [post, setPost] = useState(initialPost);
   const [activeImg, setActiveImg] = useState(0);
   const [commentText, setCommentText] = useState('');
