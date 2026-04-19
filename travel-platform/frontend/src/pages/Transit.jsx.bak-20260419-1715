@@ -287,9 +287,7 @@ export default function Transit() {
           curSegment.push(path[i + 1]);
         }
         if (curSegment.length > 0) segments.push({ lineId: curLine, stations: curSegment });
-        // "transfer" 세그먼트는 환승 표시일 뿐 - 제거
-        const cleanSegments = segments.filter(s => s.lineId && s.lineId !== 'transfer' && s.stations.length >= 2);
-        setPathResult({ path: pathStations, segments: cleanSegments, totalTime: path.length * 2, transfers: Math.max(0, cleanSegments.length - 1) });
+        setPathResult({ path: pathStations, segments, totalTime: path.length * 2, transfers: segments.length - 1 });
       } else {
         setPathResult({ notFound: true });
       }
