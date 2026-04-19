@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView, Image,
   KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { format, parseISO, isValid } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Colors, Typography, Spacing } from '@/theme/theme';
 import { createTripLog } from '@/db/logs';
+import DatePickerModal from '@/components/DatePickerModal';
 
 const MOODS = [
   { key: '😊', label: '행복' },
@@ -31,6 +34,8 @@ export default function NewLogScreen() {
   const [weather, setWeather] = useState('');
   const [mood, setMood] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const canSave = title.trim().length > 0 || content.trim().length > 0;
 
@@ -70,11 +75,12 @@ export default function NewLogScreen() {
     setImages(images.filter((i) => i !== uri));
   };
 
-  const handleSave = async () => {
-    if (!canSave) {
-      Alert.alert('제목이나 내용을 입력해주세요');
+  const handleSave = useCallback(async () => {
+    if (!canSave || saving) {
+      if (!canSave) Alert.alert('제목이나 내용을 입력해주세요');
       return;
     }
+    setSaving(true);
     try {
       await createTripLog({
         tripId,
@@ -90,172 +96,207 @@ export default function NewLogScreen() {
     } catch (err) {
       console.error(err);
       Alert.alert('저장 실패');
+      setSaving(false);
     }
+  }, [canSave, saving, tripId, logDate, title, content, images, location, weather, mood]);
+
+  const formatDisplay = (v: string) => {
+    if (!v) return '';
+    const d = parseISO(v);
+    if (!isValid(d)) return v;
+    return format(d, 'yyyy.MM.dd (EEE)', { locale: ko });
   };
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: '기록 작성',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Text style={styles.headerBtn}>취소</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* 커스텀 헤더 */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Text style={styles.headerBtn}>취소</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>기록 작성</Text>
+        <Pressable
+          onPress={handleSave}
+          disabled={!canSave || saving}
+          hitSlop={10}
+        >
+          <Text
+            style={[
+              styles.headerBtn,
+              styles.saveBtn,
+              (!canSave || saving) && { opacity: 0.4 },
+            ]}
+          >
+            {saving ? '저장중...' : '저장'}
+          </Text>
+        </Pressable>
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.imageActions}>
+            <Pressable style={styles.imageBtn} onPress={pickImages}>
+              <Text style={styles.imageBtnIcon}>🖼️</Text>
+              <Text style={styles.imageBtnText}>갤러리</Text>
             </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable onPress={handleSave} disabled={!canSave}>
+            <Pressable style={styles.imageBtn} onPress={takePhoto}>
+              <Text style={styles.imageBtnIcon}>📷</Text>
+              <Text style={styles.imageBtnText}>촬영</Text>
+            </Pressable>
+          </View>
+
+          {images.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.imageRow}
+            >
+              {images.map((uri, i) => (
+                <View key={i} style={styles.imageWrap}>
+                  <Image source={{ uri }} style={styles.image} />
+                  <Pressable
+                    style={styles.imageRemove}
+                    onPress={() => removeImage(uri)}
+                  >
+                    <Text style={styles.imageRemoveText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>날짜</Text>
+            <Pressable
+              style={styles.dateBox}
+              onPress={() => setShowDatePicker(true)}
+            >
               <Text
-                style={[styles.headerBtn, styles.saveBtn, !canSave && { opacity: 0.4 }]}
+                style={[styles.dateText, !logDate && styles.datePlaceholder]}
               >
-                저장
+                {logDate ? formatDisplay(logDate) : '날짜 선택'}
               </Text>
             </Pressable>
-          ),
-        }}
-      />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView contentContainerStyle={styles.scroll}>
-            <View style={styles.imageActions}>
-              <Pressable style={styles.imageBtn} onPress={pickImages}>
-                <Text style={styles.imageBtnIcon}>🖼️</Text>
-                <Text style={styles.imageBtnText}>갤러리</Text>
-              </Pressable>
-              <Pressable style={styles.imageBtn} onPress={takePhoto}>
-                <Text style={styles.imageBtnIcon}>📷</Text>
-                <Text style={styles.imageBtnText}>촬영</Text>
-              </Pressable>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>제목</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="오늘의 여행"
+              placeholderTextColor={Colors.textTertiary}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>내용</Text>
+            <TextInput
+              style={[styles.input, styles.textarea]}
+              value={content}
+              onChangeText={setContent}
+              placeholder="오늘 있었던 일, 느낀 점, 특별한 순간을 기록해보세요"
+              placeholderTextColor={Colors.textTertiary}
+              multiline
+              numberOfLines={8}
+              textAlignVertical="top"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>장소</Text>
+            <TextInput
+              style={styles.input}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="예: 시부야 스크램블 교차로"
+              placeholderTextColor={Colors.textTertiary}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>날씨</Text>
+            <View style={styles.pickerRow}>
+              {WEATHERS.map((w) => (
+                <Pressable
+                  key={w}
+                  style={[styles.weatherChip, weather === w && styles.chipActive]}
+                  onPress={() => setWeather(weather === w ? '' : w)}
+                >
+                  <Text style={styles.weatherIcon}>{w}</Text>
+                </Pressable>
+              ))}
             </View>
+          </View>
 
-            {images.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.imageRow}
-              >
-                {images.map((uri, i) => (
-                  <View key={i} style={styles.imageWrap}>
-                    <Image source={{ uri }} style={styles.image} />
-                    <Pressable
-                      style={styles.imageRemove}
-                      onPress={() => removeImage(uri)}
-                    >
-                      <Text style={styles.imageRemoveText}>×</Text>
-                    </Pressable>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-
-            <Field label="날짜">
-              <TextInput
-                style={styles.input}
-                value={logDate}
-                onChangeText={setLogDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </Field>
-
-            <Field label="제목">
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="오늘의 여행"
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </Field>
-
-            <Field label="내용">
-              <TextInput
-                style={[styles.input, styles.textarea]}
-                value={content}
-                onChangeText={setContent}
-                placeholder="오늘 있었던 일, 느낀 점, 특별한 순간을 기록해보세요"
-                placeholderTextColor={Colors.textTertiary}
-                multiline
-                numberOfLines={8}
-                textAlignVertical="top"
-              />
-            </Field>
-
-            <Field label="장소">
-              <TextInput
-                style={styles.input}
-                value={location}
-                onChangeText={setLocation}
-                placeholder="예: 시부야 스크램블 교차로"
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </Field>
-
-            <Field label="날씨">
-              <View style={styles.pickerRow}>
-                {WEATHERS.map((w) => (
-                  <Pressable
-                    key={w}
-                    style={[styles.weatherChip, weather === w && styles.chipActive]}
-                    onPress={() => setWeather(weather === w ? '' : w)}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>기분</Text>
+            <View style={styles.pickerRow}>
+              {MOODS.map((m) => (
+                <Pressable
+                  key={m.key}
+                  style={[styles.moodChip, mood === m.key && styles.chipActive]}
+                  onPress={() => setMood(mood === m.key ? '' : m.key)}
+                >
+                  <Text style={styles.moodIcon}>{m.key}</Text>
+                  <Text
+                    style={[
+                      styles.moodLabel,
+                      mood === m.key && styles.moodLabelActive,
+                    ]}
                   >
-                    <Text style={styles.weatherIcon}>{w}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </Field>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-            <Field label="기분">
-              <View style={styles.pickerRow}>
-                {MOODS.map((m) => (
-                  <Pressable
-                    key={m.key}
-                    style={[styles.moodChip, mood === m.key && styles.chipActive]}
-                    onPress={() => setMood(mood === m.key ? '' : m.key)}
-                  >
-                    <Text style={styles.moodIcon}>{m.key}</Text>
-                    <Text
-                      style={[
-                        styles.moodLabel,
-                        mood === m.key && styles.moodLabelActive,
-                      ]}
-                    >
-                      {m.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </Field>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {children}
-    </View>
+      <DatePickerModal
+        visible={showDatePicker}
+        value={logDate}
+        title="날짜 선택"
+        onConfirm={setLogDate}
+        onClose={() => setShowDatePicker(false)}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: Spacing.xl, gap: Spacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
   headerBtn: {
     fontSize: Typography.bodyMedium,
     color: Colors.textSecondary,
-    paddingHorizontal: Spacing.lg,
     fontWeight: '500',
   },
+  headerTitle: {
+    fontSize: Typography.bodyLarge,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+  },
   saveBtn: { color: Colors.primary, fontWeight: '700' },
+  scroll: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.huge },
   imageActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -321,6 +362,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  dateBox: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: Typography.bodyMedium,
+    color: Colors.textPrimary,
+  },
+  datePlaceholder: {
+    color: Colors.textTertiary,
   },
   textarea: {
     minHeight: 160,

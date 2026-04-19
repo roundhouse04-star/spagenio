@@ -46,7 +46,13 @@ export async function createChecklistItem(data: Partial<ChecklistItem>): Promise
 
 export async function toggleChecklistItem(id: number): Promise<void> {
   const db = await getDB();
-  await db.runAsync('UPDATE checklists SET is_checked = NOT is_checked WHERE id = ?', [id]);
+  // CASE 문으로 명시적 토글 (NOT 연산자보다 안정적)
+  await db.runAsync(
+    `UPDATE checklists
+     SET is_checked = CASE WHEN COALESCE(is_checked, 0) = 1 THEN 0 ELSE 1 END
+     WHERE id = ?`,
+    [id]
+  );
 }
 
 export async function deleteChecklistItem(id: number): Promise<void> {
