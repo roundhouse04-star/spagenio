@@ -27,6 +27,7 @@ function FeedStack({ user, setUser }) {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="FeedMain">{() => <FeedScreen user={user} />}</Stack.Screen>
       <Stack.Screen name="PostDetail">{(props) => <PostDetailScreen {...props} user={user} setUser={setUser} />}</Stack.Screen>
+      <Stack.Screen name="NearbyPage">{() => <NearbyScreen user={user} />}</Stack.Screen>
     </Stack.Navigator>
   );
 }
