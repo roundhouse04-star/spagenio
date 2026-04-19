@@ -9,7 +9,7 @@ import { User, Trip } from '@/types';
 export default function HomeScreen() {
   const [user, setUser] = useState<User | null>(null);
   const [ongoingTrip, setOngoingTrip] = useState<Trip | null>(null);
-  const [upcomingTrip, setUpcomingTrip] = useState<Trip | null>(null);
+  const [planningTrips, setPlanningTrips] = useState<Trip[]>([]);
   const [stats, setStats] = useState({ total: 0, completed: 0, planning: 0 });
 
   const loadData = useCallback(async () => {
@@ -36,11 +36,15 @@ export default function HomeScreen() {
     );
     setOngoingTrip(ongoing ? rowToTrip(ongoing) : null);
 
-    const upcoming = await db.getFirstAsync<any>(
-      `SELECT * FROM trips WHERE status = 'planning' AND start_date >= date('now')
-       ORDER BY start_date ASC LIMIT 1`
+    // 계획 중인 여행 전부 가져오기 (최신순)
+    const plans = await db.getAllAsync<any>(
+      `SELECT * FROM trips WHERE status = 'planning'
+       ORDER BY
+         CASE WHEN start_date IS NULL THEN 1 ELSE 0 END,
+         start_date ASC,
+         created_at DESC`
     );
-    setUpcomingTrip(upcoming ? rowToTrip(upcoming) : null);
+    setPlanningTrips(plans.map(rowToTrip));
 
     const total = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM trips');
     const completed = await db.getFirstAsync<any>(
@@ -59,6 +63,7 @@ export default function HomeScreen() {
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const greeting = getGreeting();
+  const hasAnyPlan = ongoingTrip || planningTrips.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -68,38 +73,62 @@ export default function HomeScreen() {
           <Text style={styles.name}>{user?.nickname ?? '여행자'}님</Text>
         </View>
 
+        {/* 진행 중인 여행 */}
         {ongoingTrip && (
           <Pressable
             style={styles.ongoingCard}
             onPress={() => router.push(`/trip/${ongoingTrip.id}`)}
           >
-            <Text style={styles.ongoingBadge}>진행 중</Text>
+            <View style={styles.ongoingHead}>
+              <Text style={styles.ongoingBadge}>진행 중</Text>
+              <Pressable
+                onPress={() => router.push(`/trips/new?id=${ongoingTrip.id}`)}
+                hitSlop={10}
+                style={styles.editIconWrap}
+              >
+                <Text style={styles.editIconLight}>✏️</Text>
+              </Pressable>
+            </View>
             <Text style={styles.ongoingTitle}>{ongoingTrip.title}</Text>
             <Text style={styles.ongoingLocation}>
               📍 {ongoingTrip.city ?? ''} {ongoingTrip.country ?? ''}
             </Text>
-            <View style={styles.ongoingDates}>
-              <Text style={styles.ongoingDate}>
-                {ongoingTrip.startDate} ~ {ongoingTrip.endDate}
-              </Text>
+            {(ongoingTrip.startDate || ongoingTrip.endDate) && (
+              <View style={styles.ongoingDates}>
+                <Text style={styles.ongoingDate}>
+                  {ongoingTrip.startDate} ~ {ongoingTrip.endDate}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        )}
+
+        {/* 계획 중인 여행 리스트 */}
+        {planningTrips.length > 0 && (
+          <View style={styles.sectionWrap}>
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>계획 중인 여행</Text>
+              <Text style={styles.sectionCount}>{planningTrips.length}</Text>
             </View>
-          </Pressable>
+            {planningTrips.map((trip) => (
+              <PlanningCard
+                key={trip.id}
+                trip={trip}
+                onOpen={() => router.push(`/trip/${trip.id}`)}
+                onEdit={() => router.push(`/trips/new?id=${trip.id}`)}
+              />
+            ))}
+            <Pressable
+              style={styles.addMoreBtn}
+              onPress={() => router.push('/trips/new')}
+            >
+              <Text style={styles.addMoreText}>+ 여행 계획 추가</Text>
+            </Pressable>
+          </View>
         )}
 
-        {upcomingTrip && !ongoingTrip && (
-          <Pressable
-            style={styles.upcomingCard}
-            onPress={() => router.push(`/trip/${upcomingTrip.id}`)}
-          >
-            <Text style={styles.upcomingLabel}>다가오는 여행</Text>
-            <Text style={styles.upcomingTitle}>{upcomingTrip.title}</Text>
-            <Text style={styles.upcomingDate}>
-              {upcomingTrip.startDate} 출발
-            </Text>
-          </Pressable>
-        )}
-
-        {!ongoingTrip && !upcomingTrip && (
+        {/* 계획도 진행도 없는 경우만 빈 카드 */}
+        {!hasAnyPlan && (
           <Pressable
             style={styles.emptyCard}
             onPress={() => router.push('/trips/new')}
@@ -116,7 +145,7 @@ export default function HomeScreen() {
           <StatBox label="완료" value={stats.completed} />
         </View>
 
-        <Text style={styles.sectionTitle}>빠른 메뉴</Text>
+        <Text style={styles.sectionTitleSmall}>빠른 메뉴</Text>
         <View style={styles.quickGrid}>
           <QuickButton icon="💱" label="환율" onPress={() => router.push('/(tabs)/tools')} />
           <QuickButton icon="🚇" label="교통" onPress={() => router.push('/(tabs)/tools')} />
@@ -125,6 +154,38 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function PlanningCard({
+  trip, onOpen, onEdit,
+}: { trip: Trip; onOpen: () => void; onEdit: () => void }) {
+  return (
+    <Pressable style={styles.planCard} onPress={onOpen}>
+      <View style={styles.planContent}>
+        <View style={styles.planBadgeRow}>
+          <Text style={styles.planBadge}>계획 중</Text>
+        </View>
+        <Text style={styles.planTitle} numberOfLines={1}>{trip.title}</Text>
+        {(trip.city || trip.country) && (
+          <Text style={styles.planLocation} numberOfLines={1}>
+            📍 {[trip.city, trip.country].filter(Boolean).join(', ')}
+          </Text>
+        )}
+        {trip.startDate && (
+          <Text style={styles.planDate}>
+            🗓️ {trip.startDate}{trip.endDate ? ` ~ ${trip.endDate}` : ' 출발'}
+          </Text>
+        )}
+      </View>
+      <Pressable
+        onPress={onEdit}
+        hitSlop={10}
+        style={styles.editBtn}
+      >
+        <Text style={styles.editIcon}>✏️</Text>
+      </Pressable>
+    </Pressable>
   );
 }
 
@@ -188,6 +249,8 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: '700',
   },
+
+  // 진행 중 카드
   ongoingCard: {
     backgroundColor: Colors.primary,
     borderRadius: 20,
@@ -195,8 +258,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     ...Shadows.medium,
   },
+  ongoingHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
   ongoingBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: Colors.accent,
     color: Colors.primary,
     paddingHorizontal: Spacing.sm,
@@ -205,8 +273,15 @@ const styles = StyleSheet.create({
     fontSize: Typography.labelSmall,
     fontWeight: '700',
     letterSpacing: 1,
-    marginBottom: Spacing.md,
     overflow: 'hidden',
+  },
+  editIconWrap: {
+    width: 30, height: 30, borderRadius: 15,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(250, 248, 243, 0.15)',
+  },
+  editIconLight: {
+    fontSize: 14,
   },
   ongoingTitle: {
     fontSize: Typography.headlineLarge,
@@ -228,32 +303,110 @@ const styles = StyleSheet.create({
     fontSize: Typography.bodySmall,
     color: 'rgba(250, 248, 243, 0.7)',
   },
-  upcomingCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.accent,
-    ...Shadows.soft,
+
+  // 계획 중 섹션
+  sectionWrap: {
+    marginBottom: Spacing.xxl,
   },
-  upcomingLabel: {
-    fontSize: Typography.labelSmall,
-    color: Colors.accent,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  upcomingTitle: {
-    fontSize: Typography.headlineMedium,
+  sectionTitle: {
+    fontSize: Typography.headlineSmall,
     color: Colors.textPrimary,
     fontWeight: '700',
+  },
+  sectionCount: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textOnPrimary,
+    fontWeight: '700',
+    backgroundColor: Colors.primary,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 6,
+    overflow: 'hidden',
+  },
+  sectionTitleSmall: {
+    fontSize: Typography.headlineSmall,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    marginBottom: Spacing.md,
+  },
+
+  // 계획 카드
+  planCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    ...Shadows.soft,
+  },
+  planContent: {
+    flex: 1,
+  },
+  planBadgeRow: {
     marginBottom: Spacing.xs,
   },
-  upcomingDate: {
+  planBadge: {
+    alignSelf: 'flex-start',
+    fontSize: 10,
+    color: Colors.tripPlanning,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  planTitle: {
+    fontSize: Typography.bodyLarge,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  planLocation: {
     fontSize: Typography.bodySmall,
     color: Colors.textSecondary,
+    marginTop: 2,
   },
+  planDate: {
+    fontSize: Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  editBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.surfaceAlt,
+  },
+  editIcon: {
+    fontSize: 16,
+  },
+
+  // 계획 추가 버튼
+  addMoreBtn: {
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    marginTop: Spacing.xs,
+  },
+  addMoreText: {
+    fontSize: Typography.bodyMedium,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+
+  // 빈 카드
   emptyCard: {
     backgroundColor: Colors.surface,
     borderRadius: 16,
@@ -275,6 +428,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.bodySmall,
     color: Colors.textSecondary,
   },
+
+  // 통계
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -298,12 +453,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.labelMedium,
     color: Colors.textSecondary,
   },
-  sectionTitle: {
-    fontSize: Typography.headlineSmall,
-    color: Colors.textPrimary,
-    fontWeight: '700',
-    marginBottom: Spacing.md,
-  },
+
+  // 빠른 메뉴
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

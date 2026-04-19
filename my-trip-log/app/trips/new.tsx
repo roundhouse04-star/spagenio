@@ -1,17 +1,22 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { format, parseISO, isValid } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { getDB } from '@/db/database';
 import DatePickerModal from '@/components/DatePickerModal';
 
-export default function NewTripScreen() {
+export default function TripFormScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEdit = !!id;
+  const tripId = id ? Number(id) : null;
+
+  const [loading, setLoading] = useState(isEdit);
   const [title, setTitle] = useState('');
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
@@ -19,11 +24,49 @@ export default function NewTripScreen() {
   const [endDate, setEndDate] = useState('');
   const [budget, setBudget] = useState('');
   const [currency, setCurrency] = useState('KRW');
-  const [status, setStatus] = useState<'planning' | 'ongoing'>('planning');
+  const [status, setStatus] = useState<'planning' | 'ongoing' | 'completed'>('planning');
   const [saving, setSaving] = useState(false);
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+
+  // 수정 모드: 기존 데이터 불러오기
+  useEffect(() => {
+    if (!isEdit || !tripId) return;
+    (async () => {
+      try {
+        const db = await getDB();
+        const t = await db.getFirstAsync<any>(
+          'SELECT * FROM trips WHERE id = ?', [tripId]
+        );
+        if (!t) {
+          Alert.alert('오류', '여행을 찾을 수 없습니다', [
+            { text: '확인', onPress: () => router.back() },
+          ]);
+          return;
+        }
+        if (t.status === 'completed') {
+          Alert.alert('수정 불가', '완료된 여행은 수정할 수 없습니다', [
+            { text: '확인', onPress: () => router.back() },
+          ]);
+          return;
+        }
+        setTitle(t.title ?? '');
+        setCountry(t.country ?? '');
+        setCity(t.city ?? '');
+        setStartDate(t.start_date ?? '');
+        setEndDate(t.end_date ?? '');
+        setBudget(t.budget ? String(t.budget) : '');
+        setCurrency(t.currency ?? 'KRW');
+        setStatus(t.status ?? 'planning');
+      } catch (err) {
+        console.error(err);
+        Alert.alert('오류', '불러오기 실패');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [isEdit, tripId]);
 
   const canSave = title.trim().length > 0;
 
@@ -36,31 +79,58 @@ export default function NewTripScreen() {
     try {
       const db = await getDB();
       const now = new Date().toISOString();
-      const result = await db.runAsync(
-        `INSERT INTO trips
-          (title, country, city, start_date, end_date, budget, currency, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          title.trim(),
-          country.trim() || null,
-          city.trim() || null,
-          startDate || null,
-          endDate || null,
-          parseFloat(budget) || 0,
-          currency,
-          status,
-          now,
-          now,
-        ]
-      );
-      const newId = result.lastInsertRowId;
-      router.replace(`/trip/${newId}`);
+
+      if (isEdit && tripId) {
+        // 수정
+        await db.runAsync(
+          `UPDATE trips SET
+            title = ?, country = ?, city = ?,
+            start_date = ?, end_date = ?,
+            budget = ?, currency = ?, status = ?,
+            updated_at = ?
+           WHERE id = ?`,
+          [
+            title.trim(),
+            country.trim() || null,
+            city.trim() || null,
+            startDate || null,
+            endDate || null,
+            parseFloat(budget) || 0,
+            currency,
+            status,
+            now,
+            tripId,
+          ]
+        );
+        router.back();
+      } else {
+        // 신규 생성
+        const result = await db.runAsync(
+          `INSERT INTO trips
+            (title, country, city, start_date, end_date, budget, currency, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            title.trim(),
+            country.trim() || null,
+            city.trim() || null,
+            startDate || null,
+            endDate || null,
+            parseFloat(budget) || 0,
+            currency,
+            status,
+            now,
+            now,
+          ]
+        );
+        const newId = result.lastInsertRowId;
+        router.replace(`/trip/${newId}`);
+      }
     } catch (err) {
       console.error(err);
       Alert.alert('오류', '저장에 실패했습니다');
       setSaving(false);
     }
-  }, [canSave, saving, title, country, city, startDate, endDate, budget, currency, status]);
+  }, [canSave, saving, isEdit, tripId, title, country, city, startDate, endDate, budget, currency, status]);
 
   const formatDisplay = (v: string) => {
     if (!v) return '';
@@ -69,6 +139,23 @@ export default function NewTripScreen() {
     return format(d, 'yyyy.MM.dd (EEE)', { locale: ko });
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Text style={styles.headerBtn}>취소</Text>
+          </Pressable>
+          <Text style={styles.headerTitle}>여행 수정</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: Colors.textSecondary }}>불러오는 중…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* 커스텀 헤더 */}
@@ -76,7 +163,9 @@ export default function NewTripScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Text style={styles.headerBtn}>취소</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>새 여행</Text>
+        <Text style={styles.headerTitle}>
+          {isEdit ? '여행 수정' : '새 여행'}
+        </Text>
         <Pressable
           onPress={handleSave}
           disabled={!canSave || saving}
@@ -140,7 +229,6 @@ export default function NewTripScreen() {
             </View>
           </View>
 
-          {/* ── 날짜 선택 (달력) ───────────────────────── */}
           <View style={styles.row}>
             <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>출발일</Text>
@@ -235,7 +323,6 @@ export default function NewTripScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ── 달력 모달 ─────────────────────────────────── */}
       <DatePickerModal
         visible={showStartPicker}
         value={startDate}
