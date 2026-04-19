@@ -302,8 +302,8 @@ export default function Transit() {
           toNameEn: _to?.nameEn || ''
         });
         // 검색 후 입력란 자동 clear (앱과 동일)
-        setFromStation(null);
-        setToStation(null);
+        setDeparture(null);
+        setArrival(null);
       } else {
         setPathResult({ notFound: true });
       }
