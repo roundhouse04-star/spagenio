@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { getDB } from '@/db/database';
-import { TRIP_STATUS } from '@/db/schema';
 
 export default function NewTripScreen() {
   const [title, setTitle] = useState('');
@@ -18,15 +17,16 @@ export default function NewTripScreen() {
   const [budget, setBudget] = useState('');
   const [currency, setCurrency] = useState('KRW');
   const [status, setStatus] = useState<'planning' | 'ongoing'>('planning');
+  const [saving, setSaving] = useState(false);
 
   const canSave = title.trim().length > 0;
 
-  const handleSave = async () => {
-    if (!canSave) {
-      Alert.alert('제목을 입력해주세요');
+  const handleSave = useCallback(async () => {
+    if (!canSave || saving) {
+      if (!canSave) Alert.alert('제목을 입력해주세요');
       return;
     }
-
+    setSaving(true);
     try {
       const db = await getDB();
       const now = new Date().toISOString();
@@ -52,178 +52,195 @@ export default function NewTripScreen() {
     } catch (err) {
       console.error(err);
       Alert.alert('오류', '저장에 실패했습니다');
+      setSaving(false);
     }
-  };
+  }, [canSave, saving, title, country, city, startDate, endDate, budget, currency, status]);
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: '새 여행',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Text style={styles.headerBtn}>취소</Text>
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable onPress={handleSave} disabled={!canSave}>
-              <Text style={[styles.headerBtn, styles.saveBtn, !canSave && { opacity: 0.4 }]}>
-                저장
-              </Text>
-            </Pressable>
-          ),
-        }}
-      />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* 커스텀 헤더 (Stack.Screen 제거로 인한 포커스 문제 해결) */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Text style={styles.headerBtn}>취소</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>새 여행</Text>
+        <Pressable
+          onPress={handleSave}
+          disabled={!canSave || saving}
+          hitSlop={10}
         >
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-            <Field label="여행 제목" required>
+          <Text
+            style={[
+              styles.headerBtn,
+              styles.saveBtn,
+              (!canSave || saving) && { opacity: 0.4 },
+            ]}
+          >
+            {saving ? '저장중...' : '저장'}
+          </Text>
+        </Pressable>
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              여행 제목 <Text style={{ color: Colors.error }}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="예: 도쿄 5박 6일"
+              placeholderTextColor={Colors.textTertiary}
+              returnKeyType="next"
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.label}>국가</Text>
               <TextInput
                 style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="예: 도쿄 5박 6일"
+                value={country}
+                onChangeText={setCountry}
+                placeholder="일본"
                 placeholderTextColor={Colors.textTertiary}
               />
-            </Field>
-
-            <View style={styles.row}>
-              <Field label="국가" flex={1}>
-                <TextInput
-                  style={styles.input}
-                  value={country}
-                  onChangeText={setCountry}
-                  placeholder="일본"
-                  placeholderTextColor={Colors.textTertiary}
-                />
-              </Field>
-              <Field label="도시" flex={1}>
-                <TextInput
-                  style={styles.input}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="도쿄"
-                  placeholderTextColor={Colors.textTertiary}
-                />
-              </Field>
             </View>
-
-            <View style={styles.row}>
-              <Field label="출발일" flex={1}>
-                <TextInput
-                  style={styles.input}
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={Colors.textTertiary}
-                />
-              </Field>
-              <Field label="도착일" flex={1}>
-                <TextInput
-                  style={styles.input}
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={Colors.textTertiary}
-                />
-              </Field>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.label}>도시</Text>
+              <TextInput
+                style={styles.input}
+                value={city}
+                onChangeText={setCity}
+                placeholder="도쿄"
+                placeholderTextColor={Colors.textTertiary}
+              />
             </View>
+          </View>
 
-            <View style={styles.row}>
-              <Field label="예산" flex={2}>
-                <TextInput
-                  style={styles.input}
-                  value={budget}
-                  onChangeText={setBudget}
-                  placeholder="0"
-                  placeholderTextColor={Colors.textTertiary}
-                  keyboardType="numeric"
-                />
-              </Field>
-              <Field label="통화" flex={1}>
-                <View style={styles.currencyPicker}>
-                  {['KRW', 'JPY', 'USD'].map((c) => (
-                    <Pressable
-                      key={c}
-                      style={[styles.currencyBtn, currency === c && styles.currencyBtnActive]}
-                      onPress={() => setCurrency(c)}
+          <View style={styles.row}>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.label}>출발일</Text>
+              <TextInput
+                style={styles.input}
+                value={startDate}
+                onChangeText={setStartDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={Colors.textTertiary}
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.label}>도착일</Text>
+              <TextInput
+                style={styles.input}
+                value={endDate}
+                onChangeText={setEndDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={Colors.textTertiary}
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.field, { flex: 2 }]}>
+              <Text style={styles.label}>예산</Text>
+              <TextInput
+                style={styles.input}
+                value={budget}
+                onChangeText={setBudget}
+                placeholder="0"
+                placeholderTextColor={Colors.textTertiary}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.field, { flex: 1 }]}>
+              <Text style={styles.label}>통화</Text>
+              <View style={styles.currencyPicker}>
+                {['KRW', 'JPY', 'USD'].map((c) => (
+                  <Pressable
+                    key={c}
+                    style={[styles.currencyBtn, currency === c && styles.currencyBtnActive]}
+                    onPress={() => setCurrency(c)}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyText,
+                        currency === c && styles.currencyTextActive,
+                      ]}
                     >
-                      <Text
-                        style={[
-                          styles.currencyText,
-                          currency === c && styles.currencyTextActive,
-                        ]}
-                      >
-                        {c}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </Field>
-            </View>
-
-            <Field label="상태">
-              <View style={styles.statusRow}>
-                <Pressable
-                  style={[styles.statusBtn, status === 'planning' && styles.statusBtnActive]}
-                  onPress={() => setStatus('planning')}
-                >
-                  <Text style={[styles.statusText, status === 'planning' && styles.statusTextActive]}>
-                    📝 계획 중
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.statusBtn, status === 'ongoing' && styles.statusBtnActive]}
-                  onPress={() => setStatus('ongoing')}
-                >
-                  <Text style={[styles.statusText, status === 'ongoing' && styles.statusTextActive]}>
-                    ✈️ 진행 중
-                  </Text>
-                </Pressable>
+                      {c}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-            </Field>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
-  );
-}
+            </View>
+          </View>
 
-function Field({
-  label, required, flex, children,
-}: {
-  label: string;
-  required?: boolean;
-  flex?: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={[styles.field, flex && { flex }]}>
-      <Text style={styles.label}>
-        {label} {required && <Text style={{ color: Colors.error }}>*</Text>}
-      </Text>
-      {children}
-    </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>상태</Text>
+            <View style={styles.statusRow}>
+              <Pressable
+                style={[styles.statusBtn, status === 'planning' && styles.statusBtnActive]}
+                onPress={() => setStatus('planning')}
+              >
+                <Text style={[styles.statusText, status === 'planning' && styles.statusTextActive]}>
+                  📝 계획 중
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.statusBtn, status === 'ongoing' && styles.statusBtnActive]}
+                onPress={() => setStatus('ongoing')}
+              >
+                <Text style={[styles.statusText, status === 'ongoing' && styles.statusTextActive]}>
+                  ✈️ 진행 중
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: Spacing.xl, gap: Spacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
   headerBtn: {
     fontSize: Typography.bodyMedium,
     color: Colors.textSecondary,
-    paddingHorizontal: Spacing.lg,
     fontWeight: '500',
+  },
+  headerTitle: {
+    fontSize: Typography.bodyLarge,
+    color: Colors.textPrimary,
+    fontWeight: '700',
   },
   saveBtn: {
     color: Colors.primary,
     fontWeight: '700',
   },
+  scroll: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.huge },
   field: { gap: Spacing.xs },
   label: {
     fontSize: Typography.labelSmall,
