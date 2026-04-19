@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Modal, View, Text, Pressable, StyleSheet, ScrollView,
+  Modal, View, Text, Pressable, StyleSheet,
 } from 'react-native';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,
@@ -41,10 +41,16 @@ export default function DatePickerModal({
   const min = minDate && isValid(parseISO(minDate)) ? parseISO(minDate) : null;
   const max = maxDate && isValid(parseISO(maxDate)) ? parseISO(maxDate) : null;
 
-  const days = useMemo(() => {
+  // 주(week) 단위로 분할된 날짜 배열
+  const weeks = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
     const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
+    const days = eachDayOfInterval({ start, end });
+    const chunks: Date[][] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      chunks.push(days.slice(i, i + 7));
+    }
+    return chunks;
   }, [month]);
 
   const isDisabled = (d: Date) => {
@@ -107,55 +113,64 @@ export default function DatePickerModal({
           {/* Weekday labels */}
           <View style={styles.weekRow}>
             {WEEK_LABELS.map((w, i) => (
-              <Text
-                key={w}
-                style={[
-                  styles.weekLabel,
-                  i === 0 && { color: Colors.error },
-                  i === 6 && { color: Colors.info },
-                ]}
-              >
-                {w}
-              </Text>
+              <View key={w} style={styles.weekLabelCell}>
+                <Text
+                  style={[
+                    styles.weekLabel,
+                    i === 0 && { color: Colors.error },
+                    i === 6 && { color: Colors.info },
+                  ]}
+                >
+                  {w}
+                </Text>
+              </View>
             ))}
           </View>
 
-          {/* Days grid */}
+          {/* Days grid - week rows */}
           <View style={styles.grid}>
-            {days.map((d) => {
-              const inMonth = isSameMonth(d, month);
-              const isSelected = selected && isSameDay(d, selected);
-              const today = isToday(d);
-              const disabled = isDisabled(d);
-              const dow = d.getDay();
+            {weeks.map((week, wIdx) => (
+              <View key={wIdx} style={styles.weekDayRow}>
+                {week.map((d) => {
+                  const inMonth = isSameMonth(d, month);
+                  const isSelected = selected && isSameDay(d, selected);
+                  const today = isToday(d);
+                  const disabled = isDisabled(d);
+                  const dow = d.getDay();
 
-              return (
-                <Pressable
-                  key={d.toISOString()}
-                  style={[
-                    styles.dayCell,
-                    isSelected && styles.dayCellSelected,
-                    today && !isSelected && styles.dayCellToday,
-                  ]}
-                  disabled={disabled}
-                  onPress={() => setSelected(d)}
-                >
-                  <Text
-                    style={[
-                      styles.dayText,
-                      !inMonth && styles.dayTextOutside,
-                      isSelected && styles.dayTextSelected,
-                      today && !isSelected && styles.dayTextToday,
-                      dow === 0 && inMonth && !isSelected && { color: Colors.error },
-                      dow === 6 && inMonth && !isSelected && { color: Colors.info },
-                      disabled && styles.dayTextDisabled,
-                    ]}
-                  >
-                    {d.getDate()}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                  return (
+                    <Pressable
+                      key={d.toISOString()}
+                      style={styles.dayCell}
+                      disabled={disabled}
+                      onPress={() => setSelected(d)}
+                    >
+                      <View
+                        style={[
+                          styles.dayCircle,
+                          isSelected && styles.dayCircleSelected,
+                          today && !isSelected && styles.dayCircleToday,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.dayText,
+                            !inMonth && styles.dayTextOutside,
+                            isSelected && styles.dayTextSelected,
+                            today && !isSelected && styles.dayTextToday,
+                            dow === 0 && inMonth && !isSelected && !today && { color: Colors.error },
+                            dow === 6 && inMonth && !isSelected && !today && { color: Colors.info },
+                            disabled && styles.dayTextDisabled,
+                          ]}
+                        >
+                          {d.getDate()}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
           </View>
 
           {/* Footer */}
@@ -234,36 +249,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
   },
+
+  // 요일 라벨 행
   weekRow: {
     flexDirection: 'row',
     marginBottom: Spacing.xs,
   },
-  weekLabel: {
+  weekLabelCell: {
     flex: 1,
-    textAlign: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  weekLabel: {
     fontSize: Typography.labelSmall,
     color: Colors.textSecondary,
     fontWeight: '600',
-    paddingVertical: Spacing.sm,
   },
-  grid: {
+
+  // 날짜 그리드
+  grid: {},
+  weekDayRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   dayCell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 2,
   },
-  dayCellSelected: {
-    backgroundColor: Colors.primary,
+  dayCircle: {
+    width: '90%',
+    aspectRatio: 1,
     borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dayCellToday: {
+  dayCircleSelected: {
+    backgroundColor: Colors.primary,
+  },
+  dayCircleToday: {
     borderWidth: 1.5,
     borderColor: Colors.accent,
-    borderRadius: 999,
   },
   dayText: {
     fontSize: Typography.bodyMedium,
@@ -286,6 +313,8 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     opacity: 0.3,
   },
+
+  // Footer
   footer: {
     flexDirection: 'row',
     gap: Spacing.sm,
