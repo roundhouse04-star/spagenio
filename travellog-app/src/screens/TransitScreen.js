@@ -175,6 +175,9 @@ export default function TransitScreen() {
       transfers: Math.max(0, segments.length - 1),
     });
     setSearching(false);
+    // 검색 완료 후 입력란 초기화
+    setFromText('');
+    setToText('');
   };
 
   return (
