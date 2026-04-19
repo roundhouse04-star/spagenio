@@ -51,3 +51,7 @@ travel-platform/data/*.db
 
 # User uploads (don't track)
 travel-platform/uploads/
+travellog-app/.gradle/
+travellog-app/node_modules/
+travellog-app/android/.gradle/
+travellog-app/android/build/
