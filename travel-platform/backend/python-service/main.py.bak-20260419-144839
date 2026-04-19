@@ -1011,19 +1011,6 @@ async def unread_count(userId: str):
         return {"count": row[0] if row else 0}
 
 # ── DM 메시지 API ──
-def is_mutual_follow(conn, user_a, user_b):
-    """두 유저가 서로 맞팔인지 확인"""
-    row = conn.execute("""
-        SELECT 1
-        FROM user_following f1
-        INNER JOIN user_followers f2
-          ON f2.user_id = ? AND f2.follower_id = ?
-        WHERE f1.user_id = ? AND f1.following_id = ?
-        LIMIT 1
-    """, (user_a, user_b, user_a, user_b)).fetchone()
-    return row is not None
-
-
 def get_conversation(user1, user2):
     """두 유저 간 대화방 찾기 (없으면 생성)"""
     u1, u2 = sorted([user1, user2])
@@ -1040,26 +1027,8 @@ def get_conversation(user1, user2):
 
 @app.get("/api/dm/conversations")
 async def list_conversations(userId: str):
-    """
-    맞팔 친구 기반 DM 목록
-    - 맞팔 관계인 유저만 표시
-    - 기존 대화방 + 맞팔이지만 아직 대화 없는 친구 모두 포함
-    - 맞팔 깨진 상대는 목록에서 자동 숨김 (데이터는 보존)
-    """
+    """내 대화방 목록 - 상대 정보 + 최근 메시지 + 안읽음 수"""
     with get_db() as conn:
-        # 1. 내 맞팔 친구 ID 목록 (한 번에 조회)
-        mutual_ids = set()
-        mutual_rows = conn.execute("""
-            SELECT f1.following_id
-            FROM user_following f1
-            INNER JOIN user_followers f2
-              ON f2.user_id = ? AND f2.follower_id = f1.following_id
-            WHERE f1.user_id = ?
-        """, (userId, userId)).fetchall()
-        for mr in mutual_rows:
-            mutual_ids.add(mr[0])
-
-        # 2. 기존 대화방 중 "맞팔 유지 중인" 것만
         rows = conn.execute("""
             SELECT c.id, c.user1_id, c.user2_id, c.last_message, c.last_message_at,
                    c.user1_unread, c.user2_unread,
@@ -1071,22 +1040,13 @@ async def list_conversations(userId: str):
             WHERE c.user1_id=? OR c.user2_id=?
             ORDER BY c.last_message_at DESC
         """, (userId, userId)).fetchall()
-
         result = []
-        conversation_user_ids = set()
-
         for r in rows:
             is_u1 = r[1] == userId
             other_id = r[2] if is_u1 else r[1]
-
-            # 맞팔 깨졌으면 목록에서 숨김 (데이터는 유지)
-            if other_id not in mutual_ids:
-                continue
-
             other_nick = r[9] if is_u1 else r[7]
             other_img = r[10] if is_u1 else r[8]
             unread = r[5] if is_u1 else r[6]
-            conversation_user_ids.add(other_id)
             result.append({
                 "id": r[0],
                 "otherUserId": other_id,
@@ -1095,30 +1055,7 @@ async def list_conversations(userId: str):
                 "lastMessage": r[3] or "",
                 "lastMessageAt": r[4],
                 "unreadCount": unread or 0,
-                "isNewChat": False,
             })
-
-        # 3. 맞팔이지만 아직 대화 없는 친구 추가
-        for friend_id in mutual_ids:
-            if friend_id in conversation_user_ids:
-                continue
-            user_row = conn.execute(
-                "SELECT id, nickname, profile_image FROM users WHERE id=?",
-                (friend_id,)
-            ).fetchone()
-            if not user_row:
-                continue
-            result.append({
-                "id": None,
-                "otherUserId": user_row[0],
-                "otherNickname": user_row[1] or "",
-                "otherProfileImage": user_row[2] or "",
-                "lastMessage": "",
-                "lastMessageAt": None,
-                "unreadCount": 0,
-                "isNewChat": True,
-            })
-
         return result
 
 @app.get("/api/dm/conversations/{conv_id}/messages")
