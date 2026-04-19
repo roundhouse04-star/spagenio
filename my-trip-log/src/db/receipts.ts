@@ -4,6 +4,10 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { calculateExchangeRate } from '@/utils/currencyConverter';
 
+/**
+ * @deprecated migration v3에서 자동으로 컬럼 추가됨 (schema.ts)
+ * 호환성을 위해 남겨둠 - 필요시 수동 호출 가능
+ */
 export async function addReceiptFields(db: SQLiteDatabase) {
   const columns = await db.getAllAsync<any>(`PRAGMA table_info(expenses)`);
   const columnNames = columns.map((c: any) => c.name);
@@ -21,7 +25,6 @@ export async function addReceiptFields(db: SQLiteDatabase) {
     await db.execAsync(`ALTER TABLE expenses ADD COLUMN ocr_engine TEXT`);
   }
 
-  // exchange_rate 컬럼이 이미 있을 수도 있으니 체크
   if (!columnNames.includes('exchange_rate')) {
     await db.execAsync(`ALTER TABLE expenses ADD COLUMN exchange_rate REAL`);
   }
@@ -29,11 +32,11 @@ export async function addReceiptFields(db: SQLiteDatabase) {
     await db.execAsync(`ALTER TABLE expenses ADD COLUMN amount_in_home_currency REAL`);
   }
 
-  console.log('[receipt] DB 필드 추가 완료');
+  console.log('[receipt] DB 필드 확인 완료');
 }
 
 export interface ExpenseInput {
-  tripId: string;
+  tripId: string | number;
   expenseDate: string;
   category: string;
   title: string;
@@ -57,8 +60,7 @@ export interface ExpenseInput {
 export async function insertExpenseWithReceipt(
   db: SQLiteDatabase,
   input: ExpenseInput
-): Promise<string> {
-  const id = `exp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+): Promise<number> {
   const now = new Date().toISOString();
 
   // 저장 시점의 환율 계산
@@ -75,14 +77,15 @@ export async function insertExpenseWithReceipt(
     amountInHome = input.amount;
   }
 
-  await db.runAsync(
+  // id는 AUTOINCREMENT에 맡김
+  const result = await db.runAsync(
     `INSERT INTO expenses (
-      id, trip_id, expense_date, category, title, amount, currency,
+      trip_id, expense_date, category, title, amount, currency,
       amount_in_home_currency, exchange_rate, payment_method, memo,
       receipt_image, receipt_ocr_text, receipt_confidence, ocr_engine, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      id, input.tripId, input.expenseDate, input.category, input.title,
+      Number(input.tripId), input.expenseDate, input.category, input.title,
       input.amount, input.currency,
       amountInHome, exchangeRate,
       input.paymentMethod ?? null, input.memo ?? null,
@@ -94,23 +97,23 @@ export async function insertExpenseWithReceipt(
     ]
   );
 
-  return id;
+  return result.lastInsertRowId;
 }
 
 /** 영수증 있는 expense만 */
-export async function getExpensesWithReceipts(db: SQLiteDatabase, tripId: string) {
+export async function getExpensesWithReceipts(db: SQLiteDatabase, tripId: string | number) {
   return await db.getAllAsync<any>(
     `SELECT * FROM expenses
      WHERE trip_id = ? AND receipt_image IS NOT NULL
      ORDER BY expense_date DESC, created_at DESC`,
-    [tripId]
+    [Number(tripId)]
   );
 }
 
 /** 여행의 모든 expense (정산용) */
-export async function getAllExpenses(db: SQLiteDatabase, tripId: string) {
+export async function getAllExpenses(db: SQLiteDatabase, tripId: string | number) {
   return await db.getAllAsync<any>(
     `SELECT * FROM expenses WHERE trip_id = ? ORDER BY expense_date DESC, created_at DESC`,
-    [tripId]
+    [Number(tripId)]
   );
 }
