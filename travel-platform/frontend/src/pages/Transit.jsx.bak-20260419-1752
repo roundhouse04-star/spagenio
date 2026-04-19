@@ -289,21 +289,7 @@ export default function Transit() {
         if (curSegment.length > 0) segments.push({ lineId: curLine, stations: curSegment });
         // "transfer" 세그먼트는 환승 표시일 뿐 - 제거
         const cleanSegments = segments.filter(s => s.lineId && s.lineId !== 'transfer' && s.stations.length >= 2);
-        const _from = pathStations[0];
-        const _to = pathStations[pathStations.length - 1];
-        setPathResult({
-          path: pathStations,
-          segments: cleanSegments,
-          totalTime: path.length * 2,
-          transfers: Math.max(0, cleanSegments.length - 1),
-          fromName: _from?.nameKo || _from?.nameEn || '',
-          fromNameEn: _from?.nameEn || '',
-          toName: _to?.nameKo || _to?.nameEn || '',
-          toNameEn: _to?.nameEn || ''
-        });
-        // 검색 후 입력란 자동 clear (앱과 동일)
-        setFromStation(null);
-        setToStation(null);
+        setPathResult({ path: pathStations, segments: cleanSegments, totalTime: path.length * 2, transfers: Math.max(0, cleanSegments.length - 1) });
       } else {
         setPathResult({ notFound: true });
       }
@@ -460,25 +446,6 @@ export default function Transit() {
                     </div>
                   ) : (
                     <>
-                      {/* 출발/도착 헤더 */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '14px 16px', marginBottom: 12, borderRadius: 6,
-                        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                        border: '1px solid #e2e8f0'
-                      }}>
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', letterSpacing: 0.5, marginBottom: 4 }}>FROM</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A3A' }}>{pathResult.fromName}</div>
-                          {pathResult.fromNameEn && <div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>{pathResult.fromNameEn}</div>}
-                        </div>
-                        <div style={{ fontSize: 20, color: '#94a3b8', padding: '0 12px' }}>→</div>
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#1E2A3A', letterSpacing: 0.5, marginBottom: 4 }}>TO</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A3A' }}>{pathResult.toName}</div>
-                          {pathResult.toNameEn && <div style={{ fontSize: 11, color: '#8A919C', marginTop: 2 }}>{pathResult.toNameEn}</div>}
-                        </div>
-                      </div>
                       <div style={{ display: 'flex', gap: 12, marginBottom: 16, padding: 12, background: '#FAFAF8', borderRadius: 3 }}>
                         <div style={{ textAlign: 'center', flex: 1 }}>
                           <div style={{ fontSize: 22, fontWeight: 800, color: '#1E2A3A' }}>{pathResult.totalTime}min</div>
