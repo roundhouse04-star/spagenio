@@ -5,8 +5,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { format, parseISO, isValid } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { getDB } from '@/db/database';
+import DatePickerModal from '@/components/DatePickerModal';
 
 export default function NewTripScreen() {
   const [title, setTitle] = useState('');
@@ -18,6 +21,9 @@ export default function NewTripScreen() {
   const [currency, setCurrency] = useState('KRW');
   const [status, setStatus] = useState<'planning' | 'ongoing'>('planning');
   const [saving, setSaving] = useState(false);
+
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   const canSave = title.trim().length > 0;
 
@@ -56,9 +62,16 @@ export default function NewTripScreen() {
     }
   }, [canSave, saving, title, country, city, startDate, endDate, budget, currency, status]);
 
+  const formatDisplay = (v: string) => {
+    if (!v) return '';
+    const d = parseISO(v);
+    if (!isValid(d)) return v;
+    return format(d, 'yyyy.MM.dd (EEE)', { locale: ko });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* 커스텀 헤더 (Stack.Screen 제거로 인한 포커스 문제 해결) */}
+      {/* 커스텀 헤더 */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Text style={styles.headerBtn}>취소</Text>
@@ -127,28 +140,39 @@ export default function NewTripScreen() {
             </View>
           </View>
 
+          {/* ── 날짜 선택 (달력) ───────────────────────── */}
           <View style={styles.row}>
             <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>출발일</Text>
-              <TextInput
-                style={styles.input}
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.textTertiary}
-                keyboardType="numbers-and-punctuation"
-              />
+              <Pressable
+                style={styles.dateBox}
+                onPress={() => setShowStartPicker(true)}
+              >
+                <Text
+                  style={[
+                    styles.dateText,
+                    !startDate && styles.datePlaceholder,
+                  ]}
+                >
+                  {startDate ? formatDisplay(startDate) : '날짜 선택'}
+                </Text>
+              </Pressable>
             </View>
             <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>도착일</Text>
-              <TextInput
-                style={styles.input}
-                value={endDate}
-                onChangeText={setEndDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.textTertiary}
-                keyboardType="numbers-and-punctuation"
-              />
+              <Pressable
+                style={styles.dateBox}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Text
+                  style={[
+                    styles.dateText,
+                    !endDate && styles.datePlaceholder,
+                  ]}
+                >
+                  {endDate ? formatDisplay(endDate) : '날짜 선택'}
+                </Text>
+              </Pressable>
             </View>
           </View>
 
@@ -210,6 +234,28 @@ export default function NewTripScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── 달력 모달 ─────────────────────────────────── */}
+      <DatePickerModal
+        visible={showStartPicker}
+        value={startDate}
+        title="출발일 선택"
+        onConfirm={(d) => {
+          setStartDate(d);
+          if (d && endDate && d > endDate) {
+            setEndDate('');
+          }
+        }}
+        onClose={() => setShowStartPicker(false)}
+      />
+      <DatePickerModal
+        visible={showEndPicker}
+        value={endDate}
+        title="도착일 선택"
+        minDate={startDate || undefined}
+        onConfirm={setEndDate}
+        onClose={() => setShowEndPicker(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -256,6 +302,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  dateBox: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: Typography.bodyMedium,
+    color: Colors.textPrimary,
+  },
+  datePlaceholder: {
+    color: Colors.textTertiary,
   },
   row: {
     flexDirection: 'row',
