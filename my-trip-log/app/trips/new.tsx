@@ -80,7 +80,7 @@ export default function NewTripScreen() {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerStyle={styles.scroll}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <Field label="여행 제목" required>
               <TextInput
                 style={styles.input}
