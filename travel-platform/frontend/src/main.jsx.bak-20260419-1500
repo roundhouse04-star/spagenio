@@ -260,8 +260,6 @@ function App() {
 
   const openConversation = async (convo) => {
     setActiveConvo(convo); setMessages([]);
-    // 새 대화방이면 아직 id가 null이라 API 호출 스킵
-    if (!convo.id) return;
     try {
       const res = await fetch(`/api/dm/conversations/${convo.id}/messages`);
       if (res.ok) setMessages(await res.json());
@@ -283,14 +281,8 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         if (data.ok) {
-          // 새 대화방이었다면 서버가 생성한 conversationId 사용 + activeConvo 업데이트
-          const convId = data.conversationId || activeConvo.id;
-          if (!activeConvo.id && data.conversationId) {
-            setActiveConvo(prev => ({ ...prev, id: data.conversationId, isNewChat: false }));
-          }
-          const mRes = await fetch(`/api/dm/conversations/${convId}/messages`);
+          const mRes = await fetch(`/api/dm/conversations/${activeConvo.id}/messages`);
           if (mRes.ok) setMessages(await mRes.json());
-          loadConversations();
         } else { alert(data.message || 'Failed to send'); }
       }
     } catch (e) {}
