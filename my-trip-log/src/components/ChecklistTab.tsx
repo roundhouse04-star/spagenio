@@ -11,10 +11,14 @@ import {
 } from '@/db/checklists';
 import { CHECKLIST_CATEGORIES } from '@/db/schema';
 
+// 'all' = 전체 보기, 그 외는 ChecklistCategory
+type FilterCategory = 'all' | ChecklistCategory;
+
 export function ChecklistTab({ trip }: { trip: Trip }) {
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [newItem, setNewItem] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ChecklistCategory>('general');
+  // 카테고리 탭: 표시 필터 용도
+  const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
 
   const load = useCallback(async () => {
     const all = await getChecklist(trip.id);
@@ -23,19 +27,35 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // 낙관적 업데이트 + 안정적 핸들러
+  const handleToggle = useCallback(async (id: number) => {
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, isChecked: !i.isChecked } : i))
+    );
+    try {
+      await toggleChecklistItem(id);
+    } catch (err) {
+      console.error('토글 실패:', err);
+      load();
+    }
+  }, [load]);
+
   const handleAdd = async () => {
     if (!newItem.trim()) return;
+    // 전체 탭일 때는 'general'로, 특정 카테고리 탭일 때는 그 카테고리로
+    const targetCategory: ChecklistCategory =
+      filterCategory === 'all' ? 'general' : filterCategory;
     await createChecklistItem({
       tripId: trip.id,
       title: newItem.trim(),
-      category: selectedCategory,
+      category: targetCategory,
       isChecked: false,
     });
     setNewItem('');
     load();
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = useCallback((id: number) => {
     Alert.alert('항목 삭제', '이 항목을 삭제하시겠어요?', [
       { text: '취소', style: 'cancel' },
       {
@@ -47,7 +67,7 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
         },
       },
     ]);
-  };
+  }, [load]);
 
   const handleAddTemplate = (category: ChecklistCategory) => {
     const cat = CHECKLIST_CATEGORIES.find((c) => c.key === category);
@@ -71,11 +91,17 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
   const totalCount = items.length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
 
-  // 카테고리별 그룹
-  const grouped = CHECKLIST_CATEGORIES.map((cat) => ({
-    ...cat,
-    items: items.filter((i) => i.category === cat.key),
-  })).filter((g) => g.items.length > 0);
+  // 카테고리별 그룹 (필터 적용)
+  const grouped = CHECKLIST_CATEGORIES
+    .filter((cat) => filterCategory === 'all' || cat.key === filterCategory)
+    .map((cat) => ({
+      ...cat,
+      items: items.filter((i) => i.category === cat.key),
+    }))
+    .filter((g) => g.items.length > 0);
+
+  // 필터 적용 후 카운트
+  const filteredCount = grouped.reduce((sum, g) => sum + g.items.length, 0);
 
   return (
     <View style={styles.container}>
@@ -98,7 +124,11 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
           style={styles.input}
           value={newItem}
           onChangeText={setNewItem}
-          placeholder="새 항목 추가..."
+          placeholder={
+            filterCategory === 'all'
+              ? '새 항목 추가... (일반)'
+              : `새 항목 추가... (${CHECKLIST_CATEGORIES.find((c) => c.key === filterCategory)?.label})`
+          }
           placeholderTextColor={Colors.textTertiary}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
@@ -112,33 +142,54 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
         </Pressable>
       </View>
 
+      {/* 카테고리 필터 탭 - "전체" 탭 추가 */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.catTabs}
       >
-        {CHECKLIST_CATEGORIES.map((c) => (
-          <Pressable
-            key={c.key}
+        <Pressable
+          style={[
+            styles.catTab,
+            filterCategory === 'all' && styles.catTabActive,
+          ]}
+          onPress={() => setFilterCategory('all')}
+        >
+          <Text
             style={[
-              styles.catTab,
-              selectedCategory === c.key && styles.catTabActive,
+              styles.catTabText,
+              filterCategory === 'all' && styles.catTabTextActive,
             ]}
-            onPress={() => setSelectedCategory(c.key as ChecklistCategory)}
           >
-            <Text
+            📋 전체 {totalCount > 0 && `(${totalCount})`}
+          </Text>
+        </Pressable>
+        {CHECKLIST_CATEGORIES.map((c) => {
+          const count = items.filter((i) => i.category === c.key).length;
+          return (
+            <Pressable
+              key={c.key}
               style={[
-                styles.catTabText,
-                selectedCategory === c.key && styles.catTabTextActive,
+                styles.catTab,
+                filterCategory === c.key && styles.catTabActive,
               ]}
+              onPress={() => setFilterCategory(c.key as ChecklistCategory)}
             >
-              {c.icon} {c.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.catTabText,
+                  filterCategory === c.key && styles.catTabTextActive,
+                ]}
+              >
+                {c.icon} {c.label} {count > 0 && `(${count})`}
+              </Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
-      {grouped.length === 0 ? (
+      {totalCount === 0 ? (
+        // 전체 비어있음: 템플릿 안내
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📋</Text>
           <Text style={styles.emptyTitle}>체크리스트가 비어있어요</Text>
@@ -158,6 +209,25 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
             ))}
           </View>
         </View>
+      ) : filteredCount === 0 ? (
+        // 선택한 카테고리만 비어있음
+        <View style={styles.emptyFiltered}>
+          <Text style={styles.emptyFilteredText}>
+            이 카테고리에 항목이 없어요
+          </Text>
+          <Pressable
+            style={styles.templateSmallBtn}
+            onPress={() => {
+              if (filterCategory !== 'all') {
+                handleAddTemplate(filterCategory);
+              }
+            }}
+          >
+            <Text style={styles.templateSmallText}>
+              {CHECKLIST_CATEGORIES.find((c) => c.key === filterCategory)?.label} 템플릿 추가
+            </Text>
+          </Pressable>
+        </View>
       ) : (
         <View style={styles.list}>
           {grouped.map((group) => (
@@ -166,32 +236,12 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
                 {group.icon} {group.label}
               </Text>
               {group.items.map((item) => (
-                <Pressable
+                <ChecklistRow
                   key={item.id}
-                  style={styles.row}
-                  onPress={async () => {
-                    await toggleChecklistItem(item.id);
-                    load();
-                  }}
-                  onLongPress={() => handleDelete(item.id)}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      item.isChecked && styles.checkboxChecked,
-                    ]}
-                  >
-                    {item.isChecked && <Text style={styles.check}>✓</Text>}
-                  </View>
-                  <Text
-                    style={[
-                      styles.rowText,
-                      item.isChecked && styles.rowTextChecked,
-                    ]}
-                  >
-                    {item.title}
-                  </Text>
-                </Pressable>
+                  item={item}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                />
               ))}
             </View>
           ))}
@@ -201,6 +251,45 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
         </View>
       )}
     </View>
+  );
+}
+
+function ChecklistRow({
+  item,
+  onToggle,
+  onDelete,
+}: {
+  item: ChecklistItem;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.row,
+        pressed && styles.rowPressed,
+      ]}
+      onPress={() => onToggle(item.id)}
+      onLongPress={() => onDelete(item.id)}
+      android_ripple={{ color: Colors.surfaceAlt }}
+    >
+      <View
+        style={[
+          styles.checkbox,
+          item.isChecked && styles.checkboxChecked,
+        ]}
+      >
+        {item.isChecked && <Text style={styles.check}>✓</Text>}
+      </View>
+      <Text
+        style={[
+          styles.rowText,
+          item.isChecked && styles.rowTextChecked,
+        ]}
+      >
+        {item.title}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -307,7 +396,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     gap: Spacing.md,
+    borderRadius: 8,
+  },
+  rowPressed: {
+    backgroundColor: Colors.surfaceAlt,
   },
   checkbox: {
     width: 22,
@@ -358,6 +452,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.lg,
+  },
+  emptyFiltered: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    padding: Spacing.lg,
+    ...Shadows.soft,
+  },
+  emptyFilteredText: {
+    fontSize: Typography.bodyMedium,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  templateSmallBtn: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: 999,
+  },
+  templateSmallText: {
+    fontSize: Typography.labelMedium,
+    color: Colors.textOnPrimary,
+    fontWeight: '700',
   },
   templateGrid: {
     flexDirection: 'row',
