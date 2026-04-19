@@ -1,48 +1,166 @@
-import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable,
+  Switch, Alert, ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import * as Application from 'expo-application';
+
+import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { haptic } from '@/utils/haptics';
 import { getDB, resetDatabase } from '@/db/database';
+import { exportData, importData } from '@/utils/backup';
+import {
+  getNotificationEnabled, setNotificationEnabled,
+  getThemeMode, setThemeMode, ThemeMode,
+} from '@/utils/settings';
+
+interface UserInfo {
+  nickname: string;
+  nationality: string;
+  homeCurrency: string;
+}
+
+interface Stats {
+  totalTrips: number;
+  uniqueCountries: number;
+  totalLogs: number;
+  totalExpenses: number;
+  totalItems: number;
+}
 
 export default function MeScreen() {
-  const [user, setUser] = useState<{ nickname: string; nationality: string | null } | null>(null);
-  const [stats, setStats] = useState({
-    totalTrips: 0,
-    totalLogs: 0,
-    totalCountries: 0,
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [stats, setStats] = useState<Stats>({
+    totalTrips: 0, uniqueCountries: 0, totalLogs: 0, totalExpenses: 0, totalItems: 0,
   });
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const db = await getDB();
-    const u = await db.getFirstAsync<any>('SELECT * FROM user LIMIT 1');
-    if (u) setUser({ nickname: u.nickname, nationality: u.nationality });
+    try {
+      const db = await getDB();
+      const u = await db.getFirstAsync<any>('SELECT * FROM user LIMIT 1');
+      if (u) {
+        setUser({
+          nickname: u.nickname,
+          nationality: u.nationality || '',
+          homeCurrency: u.home_currency || 'KRW',
+        });
+      }
 
-    const t = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM trips');
-    const l = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM trip_logs');
-    const c = await db.getFirstAsync<any>(
-      `SELECT COUNT(DISTINCT country) as c FROM trips WHERE country IS NOT NULL AND country != ''`
-    );
-    setStats({
-      totalTrips: t?.c ?? 0,
-      totalLogs: l?.c ?? 0,
-      totalCountries: c?.c ?? 0,
-    });
+      // 통계 계산
+      const tripsRow = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM trips');
+      const countriesRow = await db.getFirstAsync<any>(
+        "SELECT COUNT(DISTINCT country) as c FROM trips WHERE country IS NOT NULL AND country != ''"
+      );
+      const logsRow = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM trip_logs');
+      const expensesRow = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM expenses');
+      const itemsRow = await db.getFirstAsync<any>('SELECT COUNT(*) as c FROM trip_items');
+
+      setStats({
+        totalTrips: tripsRow?.c ?? 0,
+        uniqueCountries: countriesRow?.c ?? 0,
+        totalLogs: logsRow?.c ?? 0,
+        totalExpenses: expensesRow?.c ?? 0,
+        totalItems: itemsRow?.c ?? 0,
+      });
+
+      // 설정값 로드
+      setNotifEnabled(await getNotificationEnabled());
+      setThemeModeState(await getThemeMode());
+    } catch (err) {
+      console.error(err);
+    }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
-  const handleReset = () => {
+  const handleEditProfile = () => {
+    haptic.tap();
+    router.push('/settings/profile');
+  };
+
+  const handleNotifToggle = async (v: boolean) => {
+    haptic.select();
+    setNotifEnabled(v);
+    await setNotificationEnabled(v);
+  };
+
+  const handleThemeChange = async (mode: ThemeMode) => {
+    haptic.select();
+    setThemeModeState(mode);
+    await setThemeMode(mode);
     Alert.alert(
-      '모든 데이터 삭제',
-      '정말 모든 여행 기록을 삭제하시겠어요?\n이 작업은 되돌릴 수 없습니다.',
+      '테마 변경됨',
+      mode === 'system' ? '시스템 설정을 따라갑니다' :
+      mode === 'dark' ? '다크 모드로 설정됐어요' : '라이트 모드로 설정됐어요',
+      [{ text: '확인' }]
+    );
+  };
+
+  const handleExport = async () => {
+    haptic.medium();
+    if (busy) return;
+    setBusy(true);
+    const result = await exportData();
+    setBusy(false);
+    if (result.ok) {
+      haptic.success();
+    } else {
+      haptic.error();
+    }
+    Alert.alert(result.ok ? '백업 완료' : '백업 실패', result.message);
+  };
+
+  const handleImport = async () => {
+    haptic.medium();
+    if (busy) return;
+
+    Alert.alert(
+      '데이터 복원',
+      '백업 파일로 복원하면 현재 여행 데이터가 모두 대체됩니다.\n계속하시겠습니까?',
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '삭제',
+          text: '복원',
+          style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            const result = await importData();
+            setBusy(false);
+            if (result.ok) {
+              haptic.success();
+              Alert.alert('복원 완료', result.message, [{ text: '확인', onPress: load }]);
+            } else {
+              haptic.error();
+              Alert.alert('복원 실패', result.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleResetAll = () => {
+    haptic.heavy();
+    Alert.alert(
+      '⚠️ 정말 모든 데이터를 초기화할까요?',
+      '모든 여행 기록, 사진, 설정이 영구 삭제됩니다.\n이 작업은 되돌릴 수 없어요.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '초기화',
           style: 'destructive',
           onPress: async () => {
             await resetDatabase();
+            haptic.heavy();
             router.replace('/(onboarding)/welcome');
           },
         },
@@ -50,217 +168,377 @@ export default function MeScreen() {
     );
   };
 
+  const appVersion = Application.default?.expoConfig?.version ?? '1.0.0';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.profileCard}>
+        {/* 프로필 헤더 */}
+        <View style={styles.profileHeader}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {user?.nickname?.slice(0, 1).toUpperCase() ?? '?'}
+              {user?.nickname?.[0] || '?'}
             </Text>
           </View>
-          <Text style={styles.nickname}>{user?.nickname ?? '여행자'}</Text>
-          <Text style={styles.nationality}>
-            {user?.nationality === 'KR' ? '🇰🇷 대한민국' : user?.nationality ?? ''}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.nickname}>{user?.nickname || '이름없음'}</Text>
+            <Text style={styles.nationality}>
+              {countryLabel(user?.nationality)} · 기본 통화 {user?.homeCurrency}
+            </Text>
+          </View>
+          <Pressable style={styles.editButton} onPress={handleEditProfile}>
+            <Text style={styles.editButtonText}>수정</Text>
+          </Pressable>
         </View>
 
+        {/* 여행 통계 */}
         <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>여행 통계</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalTrips}</Text>
-              <Text style={styles.statLabel}>총 여행</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalCountries}</Text>
-              <Text style={styles.statLabel}>방문 국가</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalLogs}</Text>
-              <Text style={styles.statLabel}>기록 수</Text>
-            </View>
+          <Text style={styles.cardTitle}>여행 통계</Text>
+          <View style={styles.statsGrid}>
+            <Stat value={stats.totalTrips} label="총 여행" />
+            <Divider />
+            <Stat value={stats.uniqueCountries} label="방문 국가" />
+            <Divider />
+            <Stat value={stats.totalLogs} label="기록 수" />
+          </View>
+          <View style={[styles.statsGrid, { marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.borderLight }]}>
+            <Stat value={stats.totalItems} label="일정" small />
+            <Divider />
+            <Stat value={stats.totalExpenses} label="지출 기록" small />
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>설정</Text>
-        <View style={styles.menuList}>
-          <MenuItem icon="👤" label="프로필 수정" />
-          <MenuItem icon="💵" label="기본 통화 설정" />
-          <MenuItem icon="🔔" label="알림 설정" />
-          <MenuItem icon="💾" label="데이터 내보내기" />
-          <MenuItem icon="📥" label="데이터 가져오기" />
+        {/* 설정 섹션 */}
+        <SectionTitle>설정</SectionTitle>
+        <View style={styles.menuCard}>
+          <MenuRow
+            icon="👤"
+            label="프로필 수정"
+            onPress={handleEditProfile}
+          />
+          <MenuRow
+            icon="🎨"
+            label="테마"
+            value={themeMode === 'system' ? '시스템' : themeMode === 'dark' ? '다크' : '라이트'}
+            onPress={() => {
+              haptic.tap();
+              Alert.alert('테마 선택', '원하는 테마를 선택하세요', [
+                { text: '시스템 자동', onPress: () => handleThemeChange('system') },
+                { text: '라이트', onPress: () => handleThemeChange('light') },
+                { text: '다크', onPress: () => handleThemeChange('dark') },
+                { text: '취소', style: 'cancel' },
+              ]);
+            }}
+          />
+          <MenuRowSwitch
+            icon="🔔"
+            label="알림 받기"
+            value={notifEnabled}
+            onValueChange={handleNotifToggle}
+          />
         </View>
 
-        <Text style={styles.sectionTitle}>앱 정보</Text>
-        <View style={styles.menuList}>
-          <MenuItem icon="ℹ️" label="앱 버전" trailing="1.0.0" />
-          <MenuItem icon="📄" label="이용약관" />
-          <MenuItem icon="🔒" label="개인정보처리방침" />
-          <MenuItem icon="✉️" label="문의하기" />
+        {/* 데이터 섹션 */}
+        <SectionTitle>데이터</SectionTitle>
+        <View style={styles.menuCard}>
+          <MenuRow
+            icon="💾"
+            label="데이터 내보내기"
+            desc="JSON 파일로 백업"
+            onPress={handleExport}
+            disabled={busy}
+          />
+          <MenuRow
+            icon="📥"
+            label="데이터 가져오기"
+            desc="백업 파일에서 복원"
+            onPress={handleImport}
+            disabled={busy}
+          />
         </View>
 
-        <Pressable style={styles.dangerBtn} onPress={handleReset}>
-          <Text style={styles.dangerBtnText}>모든 데이터 초기화</Text>
-        </Pressable>
+        {/* 앱 정보 섹션 */}
+        <SectionTitle>앱 정보</SectionTitle>
+        <View style={styles.menuCard}>
+          <MenuRow icon="ℹ️" label="앱 버전" value={appVersion} noArrow />
+          <MenuRow
+            icon="📄"
+            label="이용약관"
+            onPress={() => { haptic.tap(); router.push('/settings/terms'); }}
+          />
+          <MenuRow
+            icon="🔒"
+            label="개인정보처리방침"
+            onPress={() => { haptic.tap(); router.push('/settings/privacy'); }}
+          />
+          <MenuRow
+            icon="✉️"
+            label="문의하기"
+            onPress={() => {
+              haptic.tap();
+              Alert.alert('문의하기', 'roundhouse04@gmail.com 으로 문의해주세요!');
+            }}
+          />
+        </View>
 
-        <Text style={styles.footer}>
-          My Trip Log v1.0.0{'\n'}
-          Made with ♥ for travelers
-        </Text>
+        {/* 위험 영역 */}
+        <View style={{ marginTop: Spacing.xxl }}>
+          <Pressable style={styles.dangerButton} onPress={handleResetAll}>
+            <Text style={styles.dangerText}>⚠️ 모든 데이터 초기화</Text>
+          </Pressable>
+        </View>
+
+        <View style={{ height: Spacing.huge }} />
       </ScrollView>
+
+      {busy && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+          <Text style={styles.overlayText}>처리 중...</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
-function MenuItem({
-  icon, label, trailing,
+function Stat({ value, label, small }: { value: number; label: string; small?: boolean }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={[styles.statValue, small && { fontSize: Typography.titleMedium }]}>
+        {value}
+      </Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function Divider() {
+  return <View style={styles.divider} />;
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionTitle}>{children}</Text>;
+}
+
+function MenuRow({
+  icon, label, desc, value, onPress, noArrow, disabled,
 }: {
   icon: string;
   label: string;
-  trailing?: string;
+  desc?: string;
+  value?: string;
+  onPress?: () => void;
+  noArrow?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <Pressable style={styles.menuItem}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.menuRow,
+        pressed && !disabled && { opacity: 0.6 },
+        disabled && { opacity: 0.4 },
+      ]}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled || !onPress}
+    >
       <Text style={styles.menuIcon}>{icon}</Text>
-      <Text style={styles.menuLabel}>{label}</Text>
-      {trailing ? (
-        <Text style={styles.menuTrailing}>{trailing}</Text>
-      ) : (
-        <Text style={styles.menuArrow}>›</Text>
-      )}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.menuLabel}>{label}</Text>
+        {desc && <Text style={styles.menuDesc}>{desc}</Text>}
+      </View>
+      {value && <Text style={styles.menuValue}>{value}</Text>}
+      {!noArrow && onPress && <Text style={styles.menuArrow}>›</Text>}
     </Pressable>
   );
 }
 
+function MenuRowSwitch({
+  icon, label, value, onValueChange,
+}: {
+  icon: string;
+  label: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+}) {
+  return (
+    <View style={styles.menuRow}>
+      <Text style={styles.menuIcon}>{icon}</Text>
+      <Text style={[styles.menuLabel, { flex: 1 }]}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: Colors.border, true: Colors.accent }}
+        thumbColor="#fff"
+      />
+    </View>
+  );
+}
+
+function countryLabel(code?: string): string {
+  const map: Record<string, string> = {
+    KR: '🇰🇷 한국',
+    JP: '🇯🇵 일본',
+    US: '🇺🇸 미국',
+    OTHER: '🌍 기타',
+  };
+  return map[code || ''] || '🌍 기타';
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: Spacing.xxl, paddingBottom: Spacing.huge },
-  profileCard: {
+  scroll: { padding: Spacing.xl },
+
+  profileHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    gap: Spacing.md,
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    borderRadius: 16,
     marginBottom: Spacing.xl,
+    ...Shadows.sm,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 56, height: 56,
+    borderRadius: 28,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
-    ...Shadows.medium,
   },
   avatarText: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: '700',
     color: Colors.textOnPrimary,
   },
   nickname: {
-    fontSize: Typography.headlineMedium,
+    fontSize: Typography.titleMedium,
     fontWeight: '700',
     color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   nationality: {
-    fontSize: Typography.bodyMedium,
+    fontSize: Typography.labelMedium,
+    color: Colors.textTertiary,
+  },
+  editButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: 10,
+  },
+  editButtonText: {
+    fontSize: Typography.labelMedium,
+    fontWeight: '600',
     color: Colors.textSecondary,
   },
+
   statsCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 18,
     padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-    ...Shadows.soft,
+    borderRadius: 16,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
   },
-  statsTitle: {
+  cardTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
     color: Colors.accent,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     marginBottom: Spacing.md,
+    textTransform: 'uppercase',
   },
-  statsRow: {
+  statsGrid: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-around',
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: Colors.border,
-  },
+  stat: { alignItems: 'center', flex: 1 },
   statValue: {
-    fontSize: Typography.displayMedium,
+    fontSize: Typography.displaySmall,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: Colors.textTertiary,
   },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: Colors.borderLight,
+  },
+
   sectionTitle: {
     fontSize: Typography.labelMedium,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.textTertiary,
-    letterSpacing: 1.5,
-    marginTop: Spacing.xl,
+    letterSpacing: 0.5,
     marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
   },
-  menuList: {
+
+  menuCard: {
     backgroundColor: Colors.surface,
     borderRadius: 14,
     overflow: 'hidden',
-    ...Shadows.soft,
+    ...Shadows.sm,
   },
-  menuItem: {
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceAlt,
     gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
   },
-  menuIcon: { fontSize: 22, width: 28 },
+  menuIcon: { fontSize: 20 },
   menuLabel: {
-    flex: 1,
     fontSize: Typography.bodyMedium,
     color: Colors.textPrimary,
     fontWeight: '500',
   },
-  menuArrow: {
-    fontSize: 22,
-    color: Colors.textTertiary,
-  },
-  menuTrailing: {
-    fontSize: Typography.bodySmall,
-    color: Colors.textTertiary,
-  },
-  dangerBtn: {
-    marginTop: Spacing.xxl,
-    padding: Spacing.lg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.error,
-    alignItems: 'center',
-  },
-  dangerBtnText: {
-    color: Colors.error,
-    fontSize: Typography.bodyMedium,
-    fontWeight: '700',
-  },
-  footer: {
-    marginTop: Spacing.xxl,
-    textAlign: 'center',
+  menuDesc: {
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
-    lineHeight: Typography.labelSmall * 1.6,
+    marginTop: 2,
+  },
+  menuValue: {
+    fontSize: Typography.labelMedium,
+    color: Colors.textTertiary,
+  },
+  menuArrow: {
+    fontSize: 18,
+    color: Colors.textTertiary,
+  },
+
+  dangerButton: {
+    borderWidth: 1.5,
+    borderColor: Colors.error,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+  },
+  dangerText: {
+    fontSize: Typography.bodyMedium,
+    fontWeight: '600',
+    color: Colors.error,
+  },
+
+  overlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  overlayText: {
+    fontSize: Typography.bodyMedium,
+    color: '#fff',
+    fontWeight: '600',
   },
 });
