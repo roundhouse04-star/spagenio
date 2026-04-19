@@ -14,6 +14,7 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
     { category: ExpenseCategory; total: number; count: number }[]
   >([]);
   const [total, setTotal] = useState(0);
+  const [receiptCount, setReceiptCount] = useState(0);
 
   const load = useCallback(async () => {
     const [all, cats, t] = await Promise.all([
@@ -24,6 +25,8 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
     setExpenses(all);
     setByCategory(cats);
     setTotal(t);
+    // 영수증 있는 비용 개수 계산
+    setReceiptCount(all.filter((e: any) => e.receiptImage || e.receipt_image).length);
   }, [trip.id]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -76,6 +79,39 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
         </View>
       )}
 
+      {/* ⭐ 빠른 액션: 영수증 스캔 / 영수증 목록 / 수동 추가 */}
+      <View style={styles.actionRow}>
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => router.push(`/trip/${trip.id}/receipt-scan`)}
+        >
+          <Text style={styles.actionIcon}>📸</Text>
+          <Text style={styles.actionLabel}>영수증 스캔</Text>
+          <Text style={styles.actionDesc}>자동 인식</Text>
+        </Pressable>
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => router.push(`/trip/${trip.id}/receipts`)}
+        >
+          <Text style={styles.actionIcon}>📒</Text>
+          <Text style={styles.actionLabel}>영수증 목록</Text>
+          <Text style={styles.actionDesc}>
+            {receiptCount > 0 ? `${receiptCount}장 보관` : '모아보기'}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => router.push({
+            pathname: '/trip/[id]/expense-new',
+            params: { id: String(trip.id) },
+          } as any)}
+        >
+          <Text style={styles.actionIcon}>✏️</Text>
+          <Text style={styles.actionLabel}>수동 입력</Text>
+          <Text style={styles.actionDesc}>직접 추가</Text>
+        </Pressable>
+      </View>
+
       {byCategory.length > 0 && (
         <View style={styles.catGrid}>
           {byCategory.map((c) => {
@@ -99,7 +135,9 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>💰</Text>
           <Text style={styles.emptyTitle}>비용 기록이 없어요</Text>
-          <Text style={styles.emptyDesc}>첫 지출을 추가해보세요</Text>
+          <Text style={styles.emptyDesc}>
+            영수증 스캔이나 수동 입력으로 추가해보세요
+          </Text>
         </View>
       ) : (
         <View style={styles.list}>
@@ -112,16 +150,6 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
           ))}
         </View>
       )}
-
-      <Pressable
-        style={styles.addButton}
-        onPress={() => router.push({
-          pathname: '/trip/[id]/expense-new',
-          params: { id: String(trip.id) },
-        } as any)}
-      >
-        <Text style={styles.addButtonText}>+ 지출 추가</Text>
-      </Pressable>
     </View>
   );
 }
@@ -203,6 +231,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textOnPrimary,
   },
+
+  // 빠른 액션 3버튼
+  actionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  actionBtn: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    ...Shadows.soft,
+  },
+  actionIcon: {
+    fontSize: 28,
+    marginBottom: Spacing.xs,
+  },
+  actionLabel: {
+    fontSize: Typography.labelMedium,
+    color: Colors.textPrimary,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  actionDesc: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textSecondary,
+  },
+
   catGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -286,17 +345,6 @@ const styles = StyleSheet.create({
   emptyDesc: {
     fontSize: Typography.bodySmall,
     color: Colors.textSecondary,
-  },
-  addButton: {
-    marginTop: Spacing.lg,
-    backgroundColor: Colors.primary,
-    padding: Spacing.md,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: Colors.textOnPrimary,
-    fontSize: Typography.bodyMedium,
-    fontWeight: '700',
+    textAlign: 'center',
   },
 });
