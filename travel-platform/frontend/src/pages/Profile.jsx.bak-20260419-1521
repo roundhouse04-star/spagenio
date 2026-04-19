@@ -476,7 +476,6 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
         {[
           { key: 'posts', label: `📷 POSTS ${visiblePosts.length}` },
          ...(isMe? [{ key: 'saved', label: `🔖 SAVED` }] : []),
-         ...(isMe? [{ key: 'wishlist', label: `✈️ WISHLIST` }] : []),
           { key: 'badges', label: `🏅 BADGES ${user.badges?.length || 0}` },
         ].map(t => (
           <button key={t.key} onClick={() => setProfileTab(t.key)}
@@ -510,10 +509,6 @@ export default function Profile({ userId, currentUser, onOpenPost, onChangeUser,
       {/* Saved posts tab (only mine) */}
       {profileTab === 'saved' && isMe && (
         <SavedPosts userId={userId} savedPostIds={user.savedPostIds || []} onOpenPost={onOpenPost} />
-      )}
-      {/* Wishlist tab (only mine) */}
-      {profileTab === 'wishlist' && isMe && (
-        <SavedPosts userId={userId} savedPostIds={user.wishlistPostIds || []} onOpenPost={onOpenPost} />
       )}
 
       {/* BADGES Tab */}
