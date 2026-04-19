@@ -271,6 +271,8 @@ export default function FeedScreen({ user }) {
   const openConversation = async (convo) => {
     setActiveConvo(convo);
     setMessages([]);
+    // 새 대화방이면 아직 id가 null이라 API 호출 스킵
+    if (!convo.id) return;
     try {
       const res = await fetch(`${API_BASE}/api/dm/conversations/${convo.id}/messages`);
       if (res.ok) setMessages(await res.json());
@@ -292,8 +294,14 @@ export default function FeedScreen({ user }) {
       if (res.ok) {
         const data = await res.json();
         if (data.ok) {
-          const mRes = await fetch(`${API_BASE}/api/dm/conversations/${activeConvo.id}/messages`);
+          // 새 대화방이었으면 서버가 생성한 conversationId 사용 + activeConvo 업데이트
+          const convId = data.conversationId || activeConvo.id;
+          if (!activeConvo.id && data.conversationId) {
+            setActiveConvo(prev => ({ ...prev, id: data.conversationId, isNewChat: false }));
+          }
+          const mRes = await fetch(`${API_BASE}/api/dm/conversations/${convId}/messages`);
           if (mRes.ok) setMessages(await mRes.json());
+          loadConversations();
         } else {
           alert(data.message || '전송 실패');
         }
