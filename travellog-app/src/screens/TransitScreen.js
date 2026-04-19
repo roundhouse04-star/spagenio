@@ -138,41 +138,39 @@ export default function TransitScreen() {
       curr = prev[curr]?.from;
     }
 
-    // 세그먼트 생성 (라인이 바뀌면 새 세그먼트)
+    // 세그먼트 생성 - 웹과 동일한 로직 (엣지 기반)
+    // path[i] -> path[i+1] 연결의 lineId로 세그먼트 구성
     const segments = [];
-    let curLineId = null;
+    let curLine = null;
     let curSegment = [];
-    for (let i = 0; i < path.length; i++) {
-      const p = path[i];
-      if (i === 0) {
-        // 시작점 - 다음 연결의 lineId로 시작
-        curLineId = path[1]?.lineId || null;
-        curSegment = [p.stationId];
-      } else {
-        const lineId = p.lineId;
-        if (lineId !== curLineId) {
-          // 라인 변경 -> 세그먼트 분리
-          if (curSegment.length > 0) {
-            segments.push({ lineId: curLineId, stations: curSegment });
-          }
-          curLineId = lineId;
-          curSegment = [path[i - 1].stationId, p.stationId];
-        } else {
-          curSegment.push(p.stationId);
+    for (let i = 0; i < path.length - 1; i++) {
+      const fromId = path[i].stationId;
+      const toId = path[i + 1].stationId;
+      // i+1의 prev 정보에서 lineId 가져오기 (Dijkstra에서 저장됨)
+      const lineId = path[i + 1].lineId || null;
+      if (lineId !== curLine) {
+        // 라인 변경 -> 이전 세그먼트 마감
+        if (curSegment.length > 0) {
+          segments.push({ lineId: curLine, stations: curSegment });
         }
+        curLine = lineId;
+        curSegment = [fromId];
       }
+      curSegment.push(toId);
     }
-    if (curSegment.length > 0) segments.push({ lineId: curLineId, stations: curSegment });
+    if (curSegment.length > 0) segments.push({ lineId: curLine, stations: curSegment });
+    // lineId가 null이거나 유효하지 않은 세그먼트 제거 (중복/환승 잡음)
+    const cleanSegments = segments.filter(s => s.lineId && s.stations.length >= 2);
 
     setRouteResult({
       totalTime: distances[toStation.id],
       path,
-      segments,
+      segments: cleanSegments,
       stationMap,
       lineMap,
       from: fromStation,
       to: toStation,
-      transfers: Math.max(0, segments.length - 1),
+      transfers: Math.max(0, cleanSegments.length - 1),
     });
     setSearching(false);
     // 검색 완료 후 입력란 초기화
