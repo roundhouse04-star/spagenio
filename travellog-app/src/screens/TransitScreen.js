@@ -69,6 +69,9 @@ export default function TransitScreen() {
 
   const searchRoute = () => {
     if (!fromText.trim() || !toText.trim()) return;
+    console.log('[TRANSIT] stations:', stations.length, 'connections:', connections.length, 'lines:', lines.length);
+    console.log('[TRANSIT] from:', fromText, 'to:', toText);
+    if (stations.length > 0) console.log('[TRANSIT] first station:', JSON.stringify(stations[0]));
     setSearching(true);
     setRouteResult(null);
 
@@ -98,26 +101,31 @@ export default function TransitScreen() {
       graph[c.toStationId].push({ to: c.fromStationId, lineId: c.lineId, time: c.travelTime || 2 });
     });
 
-    const distances = {};
+    const distances = { [fromStation.id]: 0 };
     const prev = {};
+    const visited = new Set();
     const pq = [{ station: fromStation.id, dist: 0 }];
-    distances[fromStation.id] = 0;
+    let iterations = 0;
 
-    while (pq.length > 0) {
+    while (pq.length > 0 && iterations++ < 100000) {
       pq.sort((a, b) => a.dist - b.dist);
       const current = pq.shift();
+      if (visited.has(current.station)) continue;
+      visited.add(current.station);
       if (current.station === toStation.id) break;
       (graph[current.station] || []).forEach(neighbor => {
+        if (visited.has(neighbor.to)) return;
         const newDist = current.dist + neighbor.time;
-        if (!distances[neighbor.to] || newDist < distances[neighbor.to]) {
+        if (distances[neighbor.to] === undefined || newDist < distances[neighbor.to]) {
           distances[neighbor.to] = newDist;
           prev[neighbor.to] = { from: current.station, lineId: neighbor.lineId };
           pq.push({ station: neighbor.to, dist: newDist });
         }
       });
     }
+    console.log('[TRANSIT] dijkstra iterations:', iterations, 'visited:', visited.size);
 
-    if (!distances[toStation.id]) {
+    if (distances[toStation.id] === undefined) {
       setRouteResult({ error: 'NO ROUTE FOUND' });
       setSearching(false);
       return;
