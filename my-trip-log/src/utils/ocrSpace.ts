@@ -1,30 +1,8 @@
-/**
- * OCR.space API 래퍼
- *
- * 무료 할당: 월 25,000회
- * API Key: helloworld (공용) 또는 개인 키 발급 가능 (https://ocr.space/ocrapi)
- *
- * 지원 언어 80+ : 한국어, 일본어, 중국어, 태국어, 베트남어, 영어, 유럽 대부분
- *
- * 장점: Expo Go에서도 동작 (HTTP 요청만)
- * 단점: 서버 거침 (프라이버시 이슈 가능), 속도 3~5초
- */
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
 
-// 언어 코드 매핑 (OCR.space 기준)
-const LANG_MAP: Record<string, string> = {
-  'ko': 'kor',       // 한국어
-  'ja': 'jpn',       // 일본어
-  'zh': 'chs',       // 중국어 간체
-  'en': 'eng',       // 영어
-  'th': 'tha',       // 태국어
-  'vi': 'vie',       // 베트남어 - 지원 안함, fallback to eng
-  'auto': 'eng',     // 기본은 eng (다중 인식 어려움)
-};
-
-// 공개 API 키 (무료 25,000회/월 공유)
-// 개인 키 발급 추천: https://ocr.space/ocrapi/freekey
 const DEFAULT_API_KEY = 'helloworld';
+const MAX_BYTES = 1024 * 1024;
 
 export interface OcrSpaceResult {
   success: boolean;
@@ -32,38 +10,59 @@ export interface OcrSpaceResult {
   errorMessage?: string;
 }
 
-/**
- * OCR.space로 이미지 텍스트 인식
- *
- * @param imageUri 로컬 이미지 경로
- * @param lang 언어 코드 (kor/jpn/eng/tha 등)
- * @param apiKey 개인 API 키 (없으면 공용)
- */
+/** OCR.space 1MB 한도에 맞게 자동 압축 */
+async function ensureUnder1MB(uri: string): Promise<string> {
+  const info = await FileSystem.getInfoAsync(uri);
+  const size = (info as any).size ?? 0;
+  if (size <= MAX_BYTES) {
+    console.log('🗜️ 건너뜀 (' + Math.round(size / 1024) + 'KB)');
+    return uri;
+  }
+
+  console.log('🗜️ 원본 ' + Math.round(size / 1024) + 'KB → 압축 시작');
+
+  // 3단계로 점진적 압축
+  const steps: Array<{ width: number; quality: number }> = [
+    { width: 1600, quality: 0.6 },
+    { width: 1200, quality: 0.5 },
+    { width: 900, quality: 0.4 },
+    { width: 700, quality: 0.3 },
+  ];
+
+  let result = { uri };
+  for (const step of steps) {
+    result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: step.width } }],
+      { compress: step.quality, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    const newInfo = await FileSystem.getInfoAsync(result.uri);
+    const newSize = (newInfo as any).size ?? 0;
+    console.log(`🗜️ ${step.width}px/q${step.quality}: ${Math.round(newSize / 1024)}KB`);
+    if (newSize <= MAX_BYTES) return result.uri;
+  }
+  return result.uri; // 최후 결과라도 반환
+}
+
 export async function recognizeWithOcrSpace(
   imageUri: string,
-  lang: 'kor' | 'jpn' | 'eng' | 'tha' | 'chs' = 'eng',
+  lang: 'kor' | 'jpn' | 'eng' | 'tha' | 'chs' = 'kor',
   apiKey: string = DEFAULT_API_KEY
 ): Promise<OcrSpaceResult> {
   try {
-    // 이미지를 base64로 변환
-    const base64 = await FileSystem.readAsStringAsync(imageUri, {
+    const compressedUri = await ensureUnder1MB(imageUri);
+
+    const base64 = await FileSystem.readAsStringAsync(compressedUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // 이미지 크기 체크 (OCR.space 무료는 1MB 제한)
-    const info = await FileSystem.getInfoAsync(imageUri);
-    if (info.exists && info.size && info.size > 1024 * 1024) {
-      console.warn('[OCR.space] 이미지 1MB 초과, 압축 필요');
-    }
-
-    // API 호출
     const formData = new FormData();
     formData.append('apikey', apiKey);
     formData.append('language', lang);
     formData.append('isOverlayRequired', 'false');
     formData.append('detectOrientation', 'true');
     formData.append('scale', 'true');
-    formData.append('OCREngine', '2'); // Engine 2가 정확도 높음
+    formData.append('OCREngine', '2');
     formData.append('base64Image', `data:image/jpeg;base64,${base64}`);
 
     const response = await fetch('https://api.ocr.space/parse/image', {
@@ -74,6 +73,7 @@ export async function recognizeWithOcrSpace(
     const json = await response.json();
 
     if (json.IsErroredOnProcessing) {
+      console.error('📡 OCR.space 오류:', json.ErrorMessage);
       return {
         success: false,
         text: '',
@@ -82,35 +82,31 @@ export async function recognizeWithOcrSpace(
     }
 
     const text = json.ParsedResults?.[0]?.ParsedText ?? '';
-    return {
-      success: !!text,
-      text,
-    };
+    return { success: !!text, text };
   } catch (err) {
-    return {
-      success: false,
-      text: '',
-      errorMessage: String(err),
-    };
+    console.error('🔥 OCR.space 예외:', err);
+    return { success: false, text: '', errorMessage: String(err) };
   }
 }
 
-/**
- * 도시/국가 → 적절한 OCR 언어 코드 추측
- *
- * 여행 중이면 여행 도시에 따라 자동 선택
- */
-export function guessOcrLanguage(countryCode?: string, cityId?: string): 'kor' | 'jpn' | 'eng' | 'tha' | 'chs' {
-  if (!countryCode && !cityId) return 'kor'; // 기본
+/** 도시/국가 → OCR 언어 (한글 도시명도 지원) */
+export function guessOcrLanguage(
+  countryCode?: string,
+  cityId?: string
+): 'kor' | 'jpn' | 'eng' | 'tha' | 'chs' {
+  if (!countryCode && !cityId) return 'kor';
 
   const code = (countryCode || '').toUpperCase();
   const city = (cityId || '').toLowerCase();
 
-  if (code === 'KR' || city === 'seoul' || city === 'busan') return 'kor';
-  if (code === 'JP' || ['tokyo', 'osaka', 'kyoto', 'fukuoka', 'sapporo'].includes(city)) return 'jpn';
-  if (code === 'TH' || city === 'bangkok') return 'tha';
-  if (code === 'CN' || ['shanghai', 'beijing'].includes(city)) return 'chs';
-  if (['HK', 'TW'].includes(code) || ['hongkong', 'taipei'].includes(city)) return 'chs';
+  // 한국 (영어/한글 둘 다)
+  if (code === 'KR' || /seoul|busan|서울|부산|대구|인천|광주|대전/.test(city)) return 'kor';
+  // 일본
+  if (code === 'JP' || /tokyo|osaka|kyoto|fukuoka|sapporo|도쿄|오사카|교토|후쿠오카|삿포로/.test(city)) return 'jpn';
+  // 태국
+  if (code === 'TH' || /bangkok|방콕/.test(city)) return 'tha';
+  // 중화권
+  if (['CN', 'HK', 'TW'].includes(code) || /shanghai|beijing|hongkong|taipei|상하이|베이징|홍콩|타이페이/.test(city)) return 'chs';
 
-  return 'eng'; // 나머지는 영어 (유럽/미국/동남아 영어권)
+  return 'eng'; // 나머지는 영어
 }
