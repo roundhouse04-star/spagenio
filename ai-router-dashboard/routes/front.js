@@ -307,7 +307,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // ✅ 퀀트/주식 프록시
   router.all('/proxy/quant/*', async (req, res) => {
     try {
-      const quantPath = req.path.replace('/proxy/quant', '/api/quant');
+      let quantPath = req.path.replace('/proxy/quant', '');
+      // 프론트 호환: /api/ prefix 없이 호출돼도 자동 보정
+      if (!quantPath.startsWith('/api/')) quantPath = '/api/quant' + quantPath;
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5002${quantPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
       const rawText = await response.text();
@@ -317,7 +319,9 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.all('/proxy/stock/*', async (req, res) => {
     try {
-      const stockPath = req.path.replace('/proxy/stock', '/api/stock');
+      let stockPath = req.path.replace('/proxy/stock', '');
+      // 프론트 호환: /api/ prefix 없이 호출돼도 자동 보정
+      if (!stockPath.startsWith('/api/')) stockPath = '/api/stock' + stockPath;
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5001${stockPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
       const rawText = await response.text();
