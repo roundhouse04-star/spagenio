@@ -50,6 +50,69 @@ public class AuthProxyController {
         return forward(request, body, url);
     }
 
+    // /api/ads/** → Python
+    @RequestMapping("/api/ads/**")
+    public ResponseEntity<String> proxyAds(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
+    @RequestMapping("/api/ads")
+    public ResponseEntity<String> proxyAdsRoot(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
+    // /api/advertisers/** → Python
+    @RequestMapping("/api/advertisers/**")
+    public ResponseEntity<String> proxyAdvertisers(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
+    @RequestMapping("/api/advertisers")
+    public ResponseEntity<String> proxyAdvertisersRoot(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
+    // /api/business/** → Python
+    @RequestMapping("/api/business/**")
+    public ResponseEntity<String> proxyBusiness(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
+    @RequestMapping("/api/business")
+    public ResponseEntity<String> proxyBusinessRoot(
+            HttpServletRequest request,
+            @RequestBody(required = false) String body) throws IOException {
+        String path = request.getRequestURI();
+        String query = request.getQueryString();
+        String url = PYTHON_BASE + path + (query != null ? "?" + query : "");
+        return forward(request, body, url);
+    }
+
     @RequestMapping("/api/notifications")
     public ResponseEntity<String> proxyNotificationsRoot(
             HttpServletRequest request,
