@@ -432,10 +432,10 @@ function clearAlpacaMsg() {
   if (el) { el.style.display = 'none'; el.textContent = ''; }
 }
 
-// fetch에 Select된 계좌 ID 헤더 자동 추가 (alpaca-user 요청)
+// fetch에 Select된 계좌 ID 헤더 자동 추가 (alpaca-user, manual-trade 요청)
 const _origFetch2 = window.fetch;
 window.fetch = function (url, options = {}) {
-  if (typeof url === 'string' && url.includes('/api/alpaca-user/')) {
+  if (typeof url === 'string' && (url.includes('/api/alpaca-user/') || url.includes('/api/manual-trade/'))) {
     const accId = window.selectedAccountId || window.activeAccountId;
     if (accId) {
       options.headers = { ...options.headers, 'x-account-id': String(accId) };
