@@ -17,7 +17,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { getAllTrips, createTrip } from '@/db/trips';
 import { createTripItem } from '@/db/items';
-import { DatePickerModal } from '@/components/DatePickerModal';
+import DatePickerModal from '@/components/DatePickerModal';
 import { Trip } from '@/types';
 
 // 관심사 6개 고정

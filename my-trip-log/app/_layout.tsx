@@ -170,7 +170,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
-            name="transit/[city]"
+            name="transit/[city]/index"
             options={{
               presentation: 'card',
               animation: 'slide_from_right',
