@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import WebView from 'react-native-webview';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { getTripById } from '@/db/trips';
 import {
@@ -19,6 +20,17 @@ import {
 } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
 import { Trip, Expense, ExpenseCategory } from '@/types';
+
+// 카테고리별 색상 (Pie chart용 — 서로 뚜렷하게 구별되게)
+const CATEGORY_COLORS: Record<string, string> = {
+  food: '#F56565',          // 빨강 - 식비
+  transport: '#4299E1',     // 파랑 - 교통
+  accommodation: '#9F7AEA', // 보라 - 숙소
+  activity: '#48BB78',      // 초록 - 액티비티
+  shopping: '#ED8936',      // 주황 - 쇼핑
+  sightseeing: '#38B2AC',   // 청록 - 관광
+  other: '#A0AEC0',         // 회색 - 기타
+};
 
 export default function ExpenseDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -73,6 +85,12 @@ export default function ExpenseDetailScreen() {
   const budget = trip?.budget || 0;
   const percent = budget > 0 ? Math.min(100, (total / budget) * 100) : 0;
   const remaining = budget - total;
+
+  // Pie chart HTML 생성
+  const pieHtml = useMemo(() => {
+    if (categoryStats.length === 0 || total === 0) return '';
+    return buildPieChartHtml(categoryStats, total);
+  }, [categoryStats, total]);
 
   if (!trip) {
     return (
@@ -138,7 +156,7 @@ export default function ExpenseDetailScreen() {
                   <Text
                     style={[
                       styles.budgetInfoValue,
-                      { color: remaining >= 0 ? Colors.success : Colors.error },
+                      { color: remaining >= 0 ? '#7BE495' : '#FF9999' },
                     ]}
                   >
                     ₩{Math.abs(remaining).toLocaleString()}
@@ -167,36 +185,63 @@ export default function ExpenseDetailScreen() {
           )}
         </View>
 
-        {/* 카테고리별 요약 */}
-        {categoryStats.length > 0 && (
+        {/* 파이차트 + 범례 */}
+        {categoryStats.length > 0 && total > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>카테고리별 지출</Text>
-            <View style={styles.categoryGrid}>
-              {categoryStats.map((stat) => {
-                const cat = EXPENSE_CATEGORIES.find((c) => c.key === stat.category);
-                const pct = total > 0 ? (stat.total / total) * 100 : 0;
-                return (
-                  <Pressable
-                    key={stat.category}
-                    style={[
-                      styles.categoryCard,
-                      filter === stat.category && styles.categoryCardActive,
-                    ]}
-                    onPress={() =>
-                      setFilter(filter === stat.category ? 'all' : stat.category)
-                    }
-                  >
-                    <Text style={styles.categoryIcon}>{cat?.icon || '💰'}</Text>
-                    <Text style={styles.categoryLabel}>{cat?.label || stat.category}</Text>
-                    <Text style={styles.categoryAmount}>
-                      ₩{stat.total.toLocaleString()}
-                    </Text>
-                    <Text style={styles.categoryMeta}>
-                      {stat.count}건 · {pct.toFixed(0)}%
-                    </Text>
-                  </Pressable>
-                );
-              })}
+
+            {/* 파이차트 */}
+            <View style={styles.chartCard}>
+              <View style={styles.pieWrap}>
+                <WebView
+                  source={{ html: pieHtml }}
+                  style={styles.pie}
+                  scrollEnabled={false}
+                  javaScriptEnabled
+                  backgroundColor="transparent"
+                />
+              </View>
+
+              {/* 범례 */}
+              <View style={styles.legend}>
+                {categoryStats.map((stat) => {
+                  const cat = EXPENSE_CATEGORIES.find((c) => c.key === stat.category);
+                  const pct = total > 0 ? (stat.total / total) * 100 : 0;
+                  const color = CATEGORY_COLORS[stat.category] || '#A0AEC0';
+                  const isActive = filter === stat.category;
+                  return (
+                    <Pressable
+                      key={stat.category}
+                      style={[
+                        styles.legendItem,
+                        isActive && styles.legendItemActive,
+                      ]}
+                      onPress={() =>
+                        setFilter(isActive ? 'all' : stat.category)
+                      }
+                    >
+                      <View style={[styles.legendDot, { backgroundColor: color }]} />
+                      <Text style={styles.legendIcon}>{cat?.icon || '💰'}</Text>
+                      <View style={styles.legendBody}>
+                        <Text style={styles.legendLabel}>
+                          {cat?.label || stat.category}
+                        </Text>
+                        <Text style={styles.legendMeta}>
+                          {stat.count}건
+                        </Text>
+                      </View>
+                      <View style={styles.legendRight}>
+                        <Text style={styles.legendAmount}>
+                          ₩{stat.total.toLocaleString()}
+                        </Text>
+                        <Text style={styles.legendPercent}>
+                          {pct.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           </View>
         )}
@@ -248,6 +293,89 @@ export default function ExpenseDetailScreen() {
   );
 }
 
+// ====== Pie Chart HTML 생성 ======
+function buildPieChartHtml(
+  stats: { category: string; total: number; count: number }[],
+  total: number
+): string {
+  const segments = stats.map((s) => ({
+    value: s.total,
+    color: CATEGORY_COLORS[s.category] || '#A0AEC0',
+  }));
+
+  // SVG Pie chart
+  const size = 200;
+  const radius = size / 2;
+  const cx = radius;
+  const cy = radius;
+  const innerRadius = radius * 0.55; // 도넛 모양
+
+  let currentAngle = -90; // 12시 방향부터 시작
+  const paths = segments.map((seg) => {
+    const angle = (seg.value / total) * 360;
+    const endAngle = currentAngle + angle;
+
+    const start = polarToCartesian(cx, cy, radius, currentAngle);
+    const end = polarToCartesian(cx, cy, radius, endAngle);
+    const innerStart = polarToCartesian(cx, cy, innerRadius, endAngle);
+    const innerEnd = polarToCartesian(cx, cy, innerRadius, currentAngle);
+
+    const largeArc = angle > 180 ? 1 : 0;
+
+    const d = [
+      `M ${start.x} ${start.y}`,
+      `A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`,
+      `L ${innerStart.x} ${innerStart.y}`,
+      `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerEnd.x} ${innerEnd.y}`,
+      'Z',
+    ].join(' ');
+
+    currentAngle = endAngle;
+
+    return `<path d="${d}" fill="${seg.color}" />`;
+  });
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+    }
+    svg { display: block; }
+    .total { position: absolute; text-align: center; }
+    .total-label { font-size: 10px; color: #8E96A6; font-family: -apple-system, sans-serif; }
+    .total-value { font-size: 15px; font-weight: 700; color: #1E2A3A; font-family: -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div style="position: relative; width: ${size}px; height: ${size}px;">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      ${paths.join('\n      ')}
+    </svg>
+    <div class="total" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+      <div class="total-label">총 지출</div>
+      <div class="total-value">₩${total.toLocaleString()}</div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: cx + r * Math.cos(rad),
+    y: cy + r * Math.sin(rad),
+  };
+}
+
 function ExpenseItem({
   expense,
   onDelete,
@@ -265,7 +393,12 @@ function ExpenseItem({
 
   return (
     <View style={styles.expenseItem}>
-      <View style={styles.expenseItemIcon}>
+      <View
+        style={[
+          styles.expenseItemIcon,
+          { backgroundColor: (CATEGORY_COLORS[expense.category] || '#A0AEC0') + '20' },
+        ]}
+      >
         <Text style={styles.expenseItemIconText}>{cat?.icon || '💰'}</Text>
       </View>
       <View style={styles.expenseItemBody}>
@@ -408,42 +541,77 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
 
-  // 카테고리 그리드
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  categoryCard: {
-    width: '31.5%',
+  // 파이차트 카드
+  chartCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderRadius: 16,
+    padding: Spacing.lg,
     ...Shadows.soft,
   },
-  categoryCardActive: {
-    borderColor: Colors.primary,
+  pieWrap: {
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  pie: {
+    width: 220,
+    height: 220,
+    backgroundColor: 'transparent',
+  },
+
+  // 범례
+  legend: {
+    gap: Spacing.xs,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: 10,
+  },
+  legendItemActive: {
     backgroundColor: Colors.surfaceAlt,
   },
-  categoryIcon: { fontSize: 24, marginBottom: 4 },
-  categoryLabel: {
-    fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    marginBottom: 2,
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  categoryAmount: {
+  legendIcon: {
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
+  },
+  legendBody: { flex: 1 },
+  legendLabel: {
+    fontSize: Typography.bodyMedium,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  legendMeta: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textTertiary,
+    marginTop: 1,
+  },
+  legendRight: {
+    alignItems: 'flex-end',
+  },
+  legendAmount: {
     fontSize: Typography.bodyMedium,
     fontWeight: '800',
     color: Colors.textPrimary,
   },
-  categoryMeta: {
-    fontSize: 10,
-    color: Colors.textTertiary,
-    marginTop: 2,
+  legendPercent: {
+    fontSize: Typography.labelSmall,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    marginTop: 1,
   },
 
   // 필터 바
@@ -487,7 +655,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },

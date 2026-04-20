@@ -159,12 +159,6 @@ function TripExpenseCard({ summary }: { summary: TripExpenseSummary }) {
         <Text style={[styles.statusText, { color: statusColor }]}>
           {statusLabel}
         </Text>
-        {trip.startDate && (
-          <Text style={styles.tripDate}>
-            {trip.startDate}
-            {trip.endDate ? ` ~ ${trip.endDate}` : ''}
-          </Text>
-        )}
       </View>
 
       <Text style={styles.tripTitle} numberOfLines={1}>
@@ -174,6 +168,13 @@ function TripExpenseCard({ summary }: { summary: TripExpenseSummary }) {
       {(trip.city || trip.country) && (
         <Text style={styles.tripLocation}>
           📍 {[trip.city, trip.country].filter(Boolean).join(', ')}
+        </Text>
+      )}
+
+      {trip.startDate && (
+        <Text style={styles.tripDate}>
+          🗓️ {trip.startDate}
+          {trip.endDate ? ` ~ ${trip.endDate}` : ''}
         </Text>
       )}
 
@@ -311,7 +312,8 @@ const styles = StyleSheet.create({
   tripDate: {
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
-    marginLeft: 'auto',
+    marginBottom: Spacing.md,
+    fontWeight: '500',
   },
   tripTitle: {
     fontSize: Typography.bodyLarge,
@@ -323,7 +325,7 @@ const styles = StyleSheet.create({
   tripLocation: {
     fontSize: Typography.bodySmall,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.xs,
   },
 
   // 지출 정보

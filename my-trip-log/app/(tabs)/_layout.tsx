@@ -4,7 +4,7 @@ import { Colors } from '@/theme/theme';
 
 function Icon({ icon, focused }: { icon: string; focused: boolean }) {
   return (
-    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{icon}</Text>
+    <Text style={{ fontSize: 28, opacity: focused ? 1 : 0.55 }}>{icon}</Text>
   );
 }
 
@@ -18,13 +18,17 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
-          paddingTop: 4,
-          height: 64,
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 84,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
-          marginTop: 2,
+          marginTop: 4,
         },
       }}
     >
