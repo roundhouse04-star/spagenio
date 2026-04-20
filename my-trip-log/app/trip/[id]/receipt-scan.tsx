@@ -140,7 +140,7 @@ export default function ReceiptScanScreen() {
     }
   };
 
-  const processImage = async (uri: string) => {
+  const processImage = async (uri: string, forceLang?: 'kor' | 'jpn' | 'eng' | 'tha' | 'chs') => {
     setLoading(true);
     setImageUri(uri);
     setLoadingText('텍스트 인식 중...');
@@ -149,10 +149,11 @@ export default function ReceiptScanScreen() {
       const result = await recognizeReceiptDual(uri, {
         countryCode: trip?.country_code,
         cityId: trip?.city ? trip.city.toLowerCase() : undefined,
+        forceLang: forceLang ?? ocrLang,
         defaultCurrency: trip?.currency || 'KRW',
       });
 
-      setParsed(result);
+      setParsed(result); if (result.lang) setOcrLang(result.lang);
       if (result.storeName) setStoreName(result.storeName);
       if (result.date) setDate(result.date);
       if (result.totalAmount) setAmount(String(result.totalAmount));
