@@ -1123,7 +1123,14 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/manual-trade/positions', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      const rows = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC").all(req.user.id);
+      // 활성 계좌(broker_key_id)로 필터링 - 계좌별로 분리된 보유종목을 반환
+      const accountId = req.headers['x-account-id'] || req.query.accountId;
+      const keys = getUserAlpacaKeys(req.user.id, accountId);
+      if (!keys) return res.json({ positions: [], no_account: true });
+
+      const rows = db.prepare(
+        "SELECT * FROM trade_log WHERE user_id=? AND broker_key_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC"
+      ).all(req.user.id, keys.id);
       res.json({ positions: rows });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
