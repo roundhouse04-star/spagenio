@@ -70,8 +70,10 @@ interface RouteResult {
 }
 
 const CITY_FLAGS: Record<string, string> = {
-  seoul: '🇰🇷', tokyo: '🇯🇵', osaka: '🇯🇵', kyoto: '🇯🇵',
+  seoul: '🇰🇷', busan: '🇰🇷',
+  tokyo: '🇯🇵', osaka: '🇯🇵', kyoto: '🇯🇵', fukuoka: '🇯🇵',
   bangkok: '🇹🇭', singapore: '🇸🇬', hongkong: '🇭🇰', taipei: '🇹🇼',
+  shanghai: '🇨🇳', beijing: '🇨🇳',
   paris: '🇫🇷', london: '🇬🇧', newyork: '🇺🇸', berlin: '🇩🇪',
   barcelona: '🇪🇸', rome: '🇮🇹', amsterdam: '🇳🇱',
 };

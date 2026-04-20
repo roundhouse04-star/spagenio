@@ -79,11 +79,13 @@ export interface TripLog {
   updatedAt: string;
 }
 
+// schema.ts / receiptParser.ts와 일치 (activity + entertainment 모두 포함)
 export type ExpenseCategory =
   | 'food'
   | 'transport'
   | 'accommodation'
   | 'activity'
+  | 'entertainment'
   | 'shopping'
   | 'sightseeing'
   | 'other';
@@ -100,6 +102,11 @@ export interface Expense {
   exchangeRate: number | null;
   paymentMethod: string | null;
   memo: string | null;
+  // 영수증 관련 (schema v3)
+  receiptImage: string | null;
+  receiptOcrText: string | null;
+  receiptConfidence: number | null;
+  ocrEngine: string | null;
   createdAt: string;
 }
 

@@ -4,7 +4,7 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS trip_logs (
 CREATE INDEX IF NOT EXISTS idx_trip_logs_trip ON trip_logs(trip_id);
 CREATE INDEX IF NOT EXISTS idx_trip_logs_date ON trip_logs(log_date);
 
--- 비용/가계부
+-- 비용/가계부 (영수증 필드 포함 - v3)
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   trip_id INTEGER NOT NULL,
@@ -105,6 +105,10 @@ CREATE TABLE IF NOT EXISTS expenses (
   exchange_rate REAL,
   payment_method TEXT,
   memo TEXT,
+  receipt_image TEXT,
+  receipt_ocr_text TEXT,
+  receipt_confidence REAL,
+  ocr_engine TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
 );
@@ -162,7 +166,8 @@ CREATE TABLE IF NOT EXISTS app_meta (
 );
 `;
 
-// 기존 v1에서 v2로 마이그레이션 (컬럼 추가)
+// 기존 사용자를 위한 마이그레이션 (신규 설치는 위 CREATE_TABLES_SQL로 처리됨)
+// 각 ALTER는 이미 컬럼이 있으면 에러나지만 database.ts에서 catch해서 무시함
 export const MIGRATIONS: { version: number; sql: string }[] = [
   {
     version: 2,
@@ -173,14 +178,24 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       ALTER TABLE user ADD COLUMN server_registered INTEGER DEFAULT 0;
     `,
   },
+  {
+    version: 3,
+    sql: `
+      ALTER TABLE expenses ADD COLUMN receipt_image TEXT;
+      ALTER TABLE expenses ADD COLUMN receipt_ocr_text TEXT;
+      ALTER TABLE expenses ADD COLUMN receipt_confidence REAL;
+      ALTER TABLE expenses ADD COLUMN ocr_engine TEXT;
+    `,
+  },
 ];
 
-// 카테고리 상수
+// 카테고리 상수 (entertainment 추가 - receiptParser와 일관성)
 export const EXPENSE_CATEGORIES = [
   { key: 'food', label: '식비', icon: '🍽️' },
   { key: 'transport', label: '교통', icon: '🚇' },
   { key: 'accommodation', label: '숙소', icon: '🏨' },
   { key: 'activity', label: '액티비티', icon: '🎢' },
+  { key: 'entertainment', label: '놀이', icon: '🎡' },
   { key: 'shopping', label: '쇼핑', icon: '🛍️' },
   { key: 'sightseeing', label: '관광', icon: '🗺️' },
   { key: 'other', label: '기타', icon: '💰' },

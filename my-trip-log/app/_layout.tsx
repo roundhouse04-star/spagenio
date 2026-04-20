@@ -162,6 +162,22 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="trip/[id]/receipt-scan"
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              animationDuration: 300,
+            }}
+          />
+          <Stack.Screen
+            name="trip/[id]/receipts"
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              animationDuration: 280,
+            }}
+          />
+          <Stack.Screen
             name="trips/new"
             options={{
               presentation: 'modal',

@@ -212,6 +212,9 @@ export default function ToolsScreen() {
             { cityId: 'london', icon: '🇬🇧', label: '런던 지하철', desc: 'London Underground' },
             { cityId: 'paris', icon: '🇫🇷', label: '파리 메트로', desc: 'Paris Metro' },
             { cityId: 'berlin', icon: '🇩🇪', label: '베를린 지하철', desc: 'Berlin U-Bahn' },
+            { cityId: 'amsterdam', icon: '🇳🇱', label: '암스테르담 메트로', desc: 'Amsterdam Metro' },
+            { cityId: 'barcelona', icon: '🇪🇸', label: '바르셀로나 메트로', desc: 'Barcelona Metro' },
+            { cityId: 'rome', icon: '🇮🇹', label: '로마 메트로', desc: 'Roma Metro' },
           ].map((m, i) => (
             <Pressable
               key={m.cityId}

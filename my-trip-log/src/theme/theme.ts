@@ -118,6 +118,10 @@ export const Typography = {
   displayLarge: 36,
   displayMedium: 30,
   displaySmall: 26,
+  // headline은 title과 display 사이 - 카드 타이틀, 섹션 헤더 등에 사용
+  headlineLarge: 28,
+  headlineMedium: 24,
+  headlineSmall: 20,
   titleLarge: 22,
   titleMedium: 18,
   titleSmall: 16,
@@ -196,26 +200,48 @@ export const Radii = {
   pill: 999,
 };
 
+// ============ SHADOWS ============
+// sm/md/lg = 숫자 기반 (원래 이름)
+// soft/medium/strong = 의미 기반 (alias - 기존 코드 호환)
+const _shadowSm = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 2,
+  elevation: 1,
+};
+
+const _shadowMd = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 6,
+  elevation: 3,
+};
+
+const _shadowLg = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.12,
+  shadowRadius: 12,
+  elevation: 6,
+};
+
+// soft는 sm과 md 중간 정도의 부드러운 그림자 (카드용)
+const _shadowSoft = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 2,
+};
+
 export const Shadows = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-  },
+  sm: _shadowSm,
+  md: _shadowMd,
+  lg: _shadowLg,
+  // 의미 기반 alias
+  soft: _shadowSoft,
+  medium: _shadowMd,
+  strong: _shadowLg,
 };

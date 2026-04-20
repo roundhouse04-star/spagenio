@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
-import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 
 import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
 import { haptic } from '@/utils/haptics';
@@ -168,7 +168,7 @@ export default function MeScreen() {
     );
   };
 
-  const appVersion = Application.default?.expoConfig?.version ?? '1.0.0';
+  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
