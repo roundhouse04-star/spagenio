@@ -185,6 +185,22 @@ export default function RootLayout() {
               animationDuration: 300,
             }}
           />
+          <Stack.Screen
+            name="expenses/index"
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              animationDuration: 280,
+            }}
+          />
+          <Stack.Screen
+            name="expenses/[id]"
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              animationDuration: 280,
+            }}
+          />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

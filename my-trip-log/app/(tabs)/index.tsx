@@ -148,6 +148,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitleSmall}>빠른 메뉴</Text>
         <View style={styles.quickGrid}>
           <QuickButton icon="🤖" label="AI 일정" highlight onPress={() => router.push('/ai-itinerary' as any)} />
+          <QuickButton icon="💰" label="비용관리" onPress={() => router.push('/expenses' as any)} />
           <QuickButton icon="💱" label="환율" onPress={() => router.push('/(tabs)/tools')} />
           <QuickButton icon="🚇" label="교통" onPress={() => router.push('/(tabs)/tools')} />
           <QuickButton icon="📝" label="새 기록" onPress={() => router.push('/trips/new')} />
