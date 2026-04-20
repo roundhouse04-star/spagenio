@@ -14,7 +14,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import WebView from 'react-native-webview';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
-import { addTripItem } from '@/db/items';
+import { createTripItem } from '@/db/items';
 import { TRIP_ITEM_CATEGORIES } from '@/db/schema';
 import { showMapOptions } from '@/utils/maps';
 
@@ -94,7 +94,7 @@ export default function ItemNewScreen() {
     setSaving(true);
 
     try {
-      await addTripItem({
+      await createTripItem({
         tripId,
         title: title.trim(),
         day: Number(day) || 1,
