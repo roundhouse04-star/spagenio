@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
 import { TripLog, Trip } from '@/types';
 import { getTripLogs, deleteTripLog } from '@/db/logs';
+import { showMapOptions, searchInMaps } from '@/utils/maps';
 
 export function LogsTab({ trip }: { trip: Trip }) {
   const [logs, setLogs] = useState<TripLog[]>([]);
@@ -93,7 +94,25 @@ function LogCard({ log, onDelete }: { log: TripLog; onDelete: () => void }) {
       )}
 
       <View style={styles.metaRow}>
-        {log.location && <Text style={styles.meta}>📍 {log.location}</Text>}
+        {log.location && (
+          <Pressable
+            onPress={() => {
+              const anyLog = log as any;
+              if (anyLog.lat && anyLog.lng) {
+                showMapOptions({
+                  lat: anyLog.lat,
+                  lng: anyLog.lng,
+                  label: log.location!,
+                });
+              } else {
+                searchInMaps(log.location!);
+              }
+            }}
+            style={styles.locationChip}
+          >
+            <Text style={styles.locationChipText}>📍 {log.location}</Text>
+          </Pressable>
+        )}
         {log.weather && <Text style={styles.meta}>{log.weather}</Text>}
         {log.mood && <Text style={styles.meta}>{log.mood}</Text>}
       </View>
@@ -176,6 +195,19 @@ const styles = StyleSheet.create({
   meta: {
     fontSize: Typography.labelSmall,
     color: Colors.textTertiary,
+  },
+  locationChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: Colors.primary + '15',
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  locationChipText: {
+    fontSize: Typography.labelSmall,
+    color: Colors.primary,
+    fontWeight: '700',
   },
   empty: {
     alignItems: 'center',

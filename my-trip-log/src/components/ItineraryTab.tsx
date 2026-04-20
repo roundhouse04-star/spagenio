@@ -7,6 +7,7 @@ import {
   getTripItems, toggleItemDone, deleteTripItem, calculateTripDays,
 } from '@/db/items';
 import { TRIP_ITEM_CATEGORIES } from '@/db/schema';
+import { showMapOptions } from '@/utils/maps';
 
 export function ItineraryTab({ trip }: { trip: Trip }) {
   const [items, setItems] = useState<TripItem[]>([]);
@@ -125,6 +126,18 @@ function ItemCard({
             💰 {item.cost.toLocaleString()} {item.currency ?? ''}
           </Text>
         )}
+        {((item.lat !== 0 && item.lng !== 0) || item.location) && (
+          <Pressable
+            onPress={() => showMapOptions({
+              lat: item.lat,
+              lng: item.lng,
+              label: item.location || item.title,
+            })}
+            style={styles.mapButton}
+          >
+            <Text style={styles.mapButtonText}>🗺️  지도 열기</Text>
+          </Pressable>
+        )}
       </View>
       <Pressable onPress={onDelete} style={styles.deleteBtn}>
         <Text style={styles.deleteIcon}>⋯</Text>
@@ -221,6 +234,21 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontWeight: '600',
     marginTop: Spacing.xs,
+  },
+  mapButton: {
+    alignSelf: 'flex-start',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: Colors.primary + '15',
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  mapButtonText: {
+    fontSize: Typography.labelSmall,
+    color: Colors.primary,
+    fontWeight: '700',
   },
   deleteBtn: { padding: Spacing.xs },
   deleteIcon: {
