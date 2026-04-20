@@ -696,9 +696,10 @@ JSON 형식:
       {datePickerVisible && (
         <DatePickerModal
           visible={!!datePickerVisible}
-          initialDate={datePickerVisible === 'start' ? startDate : endDate}
+          value={datePickerVisible === 'start' ? startDate : endDate}
           minDate={datePickerVisible === 'end' ? startDate : undefined}
-          onSelect={(date) => {
+          title={datePickerVisible === 'start' ? '출발일 선택' : '도착일 선택'}
+          onConfirm={(date) => {
             if (datePickerVisible === 'start') setStartDate(date);
             else setEndDate(date);
             setDatePickerVisible(null);
