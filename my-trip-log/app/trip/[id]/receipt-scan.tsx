@@ -58,6 +58,7 @@ export default function ReceiptScanScreen() {
   const [currency, setCurrency] = useState('KRW');
   const [category, setCategory] = useState<ExpenseCategory>('other');
   const [memo, setMemo] = useState('');
+  const [ocrLang, setOcrLang] = useState<'kor' | 'jpn' | 'eng' | 'tha' | 'chs'>('kor');
 
   // 환율 미리보기
   const [previewHomeAmount, setPreviewHomeAmount] = useState<number | null>(null);
@@ -149,11 +150,12 @@ export default function ReceiptScanScreen() {
       const result = await recognizeReceiptDual(uri, {
         countryCode: trip?.country_code,
         cityId: trip?.city ? trip.city.toLowerCase() : undefined,
-        forceLang: forceLang ?? ocrLang,
         defaultCurrency: trip?.currency || 'KRW',
+        forceLang: forceLang ?? ocrLang,
       });
 
-      setParsed(result); if (result.lang) setOcrLang(result.lang);
+      setParsed(result);
+      if ((result as any).lang) setOcrLang((result as any).lang);
       if (result.storeName) setStoreName(result.storeName);
       if (result.date) setDate(result.date);
       if (result.totalAmount) setAmount(String(result.totalAmount));
@@ -341,46 +343,39 @@ export default function ReceiptScanScreen() {
                 엔진: {parsed.engine === 'mlkit' ? '📱 ML Kit (온디바이스)' :
                        parsed.engine === 'ocrspace' ? '☁️ OCR.space (서버)' : '❌ 없음'}
                 {' · '}{parsed.duration}ms
-                {parsed.lang && ` · 언어: ${parsed.lang.toUpperCase()}`}
+                {(parsed as any).lang && ` · ${(parsed as any).lang.toUpperCase()}`}
               </Text>
 
               {/* 언어 수동 재인식 */}
-              {imageUri && (
-                <>
-                  <Text style={styles.relangHint}>결과가 이상한가요? 다른 언어로 재인식:</Text>
-                  <View style={styles.langChips}>
-                    {[
-                      { k: 'kor', label: '🇰🇷 한국어' },
-                      { k: 'jpn', label: '🇯🇵 일본어' },
-                      { k: 'chs', label: '🇨🇳 중국어' },
-                      { k: 'eng', label: '🇺🇸 영어' },
-                      { k: 'tha', label: '🇹🇭 태국어' },
-                    ].map((L) => (
-                      <Pressable
-                        key={L.k}
-                        style={[
-                          styles.langChip,
-                          ocrLang === L.k && styles.langChipActive,
-                        ]}
-                        onPress={() => {
-                          haptic.tap();
-                          setOcrLang(L.k as any);
-                          if (imageUri) processImage(imageUri, L.k as any);
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.langChipText,
-                            ocrLang === L.k && styles.langChipTextActive,
-                          ]}
-                        >
-                          {L.label}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </>
-              )}
+              <Text style={styles.relangHint}>결과가 이상한가요? 다른 언어로 재인식:</Text>
+              <View style={styles.langChips}>
+                {[
+                  { k: 'kor', label: '🇰🇷 한국어' },
+                  { k: 'jpn', label: '🇯🇵 일본어' },
+                  { k: 'chs', label: '🇨🇳 중국어' },
+                  { k: 'eng', label: '🇺🇸 영어' },
+                  { k: 'tha', label: '🇹🇭 태국어' },
+                ].map((L) => (
+                  <Pressable
+                    key={L.k}
+                    style={[styles.langChip, ocrLang === L.k && styles.langChipActive]}
+                    onPress={() => {
+                      haptic.tap();
+                      setOcrLang(L.k as any);
+                      if (imageUri) processImage(imageUri, L.k as any);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.langChipText,
+                        ocrLang === L.k && styles.langChipTextActive,
+                      ]}
+                    >
+                      {L.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           )}
 
@@ -499,7 +494,7 @@ const styles = StyleSheet.create({
   relangHint: {
     marginTop: 8,
     fontSize: 11,
-    color: '#888',
+    color: Colors.textTertiary,
   },
   langChips: {
     flexDirection: 'row',
@@ -511,21 +506,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: '#F3F0E8',
+    backgroundColor: Colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E0DCD0',
+    borderColor: Colors.border,
   },
   langChipActive: {
-    backgroundColor: '#1E2A3A',
-    borderColor: '#1E2A3A',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   langChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#555',
+    color: Colors.textSecondary,
   },
   langChipTextActive: {
-    color: '#fff',
+    color: Colors.textOnPrimary,
   },
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
