@@ -177,6 +177,14 @@ export default function RootLayout() {
               animationDuration: 280,
             }}
           />
+          <Stack.Screen
+            name="ai-itinerary"
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              animationDuration: 300,
+            }}
+          />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -147,6 +147,7 @@ export default function HomeScreen() {
 
         <Text style={styles.sectionTitleSmall}>빠른 메뉴</Text>
         <View style={styles.quickGrid}>
+          <QuickButton icon="🤖" label="AI 일정" highlight onPress={() => router.push('/ai-itinerary' as any)} />
           <QuickButton icon="💱" label="환율" onPress={() => router.push('/(tabs)/tools')} />
           <QuickButton icon="🚇" label="교통" onPress={() => router.push('/(tabs)/tools')} />
           <QuickButton icon="📝" label="새 기록" onPress={() => router.push('/trips/new')} />
@@ -198,11 +199,12 @@ function StatBox({ label, value }: { label: string; value: number }) {
   );
 }
 
-function QuickButton({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+function QuickButton({ icon, label, onPress, highlight }: { icon: string; label: string; onPress: () => void; highlight?: boolean }) {
   return (
-    <Pressable style={styles.quickBtn} onPress={onPress}>
+    <Pressable style={[styles.quickBtn, highlight && styles.quickBtnHighlight]} onPress={onPress}>
       <Text style={styles.quickIcon}>{icon}</Text>
-      <Text style={styles.quickLabel}>{label}</Text>
+      <Text style={[styles.quickLabel, highlight && styles.quickLabelHighlight]}>{label}</Text>
+      {highlight && <View style={styles.quickBadge}><Text style={styles.quickBadgeText}>NEW</Text></View>}
     </Pressable>
   );
 }
@@ -468,10 +470,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Shadows.soft,
   },
+  quickBtnHighlight: {
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.accent,
+    position: 'relative',
+  },
   quickIcon: { fontSize: 28, marginBottom: Spacing.sm },
   quickLabel: {
     fontSize: Typography.bodyMedium,
     color: Colors.textPrimary,
     fontWeight: '600',
+  },
+  quickLabelHighlight: {
+    color: Colors.textOnPrimary,
+    fontWeight: '700',
+  },
+  quickBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  quickBadgeText: {
+    fontSize: 9,
+    color: Colors.primary,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
