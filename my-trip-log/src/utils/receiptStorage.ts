@@ -4,7 +4,7 @@
  * 카메라/갤러리에서 찍은 이미지를 앱의 document directory로 복사
  * (기본 cache 디렉토리는 시스템이 자유롭게 삭제함 → 영구 저장 X)
  */
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const RECEIPT_DIR = FileSystem.documentDirectory + 'receipts/';
 

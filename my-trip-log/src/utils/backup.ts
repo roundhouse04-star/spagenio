@@ -4,7 +4,7 @@
  * - exportData: 모든 DB 데이터를 JSON으로 export, 파일로 공유
  * - importData: JSON 파일을 읽어서 DB에 복원
  */
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { getDB } from '@/db/database';
