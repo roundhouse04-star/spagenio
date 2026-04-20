@@ -218,26 +218,85 @@ function extractDate(text: string): string | undefined {
 }
 
 function extractAmount(text: string): number | undefined {
-  // 합계/total 키워드와 함께 있는 것을 우선
-  for (const pattern of AMOUNT_PATTERNS) {
-    const matches = text.matchAll(new RegExp(pattern, 'gi'));
-    const candidates: number[] = [];
-    for (const m of matches) {
-      const n = parseFloat(m[1].replace(/,/g, ''));
-      if (!isNaN(n) && n > 0 && n < 100_000_000) {
-        candidates.push(n);
+  // 1. 라인 단위 탐색 - 키워드 있는 라인 우선
+  const lines = text.split('\n');
+  type Candidate = { value: number; priority: number };
+  const candidates: Candidate[] = [];
+
+  // 높은 우선순위 = 합계/신용카드 키워드 + 같은 라인의 금액
+  // 영수증은 오른쪽 정렬이라 라인 끝의 숫자가 금액
+  const HIGH_PRIORITY_KEYWORDS = [
+    /(?:합\s*계|총\s*액|총\s*금액|total|grand\s*total|결제\s*금액|총\s*결제)/i,
+    /(?:신\s*용\s*카\s*드|credit\s*card|카\s*드\s*결\s*제)/i,
+  ];
+  const MID_PRIORITY_KEYWORDS = [
+    /(?:지불|지급|받은\s*금액|payment|amount|sum)/i,
+    /(?:사\s*용\s*금\s*액|금\s*액)/i,
+  ];
+
+  // 공백·쉼표 포함된 숫자 매칭 (2,300 / 2 300 / 2,300원)
+  // OCR이 종종 콤마를 공백으로 오인식함
+  const numberFromLine = (line: string, maxPosition?: number): number[] => {
+    const scanText = maxPosition !== undefined ? line.slice(maxPosition) : line;
+    const pattern = /(\d{1,3}(?:[,\s]\s*\d{3})+|\d{3,})/g;
+    const nums: number[] = [];
+    let m;
+    while ((m = pattern.exec(scanText)) !== null) {
+      const cleaned = m[1].replace(/[\s,]/g, '');
+      const n = parseFloat(cleaned);
+      if (!isNaN(n) && n >= 100 && n < 100_000_000) {
+        nums.push(n);
       }
     }
-    if (candidates.length > 0) {
-      // "합계" 있는 패턴이 우선 → 첫 매칭 반환
-      // 다른 패턴은 최대값을 선호 (총금액이 가장 큼)
-      if (pattern.source.includes('합계|총|total|amount|sum|결제')) {
-        return candidates[0];
+    return nums;
+  };
+
+  for (const line of lines) {
+    // 고우선순위 키워드
+    for (const kw of HIGH_PRIORITY_KEYWORDS) {
+      const m = line.match(kw);
+      if (m) {
+        const nums = numberFromLine(line, m.index! + m[0].length);
+        if (nums.length > 0) {
+          candidates.push({ value: Math.max(...nums), priority: 3 });
+        }
       }
-      return Math.max(...candidates);
+    }
+    // 중우선순위 키워드
+    for (const kw of MID_PRIORITY_KEYWORDS) {
+      const m = line.match(kw);
+      if (m) {
+        const nums = numberFromLine(line, m.index! + m[0].length);
+        if (nums.length > 0) {
+          candidates.push({ value: Math.max(...nums), priority: 2 });
+        }
+      }
     }
   }
-  return undefined;
+
+  // 키워드 매칭이 있으면 우선순위 → 값 내림차순 정렬 후 첫번째
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.priority - a.priority || b.value - a.value);
+    return candidates[0].value;
+  }
+
+  // 2. 폴백: 모든 숫자 후보 중 합리적 범위 최대값
+  const pattern = /(\d{1,3}(?:[,\s]\s*\d{3})+|\d{3,})/g;
+  const allNumbers: number[] = [];
+  let m;
+  while ((m = pattern.exec(text)) !== null) {
+    const cleaned = m[1].replace(/[\s,]/g, '');
+    const n = parseFloat(cleaned);
+    // 영수증 금액 합리적 범위: 100 ~ 1000만 (카드번호·승인번호 같은 큰 수 제외)
+    if (!isNaN(n) && n >= 100 && n < 10_000_000) {
+      allNumbers.push(n);
+    }
+  }
+
+  if (allNumbers.length === 0) return undefined;
+
+  // 영수증은 항목 수 × 단가 = 합계가 제일 크므로 최대값
+  return Math.max(...allNumbers);
 }
 
 function detectCurrency(text: string): string | undefined {
