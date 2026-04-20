@@ -1,10 +1,12 @@
 import { Linking, Platform, Alert } from 'react-native';
 
 /**
- * 구글지도로 특정 위치 열기 (딥링크 방식)
+ * 지도 딥링크 유틸 (구글지도 우선)
  *
- * iOS: 애플지도 → 구글지도 앱 → 브라우저 순으로 시도
- * Android: geo: 인텐트 → 구글지도 URL 순으로 시도
+ * 열기 순서:
+ *   1. 구글지도 앱 (설치돼 있으면)
+ *   2. 애플지도 (iOS, 구글지도 없을 때)
+ *   3. 브라우저 (모두 실패 시)
  *
  * 완전 무료, API 키 불필요!
  */
@@ -17,7 +19,25 @@ export interface MapLocation {
 }
 
 /**
- * 지도에서 위치 보기 (장소 표시)
+ * URL을 순차적으로 시도해서 여는 함수
+ */
+const tryOpenUrls = async (urls: string[]): Promise<boolean> => {
+  for (const url of urls) {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+        return true;
+      }
+    } catch (err) {
+      console.warn(`[지도] ${url} 열기 실패:`, err);
+    }
+  }
+  return false;
+};
+
+/**
+ * 지도에서 위치 보기
  */
 export const openInMaps = async (location: MapLocation): Promise<void> => {
   const { lat, lng, label } = location;
@@ -29,32 +49,26 @@ export const openInMaps = async (location: MapLocation): Promise<void> => {
 
   const encodedLabel = encodeURIComponent(label || '위치');
 
-  try {
-    if (Platform.OS === 'ios') {
-      // iOS: 애플지도 먼저 시도 (기본 지도 앱)
-      const appleMapsUrl = `http://maps.apple.com/?ll=${lat},${lng}&q=${encodedLabel}`;
-      const canOpen = await Linking.canOpenURL(appleMapsUrl);
-      if (canOpen) {
-        await Linking.openURL(appleMapsUrl);
-        return;
-      }
-    }
+  // 우선순위: 구글지도 앱 → 애플지도(iOS) → 브라우저
+  const urls =
+    Platform.OS === 'ios'
+      ? [
+          // 1. 구글지도 iOS 앱 (comgooglemaps://)
+          `comgooglemaps://?q=${encodedLabel}&center=${lat},${lng}&zoom=15`,
+          // 2. 애플지도
+          `maps://?ll=${lat},${lng}&q=${encodedLabel}`,
+          // 3. 브라우저 → 구글지도 웹
+          `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+        ]
+      : [
+          // Android: geo 인텐트 → 지도 앱 선택 다이얼로그
+          `geo:${lat},${lng}?q=${lat},${lng}(${encodedLabel})`,
+          // 안 되면 구글지도 웹
+          `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+        ];
 
-    if (Platform.OS === 'android') {
-      // Android: geo: 인텐트 먼저 시도 (지도 앱 선택 다이얼로그 표시)
-      const geoUrl = `geo:${lat},${lng}?q=${lat},${lng}(${encodedLabel})`;
-      const canOpen = await Linking.canOpenURL(geoUrl);
-      if (canOpen) {
-        await Linking.openURL(geoUrl);
-        return;
-      }
-    }
-
-    // 위 방법 실패 시 → 구글지도 웹 URL (앱 설치되어 있으면 앱으로, 없으면 브라우저)
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-    await Linking.openURL(googleMapsUrl);
-  } catch (error) {
-    console.error('[openInMaps] 실패:', error);
+  const ok = await tryOpenUrls(urls);
+  if (!ok) {
     Alert.alert('지도 열기 실패', '지도 앱을 열 수 없어요.');
   }
 };
@@ -72,68 +86,54 @@ export const openDirections = async (location: MapLocation): Promise<void> => {
 
   const encodedLabel = encodeURIComponent(label || '목적지');
 
-  try {
-    if (Platform.OS === 'ios') {
-      // iOS: 애플지도 길찾기
-      const appleMapsUrl = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
-      const canOpen = await Linking.canOpenURL(appleMapsUrl);
-      if (canOpen) {
-        await Linking.openURL(appleMapsUrl);
-        return;
-      }
-    }
+  const urls =
+    Platform.OS === 'ios'
+      ? [
+          // 1. 구글지도 iOS 앱 길찾기
+          `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`,
+          // 2. 애플지도 길찾기
+          `maps://?daddr=${lat},${lng}&dirflg=d`,
+          // 3. 브라우저
+          `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+        ]
+      : [
+          // Android: 구글지도 네비게이션 바로 시작
+          `google.navigation:q=${lat},${lng}`,
+          // fallback
+          `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+        ];
 
-    if (Platform.OS === 'android') {
-      // Android: google.navigation: 인텐트 (구글지도 네비게이션 바로 시작)
-      const navUrl = `google.navigation:q=${lat},${lng}`;
-      const canOpen = await Linking.canOpenURL(navUrl);
-      if (canOpen) {
-        await Linking.openURL(navUrl);
-        return;
-      }
-    }
-
-    // fallback: 구글지도 웹 URL
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    await Linking.openURL(googleMapsUrl);
-  } catch (error) {
-    console.error('[openDirections] 실패:', error);
+  const ok = await tryOpenUrls(urls);
+  if (!ok) {
     Alert.alert('길찾기 실패', '지도 앱을 열 수 없어요.');
   }
 };
 
 /**
- * 이름/주소로 검색 (좌표 없을 때)
+ * 이름/주소로 검색
  */
 export const searchInMaps = async (query: string): Promise<void> => {
   if (!query || !query.trim()) return;
 
   const encoded = encodeURIComponent(query.trim());
 
-  try {
-    if (Platform.OS === 'ios') {
-      const appleMapsUrl = `http://maps.apple.com/?q=${encoded}`;
-      const canOpen = await Linking.canOpenURL(appleMapsUrl);
-      if (canOpen) {
-        await Linking.openURL(appleMapsUrl);
-        return;
-      }
-    }
+  const urls =
+    Platform.OS === 'ios'
+      ? [
+          // 1. 구글지도 앱
+          `comgooglemaps://?q=${encoded}`,
+          // 2. 애플지도
+          `maps://?q=${encoded}`,
+          // 3. 브라우저
+          `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+        ]
+      : [
+          `geo:0,0?q=${encoded}`,
+          `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+        ];
 
-    if (Platform.OS === 'android') {
-      const geoUrl = `geo:0,0?q=${encoded}`;
-      const canOpen = await Linking.canOpenURL(geoUrl);
-      if (canOpen) {
-        await Linking.openURL(geoUrl);
-        return;
-      }
-    }
-
-    // fallback
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
-    await Linking.openURL(googleMapsUrl);
-  } catch (error) {
-    console.error('[searchInMaps] 실패:', error);
+  const ok = await tryOpenUrls(urls);
+  if (!ok) {
     Alert.alert('지도 열기 실패', '지도 앱을 열 수 없어요.');
   }
 };
