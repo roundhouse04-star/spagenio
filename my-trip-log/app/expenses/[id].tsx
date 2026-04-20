@@ -118,18 +118,32 @@ export default function ExpenseDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {trip.title}
         </Text>
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/trip/[id]/expense-new',
-              params: { id: String(tripId) },
-            } as any)
-          }
-          hitSlop={10}
-          style={styles.addBtn}
-        >
-          <Text style={styles.addBtnText}>+ 추가</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/trip/[id]/receipt-scan',
+                params: { id: String(tripId) },
+              } as any)
+            }
+            hitSlop={10}
+            style={styles.iconBtn}
+          >
+            <Text style={styles.iconBtnText}>📷</Text>
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/trip/[id]/expense-new',
+                params: { id: String(tripId) },
+              } as any)
+            }
+            hitSlop={10}
+            style={styles.addBtn}
+          >
+            <Text style={styles.addBtnText}>+ 추가</Text>
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -260,9 +274,22 @@ export default function ExpenseDetailScreen() {
 
         {/* 지출 목록 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            지출 내역 ({filteredExpenses.length}건)
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              지출 내역 ({filteredExpenses.length}건)
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/trip/[id]/receipts',
+                  params: { id: String(tripId) },
+                } as any)
+              }
+              style={styles.receiptLink}
+            >
+              <Text style={styles.receiptLinkText}>🧾 영수증</Text>
+            </Pressable>
+          </View>
 
           {filteredExpenses.length === 0 ? (
             <View style={styles.emptyExpenses}>
@@ -456,7 +483,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   addBtn: {
-    minWidth: 60,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     backgroundColor: Colors.primary,
@@ -467,6 +493,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: Typography.labelMedium,
     textAlign: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtnText: {
+    fontSize: 18,
   },
   scroll: { padding: Spacing.lg },
 
@@ -539,6 +581,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  receiptLink: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: Colors.primary + '15',
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  receiptLinkText: {
+    fontSize: Typography.labelSmall,
+    fontWeight: '700',
+    color: Colors.primary,
   },
 
   // 파이차트 카드
