@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Switch, Alert, ActivityIndicator,
@@ -7,8 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import Constants from 'expo-constants';
 
-import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
-import { useTheme } from '@/theme/ThemeProvider';
+import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB, resetDatabase } from '@/db/database';
 import { exportData, importData } from '@/utils/backup';
@@ -32,8 +32,9 @@ interface Stats {
 }
 
 export default function MeScreen() {
-  // 다크모드: ThemeProvider에서 관리 (Step 2 인프라)
-  const { mode: themeMode, setMode: setThemeProvider } = useTheme();
+  // 다크모드: ThemeProvider에서 관리
+  const { colors, mode: themeMode, setMode: setThemeProvider } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [user, setUser] = useState<UserInfo | null>(null);
   const [stats, setStats] = useState<Stats>({
@@ -190,26 +191,28 @@ export default function MeScreen() {
         <View style={styles.statsCard}>
           <Text style={styles.cardTitle}>여행 통계</Text>
           <View style={styles.statsGrid}>
-            <Stat value={stats.totalTrips} label="총 여행" />
-            <Divider />
-            <Stat value={stats.uniqueCountries} label="방문 국가" />
-            <Divider />
-            <Stat value={stats.totalLogs} label="기록 수" />
+            <Stat value={stats.totalTrips} label="총 여행" styles={styles} />
+            <Divider styles={styles} />
+            <Stat value={stats.uniqueCountries} label="방문 국가" styles={styles} />
+            <Divider styles={styles} />
+            <Stat value={stats.totalLogs} label="기록 수" styles={styles} />
           </View>
-          <View style={[styles.statsGrid, { marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.borderLight }]}>
-            <Stat value={stats.totalItems} label="일정" small />
-            <Divider />
-            <Stat value={stats.totalExpenses} label="지출 기록" small />
+          <View style={[styles.statsGrid, { marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
+            <Stat value={stats.totalItems} label="일정" small styles={styles} />
+            <Divider styles={styles} />
+            <Stat value={stats.totalExpenses} label="지출 기록" small styles={styles} />
           </View>
         </View>
 
         {/* 설정 섹션 */}
-        <SectionTitle>설정</SectionTitle>
+        <SectionTitle styles={styles}>설정</SectionTitle>
         <View style={styles.menuCard}>
           <MenuRow
             icon="👤"
             label="프로필 수정"
             onPress={handleEditProfile}
+            styles={styles}
+          
           />
           <MenuRow
             icon="🎨"
@@ -224,17 +227,22 @@ export default function MeScreen() {
                 { text: '취소', style: 'cancel' },
               ]);
             }}
+            styles={styles}
+          
           />
           <MenuRowSwitch
             icon="🔔"
             label="알림 받기"
             value={notifEnabled}
             onValueChange={handleNotifToggle}
+            styles={styles}
+            colors={colors}
+          
           />
         </View>
 
         {/* 데이터 섹션 */}
-        <SectionTitle>데이터</SectionTitle>
+        <SectionTitle styles={styles}>데이터</SectionTitle>
         <View style={styles.menuCard}>
           <MenuRow
             icon="💾"
@@ -242,6 +250,8 @@ export default function MeScreen() {
             desc="JSON 파일로 백업"
             onPress={handleExport}
             disabled={busy}
+            styles={styles}
+          
           />
           <MenuRow
             icon="📥"
@@ -249,22 +259,30 @@ export default function MeScreen() {
             desc="백업 파일에서 복원"
             onPress={handleImport}
             disabled={busy}
+            styles={styles}
+          
           />
         </View>
 
         {/* 앱 정보 섹션 */}
-        <SectionTitle>앱 정보</SectionTitle>
+        <SectionTitle styles={styles}>앱 정보</SectionTitle>
         <View style={styles.menuCard}>
-          <MenuRow icon="ℹ️" label="앱 버전" value={appVersion} noArrow />
+          <MenuRow icon="ℹ️" label="앱 버전" value={appVersion} noArrow
+            styles={styles}
+           />
           <MenuRow
             icon="📄"
             label="이용약관"
             onPress={() => { haptic.tap(); router.push('/settings/terms'); }}
+            styles={styles}
+          
           />
           <MenuRow
             icon="🔒"
             label="개인정보처리방침"
             onPress={() => { haptic.tap(); router.push('/settings/privacy'); }}
+            styles={styles}
+          
           />
           <MenuRow
             icon="✉️"
@@ -273,6 +291,8 @@ export default function MeScreen() {
               haptic.tap();
               Alert.alert('문의하기', 'roundhouse04@gmail.com 으로 문의해주세요!');
             }}
+            styles={styles}
+          
           />
         </View>
 
@@ -288,7 +308,7 @@ export default function MeScreen() {
 
       {busy && (
         <View style={styles.overlay}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.overlayText}>처리 중...</Text>
         </View>
       )}
@@ -296,7 +316,12 @@ export default function MeScreen() {
   );
 }
 
-function Stat({ value, label, small }: { value: number; label: string; small?: boolean }) {
+function Stat({ value, label, small, styles }: {
+  value: number;
+  label: string;
+  small?: boolean;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.stat}>
       <Text style={[styles.statValue, small && { fontSize: Typography.titleMedium }]}>
@@ -307,16 +332,19 @@ function Stat({ value, label, small }: { value: number; label: string; small?: b
   );
 }
 
-function Divider() {
+function Divider({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return <View style={styles.divider} />;
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, styles }: {
+  children: React.ReactNode;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return <Text style={styles.sectionTitle}>{children}</Text>;
 }
 
 function MenuRow({
-  icon, label, desc, value, onPress, noArrow, disabled,
+  icon, label, desc, value, onPress, noArrow, disabled, styles,
 }: {
   icon: string;
   label: string;
@@ -325,6 +353,7 @@ function MenuRow({
   onPress?: () => void;
   noArrow?: boolean;
   disabled?: boolean;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <Pressable
@@ -348,12 +377,14 @@ function MenuRow({
 }
 
 function MenuRowSwitch({
-  icon, label, value, onValueChange,
+  icon, label, value, onValueChange, styles, colors,
 }: {
   icon: string;
   label: string;
   value: boolean;
   onValueChange: (v: boolean) => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ColorPalette;
 }) {
   return (
     <View style={styles.menuRow}>
@@ -362,7 +393,7 @@ function MenuRowSwitch({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: Colors.border, true: Colors.accent }}
+        trackColor={{ false: colors.border, true: colors.accent }}
         thumbColor="#fff"
       />
     </View>
@@ -379,15 +410,16 @@ function countryLabel(code?: string): string {
   return map[code || ''] || '🌍 기타';
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xl },
 
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 16,
     marginBottom: Spacing.xl,
@@ -396,39 +428,39 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56, height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
   nickname: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   nationality: {
     fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   editButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 10,
   },
   editButtonText: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   statsCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 16,
     marginBottom: Spacing.lg,
@@ -437,7 +469,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: 1,
     marginBottom: Spacing.md,
     textTransform: 'uppercase',
@@ -451,23 +483,23 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: Typography.displaySmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: c.borderLight,
   },
 
   sectionTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 0.5,
     marginBottom: Spacing.sm,
     marginTop: Spacing.lg,
@@ -475,7 +507,7 @@ const styles = StyleSheet.create({
   },
 
   menuCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     overflow: 'hidden',
     ...Shadows.sm,
@@ -487,31 +519,31 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: c.borderLight,
   },
   menuIcon: { fontSize: 20 },
   menuLabel: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
   menuDesc: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   menuValue: {
     fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   menuArrow: {
     fontSize: 18,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   dangerButton: {
     borderWidth: 1.5,
-    borderColor: Colors.error,
+    borderColor: c.error,
     borderStyle: 'dashed',
     borderRadius: 14,
     paddingVertical: Spacing.lg,
@@ -520,7 +552,7 @@ const styles = StyleSheet.create({
   dangerText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.error,
+    color: c.error,
   },
 
   overlay: {
@@ -537,3 +569,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+}
+
