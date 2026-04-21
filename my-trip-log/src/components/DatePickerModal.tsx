@@ -23,7 +23,9 @@ type Props = {
 
 const WEEK_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-export default function DatePickerModal() {
+export default function DatePickerModal({
+  visible, value, onConfirm, onClose, title = '날짜 선택', minDate, maxDate,
+}: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
