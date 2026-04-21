@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import { Trip } from '@/types';
 import { ItineraryTab } from '@/components/ItineraryTab';
@@ -15,6 +16,9 @@ import { ChecklistTab } from '@/components/ChecklistTab';
 type Tab = 'overview' | 'itinerary' | 'logs' | 'expenses' | 'checklist';
 
 export default function TripDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = Number(id);
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -112,9 +116,9 @@ export default function TripDetailScreen() {
     completed: '완료',
   }[trip.status];
   const statusColor = {
-    planning: Colors.tripPlanning,
-    ongoing: Colors.tripOngoing,
-    completed: Colors.tripCompleted,
+    planning: colors.tripPlanning,
+    ongoing: colors.tripOngoing,
+    completed: colors.tripCompleted,
   }[trip.status];
 
   return (
@@ -192,7 +196,7 @@ export default function TripDetailScreen() {
           </ScrollView>
 
           <View style={styles.content}>
-            {tab === 'overview' && <OverviewTab trip={trip} summary={summary} />}
+            {tab === 'overview' && <OverviewTab trip={trip} summary={summary} styles={styles} />}
             {tab === 'itinerary' && <ItineraryTab trip={trip} />}
             {tab === 'logs' && <LogsTab trip={trip} />}
             {tab === 'expenses' && <ExpensesTab trip={trip} />}
@@ -204,14 +208,18 @@ export default function TripDetailScreen() {
   );
 }
 
-function OverviewTab({ trip, summary }: { trip: Trip; summary: any }) {
+function OverviewTab({ trip, summary, styles }: {
+  trip: Trip;
+  summary: any;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.overview}>
       <View style={styles.statGrid}>
-        <StatCard icon="📅" label="일정" value={summary.items} />
-        <StatCard icon="📝" label="기록" value={summary.logs} />
-        <StatCard icon="💰" label="비용" value={summary.expenses} />
-        <StatCard icon="✅" label="체크" value={summary.checklist} />
+        <StatCard icon="📅" label="일정" value={summary.items} styles={styles} />
+        <StatCard icon="📝" label="기록" value={summary.logs} styles={styles} />
+        <StatCard icon="💰" label="비용" value={summary.expenses} styles={styles} />
+        <StatCard icon="✅" label="체크" value={summary.checklist} styles={styles} />
       </View>
 
       {trip.memo && (
@@ -223,14 +231,19 @@ function OverviewTab({ trip, summary }: { trip: Trip; summary: any }) {
 
       <View style={styles.memoCard}>
         <Text style={styles.memoTitle}>정보</Text>
-        <InfoRow label="생성일" value={trip.createdAt?.slice(0, 10)} />
-        <InfoRow label="최종 수정" value={trip.updatedAt?.slice(0, 10)} />
+        <InfoRow label="생성일" value={trip.createdAt?.slice(0, 10)} styles={styles} />
+        <InfoRow label="최종 수정" value={trip.updatedAt?.slice(0, 10)} styles={styles} />
       </View>
     </View>
   );
 }
 
-function StatCard({ icon, label, value }: { icon: string; label: string; value: any }) {
+function StatCard({ icon, label, value, styles }: {
+  icon: string;
+  label: string;
+  value: any;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.statCard}>
       <Text style={styles.statIcon}>{icon}</Text>
@@ -240,7 +253,11 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
+function InfoRow({ label, value, styles }: {
+  label: string;
+  value?: string | null;
+  styles: ReturnType<typeof createStyles>;
+}) {
   if (!value) return null;
   return (
     <View style={styles.infoRow}>
@@ -250,12 +267,13 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scrollContent: { paddingBottom: Spacing.huge },
-  loading: { textAlign: 'center', padding: Spacing.huge, color: Colors.textSecondary },
+  loading: { textAlign: 'center', padding: Spacing.huge, color: c.textSecondary },
   heroCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.xl,
     margin: Spacing.lg,
     marginBottom: 0,
@@ -282,7 +300,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: Typography.headlineLarge,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     marginBottom: Spacing.sm,
   },
   heroLocation: {
@@ -297,7 +315,7 @@ const styles = StyleSheet.create({
   },
   heroBudget: {
     fontSize: Typography.bodySmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   spentText: { color: 'rgba(250, 248, 243, 0.6)' },
@@ -310,20 +328,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   tabBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   tabText: {
     fontSize: Typography.labelLarge,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
-  tabTextActive: { color: Colors.textOnPrimary },
+  tabTextActive: { color: c.textOnPrimary },
   content: { paddingHorizontal: Spacing.lg },
   overview: { gap: Spacing.lg },
   statGrid: {
@@ -333,7 +351,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.md,
     alignItems: 'center',
@@ -343,15 +361,15 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: Typography.displaySmall,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   memoCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     ...Shadows.soft,
@@ -359,13 +377,13 @@ const styles = StyleSheet.create({
   memoTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.accent,
+    color: c.accent,
     marginBottom: Spacing.sm,
     letterSpacing: 1,
   },
   memoText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: Typography.bodyMedium * 1.6,
   },
   infoRow: {
@@ -375,11 +393,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   infoValue: {
     fontSize: Typography.bodySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
 });
+}
+

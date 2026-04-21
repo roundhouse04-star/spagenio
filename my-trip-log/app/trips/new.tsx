@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert,
   KeyboardAvoidingView, Platform,
@@ -7,11 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { format, parseISO, isValid } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import DatePickerModal from '@/components/DatePickerModal';
 
 export default function TripFormScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEdit = !!id;
   const tripId = id ? Number(id) : null;
@@ -150,7 +154,7 @@ export default function TripFormScreen() {
           <View style={{ width: 40 }} />
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: Colors.textSecondary }}>불러오는 중…</Text>
+          <Text style={{ color: colors.textSecondary }}>불러오는 중…</Text>
         </View>
       </SafeAreaView>
     );
@@ -194,14 +198,14 @@ export default function TripFormScreen() {
         >
           <View style={styles.field}>
             <Text style={styles.label}>
-              여행 제목 <Text style={{ color: Colors.error }}>*</Text>
+              여행 제목 <Text style={{ color: colors.error }}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
               value={title}
               onChangeText={setTitle}
               placeholder="예: 도쿄 5박 6일"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               returnKeyType="next"
             />
           </View>
@@ -214,7 +218,7 @@ export default function TripFormScreen() {
                 value={country}
                 onChangeText={setCountry}
                 placeholder="일본"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
               />
             </View>
             <View style={[styles.field, { flex: 1 }]}>
@@ -224,7 +228,7 @@ export default function TripFormScreen() {
                 value={city}
                 onChangeText={setCity}
                 placeholder="도쿄"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
               />
             </View>
           </View>
@@ -272,7 +276,7 @@ export default function TripFormScreen() {
                 value={budget}
                 onChangeText={setBudget}
                 placeholder="0"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -347,8 +351,9 @@ export default function TripFormScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,56 +361,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
   headerBtn: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   headerTitle: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
   },
   saveBtn: {
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
   },
   scroll: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.huge },
   field: { gap: Spacing.xs },
   label: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   input: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.surface,
+    color: c.textPrimary,
+    backgroundColor: c.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   dateBox: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     minHeight: 48,
     justifyContent: 'center',
   },
   dateText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   datePlaceholder: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   row: {
     flexDirection: 'row',
@@ -418,22 +423,22 @@ const styles = StyleSheet.create({
   currencyBtn: {
     flex: 1,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   currencyBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   currencyText: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
-  currencyTextActive: { color: Colors.textOnPrimary },
+  currencyTextActive: { color: c.textOnPrimary },
   statusRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -441,20 +446,22 @@ const styles = StyleSheet.create({
   statusBtn: {
     flex: 1,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   statusBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   statusText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
-  statusTextActive: { color: Colors.textOnPrimary },
+  statusTextActive: { color: c.textOnPrimary },
 });
+}
+
