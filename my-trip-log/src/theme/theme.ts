@@ -58,6 +58,7 @@ const LightColors = {
 };
 
 // ============ DARK PALETTE ============
+// 사용자 지정: 카드/테이블 배경 #1A1F2B (Deep Navy)
 const DarkColors = {
   primary: '#E8E2D4',
   primaryLight: '#FAF8F3',
@@ -67,9 +68,9 @@ const DarkColors = {
   accentLight: '#D9BD85',
   accentDark: '#A88B4F',
 
-  background: '#0F1620',
-  surface: '#1A2333',
-  surfaceAlt: '#243144',
+  background: '#0F131B',      // 가장 짙은 베이스
+  surface: '#1A1F2B',         // ← 사용자 지정 Deep Navy (카드/테이블)
+  surfaceAlt: '#242A38',      // 강조 변형
 
   textPrimary: '#FAF8F3',
   textSecondary: '#B8B5AC',
@@ -86,17 +87,38 @@ const DarkColors = {
   tripOngoing: '#D9BD85',
   tripCompleted: '#7BA68B',
 
-  border: '#3A4658',
-  borderLight: '#2D3E54',
-  divider: '#2D3E54',
+  border: '#3A4355',
+  borderLight: '#2D3544',
+  divider: '#2D3544',
 
   overlay: 'rgba(0, 0, 0, 0.7)',
   overlayLight: 'rgba(0, 0, 0, 0.4)',
 };
 
+// ============ GLOBAL MODE STATE ============
+// ThemeProvider가 이 변수를 업데이트합니다.
+// system | light | dark
+type ThemeMode = 'system' | 'light' | 'dark';
+let _userMode: ThemeMode = 'system';
+
+/**
+ * ThemeProvider가 mode 변경 시 호출.
+ * Colors Proxy가 이 값을 참조하여 동적으로 색상을 결정합니다.
+ */
+export function setGlobalThemeMode(mode: ThemeMode): void {
+  _userMode = mode;
+}
+
+export function getGlobalThemeMode(): ThemeMode {
+  return _userMode;
+}
+
 // ============ COLORS - dynamic getter ============
-// import { Colors } 하면 시스템 모드에 따라 자동으로 라이트/다크 반환
+// import { Colors } 하면 사용자 모드 + 시스템 모드에 따라 자동 반환
 function getColors() {
+  if (_userMode === 'dark') return DarkColors;
+  if (_userMode === 'light') return LightColors;
+  // system
   const scheme = Appearance.getColorScheme();
   return scheme === 'dark' ? DarkColors : LightColors;
 }

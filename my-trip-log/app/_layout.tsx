@@ -28,6 +28,7 @@ import { initializeDatabase, isUserRegistered } from '@/db/database';
 import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { setupGlobalFont } from '@/utils/globalFont';
 import { Colors } from '@/theme/theme';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -101,20 +102,21 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        {/* 시스템 다크모드에 따라 status bar 자동 */}
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          {/* 시스템 다크모드에 따라 status bar 자동 */}
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            // 부드러운 화면 전환 애니메이션
-            animation: 'slide_from_right',
-            animationDuration: 250,
-            contentStyle: { backgroundColor: Colors.background },
-          }}
-        >
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              // 부드러운 화면 전환 애니메이션
+              animation: 'slide_from_right',
+              animationDuration: 250,
+              contentStyle: { backgroundColor: Colors.background },
+            }}
+          >
           <Stack.Screen
             name="(tabs)"
             options={{
@@ -220,5 +222,6 @@ export default function RootLayout() {
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
