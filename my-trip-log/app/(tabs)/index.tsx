@@ -1,12 +1,16 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import { User, Trip } from '@/types';
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [user, setUser] = useState<User | null>(null);
   const [ongoingTrip, setOngoingTrip] = useState<Trip | null>(null);
   const [planningTrips, setPlanningTrips] = useState<Trip[]>([]);
@@ -116,7 +120,7 @@ export default function HomeScreen() {
                 trip={trip}
                 onOpen={() => router.push(`/trip/${trip.id}`)}
                 onEdit={() => router.push(`/trips/new?id=${trip.id}`)}
-              />
+               styles={styles} />
             ))}
             <Pressable
               style={styles.addMoreBtn}
@@ -140,19 +144,19 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.statsRow}>
-          <StatBox label="전체" value={stats.total} />
-          <StatBox label="계획 중" value={stats.planning} />
-          <StatBox label="완료" value={stats.completed} />
+          <StatBox label="전체" value={stats.total} styles={styles} />
+          <StatBox label="계획 중" value={stats.planning} styles={styles} />
+          <StatBox label="완료" value={stats.completed} styles={styles} />
         </View>
 
         <Text style={styles.sectionTitleSmall}>빠른 메뉴</Text>
         <View style={styles.quickGrid}>
-          <QuickButton icon="🤖" label="AI 일정" highlight onPress={() => router.push('/ai-itinerary' as any)} />
-          <QuickButton icon="💰" label="비용관리" onPress={() => router.push('/expenses' as any)} />
-          <QuickButton icon="💱" label="환율" onPress={() => router.push('/(tabs)/tools')} />
-          <QuickButton icon="🚇" label="교통" onPress={() => router.push('/(tabs)/tools')} />
-          <QuickButton icon="📝" label="새 기록" onPress={() => router.push('/trips/new')} />
-          <QuickButton icon="📋" label="체크리스트" onPress={() => router.push('/(tabs)/trips')} />
+          <QuickButton icon="🤖" label="AI 일정" highlight onPress={() => router.push('/ai-itinerary' as any)} styles={styles} />
+          <QuickButton icon="💰" label="비용관리" onPress={() => router.push('/expenses' as any)} styles={styles} />
+          <QuickButton icon="💱" label="환율" onPress={() => router.push('/(tabs)/tools')} styles={styles} />
+          <QuickButton icon="🚇" label="교통" onPress={() => router.push('/(tabs)/tools')} styles={styles} />
+          <QuickButton icon="📝" label="새 기록" onPress={() => router.push('/trips/new')} styles={styles} />
+          <QuickButton icon="📋" label="체크리스트" onPress={() => router.push('/(tabs)/trips')} styles={styles} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -160,8 +164,13 @@ export default function HomeScreen() {
 }
 
 function PlanningCard({
-  trip, onOpen, onEdit,
-}: { trip: Trip; onOpen: () => void; onEdit: () => void }) {
+  trip, onOpen, onEdit, styles,
+}: {
+  trip: Trip;
+  onOpen: () => void;
+  onEdit: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <Pressable style={styles.planCard} onPress={onOpen}>
       <View style={styles.planContent}>
@@ -191,7 +200,11 @@ function PlanningCard({
   );
 }
 
-function StatBox({ label, value }: { label: string; value: number }) {
+function StatBox({ label, value, styles }: {
+  label: string;
+  value: number;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.statBox}>
       <Text style={styles.statValue}>{value}</Text>
@@ -200,7 +213,13 @@ function StatBox({ label, value }: { label: string; value: number }) {
   );
 }
 
-function QuickButton({ icon, label, onPress, highlight }: { icon: string; label: string; onPress: () => void; highlight?: boolean }) {
+function QuickButton({ icon, label, onPress, highlight, styles }: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  highlight?: boolean;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <Pressable style={[styles.quickBtn, highlight && styles.quickBtnHighlight]} onPress={onPress}>
       <Text style={styles.quickIcon}>{icon}</Text>
@@ -238,24 +257,25 @@ function getGreeting() {
   return '편안한 저녁이에요';
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xxl, paddingBottom: Spacing.huge },
   header: { marginBottom: Spacing.xl },
   greeting: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.xs,
   },
   name: {
     fontSize: Typography.displaySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
   },
 
   // 진행 중 카드
   ongoingCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 20,
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
@@ -268,8 +288,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   ongoingBadge: {
-    backgroundColor: Colors.accent,
-    color: Colors.primary,
+    backgroundColor: c.accent,
+    color: c.primary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: 6,
@@ -288,7 +308,7 @@ const styles = StyleSheet.create({
   },
   ongoingTitle: {
     fontSize: Typography.headlineLarge,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
     marginBottom: Spacing.sm,
   },
@@ -319,14 +339,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: Typography.headlineSmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
   },
   sectionCount: {
     fontSize: Typography.labelSmall,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -337,19 +357,19 @@ const styles = StyleSheet.create({
   },
   sectionTitleSmall: {
     fontSize: Typography.headlineSmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
     marginBottom: Spacing.md,
   },
 
   // 계획 카드
   planCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.accent,
+    borderLeftColor: c.accent,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
@@ -364,30 +384,30 @@ const styles = StyleSheet.create({
   planBadge: {
     alignSelf: 'flex-start',
     fontSize: 10,
-    color: Colors.tripPlanning,
+    color: c.tripPlanning,
     fontWeight: '700',
     letterSpacing: 1,
   },
   planTitle: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
     marginBottom: 2,
   },
   planLocation: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   planDate: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   editBtn: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   editIcon: {
     fontSize: 16,
@@ -399,37 +419,37 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
     marginTop: Spacing.xs,
   },
   addMoreText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
 
   // 빈 카드
   emptyCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: Spacing.xxxl,
     alignItems: 'center',
     marginBottom: Spacing.lg,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
   },
   emptyIcon: { fontSize: 40, marginBottom: Spacing.md },
   emptyTitle: {
     fontSize: Typography.headlineSmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // 통계
@@ -440,7 +460,7 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     alignItems: 'center',
@@ -448,13 +468,13 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: Typography.displaySmall,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
     marginBottom: Spacing.xs,
   },
   statLabel: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // 빠른 메뉴
@@ -465,41 +485,43 @@ const styles = StyleSheet.create({
   },
   quickBtn: {
     width: '47%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     alignItems: 'center',
     ...Shadows.soft,
   },
   quickBtnHighlight: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
     position: 'relative',
   },
   quickIcon: { fontSize: 28, marginBottom: Spacing.sm },
   quickLabel: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   quickLabelHighlight: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   quickBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   quickBadgeText: {
     fontSize: 9,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
 });
+}
+

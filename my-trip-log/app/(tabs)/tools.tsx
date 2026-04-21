@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { router } from 'expo-router';
 import { getRates, refreshRates, getLastUpdated, SUPPORTED_CURRENCIES } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
@@ -29,6 +30,9 @@ const CURRENCIES: Currency[] = [
 ];
 
 export default function ToolsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [amount, setAmount] = useState('10000');
   const [from, setFrom] = useState('KRW');
   const [to, setTo] = useState('JPY');
@@ -116,8 +120,8 @@ export default function ToolsScreen() {
         <View style={styles.card}>
           {loading ? (
             <View style={{ padding: Spacing.xxl, alignItems: 'center' }}>
-              <ActivityIndicator color={Colors.primary} />
-              <Text style={{ marginTop: Spacing.md, color: Colors.textTertiary, fontSize: 13 }}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={{ marginTop: Spacing.md, color: colors.textTertiary, fontSize: 13 }}>
                 실시간 환율 불러오는 중...
               </Text>
             </View>
@@ -129,6 +133,7 @@ export default function ToolsScreen() {
                   value={from}
                   onChange={(v) => { haptic.select(); setFrom(v); }}
                   currencies={CURRENCIES}
+                  styles={styles}
                 />
                 <Pressable style={styles.swapBtn} onPress={swap}>
                   <Text style={styles.swapIcon}>⇄</Text>
@@ -138,6 +143,7 @@ export default function ToolsScreen() {
                   value={to}
                   onChange={(v) => { haptic.select(); setTo(v); }}
                   currencies={CURRENCIES}
+                  styles={styles}
                 />
               </View>
 
@@ -149,7 +155,7 @@ export default function ToolsScreen() {
                   onChangeText={setAmount}
                   keyboardType="numeric"
                   placeholder="0"
-                  placeholderTextColor={Colors.textTertiary}
+                  placeholderTextColor={colors.textTertiary}
                 />
               </View>
 
@@ -239,12 +245,13 @@ export default function ToolsScreen() {
 }
 
 function CurrencyPicker({
-  label, value, onChange, currencies,
+  label, value, onChange, currencies, styles,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   currencies: Currency[];
+  styles: ReturnType<typeof createStyles>;
 }) {
   const [open, setOpen] = useState(false);
   const current = currencies.find((c) => c.code === value);
@@ -284,18 +291,19 @@ function CurrencyPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xxl, paddingBottom: Spacing.huge },
   title: {
     fontSize: Typography.displaySmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.xxl,
   },
   sectionHeader: {
@@ -307,17 +315,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: Spacing.lg,
     marginBottom: Spacing.md,
   },
   refreshLink: {
     fontSize: Typography.labelMedium,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
@@ -333,18 +341,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   swapIcon: {
     fontSize: 18,
-    color: Colors.primary,
+    color: c.primary,
   },
   pickerLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.xs,
   },
   picker: {
@@ -354,28 +362,28 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   pickerText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   pickerArrow: {
     fontSize: 10,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   dropdown: {
     position: 'absolute',
     top: 70,
     left: 0,
     right: 0,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     zIndex: 100,
     ...Shadows.md,
   },
@@ -384,67 +392,67 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   dropdownItemActive: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   dropdownText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   amountGroup: {
     marginBottom: Spacing.lg,
   },
   amountLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.xs,
   },
   amountInput: {
     fontSize: Typography.titleLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: c.primary,
     paddingVertical: Spacing.sm,
   },
   resultBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   resultLabel: {
     fontSize: Typography.bodyMedium,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
   },
   resultValue: {
     fontSize: Typography.titleLarge,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
   rateNote: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   errorNote: {
     fontSize: Typography.labelSmall,
-    color: Colors.error,
+    color: c.error,
     textAlign: 'center',
   },
   quickRates: {
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: c.borderLight,
   },
   quickRatesTitle: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '600',
     marginBottom: Spacing.sm,
   },
@@ -455,19 +463,19 @@ const styles = StyleSheet.create({
   },
   quickRateItem: {
     flexBasis: '47%',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 10,
   },
   quickRateLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   quickRateValue: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 2,
   },
   linkCards: {
@@ -477,7 +485,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: Spacing.md,
     ...Shadows.sm,
@@ -488,15 +496,17 @@ const styles = StyleSheet.create({
   linkLabel: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   linkDesc: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   linkArrow: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 });
+}
+

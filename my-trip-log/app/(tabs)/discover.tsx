@@ -5,7 +5,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB } from '@/db/database';
 import {
@@ -15,6 +16,9 @@ import {
 } from '@/data/destinations';
 
 export default function DiscoverScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [userCountries, setUserCountries] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [tipCategoryFilter, setTipCategoryFilter] = useState<string | null>(null);
@@ -118,7 +122,7 @@ export default function DiscoverScreen() {
               contentContainerStyle={styles.horizontalList}
             >
               {seasonRecommendations.map(d => (
-                <SeasonCard key={d.id} city={d} onPress={() => openCity(d.id)} />
+                <SeasonCard key={d.id} city={d} onPress={() => openCity(d.id)} styles={styles} />
               ))}
             </ScrollView>
           </>
@@ -137,7 +141,7 @@ export default function DiscoverScreen() {
               contentContainerStyle={styles.horizontalList}
             >
               {personalizedSuggestions.map(d => (
-                <PersonalCard key={d.id} city={d} onPress={() => openCity(d.id)} />
+                <PersonalCard key={d.id} city={d} onPress={() => openCity(d.id)} styles={styles} />
               ))}
             </ScrollView>
           </>
@@ -242,7 +246,11 @@ export default function DiscoverScreen() {
   );
 }
 
-function SeasonCard({ city, onPress }: { city: DestinationCity; onPress: () => void }) {
+function SeasonCard({ city, onPress, styles }: {
+  city: DestinationCity;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <Pressable style={styles.seasonCard} onPress={onPress}>
       <Text style={styles.seasonCardIcon}>{city.icon}</Text>
@@ -256,7 +264,11 @@ function SeasonCard({ city, onPress }: { city: DestinationCity; onPress: () => v
   );
 }
 
-function PersonalCard({ city, onPress }: { city: DestinationCity; onPress: () => void }) {
+function PersonalCard({ city, onPress, styles }: {
+  city: DestinationCity;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <Pressable style={styles.personalCard} onPress={onPress}>
       <Text style={styles.personalIcon}>{city.icon}</Text>
@@ -273,8 +285,13 @@ function PersonalCard({ city, onPress }: { city: DestinationCity; onPress: () =>
 }
 
 function CategoryChip({
-  label, active, onPress,
-}: { label: string; active: boolean; onPress: () => void }) {
+  label, active, onPress, styles,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <Pressable
       style={[styles.chip, active && styles.chipActive]}
@@ -287,19 +304,20 @@ function CategoryChip({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xl, paddingBottom: Spacing.huge },
 
   title: {
     fontSize: Typography.displaySmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.xl,
   },
 
@@ -307,7 +325,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.lg,
     borderRadius: 16,
     marginBottom: Spacing.md,
@@ -315,7 +333,7 @@ const styles = StyleSheet.create({
   seasonIcon: { fontSize: 36 },
   seasonLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
     letterSpacing: 1,
     marginBottom: 2,
@@ -323,14 +341,14 @@ const styles = StyleSheet.create({
   seasonTitle: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   horizontalList: { gap: Spacing.sm, paddingVertical: Spacing.sm },
 
   seasonCard: {
     width: 140,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.md,
     borderRadius: 14,
     alignItems: 'center',
@@ -341,15 +359,15 @@ const styles = StyleSheet.create({
   seasonCardName: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   seasonCardCountry: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.sm,
   },
   seasonCardBadge: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: 10,
@@ -357,28 +375,28 @@ const styles = StyleSheet.create({
   seasonCardBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.textOnAccent,
+    color: c.textOnAccent,
   },
 
   personalCard: {
     width: 130,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     padding: Spacing.md,
     borderRadius: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
   },
   personalIcon: { fontSize: 32, marginBottom: Spacing.xs },
   personalFlag: { fontSize: 14, marginBottom: 2 },
   personalName: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   personalCategory: {
     fontSize: 10,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -386,13 +404,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: Typography.titleSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: Spacing.xl,
     marginBottom: Spacing.xs,
   },
   sectionSub: {
     fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.md,
   },
 
@@ -402,19 +420,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   chipText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   chipTextActive: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '600',
   },
 
@@ -426,7 +444,7 @@ const styles = StyleSheet.create({
   },
   cityCard: {
     flexBasis: '47%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.md,
     borderRadius: 14,
     alignItems: 'center',
@@ -437,18 +455,18 @@ const styles = StyleSheet.create({
   cityName: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   cityCountry: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   visitedBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
     paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
     borderRadius: 6,
@@ -465,14 +483,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   tipCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.md,
     borderRadius: 12,
     ...Shadows.sm,
@@ -481,15 +499,17 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   tipSummary: {
     fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   tipArrow: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 });
+}
+
