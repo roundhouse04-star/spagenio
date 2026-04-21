@@ -158,6 +158,7 @@ export default function DiscoverScreen() {
             label="🌍 전체"
             active={selectedCategory === null}
             onPress={() => { haptic.select(); setSelectedCategory(null); }}
+            styles={styles}
           />
           {CATEGORIES.map(c => (
             <CategoryChip
@@ -165,7 +166,8 @@ export default function DiscoverScreen() {
               label={`${c.icon} ${c.label}`}
               active={selectedCategory === c.key}
               onPress={() => { haptic.select(); setSelectedCategory(c.key); }}
-            />
+            styles={styles}
+          />
           ))}
         </ScrollView>
 
@@ -212,6 +214,7 @@ export default function DiscoverScreen() {
             label="📚 전체"
             active={tipCategoryFilter === null}
             onPress={() => { haptic.select(); setTipCategoryFilter(null); }}
+            styles={styles}
           />
           {TIP_CATEGORIES.map(c => (
             <CategoryChip
@@ -219,7 +222,8 @@ export default function DiscoverScreen() {
               label={`${c.icon} ${c.label}`}
               active={tipCategoryFilter === c.key}
               onPress={() => { haptic.select(); setTipCategoryFilter(c.key); }}
-            />
+            styles={styles}
+          />
           ))}
         </ScrollView>
 
