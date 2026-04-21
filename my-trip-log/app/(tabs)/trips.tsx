@@ -1,14 +1,18 @@
-import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, FlatList } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import { Trip, TripStatus } from '@/types';
 
 type Filter = 'all' | TripStatus;
 
 export default function TripsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -74,7 +78,7 @@ export default function TripsScreen() {
           data={trips}
           keyExtractor={(t) => String(t.id)}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => <TripCard trip={item} />}
+          renderItem={({ item }) => <TripCard trip={item} colors={colors} styles={styles} />}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -82,11 +86,17 @@ export default function TripsScreen() {
   );
 }
 
-function TripCard({ trip }: { trip: Trip }) {
+function TripCard({
+  trip, colors, styles,
+}: {
+  trip: Trip;
+  colors: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
+}) {
   const statusColor = {
-    planning: Colors.tripPlanning,
-    ongoing: Colors.tripOngoing,
-    completed: Colors.tripCompleted,
+    planning: colors.tripPlanning,
+    ongoing: colors.tripOngoing,
+    completed: colors.tripCompleted,
   }[trip.status];
   const statusLabel = {
     planning: '계획 중',
@@ -137,125 +147,127 @@ function rowToTrip(r: any): Trip {
   };
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.xxl,
-    paddingBottom: Spacing.md,
-  },
-  title: {
-    fontSize: Typography.displaySmall,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  addButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: 999,
-  },
-  addButtonText: {
-    color: Colors.textOnPrimary,
-    fontSize: Typography.labelLarge,
-    fontWeight: '600',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.xxl,
-    marginBottom: Spacing.lg,
-  },
-  filterChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: 999,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterText: {
-    fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-  filterTextActive: { color: Colors.textOnPrimary },
-  list: {
-    padding: Spacing.xxl,
-    paddingTop: 0,
-    gap: Spacing.md,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: Spacing.lg,
-    ...Shadows.soft,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  status: {
-    fontSize: Typography.labelSmall,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  star: { marginLeft: 'auto', fontSize: 14 },
-  cardTitle: {
-    fontSize: Typography.headlineSmall,
-    color: Colors.textPrimary,
-    fontWeight: '700',
-    marginBottom: Spacing.xs,
-  },
-  cardLocation: {
-    fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-  },
-  cardDate: {
-    fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
-  },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xxl,
-  },
-  emptyIcon: { fontSize: 56, marginBottom: Spacing.lg },
-  emptyTitle: {
-    fontSize: Typography.headlineSmall,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  emptyDesc: {
-    fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
-  },
-  emptyBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.md,
-    borderRadius: 999,
-  },
-  emptyBtnText: {
-    color: Colors.textOnPrimary,
-    fontSize: Typography.bodyMedium,
-    fontWeight: '700',
-  },
-});
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: Spacing.xxl,
+      paddingBottom: Spacing.md,
+    },
+    title: {
+      fontSize: Typography.displaySmall,
+      fontWeight: '700',
+      color: c.textPrimary,
+    },
+    addButton: {
+      backgroundColor: c.primary,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      borderRadius: 999,
+    },
+    addButtonText: {
+      color: c.textOnPrimary,
+      fontSize: Typography.labelLarge,
+      fontWeight: '600',
+    },
+    filterRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.xxl,
+      marginBottom: Spacing.lg,
+    },
+    filterChip: {
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      borderRadius: 999,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    filterChipActive: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    filterText: {
+      fontSize: Typography.bodySmall,
+      color: c.textSecondary,
+      fontWeight: '600',
+    },
+    filterTextActive: { color: c.textOnPrimary },
+    list: {
+      padding: Spacing.xxl,
+      paddingTop: 0,
+      gap: Spacing.md,
+    },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: 16,
+      padding: Spacing.lg,
+      ...Shadows.soft,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      marginBottom: Spacing.sm,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    status: {
+      fontSize: Typography.labelSmall,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+    star: { marginLeft: 'auto', fontSize: 14 },
+    cardTitle: {
+      fontSize: Typography.headlineSmall,
+      color: c.textPrimary,
+      fontWeight: '700',
+      marginBottom: Spacing.xs,
+    },
+    cardLocation: {
+      fontSize: Typography.bodySmall,
+      color: c.textSecondary,
+      marginBottom: Spacing.xs,
+    },
+    cardDate: {
+      fontSize: Typography.labelMedium,
+      color: c.textTertiary,
+    },
+    empty: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: Spacing.xxl,
+    },
+    emptyIcon: { fontSize: 56, marginBottom: Spacing.lg },
+    emptyTitle: {
+      fontSize: Typography.headlineSmall,
+      fontWeight: '700',
+      color: c.textPrimary,
+      marginBottom: Spacing.xs,
+    },
+    emptyDesc: {
+      fontSize: Typography.bodyMedium,
+      color: c.textSecondary,
+      marginBottom: Spacing.xl,
+    },
+    emptyBtn: {
+      backgroundColor: c.primary,
+      paddingHorizontal: Spacing.xxl,
+      paddingVertical: Spacing.md,
+      borderRadius: 999,
+    },
+    emptyBtnText: {
+      color: c.textOnPrimary,
+      fontSize: Typography.bodyMedium,
+      fontWeight: '700',
+    },
+  });
+}

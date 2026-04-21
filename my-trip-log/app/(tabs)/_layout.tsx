@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-import { Colors } from '@/theme/theme';
+import { useTheme } from '@/theme/ThemeProvider';
 
 function Icon({ icon, focused }: { icon: string; focused: boolean }) {
   return (
@@ -9,15 +9,17 @@ function Icon({ icon, focused }: { icon: string; focused: boolean }) {
 }
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           paddingTop: 8,
           paddingBottom: 8,
           height: 84,
