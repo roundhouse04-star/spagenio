@@ -27,7 +27,7 @@ export default function PrivacyScreen() {
           My Trip Log는 사용자의 개인정보를 소중히 여기며, 최소한의 정보만 수집합니다.
         </Text>
 
-        <Section title="1. 수집하는 정보">
+        <Section title="1. 수집하는 정보" styles={styles}>
           {`[기기 내 저장 정보 (외부 전송 없음)]
 • 닉네임, 국적
 • 여행 기록 (제목, 내용, 사진, 위치)
@@ -42,20 +42,20 @@ export default function PrivacyScreen() {
 • 여행/기록 개수 (내용은 절대 전송 안 됨)`}
         </Section>
 
-        <Section title="2. 개인정보의 저장">
+        <Section title="2. 개인정보의 저장" styles={styles}>
           {`• 대부분의 데이터는 사용자 기기의 로컬 DB(SQLite)에만 저장됩니다.
 • 익명 통계에 동의한 경우, 위 정보는 spagenio 서버에 저장됩니다.
 • 서버 저장 데이터는 개인을 식별할 수 없는 익명 정보입니다.`}
         </Section>
 
-        <Section title="3. 개인정보의 사용">
+        <Section title="3. 개인정보의 사용" styles={styles}>
           {`익명 통계 정보는 다음 목적으로만 사용됩니다:
 • 앱 사용 현황 파악
 • 기능 개선 우선순위 결정
 • 지역별 사용자 분포 분석`}
         </Section>
 
-        <Section title="4. 제3자 제공 및 외부 서비스">
+        <Section title="4. 제3자 제공 및 외부 서비스" styles={styles}>
           {`[개인정보 제공]
 • 어떠한 경우에도 사용자 개인정보를 제3자에게 제공하지 않습니다.
 
@@ -64,19 +64,19 @@ export default function PrivacyScreen() {
 • Google Fonts: 폰트 로딩 (CDN, 개인정보 전송 없음)`}
         </Section>
 
-        <Section title="5. 이용자의 권리">
+        <Section title="5. 이용자의 권리" styles={styles}>
           {`• 언제든지 앱에서 모든 데이터를 삭제할 수 있습니다
 • 데이터를 JSON 파일로 내보낼 수 있습니다
 • 익명 통계 동의를 언제든지 철회할 수 있습니다
 • 앱 삭제 시 로컬 데이터는 즉시 제거됩니다`}
         </Section>
 
-        <Section title="6. 데이터 보관 기간">
+        <Section title="6. 데이터 보관 기간" styles={styles}>
           {`• 로컬 데이터: 사용자가 삭제하거나 앱 제거 시까지
 • 서버 익명 데이터: 익명 ID 기준, 사용자 요청 시 즉시 삭제`}
         </Section>
 
-        <Section title="7. 개인정보 보호책임자">
+        <Section title="7. 개인정보 보호책임자" styles={styles}>
           {`개인정보 관련 문의: roundhouse04@gmail.com
 
 사용자의 권리 행사 (데이터 삭제 등) 요청 시,
@@ -89,7 +89,11 @@ export default function PrivacyScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: string }) {
+function Section({ title, children, styles }: {
+  title: string;
+  children: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={{ marginBottom: Spacing.xl }}>
       <Text style={styles.sectionTitle}>{title}</Text>

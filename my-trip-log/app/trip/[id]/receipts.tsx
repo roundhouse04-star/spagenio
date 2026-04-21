@@ -320,8 +320,8 @@ export default function ReceiptGalleryScreen() {
                 />
 
                 <View style={styles.modalInfo}>
-                  <InfoRow label="가게" value={selected.title} />
-                  <InfoRow label="날짜" value={selected.expense_date} />
+                  <InfoRow label="가게" value={selected.title} styles={styles} />
+                  <InfoRow label="날짜" value={selected.expense_date} styles={styles} />
                   <InfoRow
                     label="원본 금액"
                     value={formatWithConversion(
@@ -329,21 +329,18 @@ export default function ReceiptGalleryScreen() {
                       selected.currency,
                       selected.amount_in_home_currency ?? null,
                       homeCurrency
-                    )}
-                  />
+                    )} styles={styles} />
                   {selected.exchange_rate && selected.currency !== homeCurrency && (
                     <InfoRow
                       label="저장 시 환율"
-                      value={`1 ${selected.currency} = ${selected.exchange_rate.toFixed(4)} ${homeCurrency}`}
-                    />
+                      value={`1 ${selected.currency} = ${selected.exchange_rate.toFixed(4)} ${homeCurrency}`} styles={styles} />
                   )}
                   <InfoRow
                     label="카테고리"
                     value={`${CATEGORY_INFO[selected.category as ExpenseCategory]?.icon} ${
                       CATEGORY_INFO[selected.category as ExpenseCategory]?.label
-                    }`}
-                  />
-                  {selected.memo && <InfoRow label="메모" value={selected.memo} />}
+                    }`} styles={styles} />
+                  {selected.memo && <InfoRow label="메모" value={selected.memo} styles={styles} />}
                   {selected.receipt_confidence !== undefined && (
                     <InfoRow
                       label="인식률"
@@ -351,8 +348,7 @@ export default function ReceiptGalleryScreen() {
                         selected.ocr_engine === 'mlkit' ? 'ML Kit' :
                         selected.ocr_engine === 'ocrspace' ? 'OCR.space' :
                         '수동'
-                      }`}
-                    />
+                      }`} styles={styles} />
                   )}
                 </View>
 
@@ -375,7 +371,11 @@ export default function ReceiptGalleryScreen() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, styles }: {
+  label: string;
+  value: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>

@@ -1,19 +1,23 @@
-# 🌙 Step 4-Final v3 — 전체 앱 다크모드 완성 (21개 파일)
+# 🌙 Step 4-Final v4 — 전체 앱 다크모드 완성
 
-## v3 변경 (이전 zip들 모두 폐기)
-- v1: ItineraryTab/LogsTab/ExpensesTab/ChecklistTab의 named export 처리 못 함
-- v2: 자식 시그니처 깨진 거 정상화, useMemo import 보완
-- ✅ **v3: DatePickerModal의 props 누락 복구** (visible/value/onConfirm/... 다 빠져있었음)
+## v4 변경 (이전 zip들 모두 폐기)
+- v1 ~ v3에서 자동 마이그레이션 누락된 케이스들 모두 잡음
+- ✅ **자식 함수 본문 styles 사용 검사 추가**
+- ✅ **open tag (`<X>...</X>`) 호출부도 검사 추가** (이전엔 `/>`만 봤음)
 
-## 검증 통과
+## v4에서 추가 수정된 것
+- `app/settings/terms.tsx` - Section 자식 컴포넌트 styles props 추가 + 호출부 6곳
+- `app/settings/privacy.tsx` - Section 동일
+- `app/trip/[id]/receipts.tsx` - InfoRow 자식 + 호출부 5곳
+
+## 검증 통과 (정밀)
 - ✅ 21/21 문법 OK
 - ✅ Colors 직접 참조: 0
 - ✅ rgba(250,248,243) 잔존: 0
-- ✅ 자식 컴포넌트 styles props 누락: 0
+- ✅ 자식 컴포넌트 본문 styles 사용 vs props: 0건 누락
+- ✅ 자식 컴포넌트 호출부 styles 전달: 0건 누락 (self-closing + open tag 모두)
 - ✅ 모든 function 시그니처 props 누락: 0
-
-## 변경 파일 (21개)
-모달/디테일 5개 + 가계부 2개 + 탐색 3개 + AI 1개 + 온보딩 2개 + 설정 3개 + 컴포넌트 5개
+- ✅ useMemo import 누락: 0
 
 ## 적용
 ```bash
