@@ -294,7 +294,8 @@ function createStyles(c: ColorPalette) {
   },
   statusHint: {
     fontSize: Typography.labelSmall,
-    color: 'rgba(250, 248, 243, 0.4)',
+    color: c.textOnPrimary,
+    opacity: 0.5,
     marginLeft: 'auto',
   },
   heroTitle: {
@@ -305,12 +306,14 @@ function createStyles(c: ColorPalette) {
   },
   heroLocation: {
     fontSize: Typography.bodyMedium,
-    color: 'rgba(250, 248, 243, 0.8)',
+    color: c.textOnPrimary,
+    opacity: 0.85,
     marginBottom: Spacing.xs,
   },
   heroDate: {
     fontSize: Typography.bodySmall,
-    color: 'rgba(250, 248, 243, 0.7)',
+    color: c.textOnPrimary,
+    opacity: 0.75,
     marginBottom: Spacing.xs,
   },
   heroBudget: {
@@ -318,7 +321,7 @@ function createStyles(c: ColorPalette) {
     color: c.accent,
     fontWeight: '600',
   },
-  spentText: { color: 'rgba(250, 248, 243, 0.6)' },
+  spentText: { color: c.textOnPrimary, opacity: 0.7 },
   tabRow: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,

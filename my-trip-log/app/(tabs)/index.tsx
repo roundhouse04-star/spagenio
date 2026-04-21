@@ -301,7 +301,7 @@ function createStyles(c: ColorPalette) {
   editIconWrap: {
     width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(250, 248, 243, 0.15)',
+    backgroundColor: c.surfaceAlt,
   },
   editIconLight: {
     fontSize: 14,
@@ -314,17 +314,19 @@ function createStyles(c: ColorPalette) {
   },
   ongoingLocation: {
     fontSize: Typography.bodyMedium,
-    color: 'rgba(250, 248, 243, 0.8)',
+    color: c.textOnPrimary,
+    opacity: 0.85,
     marginBottom: Spacing.md,
   },
   ongoingDates: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(250, 248, 243, 0.2)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.textOnPrimary,
     paddingTop: Spacing.md,
   },
   ongoingDate: {
     fontSize: Typography.bodySmall,
-    color: 'rgba(250, 248, 243, 0.7)',
+    color: c.textOnPrimary,
+    opacity: 0.75,
   },
 
   // 계획 중 섹션

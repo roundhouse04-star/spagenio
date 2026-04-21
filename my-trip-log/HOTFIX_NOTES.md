@@ -1,23 +1,33 @@
-# 🩹 Hotfix — discover.tsx CategoryChip styles 누락 수정
+# 🩹 Hotfix-4b1 — 다크모드에서 베이지 카드 위 텍스트 가독성 수정
 
 ## 문제
-Step 4-A-2 적용 후 탐색 탭 진입 시 에러:
-```
-TypeError: Cannot read property 'chip' of undefined
-```
+다크 모드에서 헤더 카드의 텍스트가 안 보임:
+- 여행 상세 (도쿄여행 카드의 위치/날짜/탭하여변경)
+- 홈 화면 진행 중 여행 카드 (제목/위치/날짜)
 
 ## 원인
-`CategoryChip` 자식 컴포넌트 호출 4곳이 모두 멀티라인 self-closing 태그였는데,
-이전 패치의 정규식이 lambda의 `=>` 때문에 매치 실패.
+카드 배경 = `c.primary` (다크 모드에선 베이지 #E8E2D4)
+텍스트 색 = `'rgba(250, 248, 243, X)'` 하드코딩 (밝은 베이지)
+→ **베이지 위에 베이지 = 안 보임**
 
-## 수정
-4곳 모두 `styles={styles}` props 추가:
-- 탐색 탭의 카테고리 칩 (전체 + 6개)
-- 탐색 탭의 팁 카테고리 칩 (전체 + 6개)
+## 수정 (2개 파일)
+1. `app/trip/[id]/index.tsx` — 영향: heroLocation, heroDate, statusHint, spentText
+2. `app/(tabs)/index.tsx` — 영향: ongoingTitle, ongoingLocation, ongoingDates, ongoingDate, editIconWrap
 
-## 적용 방법
-```bash
-cd ~/projects/spagenio && unzip -o ~/Downloads/hotfix-discover.zip
+## 패턴
+```diff
+- color: 'rgba(250, 248, 243, 0.8)'
++ color: c.textOnPrimary,
++ opacity: 0.85
 ```
 
-다른 파일(index.tsx, me.tsx)은 검증 결과 문제없음.
+`c.textOnPrimary`가 라이트/다크 자동 전환:
+- 라이트 모드: `#FAF8F3` (밝은 베이지) — 어두운 네이비 카드 위에서 잘 보임
+- 다크 모드: `#1E2A3A` (어두운 네이비) — 베이지 카드 위에서 잘 보임
+
+## 적용
+```bash
+cd ~/projects/spagenio && unzip -o ~/Downloads/hotfix4b1.zip
+```
+
+라이트 모드는 여전히 잘 보이고, 다크 모드에서 텍스트 가독성 향상됨.
