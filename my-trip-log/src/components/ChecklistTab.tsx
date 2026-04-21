@@ -16,6 +16,9 @@ import { CHECKLIST_CATEGORIES } from '@/db/schema';
 type FilterCategory = 'all' | ChecklistCategory;
 
 export function ChecklistTab({ trip }: { trip: Trip }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [newItem, setNewItem] = useState('');
   // 카테고리 탭: 표시 필터 용도
@@ -241,8 +244,7 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
                   key={item.id}
                   item={item}
                   onToggle={handleToggle}
-                  onDelete={handleDelete}
-                />
+                  onDelete={handleDelete} styles={styles} />
               ))}
             </View>
           ))}
@@ -258,11 +260,13 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
 function ChecklistRow({
   item,
   onToggle,
-  onDelete,
+  onDelete, styles,
 }: {
   item: ChecklistItem;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
+
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <Pressable

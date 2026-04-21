@@ -89,10 +89,10 @@ export default function CityDetailScreen() {
 
         {/* 기본 정보 카드 */}
         <View style={styles.infoGrid}>
-          <InfoItem label="통화" value={city.currency} />
-          <InfoItem label="언어" value={city.language} />
-          <InfoItem label="시차" value={city.timeZone} />
-          {city.flightHours && <InfoItem label="비행 시간" value={city.flightHours} />}
+          <InfoItem label="통화" value={city.currency} styles={styles} />
+          <InfoItem label="언어" value={city.language} styles={styles} />
+          <InfoItem label="시차" value={city.timeZone} styles={styles} />
+          {city.flightHours && <InfoItem label="비행 시간" value={city.flightHours} styles={styles} />}
         </View>
 
         {/* 지금 가기 좋은 시기 */}
@@ -209,7 +209,11 @@ export default function CityDetailScreen() {
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
+function InfoItem({ label, value, styles }: {
+  label: string;
+  value: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.infoItem}>
       <Text style={styles.infoLabel}>{label}</Text>

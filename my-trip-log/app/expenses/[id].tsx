@@ -312,7 +312,8 @@ export default function ExpenseDetailScreen() {
                   key={e.id}
                   expense={e}
                   onDelete={() => handleDelete(e.id)}
-                />
+            styles={styles}
+          />
               ))}
             </View>
           )}
@@ -410,9 +411,11 @@ function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
 function ExpenseItem({
   expense,
   onDelete,
+  styles,
 }: {
   expense: Expense;
   onDelete: () => void;
+  styles: ReturnType<typeof createStyles>;
 }) {
   const cat = EXPENSE_CATEGORIES.find((c) => c.key === expense.category);
   const displayAmount =

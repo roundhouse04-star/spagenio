@@ -10,6 +10,9 @@ import {
 import { EXPENSE_CATEGORIES } from '@/db/schema';
 
 export function ExpensesTab({ trip }: { trip: Trip }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [byCategory, setByCategory] = useState<
     { category: ExpenseCategory; total: number; count: number }[]
@@ -147,7 +150,8 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
               key={exp.id}
               expense={exp}
               onDelete={() => handleDelete(exp.id)}
-            />
+          styles={styles}
+        />
           ))}
         </View>
       )}
@@ -156,10 +160,12 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
 }
 
 function ExpenseCard({
-  expense, onDelete,
+  expense, onDelete, styles,
 }: {
   expense: Expense;
   onDelete: () => void;
+
+  styles: ReturnType<typeof createStyles>;
 }) {
   const cat = EXPENSE_CATEGORIES.find((c) => c.key === expense.category);
   return (

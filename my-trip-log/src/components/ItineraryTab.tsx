@@ -11,6 +11,9 @@ import { TRIP_ITEM_CATEGORIES } from '@/db/schema';
 import { showMapOptions } from '@/utils/maps';
 
 export function ItineraryTab({ trip }: { trip: Trip }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [items, setItems] = useState<TripItem[]>([]);
   const [selectedDay, setSelectedDay] = useState(1);
   const totalDays = calculateTripDays(trip.startDate, trip.endDate);
@@ -76,7 +79,8 @@ export function ItineraryTab({ trip }: { trip: Trip }) {
                 load();
               }}
               onDelete={() => handleDelete(item.id)}
-            />
+          styles={styles}
+        />
           ))}
         </View>
       )}
@@ -95,11 +99,13 @@ export function ItineraryTab({ trip }: { trip: Trip }) {
 }
 
 function ItemCard({
-  item, onToggle, onDelete,
+  item, onToggle, onDelete, styles,
 }: {
   item: TripItem;
   onToggle: () => void;
   onDelete: () => void;
+
+  styles: ReturnType<typeof createStyles>;
 }) {
   const cat = TRIP_ITEM_CATEGORIES.find((c) => c.key === item.category);
   return (

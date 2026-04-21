@@ -10,6 +10,9 @@ import { getTripLogs, deleteTripLog } from '@/db/logs';
 import { showMapOptions, searchInMaps } from '@/utils/maps';
 
 export function LogsTab({ trip }: { trip: Trip }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [logs, setLogs] = useState<TripLog[]>([]);
 
   const load = useCallback(async () => {
@@ -44,7 +47,9 @@ export function LogsTab({ trip }: { trip: Trip }) {
       ) : (
         <View style={styles.list}>
           {logs.map((log) => (
-            <LogCard key={log.id} log={log} onDelete={() => handleDelete(log.id)} />
+            <LogCard key={log.id} log={log} onDelete={() => handleDelete(log.id)}
+          styles={styles}
+        />
           ))}
         </View>
       )}
@@ -62,7 +67,9 @@ export function LogsTab({ trip }: { trip: Trip }) {
   );
 }
 
-function LogCard({ log, onDelete }: { log: TripLog; onDelete: () => void }) {
+function LogCard({ log, onDelete , styles}: { log: TripLog; onDelete: () => void ;
+  styles: ReturnType<typeof createStyles>;
+}) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
