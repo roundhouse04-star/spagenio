@@ -13,12 +13,13 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>SPAGENIO PRESENTS</Text>
-        <Text style={styles.title}>My Trip Log</Text>
+        <Text style={styles.eyebrow}>TRAVEL JOURNAL</Text>
+        <Text style={styles.brand}>Spagenio</Text>
+        <Text style={styles.productName}>My Trip Log</Text>
+        <View style={styles.divider} />
         <Text style={styles.subtitle}>
           모든 여행은{'\n'}한 권의 책이 됩니다
         </Text>
-        <View style={styles.divider} />
         <Text style={styles.body}>
           개인 여행 기록을{'\n'}
           품격 있게 보관하세요.
@@ -50,29 +51,39 @@ const styles = StyleSheet.create({
     fontSize: Typography.labelSmall,
     color: Colors.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
-  title: {
-    fontFamily: Fonts.display,             // ← Playfair Display Bold
-    fontSize: Typography.displayLarge + 8, // 살짝 더 크게 (44)
+  // Spagenio - 큰 브랜드명 (타이틀 포지션)
+  brand: {
+    fontFamily: Fonts.display,             // Playfair Display Bold
+    fontSize: Typography.displayLarge + 12, // 48 (기존 My Trip Log 44보다 살짝 큼)
     color: Colors.textPrimary,
     letterSpacing: Typography.letterSpacingTight,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xs,
     textAlign: 'center',
   },
-  subtitle: {
-    fontFamily: Fonts.bodyKrMedium,
-    fontSize: Typography.titleLarge,
+  // My Trip Log - 작은 서브타이틀
+  productName: {
+    fontFamily: Fonts.bodyEnMedium,        // Inter Medium
+    fontSize: Typography.titleMedium,      // 18
     color: Colors.textSecondary,
+    letterSpacing: Typography.letterSpacingWide,
+    marginBottom: Spacing.xl,
     textAlign: 'center',
-    lineHeight: Typography.titleLarge * 1.5,
-    marginBottom: Spacing.xxxl,
   },
   divider: {
     width: 50,
     height: 1,
     backgroundColor: Colors.accent,
     marginBottom: Spacing.xl,
+  },
+  subtitle: {
+    fontFamily: Fonts.bodyKrMedium,
+    fontSize: Typography.titleLarge,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: Typography.titleLarge * 1.5,
+    marginBottom: Spacing.xxl,
   },
   body: {
     fontFamily: Fonts.bodyKr,
@@ -93,7 +104,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   primaryButtonText: {
-    fontFamily: Fonts.bodyEnBold,         // ← Inter Bold
+    fontFamily: Fonts.bodyEnBold,
     color: Colors.textOnPrimary,
     fontSize: Typography.bodyLarge,
     letterSpacing: 0.5,
