@@ -90,8 +90,22 @@ export default function AiItineraryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      getAllTrips().then(setTrips).catch(console.error);
-    }, [])
+      getAllTrips()
+        .then((all) => {
+          // 최신순 정렬 (created/updated 모두 안전하게)
+          const sorted = [...all].sort((a, b) => {
+            const aDate = a.updatedAt || a.createdAt || '';
+            const bDate = b.updatedAt || b.createdAt || '';
+            return bDate.localeCompare(aDate);
+          });
+          setTrips(sorted);
+          // 기존 모드인데 선택된 게 없으면 자동 선택 (UX 개선)
+          if (targetMode === 'existing' && !existingTripId && sorted.length > 0) {
+            setExistingTripId(sorted[0].id);
+          }
+        })
+        .catch(console.error);
+    }, [targetMode, existingTripId])
   );
 
   const toggleInterest = (key: string) => {
@@ -195,9 +209,47 @@ JSON 형식:
 
   // 프롬프트 복사 + AI 앱 열기
   const handleOpenAi = async (app: (typeof AI_APPS)[0]) => {
+    // 모드별 검증
+    if (targetMode === 'existing') {
+      if (!existingTripId) {
+        Alert.alert('알림', '여행을 선택해주세요');
+        return;
+      }
+      const t = trips.find((x) => x.id === existingTripId);
+      if (!t) {
+        Alert.alert('알림', '선택한 여행을 찾을 수 없어요. 다시 시도해주세요.');
+        return;
+      }
+      // 기존 여행은 제목/날짜가 DB에 저장돼있을 가능성 높지만 빈 필드도 허용 (사용자가 임시로 만든 여행일 수도)
+      const missing: string[] = [];
+      if (!t.title) missing.push('제목');
+      if (!t.startDate) missing.push('출발일');
+      if (!t.endDate) missing.push('도착일');
+      if (missing.length > 0) {
+        Alert.alert(
+          '여행 정보 부족',
+          `선택한 여행에 ${missing.join(', ')}이(가) 없어요. 여행 상세에서 정보를 채워주세요.`
+        );
+        return;
+      }
+    } else {
+      // 새 여행 - 입력란 검증
+      const missing: string[] = [];
+      if (!title.trim()) missing.push('제목');
+      if (!startDate) missing.push('출발일');
+      if (!endDate) missing.push('도착일');
+      if (missing.length > 0) {
+        Alert.alert(
+          '입력 부족',
+          `${missing.join(', ')}을(를) 입력해주세요.`
+        );
+        return;
+      }
+    }
+
     const info = getTargetInfo();
-    if (!info || !info.title || !info.startDate || !info.endDate) {
-      Alert.alert('알림', '여행 정보를 모두 입력해주세요 (제목, 출발일, 도착일 필수)');
+    if (!info) {
+      Alert.alert('알림', '여행 정보를 가져오지 못했어요.');
       return;
     }
 
@@ -208,30 +260,45 @@ JSON 형식:
       console.error('[클립보드 복사 실패]', err);
     }
 
+    // 사용 가능한 scheme 찾기 (외부 앱 열기 전에 미리 확인만)
+    let availableScheme: string | null = null;
     for (const scheme of app.schemes) {
       try {
         const can = await Linking.canOpenURL(scheme);
         if (can) {
-          await Linking.openURL(scheme);
-          Alert.alert(
-            '✅ 프롬프트 복사 완료!',
-            `${app.label} 대화창에서 길게 눌러 붙여넣기(📋) 하고 전송해주세요.\n\n답변을 받으면 다시 이 화면으로 돌아와 "답변 붙여넣기"를 눌러주세요.`,
-            [
-              { text: '확인' },
-              {
-                text: '답변 붙여넣기로 이동',
-                onPress: () => setStep(2),
-              },
-            ]
-          );
-          return;
+          availableScheme = scheme;
+          break;
         }
       } catch (err) {
-        console.warn(`[${scheme}] 열기 실패:`, err);
+        console.warn(`[${scheme}] canOpenURL 실패:`, err);
       }
     }
 
-    Alert.alert('앱 열기 실패', `${app.label} 앱이나 웹을 열 수 없어요.`);
+    if (!availableScheme) {
+      Alert.alert('앱 열기 실패', `${app.label} 앱이나 웹을 열 수 없어요.`);
+      return;
+    }
+
+    // ⭐ 외부 앱 열기 전에 안내 Alert 먼저 띄움
+    // 사용자가 "AI 앱 열기" 눌러야 그제서야 이동 (붙여넣기 준비할 시간 확보)
+    Alert.alert(
+      '✅ 프롬프트 복사 완료!',
+      `${app.label}이(가) 열리면 대화창을 길게 눌러 붙여넣기(📋)하고 전송해주세요.\n\n답변을 받으면 다시 이 화면으로 돌아와 "답변 붙여넣기"를 눌러주세요.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: `${app.label} 열기`,
+          onPress: async () => {
+            try {
+              await Linking.openURL(availableScheme!);
+            } catch (err) {
+              console.warn(`[${availableScheme}] openURL 실패:`, err);
+              Alert.alert('앱 열기 실패', `${app.label}을(를) 열 수 없어요.`);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // AI 답변 파싱
@@ -309,6 +376,15 @@ JSON 형식:
         '✨ 성공!',
         `${addedCount}개의 일정이 추가되었어요!`,
         [
+          {
+            text: '확인',
+            style: 'cancel',
+            onPress: () => {
+              // 답변 초기화하고 step 1로 돌아감 (또는 화면 닫기)
+              setAiResponse('');
+              setStep(1);
+            },
+          },
           {
             text: '일정 보러 가기',
             onPress: () => {
@@ -393,7 +469,13 @@ JSON 형식:
                     styles.modeBtn,
                     targetMode === 'existing' && styles.modeBtnActive,
                   ]}
-                  onPress={() => setTargetMode('existing')}
+                  onPress={() => {
+                    setTargetMode('existing');
+                    // 모드 전환 시 첫 번째 여행 자동 선택
+                    if (!existingTripId && trips.length > 0) {
+                      setExistingTripId(trips[0].id);
+                    }
+                  }}
                 >
                   <Text
                     style={[
@@ -434,7 +516,10 @@ JSON 형식:
                         >
                           {t.title}
                         </Text>
-                        <Text style={styles.tripItemDate}>
+                        <Text style={[
+                          styles.tripItemDate,
+                          existingTripId === t.id && styles.tripItemDateActive,
+                        ]}>
                           {t.startDate ?? '날짜 미정'} ~ {t.endDate ?? ''}
                         </Text>
                       </Pressable>
@@ -803,18 +888,23 @@ function createStyles(c: ColorPalette) {
   },
   tripItemActive: {
     borderColor: c.primary,
-    backgroundColor: c.surfaceAlt,
+    borderWidth: 2,
+    backgroundColor: c.primary,
   },
   tripItemTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
     color: c.textPrimary,
   },
-  tripItemTitleActive: { color: c.primary },
+  tripItemTitleActive: { color: c.textOnPrimary },
   tripItemDate: {
     fontSize: Typography.labelSmall,
     color: c.textSecondary,
     marginTop: 2,
+  },
+  tripItemDateActive: {
+    color: c.textOnPrimary,
+    opacity: 0.85,
   },
   emptyText: {
     fontSize: Typography.bodySmall,
