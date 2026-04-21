@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing, Fonts } from '@/theme/theme';
+import { Typography, Spacing, Fonts } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import { registerOnServer } from '@/utils/serverStats';
 import { haptic } from '@/utils/haptics';
 
 export default function TermsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeStats, setAgreeStats] = useState(true);
@@ -171,7 +175,7 @@ export default function TermsScreen() {
           disabled={!canProceed || submitting}
         >
           {submitting ? (
-            <ActivityIndicator color={Colors.textOnPrimary} />
+            <ActivityIndicator color={colors.textOnPrimary} />
           ) : (
             <Text style={styles.primaryButtonText}>완료하고 시작하기</Text>
           )}
@@ -181,27 +185,28 @@ export default function TermsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xxl, paddingTop: Spacing.huge },
   eyebrow: {
     fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.md,
   },
   title: {
     fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.displaySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
     lineHeight: Typography.displaySmall * 1.3,
   },
   subtitle: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.xl,
     lineHeight: Typography.bodyMedium * 1.6,
   },
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
@@ -217,16 +222,16 @@ const styles = StyleSheet.create({
   allText: {
     fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.bodyMedium,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     flex: 1,
   },
   termCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   termHeader: {
     flexDirection: 'row',
@@ -239,31 +244,31 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   checkmark: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
     fontSize: 14,
   },
   termTitle: {
     fontFamily: Fonts.bodyKrMedium,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
-  required: { color: Colors.error, fontFamily: Fonts.bodyKrBold },
-  optional: { color: Colors.tripPlanning, fontFamily: Fonts.bodyKrBold },
+  required: { color: c.error, fontFamily: Fonts.bodyKrBold },
+  optional: { color: c.tripPlanning, fontFamily: Fonts.bodyKrBold },
   termBody: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: Typography.bodySmall * 1.7,
     paddingLeft: Spacing.xxxl + Spacing.sm,
   },
@@ -274,27 +279,28 @@ const styles = StyleSheet.create({
   optionalLabel: {
     fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.xs,
   },
   optionalDesc: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   footer: { padding: Spacing.xxl },
   primaryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: Spacing.lg,
     borderRadius: 14,
     alignItems: 'center',
   },
-  primaryButtonDisabled: { backgroundColor: Colors.textTertiary },
+  primaryButtonDisabled: { backgroundColor: c.textTertiary },
   primaryButtonText: {
     fontFamily: Fonts.bodyEnBold,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontSize: Typography.bodyLarge,
     letterSpacing: 0.5,
   },
 });
+}

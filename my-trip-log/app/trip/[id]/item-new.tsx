@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import WebView from 'react-native-webview';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { createTripItem } from '@/db/items';
 import { TRIP_ITEM_CATEGORIES } from '@/db/schema';
 import { showMapOptions } from '@/utils/maps';
@@ -28,6 +29,9 @@ interface NominatimResult {
 }
 
 export default function ItemNewScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const params = useLocalSearchParams<{ id: string; day: string }>();
   const tripId = Number(params.id);
   const defaultDay = Number(params.day) || 1;
@@ -184,7 +188,7 @@ export default function ItemNewScreen() {
           <TextInput
             style={styles.input}
             placeholder="예: 스카이트리 방문"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             value={title}
             onChangeText={setTitle}
           />
@@ -197,7 +201,7 @@ export default function ItemNewScreen() {
             <TextInput
               style={styles.input}
               placeholder="1"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               keyboardType="number-pad"
               value={day}
               onChangeText={setDay}
@@ -208,7 +212,7 @@ export default function ItemNewScreen() {
             <TextInput
               style={styles.input}
               placeholder="14:00"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               value={startTime}
               onChangeText={setStartTime}
             />
@@ -247,7 +251,7 @@ export default function ItemNewScreen() {
           <TextInput
             style={styles.input}
             placeholder="예: 도쿄 스카이트리"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             value={location}
             onChangeText={(text) => {
               setLocation(text);
@@ -262,7 +266,7 @@ export default function ItemNewScreen() {
           {/* 검색 중 스피너 */}
           {searching && (
             <View style={styles.searchingBox}>
-              <ActivityIndicator size="small" color={Colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.searchingText}>장소 검색 중...</Text>
             </View>
           )}
@@ -322,7 +326,7 @@ export default function ItemNewScreen() {
           <TextInput
             style={styles.input}
             placeholder="0"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             keyboardType="numeric"
             value={cost}
             onChangeText={setCost}
@@ -335,7 +339,7 @@ export default function ItemNewScreen() {
           <TextInput
             style={[styles.input, styles.textarea]}
             placeholder="추가 정보나 주의사항을 적어두세요"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             multiline
             numberOfLines={4}
             value={memo}
@@ -349,7 +353,8 @@ export default function ItemNewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -357,43 +362,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
   headerBtn: { minWidth: 50, paddingVertical: 4 },
   headerTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   cancelText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   saveText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
     textAlign: 'right',
   },
-  saveTextDisabled: { color: Colors.textTertiary },
-  container: { flex: 1, backgroundColor: Colors.background },
+  saveTextDisabled: { color: c.textTertiary },
+  container: { flex: 1, backgroundColor: c.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   field: { gap: Spacing.xs },
   label: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   required: { color: '#EF4444' },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: Spacing.md,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   textarea: { minHeight: 100, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: Spacing.md },
@@ -406,20 +411,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   categoryChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   categoryChipText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   categoryChipTextActive: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   searchingBox: {
@@ -430,37 +435,37 @@ const styles = StyleSheet.create({
   },
   searchingText: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   resultsBox: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: 'hidden',
     ...Shadows.soft,
   },
   resultItem: {
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   resultName: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   resultAddress: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   mapBox: {
     height: 200,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     marginTop: Spacing.sm,
   },
   map: { flex: 1 },
@@ -472,19 +477,20 @@ const styles = StyleSheet.create({
   },
   coordText: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   openMapBtn: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Colors.primary + '15',
+    backgroundColor: c.primary + '15',
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: c.primary + '30',
   },
   openMapBtnText: {
     fontSize: Typography.labelSmall,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
   },
 });
+}

@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { TripItem, Trip } from '@/types';
 import {
   getTripItems, toggleItemDone, deleteTripItem, calculateTripDays,
@@ -146,7 +147,8 @@ function ItemCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   container: { paddingBottom: Spacing.xl },
   dayTabs: {
     gap: Spacing.sm,
@@ -156,25 +158,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   dayTabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   dayTabText: {
     fontSize: Typography.labelLarge,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
-  dayTabTextActive: { color: Colors.textOnPrimary },
+  dayTabTextActive: { color: c.textOnPrimary },
   timeline: { gap: Spacing.sm, marginTop: Spacing.sm },
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.md,
     gap: Spacing.sm,
@@ -186,12 +188,12 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
-  check: { color: Colors.primary, fontWeight: '700', fontSize: 14 },
+  check: { color: c.primary, fontWeight: '700', fontSize: 14 },
   cardBody: { flex: 1 },
   cardHeader: {
     flexDirection: 'row',
@@ -201,37 +203,37 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
   },
   category: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   title: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   titleDone: {
     textDecorationLine: 'line-through',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   location: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 2,
   },
   memo: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: Typography.bodySmall * 1.5,
     marginTop: Spacing.xs,
   },
   cost: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
     marginTop: Spacing.xs,
   },
@@ -241,19 +243,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Colors.primary + '15',
+    backgroundColor: c.primary + '15',
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: c.primary + '30',
   },
   mapButtonText: {
     fontSize: Typography.labelSmall,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
   },
   deleteBtn: { padding: Spacing.xs },
   deleteIcon: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '700',
   },
   empty: {
@@ -264,23 +266,24 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   addButton: {
     marginTop: Spacing.lg,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.md,
     borderRadius: 12,
     alignItems: 'center',
   },
   addButtonText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
   },
 });
+}

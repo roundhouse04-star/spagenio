@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { addExpense } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
 import { getRates } from '@/utils/exchange';
@@ -23,6 +24,9 @@ const CURRENCIES = [
 ];
 
 export default function ExpenseNewScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = parseInt(id);
 
@@ -119,7 +123,7 @@ export default function ExpenseNewScreen() {
               value={expenseDate}
               onChangeText={setExpenseDate}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
 
@@ -147,7 +151,7 @@ export default function ExpenseNewScreen() {
               value={title}
               onChangeText={setTitle}
               placeholder="예: 라멘 점심"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
 
@@ -159,7 +163,7 @@ export default function ExpenseNewScreen() {
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
               <View style={styles.currencyRow}>
@@ -182,7 +186,7 @@ export default function ExpenseNewScreen() {
               <View style={styles.conversionBox}>
                 {ratesLoading ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <ActivityIndicator size="small" color={Colors.accent} />
+                    <ActivityIndicator size="small" color={colors.accent} />
                     <Text style={styles.conversionLabel}>환율 조회 중...</Text>
                   </View>
                 ) : homeCurrencyAmount ? (
@@ -208,7 +212,7 @@ export default function ExpenseNewScreen() {
               value={memo}
               onChangeText={setMemo}
               placeholder="결제 수단, 특이사항 등"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={3}
             />
@@ -219,8 +223,9 @@ export default function ExpenseNewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -228,26 +233,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
-  cancel: { fontSize: Typography.bodyMedium, color: Colors.textTertiary },
-  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: Colors.textPrimary },
-  save: { fontSize: Typography.bodyMedium, color: Colors.primary, fontWeight: '700' },
-  saveDisabled: { color: Colors.textTertiary },
+  cancel: { fontSize: Typography.bodyMedium, color: c.textTertiary },
+  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: c.textPrimary },
+  save: { fontSize: Typography.bodyMedium, color: c.primary, fontWeight: '700' },
+  saveDisabled: { color: c.textTertiary },
   scroll: { padding: Spacing.xl, paddingBottom: Spacing.huge },
   field: { marginBottom: Spacing.xl },
   label: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
     marginBottom: Spacing.sm,
   },
   input: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.surface,
+    color: c.textPrimary,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 10,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
@@ -258,43 +263,44 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  chipText: { fontSize: Typography.labelMedium, color: Colors.textSecondary },
-  chipTextActive: { color: Colors.textOnPrimary, fontWeight: '600' },
+  chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  chipText: { fontSize: Typography.labelMedium, color: c.textSecondary },
+  chipTextActive: { color: c.textOnPrimary, fontWeight: '600' },
   amountRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
   currencyRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap', maxWidth: 200 },
   currencyChip: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  currencyChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  currencyChipActive: { backgroundColor: c.primary, borderColor: c.primary },
   currencyChipText: { fontSize: 16 },
   currencyChipTextActive: { fontSize: 16 },
   conversionBox: {
     marginTop: Spacing.sm,
     padding: Spacing.md,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 10,
     alignItems: 'center',
   },
   conversionLabel: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
   },
   conversionRate: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
 });
+}

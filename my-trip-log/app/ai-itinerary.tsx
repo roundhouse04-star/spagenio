@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getAllTrips, createTrip } from '@/db/trips';
 import { createTripItem } from '@/db/items';
 import DatePickerModal from '@/components/DatePickerModal';
@@ -56,6 +57,9 @@ const AI_APPS = [
 ];
 
 export default function AiItineraryScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [targetMode, setTargetMode] = useState<'new' | 'existing'>('new');
   const [existingTripId, setExistingTripId] = useState<number | null>(null);
@@ -329,7 +333,7 @@ JSON 형식:
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: Colors.background }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* 헤더 */}
@@ -450,7 +454,7 @@ JSON 형식:
                   <TextInput
                     style={styles.input}
                     placeholder="예: 도쿄 여행"
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={colors.textTertiary}
                     value={title}
                     onChangeText={setTitle}
                   />
@@ -462,7 +466,7 @@ JSON 형식:
                     <TextInput
                       style={styles.input}
                       placeholder="일본"
-                      placeholderTextColor={Colors.textTertiary}
+                      placeholderTextColor={colors.textTertiary}
                       value={country}
                       onChangeText={setCountry}
                     />
@@ -472,7 +476,7 @@ JSON 형식:
                     <TextInput
                       style={styles.input}
                       placeholder="도쿄"
-                      placeholderTextColor={Colors.textTertiary}
+                      placeholderTextColor={colors.textTertiary}
                       value={city}
                       onChangeText={setCity}
                     />
@@ -491,7 +495,7 @@ JSON 형식:
                       <Text
                         style={[
                           styles.inputText,
-                          !startDate && { color: Colors.textTertiary },
+                          !startDate && { color: colors.textTertiary },
                         ]}
                       >
                         {startDate || 'YYYY-MM-DD'}
@@ -509,7 +513,7 @@ JSON 형식:
                       <Text
                         style={[
                           styles.inputText,
-                          !endDate && { color: Colors.textTertiary },
+                          !endDate && { color: colors.textTertiary },
                         ]}
                       >
                         {endDate || 'YYYY-MM-DD'}
@@ -523,7 +527,7 @@ JSON 형식:
                   <TextInput
                     style={styles.input}
                     placeholder="2000000"
-                    placeholderTextColor={Colors.textTertiary}
+                    placeholderTextColor={colors.textTertiary}
                     keyboardType="numeric"
                     value={budget}
                     onChangeText={setBudget}
@@ -593,7 +597,7 @@ JSON 형식:
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   placeholder="기타 관심사 추가 (예: 애니 성지)"
-                  placeholderTextColor={Colors.textTertiary}
+                  placeholderTextColor={colors.textTertiary}
                   value={newCustomInterest}
                   onChangeText={setNewCustomInterest}
                   onSubmitEditing={addCustomInterest}
@@ -611,7 +615,7 @@ JSON 형식:
               <TextInput
                 style={[styles.input, styles.textarea]}
                 placeholder="예: 아이와 함께, 걷기 많이 하기, 아침형 일정"
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 multiline
                 numberOfLines={3}
                 value={specialNote}
@@ -665,7 +669,7 @@ JSON 형식:
               <TextInput
                 style={[styles.input, styles.bigTextarea]}
                 placeholder={'{\n  "items": [\n    { "day": 1, "title": "..." }\n  ]\n}'}
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 multiline
                 value={aiResponse}
                 onChangeText={setAiResponse}
@@ -679,7 +683,7 @@ JSON 형식:
               disabled={parsing}
             >
               {parsing ? (
-                <ActivityIndicator color={Colors.textOnPrimary} />
+                <ActivityIndicator color={colors.textOnPrimary} />
               ) : (
                 <Text style={styles.submitBtnText}>
                   ✨ 일정으로 불러오기
@@ -719,7 +723,8 @@ function calculateDays(start: string, end: string): number {
   return Math.max(1, diff + 1);
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -727,44 +732,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
   headerBtn: { minWidth: 60, paddingVertical: 4 },
   headerTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   cancelText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: c.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   field: { gap: Spacing.xs },
   label: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
-  required: { color: Colors.error },
+  required: { color: c.error },
   helpText: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: Spacing.md,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   inputText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
   bigTextarea: { minHeight: 280, textAlignVertical: 'top' },
@@ -773,47 +778,47 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
   },
   modeBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   modeBtnText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
-  modeBtnTextActive: { color: Colors.textOnPrimary },
+  modeBtnTextActive: { color: c.textOnPrimary },
   tripList: { gap: Spacing.sm },
   tripItem: {
     padding: Spacing.md,
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   tripItemActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.surfaceAlt,
+    borderColor: c.primary,
+    backgroundColor: c.surfaceAlt,
   },
   tripItemTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
-  tripItemTitleActive: { color: Colors.primary },
+  tripItemTitleActive: { color: c.primary },
   tripItemDate: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   emptyText: {
     fontSize: Typography.bodySmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     padding: Spacing.md,
     textAlign: 'center',
     lineHeight: Typography.bodySmall * 1.6,
@@ -827,36 +832,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   interestChipCustom: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderStyle: 'dashed',
   },
   interestChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   interestChipText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   interestChipTextActive: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   addBtn: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addBtnText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   aiGrid: {
@@ -881,40 +886,41 @@ const styles = StyleSheet.create({
   pasteBtn: {
     marginTop: Spacing.sm,
     padding: Spacing.lg,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     borderStyle: 'dashed',
     alignItems: 'center',
   },
   pasteBtnText: {
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
     fontSize: Typography.bodyMedium,
   },
   infoBox: {
     padding: Spacing.md,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.accent,
+    borderLeftColor: c.accent,
   },
   infoText: {
     fontSize: Typography.bodySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: Typography.bodySmall * 1.6,
   },
   submitBtn: {
     padding: Spacing.lg,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     alignItems: 'center',
     ...Shadows.soft,
   },
   submitBtnText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
     fontSize: Typography.bodyLarge,
   },
 });
+}

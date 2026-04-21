@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getAllTrips } from '@/db/trips';
 import { getTripTotalSpent } from '@/db/expenses';
 import { Trip } from '@/types';
@@ -21,6 +22,9 @@ interface TripExpenseSummary {
 }
 
 export default function ExpensesScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [summaries, setSummaries] = useState<TripExpenseSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [grandTotal, setGrandTotal] = useState(0);
@@ -89,7 +93,7 @@ export default function ExpensesScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>지출 내역이 있는 여행</Text>
             {tripsWithSpending.map((s) => (
-              <TripExpenseCard key={s.trip.id} summary={s} />
+              <TripExpenseCard key={s.trip.id} summary={s} styles={styles} colors={colors} />
             ))}
           </View>
         )}
@@ -101,7 +105,7 @@ export default function ExpensesScreen() {
               지출 없음 ({tripsNoSpending.length})
             </Text>
             {tripsNoSpending.map((s) => (
-              <TripExpenseCard key={s.trip.id} summary={s} />
+              <TripExpenseCard key={s.trip.id} summary={s} styles={styles} colors={colors} />
             ))}
           </View>
         )}
@@ -129,15 +133,19 @@ export default function ExpensesScreen() {
   );
 }
 
-function TripExpenseCard({ summary }: { summary: TripExpenseSummary }) {
+function TripExpenseCard({ summary, styles, colors }: {
+  summary: TripExpenseSummary;
+  styles: ReturnType<typeof createStyles>;
+  colors: ColorPalette;
+}) {
   const { trip, totalSpent, budget, percent } = summary;
 
   const statusColor =
     trip.status === 'ongoing'
-      ? Colors.tripOngoing
+      ? colors.tripOngoing
       : trip.status === 'completed'
-      ? Colors.tripCompleted
-      : Colors.tripPlanning;
+      ? colors.tripCompleted
+      : colors.tripPlanning;
 
   const statusLabel =
     trip.status === 'ongoing' ? '진행 중'
@@ -145,9 +153,9 @@ function TripExpenseCard({ summary }: { summary: TripExpenseSummary }) {
       : '계획 중';
 
   const progressColor =
-    percent >= 100 ? Colors.error
-      : percent >= 80 ? Colors.warning
-      : Colors.success;
+    percent >= 100 ? colors.error
+      : percent >= 80 ? colors.warning
+      : colors.success;
 
   return (
     <Pressable
@@ -224,8 +232,9 @@ function TripExpenseCard({ summary }: { summary: TripExpenseSummary }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,20 +242,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   backBtn: { minWidth: 60 },
-  backText: { fontSize: Typography.bodyMedium, color: Colors.textSecondary },
+  backText: { fontSize: Typography.bodyMedium, color: c.textSecondary },
   headerTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   scroll: { padding: Spacing.lg },
 
   // 전체 합계 카드
   totalCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 20,
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
@@ -254,13 +263,13 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: Typography.bodySmall,
-    color: 'rgba(250, 248, 243, 0.7)',
+    color: c.textOnPrimary, opacity: 0.7,
     marginBottom: Spacing.xs,
   },
   totalAmount: {
     fontSize: 36,
     fontWeight: '800',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     marginBottom: Spacing.md,
   },
   totalMeta: {
@@ -268,11 +277,11 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(250, 248, 243, 0.2)',
+    borderTopColor: c.textOnPrimary,
   },
   totalMetaText: {
     fontSize: Typography.labelMedium,
-    color: 'rgba(250, 248, 243, 0.85)',
+    color: c.textOnPrimary, opacity: 0.85,
     fontWeight: '600',
   },
 
@@ -281,13 +290,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: Typography.headlineSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.md,
   },
 
   // 여행 카드
   tripCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -311,20 +320,20 @@ const styles = StyleSheet.create({
   },
   tripDate: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: Spacing.md,
     fontWeight: '500',
   },
   tripTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
     paddingRight: 20,
   },
   tripLocation: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.xs,
   },
 
@@ -339,18 +348,18 @@ const styles = StyleSheet.create({
   },
   expenseLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '600',
   },
   expenseAmount: {
     fontSize: Typography.bodyLarge,
     fontWeight: '800',
-    color: Colors.primary,
+    color: c.primary,
   },
   budgetAmount: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // 진행률
@@ -362,7 +371,7 @@ const styles = StyleSheet.create({
   progressBg: {
     flex: 1,
     height: 8,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -385,7 +394,7 @@ const styles = StyleSheet.create({
   },
   arrow: {
     fontSize: 24,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '300',
   },
 
@@ -393,34 +402,35 @@ const styles = StyleSheet.create({
   empty: {
     alignItems: 'center',
     padding: Spacing.xxxl,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
   },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
   emptyTitle: {
     fontSize: Typography.headlineSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   emptyBtn: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
   },
   emptyBtnText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
     fontSize: Typography.bodyMedium,
   },
 });
+}

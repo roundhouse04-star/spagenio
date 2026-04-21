@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { DESTINATIONS, CATEGORIES, SEASON_INFO } from '@/data/destinations';
 import { getRates } from '@/utils/exchange';
 import transitData from '@/data/transit.json';
 
 export default function CityDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { cityId } = useLocalSearchParams<{ cityId: string }>();
   const city = DESTINATIONS.find(d => d.id === cityId);
 
@@ -126,7 +130,7 @@ export default function CityDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>💱 실시간 환율</Text>
             {loadingRate ? (
-              <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.md }} />
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: Spacing.md }} />
             ) : exchangeRate ? (
               <View style={styles.rateBox}>
                 <Text style={styles.rateMain}>
@@ -214,8 +218,9 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,7 +228,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, color: Colors.textPrimary },
+  backText: { fontSize: 22, color: c.textPrimary },
   centerBox: {
     flex: 1,
     alignItems: 'center',
@@ -231,7 +236,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   scroll: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.huge },
@@ -246,19 +251,19 @@ const styles = StyleSheet.create({
   heroName: {
     fontSize: Typography.displayMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     letterSpacing: -0.5,
   },
   heroNameEn: {
     fontFamily: Fonts.display,
     fontSize: Typography.titleLarge,
-    color: Colors.accent,
+    color: c.accent,
     fontStyle: 'italic',
     marginTop: 2,
   },
   heroCountry: {
     fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: Spacing.xs,
     letterSpacing: 1,
   },
@@ -272,38 +277,38 @@ const styles = StyleSheet.create({
   infoItem: {
     flexBasis: '47%',
     flexGrow: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.md,
     borderRadius: 12,
     ...Shadows.sm,
   },
   infoLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginBottom: 4,
   },
   infoValue: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   seasonBox: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 14,
     marginBottom: Spacing.lg,
     ...Shadows.sm,
   },
   seasonBoxActive: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
   },
   seasonLabel: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.md,
   },
   monthRow: {
@@ -315,27 +320,27 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
   monthChipBest: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   monthChipNow: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   monthText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   monthTextActive: {
     color: '#fff',
   },
 
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 14,
     marginBottom: Spacing.lg,
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Typography.titleSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.md,
   },
 
@@ -355,22 +360,22 @@ const styles = StyleSheet.create({
   rateMain: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
   },
   rateBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: 10,
   },
   rateBtnText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '600',
     fontSize: Typography.labelMedium,
   },
   errorText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textAlign: 'center',
     paddingVertical: Spacing.md,
   },
@@ -379,7 +384,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.lg,
     borderRadius: 14,
     marginBottom: Spacing.lg,
@@ -388,16 +393,16 @@ const styles = StyleSheet.create({
   transitTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
   transitSub: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     marginTop: 2,
   },
   transitArrow: {
     fontSize: 24,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   tagsBox: {
@@ -407,14 +412,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   categoryTag: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 999,
   },
   categoryTagText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
 
@@ -430,8 +435,8 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
-    color: Colors.textOnPrimary,
+    backgroundColor: c.primary,
+    color: c.textOnPrimary,
     textAlign: 'center',
     lineHeight: 24,
     fontSize: 11,
@@ -440,7 +445,7 @@ const styles = StyleSheet.create({
   highlightText: {
     flex: 1,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   tipItem: {
@@ -450,14 +455,15 @@ const styles = StyleSheet.create({
   },
   tipBullet: {
     fontSize: 16,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
     lineHeight: 20,
   },
   tipText: {
     flex: 1,
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: Typography.bodyMedium * 1.6,
   },
 });
+}

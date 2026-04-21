@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView, Image,
   KeyboardAvoidingView, Platform, Alert,
@@ -8,7 +8,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Colors, Typography, Spacing } from '@/theme/theme';
+import { Typography, Spacing } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { createTripLog } from '@/db/logs';
 import DatePickerModal from '@/components/DatePickerModal';
 
@@ -24,6 +25,9 @@ const MOODS = [
 const WEATHERS = ['☀️', '⛅', '☁️', '🌧️', '⛈️', '🌨️', '🌫️'];
 
 export default function NewLogScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = Number(id);
 
@@ -46,7 +50,7 @@ export default function NewLogScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.8,
       selectionLimit: 10 - images.length,
@@ -63,7 +67,7 @@ export default function NewLogScreen() {
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
     });
     if (!result.canceled) {
@@ -193,7 +197,7 @@ export default function NewLogScreen() {
               value={title}
               onChangeText={setTitle}
               placeholder="오늘의 여행"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
 
@@ -204,7 +208,7 @@ export default function NewLogScreen() {
               value={content}
               onChangeText={setContent}
               placeholder="오늘 있었던 일, 느낀 점, 특별한 순간을 기록해보세요"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={8}
               textAlignVertical="top"
@@ -218,7 +222,7 @@ export default function NewLogScreen() {
               value={location}
               onChangeText={setLocation}
               placeholder="예: 시부야 스크램블 교차로"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
 
@@ -273,8 +277,9 @@ export default function NewLogScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -282,20 +287,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
   headerBtn: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   headerTitle: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
   },
-  saveBtn: { color: Colors.primary, fontWeight: '700' },
+  saveBtn: { color: c.primary, fontWeight: '700' },
   scroll: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: Spacing.huge },
   imageActions: {
     flexDirection: 'row',
@@ -303,18 +308,18 @@ const styles = StyleSheet.create({
   },
   imageBtn: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: Spacing.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
   },
   imageBtnIcon: { fontSize: 28, marginBottom: Spacing.xs },
   imageBtnText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   imageRow: {
@@ -328,7 +333,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 10,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   imageRemove: {
     position: 'absolute',
@@ -337,7 +342,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.error,
+    backgroundColor: c.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -350,35 +355,35 @@ const styles = StyleSheet.create({
   field: { gap: Spacing.xs },
   fieldLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   input: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.surface,
+    color: c.textPrimary,
+    backgroundColor: c.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   dateBox: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     minHeight: 48,
     justifyContent: 'center',
   },
   dateText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   datePlaceholder: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   textarea: {
     minHeight: 160,
@@ -392,9 +397,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   weatherIcon: { fontSize: 24 },
   moodChip: {
@@ -404,19 +409,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   moodIcon: { fontSize: 20 },
   moodLabel: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
-  moodLabelActive: { color: Colors.textOnPrimary },
+  moodLabelActive: { color: c.textOnPrimary },
   chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
 });
+}

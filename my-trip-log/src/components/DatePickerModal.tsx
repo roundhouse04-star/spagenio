@@ -8,7 +8,8 @@ import {
   isSameDay, isToday, parseISO, isValid, isBefore, isAfter,
 } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 
 type Props = {
   visible: boolean;
@@ -22,9 +23,10 @@ type Props = {
 
 const WEEK_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-export default function DatePickerModal({
-  visible, value, onConfirm, onClose, title = '날짜 선택', minDate, maxDate,
-}: Props) {
+export default function DatePickerModal() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const initial = useMemo(() => {
     if (value) {
       const d = parseISO(value);
@@ -117,8 +119,8 @@ export default function DatePickerModal({
                 <Text
                   style={[
                     styles.weekLabel,
-                    i === 0 && { color: Colors.error },
-                    i === 6 && { color: Colors.info },
+                    i === 0 && { color: colors.error },
+                    i === 6 && { color: colors.info },
                   ]}
                 >
                   {w}
@@ -158,8 +160,8 @@ export default function DatePickerModal({
                             !inMonth && styles.dayTextOutside,
                             isSelected && styles.dayTextSelected,
                             today && !isSelected && styles.dayTextToday,
-                            dow === 0 && inMonth && !isSelected && !today && { color: Colors.error },
-                            dow === 6 && inMonth && !isSelected && !today && { color: Colors.info },
+                            dow === 0 && inMonth && !isSelected && !today && { color: colors.error },
+                            dow === 6 && inMonth && !isSelected && !today && { color: colors.info },
                             disabled && styles.dayTextDisabled,
                           ]}
                         >
@@ -193,7 +195,8 @@ export default function DatePickerModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -204,7 +207,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     padding: Spacing.xl,
     ...Shadows.medium,
@@ -218,11 +221,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   closeBtn: {
     fontSize: 20,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   monthRow: {
     flexDirection: 'row',
@@ -236,18 +239,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   navArrow: {
     fontSize: 22,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
     lineHeight: 24,
   },
   monthLabel: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // 요일 라벨 행
@@ -262,7 +265,7 @@ const styles = StyleSheet.create({
   },
   weekLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
 
@@ -286,31 +289,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayCircleSelected: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   dayCircleToday: {
     borderWidth: 1.5,
-    borderColor: Colors.accent,
+    borderColor: c.accent,
   },
   dayText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
   dayTextOutside: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     opacity: 0.4,
   },
   dayTextSelected: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   dayTextToday: {
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
   },
   dayTextDisabled: {
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     opacity: 0.3,
   },
 
@@ -325,17 +328,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: 10,
     alignItems: 'center',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   footerBtnPrimary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   footerBtnText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   footerBtnTextPrimary: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 });
+}

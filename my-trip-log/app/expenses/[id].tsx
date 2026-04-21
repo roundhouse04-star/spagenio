@@ -10,7 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import WebView from 'react-native-webview';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getTripById } from '@/db/trips';
 import {
   getExpenses,
@@ -33,6 +34,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function ExpenseDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const params = useLocalSearchParams<{ id: string }>();
   const tripId = Number(params.id);
 
@@ -186,9 +190,9 @@ export default function ExpenseDetailScreen() {
                       {
                         width: `${percent}%`,
                         backgroundColor:
-                          percent >= 100 ? Colors.error
-                            : percent >= 80 ? Colors.warning
-                            : Colors.accent,
+                          percent >= 100 ? colors.error
+                            : percent >= 80 ? colors.warning
+                            : colors.accent,
                       },
                     ]}
                   />
@@ -461,8 +465,9 @@ function ExpenseItem({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -470,26 +475,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     gap: Spacing.sm,
   },
   backBtn: { minWidth: 60 },
-  backText: { fontSize: Typography.bodyMedium, color: Colors.textSecondary },
+  backText: { fontSize: Typography.bodyMedium, color: c.textSecondary },
   headerTitle: {
     flex: 1,
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textAlign: 'center',
   },
   addBtn: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 8,
   },
   addBtnText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
     fontSize: Typography.labelMedium,
     textAlign: 'center',
@@ -503,7 +508,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -514,7 +519,7 @@ const styles = StyleSheet.create({
 
   // 요약 카드
   summaryCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 20,
     padding: Spacing.xl,
     marginBottom: Spacing.xl,
@@ -522,13 +527,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: Typography.bodySmall,
-    color: 'rgba(250, 248, 243, 0.7)',
+    color: c.textOnPrimary, opacity: 0.7,
     marginBottom: Spacing.xs,
   },
   summaryAmount: {
     fontSize: 42,
     fontWeight: '800',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     marginBottom: Spacing.lg,
   },
   budgetRow: {
@@ -536,19 +541,19 @@ const styles = StyleSheet.create({
     gap: Spacing.xl,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(250, 248, 243, 0.2)',
+    borderTopColor: c.textOnPrimary,
     marginBottom: Spacing.md,
   },
   budgetInfo: { flex: 1 },
   budgetInfoLabel: {
     fontSize: Typography.labelSmall,
-    color: 'rgba(250, 248, 243, 0.7)',
+    color: c.textOnPrimary, opacity: 0.7,
     marginBottom: 2,
   },
   budgetInfoValue: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
   progressWrap: {
     flexDirection: 'row',
@@ -558,7 +563,7 @@ const styles = StyleSheet.create({
   progressBg: {
     flex: 1,
     height: 10,
-    backgroundColor: 'rgba(250, 248, 243, 0.2)',
+    backgroundColor: c.textOnPrimary,
     borderRadius: 5,
     overflow: 'hidden',
   },
@@ -569,7 +574,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     minWidth: 40,
     textAlign: 'right',
   },
@@ -579,7 +584,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: Typography.headlineSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.md,
   },
   sectionHeader: {
@@ -592,19 +597,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Colors.primary + '15',
+    backgroundColor: c.primary + '15',
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: c.primary + '30',
   },
   receiptLinkText: {
     fontSize: Typography.labelSmall,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
   },
 
   // 파이차트 카드
   chartCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: Spacing.lg,
     ...Shadows.soft,
@@ -626,7 +631,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   legendItem: {
     flexDirection: 'row',
@@ -637,7 +642,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   legendItemActive: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   legendDot: {
     width: 12,
@@ -653,11 +658,11 @@ const styles = StyleSheet.create({
   legendLabel: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   legendMeta: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 1,
   },
   legendRight: {
@@ -666,11 +671,11 @@ const styles = StyleSheet.create({
   legendAmount: {
     fontSize: Typography.bodyMedium,
     fontWeight: '800',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   legendPercent: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
     marginTop: 1,
   },
@@ -680,25 +685,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     padding: Spacing.md,
     borderRadius: 12,
     marginBottom: Spacing.md,
   },
   filterText: {
     fontSize: Typography.bodySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
   },
   filterClear: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 4,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 8,
   },
   filterClearText: {
     fontSize: Typography.labelSmall,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
   },
 
@@ -706,7 +711,7 @@ const styles = StyleSheet.create({
   expenseList: { gap: Spacing.sm },
   expenseItem: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.md,
     gap: Spacing.md,
@@ -731,26 +736,26 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   expenseItemAmount: {
     fontSize: Typography.bodyLarge,
     fontWeight: '800',
-    color: Colors.primary,
+    color: c.primary,
   },
   expenseItemMeta: {
     flex: 1,
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   expenseItemOriginal: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontStyle: 'italic',
   },
   expenseItemMemo: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: Typography.bodySmall * 1.5,
     marginTop: 4,
   },
@@ -760,7 +765,7 @@ const styles = StyleSheet.create({
   },
   deleteIcon: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '700',
   },
 
@@ -773,26 +778,27 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   emptyExpenses: {
     alignItems: 'center',
     padding: Spacing.xxxl,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderStyle: 'dashed',
   },
   emptyIcon: { fontSize: 44, marginBottom: Spacing.md },
   emptyTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });
+}

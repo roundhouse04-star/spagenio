@@ -2,11 +2,15 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { TRAVEL_TIPS, TIP_CATEGORIES } from '@/data/destinations';
 
 export default function TipDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { tipId } = useLocalSearchParams<{ tipId: string }>();
   const tip = TRAVEL_TIPS.find(t => t.id === tipId);
 
@@ -104,8 +108,9 @@ export default function TipDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,15 +118,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, color: Colors.textPrimary },
+  backText: { fontSize: 22, color: c.textPrimary },
   centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: Typography.bodyMedium, color: Colors.textTertiary },
+  emptyText: { fontSize: Typography.bodyMedium, color: c.textTertiary },
   scroll: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.huge },
 
   heroCard: {
     alignItems: 'center',
     padding: Spacing.xl,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 20,
     marginBottom: Spacing.lg,
   },
@@ -130,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   categoryBadge: {
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: 4,
     borderRadius: 999,
@@ -139,32 +144,32 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: Typography.labelSmall,
     fontWeight: '700',
-    color: Colors.textOnAccent,
+    color: c.textOnAccent,
     letterSpacing: 0.5,
   },
   title: {
     fontSize: Typography.titleLarge,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   summary: {
     fontSize: Typography.bodyMedium,
-    color: Colors.accent,
+    color: c.accent,
     textAlign: 'center',
     fontWeight: '500',
   },
 
   detailsCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 14,
     ...Shadows.sm,
   },
   detailsLabel: {
     fontSize: Typography.labelMedium,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing.md,
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -188,19 +193,19 @@ const styles = StyleSheet.create({
   detailNumText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textOnAccent,
+    color: c.textOnAccent,
   },
   detailText: {
     flex: 1,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: Typography.bodyMedium * 1.7,
   },
 
   sectionTitle: {
     fontSize: Typography.titleSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: Spacing.xl,
     marginBottom: Spacing.md,
   },
@@ -208,7 +213,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.md,
     borderRadius: 12,
     ...Shadows.sm,
@@ -217,15 +222,16 @@ const styles = StyleSheet.create({
   relatedTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   relatedSummary: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   relatedArrow: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 });
+}

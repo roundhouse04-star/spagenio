@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Typography, Spacing, Fonts } from '@/theme/theme';
+import { Typography, Spacing, Fonts } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB, generateAnonId } from '@/db/database';
 import { haptic } from '@/utils/haptics';
 
 export default function NicknameScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [nickname, setNickname] = useState('');
   const [nationality, setNationality] = useState('KR');
 
@@ -59,7 +63,7 @@ export default function NicknameScreen() {
               value={nickname}
               onChangeText={setNickname}
               placeholder="예: 여행자 김영희"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               maxLength={20}
               autoFocus
             />
@@ -106,27 +110,28 @@ export default function NicknameScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xxl, paddingTop: Spacing.huge, flexGrow: 1 },
   eyebrow: {
     fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.md,
   },
   title: {
     fontFamily: Fonts.bodyKrBold,
     fontSize: Typography.displaySmall,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
     lineHeight: Typography.displaySmall * 1.3,
   },
   subtitle: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.huge,
     lineHeight: Typography.bodyMedium * 1.6,
   },
@@ -136,22 +141,22 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: Fonts.bodyEnSemiBold,
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.sm,
   },
   input: {
     fontFamily: Fonts.bodyKrMedium,
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: c.primary,
     paddingVertical: Spacing.md,
   },
   hint: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: Spacing.xs,
   },
   chipRow: {
@@ -164,38 +169,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   chipText: {
     fontFamily: Fonts.bodyKr,
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   chipTextActive: {
     fontFamily: Fonts.bodyKrMedium,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
   footer: {
     padding: Spacing.xxl,
   },
   primaryButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: Spacing.lg,
     borderRadius: 14,
     alignItems: 'center',
   },
   primaryButtonDisabled: {
-    backgroundColor: Colors.textTertiary,
+    backgroundColor: c.textTertiary,
   },
   primaryButtonText: {
     fontFamily: Fonts.bodyEnBold,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontSize: Typography.bodyLarge,
     letterSpacing: 0.5,
   },
 });
+}

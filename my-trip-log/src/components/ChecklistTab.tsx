@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, Alert, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ChecklistItem, ChecklistCategory, Trip } from '@/types';
 import {
   getChecklist, createChecklistItem, toggleChecklistItem,
@@ -129,7 +130,7 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
               ? '새 항목 추가... (일반)'
               : `새 항목 추가... (${CHECKLIST_CATEGORIES.find((c) => c.key === filterCategory)?.label})`
           }
-          placeholderTextColor={Colors.textTertiary}
+          placeholderTextColor={colors.textTertiary}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
         />
@@ -271,7 +272,7 @@ function ChecklistRow({
       ]}
       onPress={() => onToggle(item.id)}
       onLongPress={() => onDelete(item.id)}
-      android_ripple={{ color: Colors.surfaceAlt }}
+      android_ripple={{ color: colors.surfaceAlt }}
     >
       <View
         style={[
@@ -293,10 +294,11 @@ function ChecklistRow({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   container: { paddingBottom: Spacing.xl },
   progressCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.lg,
     borderRadius: 14,
     marginBottom: Spacing.md,
@@ -309,24 +311,24 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
     letterSpacing: 1,
   },
   progressValue: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   progressBar: {
     height: 8,
-    backgroundColor: 'rgba(250, 248, 243, 0.15)',
+    backgroundColor: c.textOnPrimary,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   addBox: {
     flexDirection: 'row',
@@ -335,25 +337,25 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   addBtn: {
     width: 44,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addBtnDisabled: { opacity: 0.4 },
   addBtnText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontSize: 24,
     fontWeight: '700',
   },
@@ -365,23 +367,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   catTabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   catTabText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
-  catTabTextActive: { color: Colors.textOnPrimary },
+  catTabTextActive: { color: c.textOnPrimary },
   list: { gap: Spacing.md },
   groupCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     ...Shadows.soft,
@@ -389,7 +391,7 @@ const styles = StyleSheet.create({
   groupTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   row: {
@@ -401,38 +403,38 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   rowPressed: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   check: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
     fontSize: 13,
   },
   rowText: {
     flex: 1,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   rowTextChecked: {
     textDecorationLine: 'line-through',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   hint: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     textAlign: 'center',
     marginTop: Spacing.sm,
   },
@@ -444,37 +446,37 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
   emptyFiltered: {
     alignItems: 'center',
     paddingVertical: Spacing.xxl,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     ...Shadows.soft,
   },
   emptyFilteredText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.md,
   },
   templateSmallBtn: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 999,
   },
   templateSmallText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '700',
   },
   templateGrid: {
@@ -489,15 +491,16 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   templateIcon: { fontSize: 16 },
   templateLabel: {
     fontSize: Typography.labelMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
   },
 });
+}

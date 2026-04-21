@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import transitData from '@/data/transit.json';
 
@@ -79,6 +80,9 @@ const CITY_FLAGS: Record<string, string> = {
 };
 
 export default function TransitCityScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { city } = useLocalSearchParams<{ city: string }>();
   const cityId = city as string;
   const cityInfo = ALL_CITIES.find((c: any) => c.id === cityId);
@@ -336,7 +340,7 @@ export default function TransitCityScreen() {
               value={fromText}
               onChangeText={setFromText}
               placeholder="출발역"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
             <View style={styles.divider} />
             <Text style={styles.fieldLabel}>TO</Text>
@@ -345,7 +349,7 @@ export default function TransitCityScreen() {
               value={toText}
               onChangeText={setToText}
               placeholder="도착역"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
             <Pressable
               style={[styles.searchBtn, searching && { opacity: 0.5 }]}
@@ -491,7 +495,7 @@ export default function TransitCityScreen() {
               value={search}
               onChangeText={setSearch}
               placeholder="역 이름 검색 (한글/영문)"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
             />
             {search ? (
               <Pressable onPress={() => { haptic.tap(); setSearch(''); }}>
@@ -617,8 +621,9 @@ export default function TransitCityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -629,15 +634,15 @@ const styles = StyleSheet.create({
     width: 36, height: 36,
     alignItems: 'center', justifyContent: 'center',
   },
-  backText: { fontSize: 22, color: Colors.textPrimary },
+  backText: { fontSize: 22, color: c.textPrimary },
   headerTitle: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerSub: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
 
@@ -646,7 +651,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: Spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   tabBtn: {
     flex: 1,
@@ -656,16 +661,16 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabBtnActive: {
-    borderBottomColor: Colors.primary,
+    borderBottomColor: c.primary,
   },
   tabText: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 1,
   },
   tabTextActive: {
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
   },
 
@@ -677,7 +682,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: Spacing.xxl },
   sectionLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 1.2,
     fontWeight: '700',
     marginBottom: Spacing.md,
@@ -686,7 +691,7 @@ const styles = StyleSheet.create({
 
   // ROUTE 탭 - 입력
   routeInputBox: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
@@ -694,23 +699,23 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '600',
     letterSpacing: 1,
     marginBottom: Spacing.xs,
   },
   input: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     paddingVertical: Spacing.sm,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: c.borderLight,
     marginVertical: Spacing.sm,
   },
   searchBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: Spacing.md,
     borderRadius: 10,
     alignItems: 'center',
@@ -719,7 +724,7 @@ const styles = StyleSheet.create({
   searchBtnText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     letterSpacing: 1,
   },
 
@@ -731,7 +736,7 @@ const styles = StyleSheet.create({
   errorIcon: { fontSize: 40, marginBottom: Spacing.sm },
   errorText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   // 빈 상태
@@ -743,12 +748,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 6,
   },
   emptyDesc: {
     fontSize: Typography.labelMedium,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   // 결과
@@ -761,7 +766,7 @@ const styles = StyleSheet.create({
   },
   routeHeaderLabel: {
     fontSize: 10,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     letterSpacing: 1.5,
     marginBottom: 4,
     fontWeight: '600',
@@ -769,21 +774,21 @@ const styles = StyleSheet.create({
   routeHeaderStation: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   routeHeaderEn: {
     fontSize: 11,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   routeArrow: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
 
   summaryCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 10,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -793,22 +798,22 @@ const styles = StyleSheet.create({
   summaryNum: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   summaryLabel: {
     fontSize: 11,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   summaryDivider: {
     width: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: c.borderLight,
   },
 
   detailsLabel: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.md,
   },
 
@@ -831,7 +836,7 @@ const styles = StyleSheet.create({
   },
   segStops: {
     fontSize: 12,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   segBody: {
     borderLeftWidth: 3,
@@ -855,11 +860,11 @@ const styles = StyleSheet.create({
   },
   segStationName: {
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   segStationEn: {
     fontSize: 11,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   transferBar: {
     flexDirection: 'row',
@@ -882,19 +887,19 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   searchIcon: { fontSize: 16 },
   searchInput: {
     flex: 1,
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     padding: 0,
   },
-  clearIcon: { fontSize: 16, color: Colors.textTertiary },
+  clearIcon: { fontSize: 16, color: c.textTertiary },
 
   stationItem: {
     flexDirection: 'row',
@@ -902,7 +907,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: c.borderLight,
   },
   stationNameRow: {
     flexDirection: 'row',
@@ -911,12 +916,12 @@ const styles = StyleSheet.create({
   },
   stationName: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '500',
   },
   stationNameEn: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   transferBadge: {
@@ -997,7 +1002,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 });
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, TextInput, ScrollView,
   KeyboardAvoidingView, Platform, Alert,
@@ -6,7 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { Colors, Typography, Spacing } from '@/theme/theme';
+import { Typography, Spacing } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB } from '@/db/database';
 
@@ -27,6 +28,9 @@ const NATIONALITIES = [
 ];
 
 export default function ProfileEditScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [nickname, setNickname] = useState('');
   const [nationality, setNationality] = useState('KR');
   const [homeCurrency, setHomeCurrency] = useState('KRW');
@@ -96,7 +100,7 @@ export default function ProfileEditScreen() {
               value={nickname}
               onChangeText={setNickname}
               placeholder="예: 여행자 김영희"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               maxLength={20}
             />
             <Text style={styles.hint}>최소 2자, 최대 20자</Text>
@@ -142,8 +146,9 @@ export default function ProfileEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -151,31 +156,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
-  cancel: { fontSize: Typography.bodyMedium, color: Colors.textTertiary },
-  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: Colors.textPrimary },
-  save: { fontSize: Typography.bodyMedium, color: Colors.primary, fontWeight: '700' },
-  saveDisabled: { color: Colors.textTertiary },
+  cancel: { fontSize: Typography.bodyMedium, color: c.textTertiary },
+  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: c.textPrimary },
+  save: { fontSize: Typography.bodyMedium, color: c.primary, fontWeight: '700' },
+  saveDisabled: { color: c.textTertiary },
 
   scroll: { padding: Spacing.xl },
   field: { marginBottom: Spacing.xxl },
   label: {
     fontSize: Typography.labelLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '600',
     marginBottom: Spacing.sm,
   },
   input: {
     fontSize: Typography.bodyLarge,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: c.primary,
     paddingVertical: Spacing.md,
   },
   hint: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: Spacing.xs,
   },
   chipRow: {
@@ -189,19 +194,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
   chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   chipText: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   chipTextActive: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '600',
   },
 });
+}

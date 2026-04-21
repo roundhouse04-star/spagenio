@@ -9,7 +9,7 @@
  *   - 원본 통화로 저장 + 환율 자동 기록
  *   - 실시간 환율 미리보기 (home 통화 환산)
  */
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Image, ScrollView,
   ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert,
@@ -18,7 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { recognizeReceiptDual, getOcrStatus } from '@/utils/ocr';
 import { saveReceiptImage } from '@/utils/receiptStorage';
@@ -39,6 +40,9 @@ const CATEGORIES_ORDER: ExpenseCategory[] = [
 const COMMON_CURRENCIES = ['KRW', 'JPY', 'USD', 'EUR', 'THB', 'GBP', 'CNY', 'HKD', 'SGD', 'VND'];
 
 export default function ReceiptScanScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = id as string;
 
@@ -58,7 +62,6 @@ export default function ReceiptScanScreen() {
   const [currency, setCurrency] = useState('KRW');
   const [category, setCategory] = useState<ExpenseCategory>('other');
   const [memo, setMemo] = useState('');
-  const [ocrLang, setOcrLang] = useState<'kor' | 'jpn' | 'eng' | 'tha' | 'chs'>('kor');
 
   // 환율 미리보기
   const [previewHomeAmount, setPreviewHomeAmount] = useState<number | null>(null);
@@ -117,7 +120,7 @@ export default function ReceiptScanScreen() {
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
     });
     if (!result.canceled && result.assets[0]) {
@@ -133,7 +136,7 @@ export default function ReceiptScanScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
     });
     if (!result.canceled && result.assets[0]) {
@@ -141,7 +144,7 @@ export default function ReceiptScanScreen() {
     }
   };
 
-  const processImage = async (uri: string, forceLang?: 'kor' | 'jpn' | 'eng' | 'tha' | 'chs') => {
+  const processImage = async (uri: string) => {
     setLoading(true);
     setImageUri(uri);
     setLoadingText('텍스트 인식 중...');
@@ -151,11 +154,9 @@ export default function ReceiptScanScreen() {
         countryCode: trip?.country_code,
         cityId: trip?.city ? trip.city.toLowerCase() : undefined,
         defaultCurrency: trip?.currency || 'KRW',
-        forceLang: forceLang ?? ocrLang,
       });
 
       setParsed(result);
-      if ((result as any).lang) setOcrLang((result as any).lang);
       if (result.storeName) setStoreName(result.storeName);
       if (result.date) setDate(result.date);
       if (result.totalAmount) setAmount(String(result.totalAmount));
@@ -246,11 +247,11 @@ export default function ReceiptScanScreen() {
               <Text style={styles.bigBtnText}>카메라로 촬영</Text>
             </Pressable>
             <Pressable
-              style={[styles.bigBtn, { backgroundColor: Colors.surfaceAlt }]}
+              style={[styles.bigBtn, { backgroundColor: colors.surfaceAlt }]}
               onPress={pickFromLibrary}
             >
               <Text style={styles.bigBtnIcon}>🖼️</Text>
-              <Text style={[styles.bigBtnText, { color: Colors.textPrimary }]}>
+              <Text style={[styles.bigBtnText, { color: colors.textPrimary }]}>
                 앨범에서 선택
               </Text>
             </Pressable>
@@ -319,7 +320,7 @@ export default function ReceiptScanScreen() {
             <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
             {loading && (
               <View style={styles.imageOverlay}>
-                <ActivityIndicator size="large" color={Colors.accent} />
+                <ActivityIndicator size="large" color={colors.accent} />
                 <Text style={styles.imageOverlayText}>{loadingText}</Text>
               </View>
             )}
@@ -343,39 +344,7 @@ export default function ReceiptScanScreen() {
                 엔진: {parsed.engine === 'mlkit' ? '📱 ML Kit (온디바이스)' :
                        parsed.engine === 'ocrspace' ? '☁️ OCR.space (서버)' : '❌ 없음'}
                 {' · '}{parsed.duration}ms
-                {(parsed as any).lang && ` · ${(parsed as any).lang.toUpperCase()}`}
               </Text>
-
-              {/* 언어 수동 재인식 */}
-              <Text style={styles.relangHint}>결과가 이상한가요? 다른 언어로 재인식:</Text>
-              <View style={styles.langChips}>
-                {[
-                  { k: 'kor', label: '🇰🇷 한국어' },
-                  { k: 'jpn', label: '🇯🇵 일본어' },
-                  { k: 'chs', label: '🇨🇳 중국어' },
-                  { k: 'eng', label: '🇺🇸 영어' },
-                  { k: 'tha', label: '🇹🇭 태국어' },
-                ].map((L) => (
-                  <Pressable
-                    key={L.k}
-                    style={[styles.langChip, ocrLang === L.k && styles.langChipActive]}
-                    onPress={() => {
-                      haptic.tap();
-                      setOcrLang(L.k as any);
-                      if (imageUri) processImage(imageUri, L.k as any);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.langChipText,
-                        ocrLang === L.k && styles.langChipTextActive,
-                      ]}
-                    >
-                      {L.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
             </View>
           )}
 
@@ -385,7 +354,7 @@ export default function ReceiptScanScreen() {
             value={storeName}
             onChangeText={setStoreName}
             placeholder="예: 스타벅스 강남점"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
           />
 
           <Text style={styles.fieldLabel}>날짜</Text>
@@ -394,7 +363,7 @@ export default function ReceiptScanScreen() {
             value={date}
             onChangeText={setDate}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
           />
 
           <Text style={styles.fieldLabel}>금액 *</Text>
@@ -404,7 +373,7 @@ export default function ReceiptScanScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor={Colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               keyboardType="decimal-pad"
             />
             <Text style={styles.currencyDisplay}>
@@ -470,7 +439,7 @@ export default function ReceiptScanScreen() {
             value={memo}
             onChangeText={setMemo}
             placeholder="추가 정보를 적어두세요"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             multiline
           />
 
@@ -490,39 +459,9 @@ export default function ReceiptScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  relangHint: {
-    marginTop: 8,
-    fontSize: 11,
-    color: Colors.textTertiary,
-  },
-  langChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-  },
-  langChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  langChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  langChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  langChipTextActive: {
-    color: Colors.textOnPrimary,
-  },
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -530,32 +469,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
-  cancel: { fontSize: Typography.bodyMedium, color: Colors.textTertiary },
-  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: Colors.textPrimary },
-  save: { fontSize: Typography.bodyMedium, color: Colors.primary, fontWeight: '700' },
-  saveDisabled: { color: Colors.textTertiary },
+  cancel: { fontSize: Typography.bodyMedium, color: c.textTertiary },
+  headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: c.textPrimary },
+  save: { fontSize: Typography.bodyMedium, color: c.primary, fontWeight: '700' },
+  saveDisabled: { color: c.textTertiary },
 
   intro: { padding: Spacing.xl, alignItems: 'center' },
   introIcon: { fontSize: 72, marginBottom: Spacing.lg },
   introTitle: {
     fontSize: Typography.titleLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   introDesc: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: Typography.bodyMedium * 1.6,
     marginBottom: Spacing.xxl,
   },
   btnGroup: { width: '100%', gap: Spacing.md, marginBottom: Spacing.xxl },
   bigBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.xl,
     borderRadius: 14,
     alignItems: 'center',
@@ -568,12 +507,12 @@ const styles = StyleSheet.create({
   bigBtnText: {
     fontSize: Typography.titleSmall,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   engineBox: {
     width: '100%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 12,
     marginBottom: Spacing.lg,
@@ -582,7 +521,7 @@ const styles = StyleSheet.create({
   engineTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   engineRow: {
@@ -592,24 +531,24 @@ const styles = StyleSheet.create({
   },
   engineLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   engineStatus: {
     fontSize: Typography.labelSmall,
     fontWeight: '600',
   },
-  engineOn: { color: Colors.success },
-  engineOff: { color: Colors.warning },
+  engineOn: { color: c.success },
+  engineOff: { color: c.warning },
   engineHint: {
     fontSize: 10,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: Spacing.xs,
     fontStyle: 'italic',
   },
 
   tipsBox: {
     width: '100%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.lg,
     borderRadius: 14,
     gap: Spacing.xs,
@@ -617,19 +556,19 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   tipsText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: Typography.labelMedium * 1.6,
   },
 
   scroll: { padding: Spacing.xl },
   imageBox: {
     height: 250,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: Spacing.lg,
@@ -660,29 +599,29 @@ const styles = StyleSheet.create({
   confidenceText: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   engineText: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   fieldLabel: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: Spacing.sm,
     marginTop: Spacing.md,
   },
   input: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.surface,
+    color: c.textPrimary,
+    backgroundColor: c.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   amountWrap: {
@@ -693,27 +632,27 @@ const styles = StyleSheet.create({
   currencyDisplay: {
     fontSize: Typography.titleSmall,
     fontWeight: '700',
-    color: Colors.primary,
+    color: c.primary,
     minWidth: 70,
     textAlign: 'right',
   },
 
   previewBox: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     padding: Spacing.md,
     borderRadius: 10,
     marginTop: Spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
+    borderLeftColor: c.accent,
   },
   previewText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   previewSub: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
 
@@ -722,21 +661,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   currencyChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   currencyChipText: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   currencyChipTextActive: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   categoryGrid: {
@@ -751,29 +690,30 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   catIcon: { fontSize: 16 },
   catLabel: {
     fontSize: Typography.labelMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   catLabelActive: { color: '#fff' },
 
   rawTextBox: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     padding: Spacing.md,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: c.borderLight,
   },
   rawText: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     lineHeight: 16,
   },
 });
+}

@@ -5,7 +5,7 @@
  * - 카테고리별 총액
  * - 그리드 뷰
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, Image, Modal,
   ScrollView, Dimensions, Alert, ActivityIndicator,
@@ -13,7 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB } from '@/db/database';
 import { getAllExpenses, getExpensesWithReceipts } from '@/db/receipts';
@@ -45,6 +46,9 @@ interface ReceiptExpense {
 }
 
 export default function ReceiptGalleryScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = id as string;
 
@@ -168,7 +172,7 @@ export default function ReceiptGalleryScreen() {
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>총 지출</Text>
             {loadingSummary ? (
-              <ActivityIndicator style={{ marginVertical: Spacing.lg }} color={Colors.accent} />
+              <ActivityIndicator style={{ marginVertical: Spacing.lg }} color={colors.accent} />
             ) : (
               <>
                 <Text style={styles.summaryTotal}>
@@ -380,8 +384,9 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -389,19 +394,19 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 22, color: Colors.textPrimary },
+  backText: { fontSize: 22, color: c.textPrimary },
   headerTitle: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   headerSub: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   addBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 10,
@@ -409,13 +414,13 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   scroll: { padding: Spacing.xl },
 
   summaryCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.xl,
     borderRadius: 16,
     marginBottom: Spacing.lg,
@@ -423,19 +428,19 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
     letterSpacing: 1.2,
   },
   summaryTotal: {
     fontSize: Typography.displayMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     marginTop: Spacing.xs,
   },
   summaryHome: {
     fontSize: Typography.labelMedium,
-    color: Colors.accent,
+    color: c.accent,
     marginTop: 2,
   },
   currencyBreakdown: {
@@ -447,7 +452,7 @@ const styles = StyleSheet.create({
   },
   breakdownTitle: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: Spacing.sm,
@@ -460,7 +465,7 @@ const styles = StyleSheet.create({
   breakdownCurrency: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     minWidth: 60,
   },
   breakdownRight: {
@@ -469,12 +474,12 @@ const styles = StyleSheet.create({
   },
   breakdownAmount: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontWeight: '600',
   },
   breakdownHome: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     marginTop: 2,
   },
   breakdownCount: {
@@ -485,7 +490,7 @@ const styles = StyleSheet.create({
   missingWarning: {
     marginTop: Spacing.sm,
     fontSize: Typography.labelSmall,
-    color: Colors.warning,
+    color: c.warning,
   },
 
   emptyBox: {
@@ -498,18 +503,18 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: Typography.titleMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.sm,
   },
   emptyDesc: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
     lineHeight: Typography.bodyMedium * 1.6,
     marginBottom: Spacing.xxl,
   },
   emptyBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xxl,
     borderRadius: 14,
@@ -518,13 +523,13 @@ const styles = StyleSheet.create({
   emptyBtnText: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   sectionTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: Spacing.md,
     marginBottom: Spacing.md,
   },
@@ -536,7 +541,7 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     flexBasis: '30%',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.md,
     borderRadius: 12,
     alignItems: 'center',
@@ -545,18 +550,18 @@ const styles = StyleSheet.create({
   categoryIcon: { fontSize: 24, marginBottom: 4 },
   categoryLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: '600',
   },
   categoryCount: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   categoryTotal: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 4,
   },
 
@@ -568,7 +573,7 @@ const styles = StyleSheet.create({
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE * 1.4,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
@@ -616,7 +621,7 @@ const styles = StyleSheet.create({
   },
   modalDelete: {
     fontSize: Typography.labelMedium,
-    color: Colors.error,
+    color: c.error,
     fontWeight: '700',
   },
   modalScroll: { paddingHorizontal: Spacing.xl },
@@ -669,3 +674,4 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 });
+}

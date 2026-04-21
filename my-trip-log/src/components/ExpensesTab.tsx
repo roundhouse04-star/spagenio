@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { Expense, Trip, ExpenseCategory } from '@/types';
 import {
   getExpenses, deleteExpense, getExpensesByCategory, getTripTotalSpent,
@@ -69,7 +70,7 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
               <Text
                 style={[
                   styles.summaryValue,
-                  remaining < 0 && { color: Colors.error },
+                  remaining < 0 && { color: colors.error },
                 ]}
               >
                 {remaining.toLocaleString()} {trip.currency}
@@ -190,10 +191,11 @@ function ExpenseCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   container: { paddingBottom: Spacing.xl },
   summaryCard: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.lg,
     borderRadius: 16,
     marginBottom: Spacing.md,
@@ -201,21 +203,21 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: Typography.labelSmall,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
     letterSpacing: 1,
     marginBottom: Spacing.sm,
   },
   progressBar: {
     height: 8,
-    backgroundColor: 'rgba(250, 248, 243, 0.15)',
+    backgroundColor: c.textOnPrimary,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: Spacing.md,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.accent,
+    backgroundColor: c.accent,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -223,13 +225,13 @@ const styles = StyleSheet.create({
   },
   summaryCaption: {
     fontSize: Typography.labelSmall,
-    color: 'rgba(250, 248, 243, 0.6)',
+    color: c.textOnPrimary, opacity: 0.6,
     marginBottom: 2,
   },
   summaryValue: {
     fontSize: Typography.headlineSmall,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
 
   // 빠른 액션 3버튼
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 14,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
@@ -253,13 +255,13 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: Typography.labelMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: '700',
     marginBottom: 2,
   },
   actionDesc: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 
   catGrid: {
@@ -272,7 +274,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     padding: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: 10,
@@ -283,17 +285,17 @@ const styles = StyleSheet.create({
   catLabel: {
     fontSize: Typography.labelMedium,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   catAmount: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   list: { gap: Spacing.sm, marginBottom: Spacing.md },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: Spacing.md,
     gap: Spacing.md,
@@ -303,31 +305,31 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 2,
   },
   cardDate: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   cardMemo: {
     fontSize: Typography.labelSmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
   cardAmount: {
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   cardConverted: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     marginTop: 2,
   },
   deleteIcon: {
     fontSize: 20,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '700',
     padding: Spacing.xs,
   },
@@ -339,12 +341,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: 'center',
   },
 });
+}

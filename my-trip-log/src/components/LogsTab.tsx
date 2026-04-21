@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Image, Alert,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { TripLog, Trip } from '@/types';
 import { getTripLogs, deleteTripLog } from '@/db/logs';
 import { showMapOptions, searchInMaps } from '@/utils/maps';
@@ -120,11 +121,12 @@ function LogCard({ log, onDelete }: { log: TripLog; onDelete: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: ColorPalette) {
+  return StyleSheet.create({
   container: { paddingBottom: Spacing.xl },
   list: { gap: Spacing.md },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: Spacing.lg,
     ...Shadows.soft,
@@ -137,18 +139,18 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: Typography.labelMedium,
-    color: Colors.accent,
+    color: c.accent,
     fontWeight: '700',
     marginBottom: Spacing.xs,
   },
   title: {
     fontSize: Typography.headlineSmall,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   deleteIcon: {
     fontSize: 22,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
     fontWeight: '700',
     padding: Spacing.xs,
   },
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     width: '49%',
     height: 120,
     borderRadius: 10,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   moreOverlay: {
     position: 'absolute',
@@ -179,11 +181,11 @@ const styles = StyleSheet.create({
   moreText: {
     fontSize: 24,
     fontWeight: '700',
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
   },
   content: {
     fontSize: Typography.bodyMedium,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: Typography.bodyMedium * 1.6,
     marginBottom: Spacing.sm,
   },
@@ -194,19 +196,19 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: Typography.labelSmall,
-    color: Colors.textTertiary,
+    color: c.textTertiary,
   },
   locationChip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: Colors.primary + '15',
+    backgroundColor: c.primary + '15',
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: c.primary + '30',
   },
   locationChipText: {
     fontSize: Typography.labelSmall,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: '700',
   },
   empty: {
@@ -217,23 +219,24 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: Spacing.xs,
   },
   emptyDesc: {
     fontSize: Typography.bodySmall,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   addButton: {
     marginTop: Spacing.lg,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     padding: Spacing.md,
     borderRadius: 12,
     alignItems: 'center',
   },
   addButtonText: {
-    color: Colors.textOnPrimary,
+    color: c.textOnPrimary,
     fontSize: Typography.bodyMedium,
     fontWeight: '700',
   },
 });
+}
