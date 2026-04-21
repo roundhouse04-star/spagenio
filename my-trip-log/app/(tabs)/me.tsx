@@ -8,12 +8,13 @@ import { useFocusEffect, router } from 'expo-router';
 import Constants from 'expo-constants';
 
 import { Colors, Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { useTheme } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB, resetDatabase } from '@/db/database';
 import { exportData, importData } from '@/utils/backup';
 import {
   getNotificationEnabled, setNotificationEnabled,
-  getThemeMode, setThemeMode, ThemeMode,
+  ThemeMode,
 } from '@/utils/settings';
 
 interface UserInfo {
@@ -31,12 +32,14 @@ interface Stats {
 }
 
 export default function MeScreen() {
+  // 다크모드: ThemeProvider에서 관리 (Step 2 인프라)
+  const { mode: themeMode, setMode: setThemeProvider } = useTheme();
+
   const [user, setUser] = useState<UserInfo | null>(null);
   const [stats, setStats] = useState<Stats>({
     totalTrips: 0, uniqueCountries: 0, totalLogs: 0, totalExpenses: 0, totalItems: 0,
   });
   const [notifEnabled, setNotifEnabled] = useState(false);
-  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -68,9 +71,8 @@ export default function MeScreen() {
         totalItems: itemsRow?.c ?? 0,
       });
 
-      // 설정값 로드
+      // 알림 설정만 로드 (테마는 ThemeProvider가 관리)
       setNotifEnabled(await getNotificationEnabled());
-      setThemeModeState(await getThemeMode());
     } catch (err) {
       console.error(err);
     }
@@ -95,14 +97,7 @@ export default function MeScreen() {
 
   const handleThemeChange = async (mode: ThemeMode) => {
     haptic.select();
-    setThemeModeState(mode);
-    await setThemeMode(mode);
-    Alert.alert(
-      '테마 변경됨',
-      mode === 'system' ? '시스템 설정을 따라갑니다' :
-      mode === 'dark' ? '다크 모드로 설정됐어요' : '라이트 모드로 설정됐어요',
-      [{ text: '확인' }]
-    );
+    await setThemeProvider(mode); // ThemeProvider가 즉시 전체 앱에 반영
   };
 
   const handleExport = async () => {
