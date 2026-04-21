@@ -427,7 +427,23 @@ JSON 형식:
         <Text style={styles.headerTitle}>
           {step === 1 ? '🤖 AI 일정 만들기' : '📥 답변 붙여넣기'}
         </Text>
-        <View style={styles.headerBtn} />
+        {step === 2 ? (
+          <Pressable
+            onPress={handleParseResponse}
+            style={styles.headerBtn}
+            hitSlop={10}
+            disabled={parsing || !aiResponse.trim()}
+          >
+            <Text style={[
+              styles.saveText,
+              (parsing || !aiResponse.trim()) && { opacity: 0.4 },
+            ]}>
+              {parsing ? '저장 중…' : '저장'}
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.headerBtn} />
+        )}
       </View>
 
       <ScrollView
@@ -745,12 +761,15 @@ JSON 형식:
                 AI에게서 받은 답변을 아래에 붙여넣어주세요.{'\n'}
                 {'\n'}
                 🔹 마크다운 코드블록(```json ```) 있어도 자동 처리{'\n'}
-                🔹 설명 섞여있어도 JSON만 추출해서 일정 추가
+                🔹 설명 섞여있어도 JSON만 추출해서 일정 추가{'\n'}
+                🔹 답변이 길면 위쪽 "저장" 버튼을 눌러도 됩니다
               </Text>
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>AI 답변</Text>
+              <Text style={styles.label}>
+                AI 답변 {aiResponse.length > 0 && `(${aiResponse.length}자)`}
+              </Text>
               <TextInput
                 style={[styles.input, styles.bigTextarea]}
                 placeholder={'{\n  "items": [\n    { "day": 1, "title": "..." }\n  ]\n}'}
@@ -759,19 +778,20 @@ JSON 형식:
                 value={aiResponse}
                 onChangeText={setAiResponse}
                 textAlignVertical="top"
+                scrollEnabled={true}
               />
             </View>
 
             <Pressable
-              style={[styles.submitBtn, parsing && { opacity: 0.6 }]}
+              style={[styles.submitBtn, (parsing || !aiResponse.trim()) && { opacity: 0.5 }]}
               onPress={handleParseResponse}
-              disabled={parsing}
+              disabled={parsing || !aiResponse.trim()}
             >
               {parsing ? (
                 <ActivityIndicator color={colors.textOnPrimary} />
               ) : (
                 <Text style={styles.submitBtnText}>
-                  ✨ 일정으로 불러오기
+                  💾 일정 저장하기
                 </Text>
               )}
             </Pressable>
@@ -830,6 +850,12 @@ function createStyles(c: ColorPalette) {
     fontSize: Typography.bodyMedium,
     color: c.textSecondary,
   },
+  saveText: {
+    fontSize: Typography.bodyMedium,
+    color: c.accent,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
   container: { flex: 1, backgroundColor: c.background },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   field: { gap: Spacing.xs },
@@ -857,7 +883,11 @@ function createStyles(c: ColorPalette) {
     color: c.textPrimary,
   },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
-  bigTextarea: { minHeight: 280, textAlignVertical: 'top' },
+  bigTextarea: {
+    height: 280,
+    maxHeight: 280,
+    textAlignVertical: 'top'
+  },
   row: { flexDirection: 'row', gap: Spacing.md },
   modeBtn: {
     flex: 1,
