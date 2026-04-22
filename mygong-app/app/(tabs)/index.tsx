@@ -1,157 +1,137 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Image } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Fonts, FontSizes, Spacing } from '@/theme/theme';
-import { Avatar, EventRow, Empty, Divider } from '@/components/UI';
+import { LabelCaps, Mono, Chip, Box, Placeholder, Avatar, Divider } from '@/components/UI';
 import { getAllArtists } from '@/db/artists';
 import { getAllEvents } from '@/db/events';
-import { getAllTickets } from '@/db/tickets';
-import { syncStaleArtists } from '@/services/syncManager';
-import type { Artist, Event, Ticket } from '@/types';
+import type { Artist, Event } from '@/types';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [artists, setArtists] = useState<Artist[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, e, t] = await Promise.all([
+    const [a, e] = await Promise.all([
       getAllArtists('following'),
       getAllEvents({ upcoming: true }),
-      getAllTickets(),
     ]);
     setArtists(a);
     setEvents(e);
-    setTickets(t.slice(0, 5));
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await syncStaleArtists(0);
-      await load();
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const soon = events.filter(e => daysUntil(e.date) <= 7 && daysUntil(e.date) >= 0).length;
+  const thisWeekCount = events.filter(e => {
+    if (!e.date) return false;
+    const d = new Date(e.date);
+    const n = new Date();
+    const diff = (d.getTime() - n.getTime()) / 86400000;
+    return diff >= 0 && diff <= 7;
+  }).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }} edges={['top']}>
-      {/* Header — IG logo style */}
-      <View style={styles.header}>
-        <Text style={styles.brand}>내공연</Text>
-        <View style={{ flexDirection: 'row', gap: 16 }}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Top bar */}
+      <View style={styles.topbar}>
+        <Text style={styles.title}>내공연관리</Text>
+        <View style={{ flexDirection: 'row', gap: 14 }}>
           <Pressable onPress={() => router.push('/search')} hitSlop={8}>
-            <Text style={styles.headerIcon}>🔍</Text>
+            <Text style={styles.topIc}>⌕</Text>
           </Pressable>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
-            <Text style={styles.headerIcon}>⚙️</Text>
+            <Text style={styles.topIc}>⋯</Text>
           </Pressable>
         </View>
       </View>
-      <Divider />
 
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        {/* Story-ring row */}
-        <View style={styles.storyRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: 14 }}>
-            <Pressable style={styles.storyItem} onPress={() => router.push('/search')}>
-              <View style={styles.addCircle}><Text style={{ fontSize: 28, color: Colors.textSub }}>＋</Text></View>
-              <Text numberOfLines={1} style={styles.storyName}>추가</Text>
+      <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 80 }}>
+        {/* GREETING */}
+        <LabelCaps>GREETING</LabelCaps>
+        <Text style={styles.greeting}>
+          이번주 공연 <Mono style={styles.greetingNum}>{thisWeekCount}</Mono>개
+        </Text>
+
+        {/* MY ARTISTS */}
+        <LabelCaps style={{ marginTop: Spacing.xl }}>MY ARTISTS</LabelCaps>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    style={{ marginTop: 6 }}
+                    contentContainerStyle={{ gap: 10, paddingRight: 10 }}>
+          {artists.slice(0, 10).map(a => (
+            <Pressable key={a.id} onPress={() => router.push(`/artist/${a.id}`)}
+                       style={({ pressed }) => [styles.artistItem, pressed && { opacity: 0.6 }]}>
+              <Avatar artist={a} size={44} />
+              <Text numberOfLines={1} style={styles.artistName}>{a.name}</Text>
             </Pressable>
+          ))}
+          <Pressable onPress={() => router.push('/search')}
+                     style={({ pressed }) => [styles.artistItem, pressed && { opacity: 0.6 }]}>
+            <View style={styles.addCircle}>
+              <Text style={{ fontSize: 20, color: Colors.ink }}>＋</Text>
+            </View>
+            <Text style={styles.artistName}>추가</Text>
+          </Pressable>
+        </ScrollView>
 
-            {artists.map(a => (
-              <Pressable key={a.id} style={styles.storyItem} onPress={() => router.push(`/artist/${a.id}`)}>
-                <Avatar artist={a} size={62} ring />
-                <Text numberOfLines={1} style={styles.storyName}>{a.name}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-        <Divider />
-
-        {/* This week summary */}
-        <View style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg }}>
-          <Text style={{ fontSize: FontSizes.h1, fontFamily: Fonts.bold, color: Colors.text }}>
-            이번주 공연 <Text style={{ color: Colors.heart }}>{soon}개</Text>
-          </Text>
-          <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginTop: 4 }}>
-            팔로잉 {artists.length}명 · 다가오는 공연 {events.length}개 · 기록한 공연 {tickets.length}개
-          </Text>
-        </View>
-
-        {/* Upcoming events feed */}
-        <SectionTitle label="다가오는 공연" more={events.length > 5 ? () => router.push('/calendar') : undefined} />
-        {events.length === 0
-          ? <Empty icon="🎫" title="다가오는 공연이 없어요" subtitle="아티스트를 추가하거나 직접 공연을 등록해 보세요" />
-          : events.slice(0, 5).map(ev => <EventRow key={ev.id} ev={ev} onPress={() => router.push(`/event/${ev.id}`)} />)
-        }
-
-        {tickets.length > 0 && (
-          <>
-            <SectionTitle label="최근 다녀온 공연" more={() => router.push('/tickets')} />
-            {tickets.map(t => (
-              <Pressable key={t.id} onPress={() => router.push(`/ticket/${t.id}`)} style={styles.ticketCard}>
-                <Text numberOfLines={1} style={{ fontFamily: Fonts.semibold }}>
-                  {t.catIcon ?? '🎟️'} {t.title}
-                </Text>
-                <Text style={{ fontSize: FontSizes.tiny, color: Colors.textSub, marginTop: 2 }}>
-                  {t.date} · {t.venue ?? ''}
-                </Text>
-              </Pressable>
-            ))}
-          </>
+        {/* UPCOMING */}
+        <LabelCaps style={{ marginTop: Spacing.xl }}>UPCOMING · {events.length}</LabelCaps>
+        {events.length === 0 ? (
+          <Box style={{ padding: Spacing.lg, marginTop: 6 }} soft>
+            <Text style={{ fontSize: FontSizes.caption, color: Colors.ink3 }}>다가오는 공연이 없어요</Text>
+          </Box>
+        ) : (
+          events.slice(0, 8).map(ev => <UpcomingRow key={ev.id} ev={ev} onPress={() => router.push(`/event/${ev.id}`)} />)
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function SectionTitle({ label, more }: { label: string; more?: () => void }) {
+function UpcomingRow({ ev, onPress }: { ev: Event; onPress: () => void }) {
+  const dday = daysUntil(ev.date);
+  const ddayLabel = dday === 0 ? 'D-DAY' : dday > 0 ? `D-${dday}` : `D+${-dday}`;
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-                   paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm }}>
-      <Text style={{ fontSize: FontSizes.title, fontFamily: Fonts.semibold }}>{label}</Text>
-      {more && <Pressable onPress={more}><Text style={{ color: Colors.primary, fontFamily: Fonts.medium }}>모두 보기</Text></Pressable>}
-    </View>
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <Box style={{ marginTop: 6, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Mono style={{ fontSize: 12, fontWeight: '600', minWidth: 48, color: Colors.ink }}>{ddayLabel}</Mono>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: Fonts.semibold, color: Colors.ink }}>{ev.title}</Text>
+          {ev.venue && <Text numberOfLines={1} style={{ fontSize: 10, color: Colors.ink3, marginTop: 2 }}>{ev.venue}</Text>}
+        </View>
+        {ev.category && <Chip label={ev.category} />}
+      </Box>
+    </Pressable>
   );
 }
 
-function daysUntil(date: string): number {
+function daysUntil(date?: string): number {
+  if (!date) return -9999;
   const d = new Date(date);
   if (isNaN(d.getTime())) return -9999;
-  const n = new Date(); n.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  const n = new Date(); n.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
   return Math.round((d.getTime() - n.getTime()) / 86400000);
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: Spacing.lg, height: 48,
+  safe: { flex: 1, backgroundColor: Colors.paper },
+  topbar: {
+    paddingHorizontal: Spacing.lg, height: 44,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderBottomWidth: 1, borderBottomColor: Colors.ink,
   },
-  brand: { fontSize: 26, fontFamily: Fonts.brand, color: Colors.text },
-  headerIcon: { fontSize: 22 },
-  storyRow: { paddingVertical: Spacing.md },
-  storyItem: { alignItems: 'center', width: 70, gap: 4 },
-  storyName: { fontSize: FontSizes.tiny, color: Colors.text, maxWidth: 66, fontFamily: Fonts.medium },
+  title: { fontFamily: Fonts.semibold, fontSize: FontSizes.subhead, color: Colors.ink },
+  topIc: { fontSize: 16, color: Colors.ink3 },
+  greeting: { fontSize: FontSizes.title, fontFamily: Fonts.semibold, color: Colors.ink, marginTop: 4 },
+  greetingNum: { fontWeight: '600', color: Colors.ink },
+  artistItem: { width: 52, alignItems: 'center' },
+  artistName: { fontSize: 10, color: Colors.ink3, marginTop: 4, fontFamily: Fonts.regular },
   addCircle: {
-    width: 62, height: 62, borderRadius: 31,
-    borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed',
+    width: 44, height: 44, borderRadius: 22,
+    borderWidth: 1, borderColor: Colors.ink, borderStyle: 'dashed',
     alignItems: 'center', justifyContent: 'center',
-  },
-  ticketCard: {
-    paddingHorizontal: Spacing.lg, paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider,
+    backgroundColor: Colors.paper,
   },
 });

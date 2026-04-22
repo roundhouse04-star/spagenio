@@ -1,121 +1,100 @@
 /**
- * 내공연관리 — Instagram-style clean light theme.
- *
- * 디자인 원칙:
- *  1. 흰 배경 + 넓은 여백, 콘텐츠 우선
- *  2. 시스템 sans-serif (Inter + Noto Sans KR)
- *  3. 미세한 회색 구분선, 그림자 거의 없음
- *  4. 원형 아바타 + 스토리 링 그라디언트 (주황 → 핑크 → 보라)
- *  5. 하트(빨강), 북마크(검정), DM 버블 아이콘
- *  6. 라운드 4~14, 버튼은 filled/outlined 두 종만
+ * 내공연관리 — 모노크롬 와이어프레임 테마.
+ * minimal.css 의 디자인 토큰을 React Native 에 맞게 이식.
  */
 
 export const Colors = {
-  // Surface
-  bg:         '#ffffff',
-  bgMuted:    '#fafafa',
-  card:       '#ffffff',
-  overlay:    'rgba(0,0,0,0.45)',
-
-  // Text
-  text:       '#000000',
-  textSub:    '#737373',   // IG secondary
-  textFaint:  '#8e8e8e',
-  textInverse:'#ffffff',
+  // Inks (본문·헤드)
+  ink:      '#111',
+  ink2:     '#333',
+  ink3:     '#666',
+  ink4:     '#999',
 
   // Lines
-  border:     '#dbdbdb',
-  divider:    '#efefef',
+  line:     '#111',    // 주요 테두리
+  lineSoft: '#ddd',    // 보조 divider
 
-  // Actions / Accents
-  primary:    '#0095f6',   // IG blue — 버튼/링크
-  primaryPressed: '#1877f2',
-  heart:      '#ed4956',   // 좋아요 빨강
-  badge:      '#ed4956',   // 알림 뱃지
-  verified:   '#3897f0',   // 인증 마크
-  success:    '#4caf50',
+  // Fills
+  paper:    '#ffffff', // 기본 배경 (폰 화면)
+  fill:     '#f2f2f2', // 강조 박스 배경
+  fill2:    '#e8e8e8',
+  fill3:    '#fafafa',
+  bgMuted:  '#f6f6f6', // 앱 외곽 배경
 
-  // Category chip backgrounds (연하고 채도 낮음)
-  catConcert:  '#ffe5ec',
-  catMusical:  '#fff1d6',
-  catPlay:     '#e8e3fd',
-  catSports:   '#dbf5e8',
-  catFestival: '#ffe9d6',
-  catExhibit:  '#eeeeee',
+  // 텍스트 표시용 (호환)
+  text:     '#111',
+  textSub:  '#666',
+  textFaint:'#999',
+  bg:       '#ffffff',
+  border:   '#111',
+  divider:  '#ddd',
+
+  // 액센트 유지 (하트·검증 등 최소한만)
+  heart:    '#111',    // 모노크롬이라 강조색도 ink
+  primary:  '#111',
+  verified: '#111',
+
+  // 카테고리 (와이어프레임에선 fill 톤만 씀)
+  catConcert: '#f2f2f2',
+  catMusical: '#f2f2f2',
+  catPlay:    '#f2f2f2',
+  catSports:  '#f2f2f2',
+  catFestival:'#f2f2f2',
+  catExhibit: '#f2f2f2',
 } as const;
-
-// IG 스토리 링 그라디언트 (주황 → 핑크 → 보라)
-export const StoryGradient = ['#feda75', '#fa7e1e', '#d62976', '#962fbf', '#4f5bd5'];
 
 export const Fonts = {
-  // 한글·영문 겸용 본문 (바로 시스템 ↔ Inter/Noto 둘 다 잘 어울림)
-  regular:    'Inter_400Regular',
-  medium:     'Inter_500Medium',
-  semibold:   'Inter_600SemiBold',
-  bold:       'Inter_700Bold',
+  regular:  'Inter_400Regular',
+  medium:   'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold:     'Inter_700Bold',
 
-  // 한글 (Noto Sans KR 계열이 IG 한글 UI와 가장 가까움)
-  krRegular:  'NotoSansKR_400Regular',
-  krMedium:   'NotoSansKR_500Medium',
-  krBold:     'NotoSansKR_700Bold',
+  // 숫자·라벨·코드용
+  mono:         'JetBrainsMono_400Regular',
+  monoMedium:   'JetBrainsMono_500Medium',
 
-  // 앱 로고 — 필기체. 상단 로고 한 곳에서만 사용
-  brand:      'Gaegu_700Bold',
+  // 한국어 fallback
+  ko:         'NotoSansKR_400Regular',
+  koMedium:   'NotoSansKR_500Medium',
+  koSemibold: 'NotoSansKR_700Bold',
 } as const;
 
-export const Radius = {
-  xs: 4,
-  sm: 6,
-  md: 10,
-  lg: 14,
-  pill: 999,
+export const FontSizes = {
+  micro:   9,    // mono 라벨캡
+  tiny:    10,
+  caption: 11,
+  body:    13,   // 본문 기본
+  subhead: 14,
+  title:   16,
+  h2:      20,
+  h1:      24,
+  hero:    28,
 } as const;
 
 export const Spacing = {
   xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
+  xxl: 24,
 } as const;
 
-export const FontSizes = {
-  tiny: 11,
-  caption: 12,
-  body: 14,
-  bodyLg: 15,
-  title: 17,
-  h2: 20,
-  h1: 26,
+export const Radius = {
+  none: 0,      // 기본 — 직각
+  sm:   4,
+  md:   8,
+  lg:   12,
+  pill: 999,
 } as const;
 
-export const Shadows = {
-  // IG는 그림자 거의 안 씀. 필요할 때만 미세하게.
-  sheet: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  subtle: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
+export const BorderWidth = {
+  hair: 0.5,
+  thin: 1,      // 기본
+  bold: 2,      // 강조
 } as const;
 
-// 카테고리별 칩 색 매핑
-export function chipBg(category?: string): string {
-  if (!category) return Colors.bgMuted;
-  if (category.includes('콘서트')) return Colors.catConcert;
-  if (category.includes('뮤지컬')) return Colors.catMusical;
-  if (category.includes('연극'))   return Colors.catPlay;
-  if (category.includes('야구') || category.includes('축구') || category.includes('농구')) return Colors.catSports;
-  if (category.includes('페스티벌')) return Colors.catFestival;
-  if (category.includes('전시'))   return Colors.catExhibit;
-  return Colors.bgMuted;
+/** 카테고리별 배경색 — 모노크롬에선 전부 fill */
+export function chipBg(_category?: string): string {
+  return Colors.fill;
 }

@@ -1,11 +1,23 @@
 import { Tabs } from 'expo-router';
 import { Text, View, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes } from '@/theme/theme';
+import { Colors, Fonts } from '@/theme/theme';
 import { useUnreadCount } from '@/utils/useUnreadCount';
 
-const tabIcon = (emoji: string, active: boolean) => (
-  <Text style={{ fontSize: active ? 26 : 22, opacity: active ? 1 : 0.55 }}>{emoji}</Text>
-);
+/** 각 탭의 22x22 사각형 아이콘. 선택되면 검정 배경 + 흰 글자. */
+function TabIcon({ glyph, active }: { glyph: string; active: boolean }) {
+  return (
+    <View style={[
+      styles.tabIc,
+      active && { backgroundColor: Colors.ink, borderColor: Colors.ink },
+    ]}>
+      <Text style={{
+        fontFamily: Fonts.regular,
+        fontSize: 11,
+        color: active ? '#fff' : Colors.ink,
+      }}>{glyph}</Text>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const unread = useUnreadCount();
@@ -14,30 +26,32 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.text,
-        tabBarInactiveTintColor: Colors.textFaint,
+        tabBarActiveTintColor: Colors.ink,
+        tabBarInactiveTintColor: Colors.ink4,
         tabBarStyle: {
-          backgroundColor: Colors.bg,
-          borderTopColor: Colors.divider,
-          height: 58,
-          paddingBottom: 6,
-          paddingTop: 4,
+          backgroundColor: Colors.paper,
+          borderTopColor: Colors.ink,
+          borderTopWidth: 1,
+          height: 62,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontFamily: Fonts.medium,
           fontSize: 10,
+          marginTop: 3,
         },
       }}
     >
-      <Tabs.Screen name="index"     options={{ title: '홈',       tabBarIcon: ({ focused }) => tabIcon('🏠', focused) }} />
-      <Tabs.Screen name="artists"   options={{ title: '아티스트', tabBarIcon: ({ focused }) => tabIcon('👤', focused) }} />
-      <Tabs.Screen name="tickets"   options={{ title: '티켓',     tabBarIcon: ({ focused }) => tabIcon('🎟️', focused) }} />
-      <Tabs.Screen name="calendar"  options={{ title: '캘린더',   tabBarIcon: ({ focused }) => tabIcon('📅', focused) }} />
-      <Tabs.Screen name="notif"     options={{
+      <Tabs.Screen name="index"    options={{ title: '홈',       tabBarIcon: ({ focused }) => <TabIcon glyph="◱" active={focused} /> }} />
+      <Tabs.Screen name="artists"  options={{ title: '아티스트', tabBarIcon: ({ focused }) => <TabIcon glyph="♡" active={focused} /> }} />
+      <Tabs.Screen name="tickets"  options={{ title: '티켓',     tabBarIcon: ({ focused }) => <TabIcon glyph="▦" active={focused} /> }} />
+      <Tabs.Screen name="calendar" options={{ title: '캘린더',   tabBarIcon: ({ focused }) => <TabIcon glyph="▤" active={focused} /> }} />
+      <Tabs.Screen name="notif"    options={{
         title: '알림',
         tabBarIcon: ({ focused }) => (
           <View>
-            {tabIcon('🔔', focused)}
+            <TabIcon glyph="◔" active={focused} />
             {unread > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
@@ -51,14 +65,20 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  tabIc: {
+    width: 22, height: 22,
+    borderWidth: 1, borderColor: Colors.ink3,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.paper,
+  },
   badge: {
     position: 'absolute', top: -4, right: -8,
-    backgroundColor: Colors.badge,
-    borderRadius: 8, minWidth: 16, height: 16,
-    paddingHorizontal: 4,
+    backgroundColor: Colors.ink,
+    minWidth: 14, height: 14,
+    paddingHorizontal: 3,
     alignItems: 'center', justifyContent: 'center',
   },
   badgeText: {
-    color: '#fff', fontSize: 9, fontFamily: Fonts.bold,
+    color: '#fff', fontSize: 9, fontFamily: Fonts.mono,
   },
 });

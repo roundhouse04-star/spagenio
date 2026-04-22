@@ -84,7 +84,7 @@ export default function TicketDetail() {
             {ticket.date}{ticket.venue ? ` · ${ticket.venue}` : ''}
           </Text>
           {ticket.seat && <Text style={{ fontSize: FontSizes.tiny, color: Colors.textSub }}>{ticket.seat}</Text>}
-          <View style={{ marginTop: 14 }}><Stars n={ticket.rating} size={22} /></View>
+          <View style={{ marginTop: 14 }}><Stars value={ticket.rating} size={22} /></View>
         </View>
 
         {ticket.notes && (

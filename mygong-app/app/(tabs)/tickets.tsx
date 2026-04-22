@@ -1,125 +1,122 @@
 import React, { useCallback, useState, useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors, Fonts, FontSizes, Spacing, Radius, chipBg } from '@/theme/theme';
-import { TicketRow, Empty, Divider } from '@/components/UI';
-import { getAllTickets, getTicketStats } from '@/db/tickets';
-import { CATEGORIES } from '@/db/schema';
+import { Colors, Fonts, FontSizes, Spacing } from '@/theme/theme';
+import { Chip, Empty, LabelCaps, Mono, Box, Placeholder, Stars } from '@/components/UI';
+import { getAllTickets } from '@/db/tickets';
 import type { Ticket } from '@/types';
 
-const FILTERS = [{ key: 'all', label: '전체' }, ...CATEGORIES.map(c => ({ key: c.value, label: c.value }))];
+const CATEGORIES = ['전체', '연극', '뮤지컬', '콘서트', '야구', '축구', '농구', '페스티벌'];
 
 export default function TicketsScreen() {
   const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [filter, setFilter] = useState('all');
-  const [stats, setStats] = useState<any>({ total: 0, avgRating: 0, thisYear: 0 });
+  const [filter, setFilter] = useState('전체');
 
   const load = useCallback(async () => {
     setTickets(await getAllTickets());
-    setStats(await getTicketStats());
   }, []);
+
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const filtered = useMemo(
-    () => filter === 'all' ? tickets : tickets.filter(t => t.category === filter),
-    [tickets, filter]
-  );
+  const filtered = filter === '전체' ? tickets : tickets.filter(t => t.category === filter);
 
-  const byMonth = useMemo(() => {
-    const m = new Map<string, Ticket[]>();
+  // 카테고리별 카운트
+  const counts = useMemo(() => {
+    const m: Record<string, number> = { '전체': tickets.length };
+    for (const t of tickets) m[t.category] = (m[t.category] ?? 0) + 1;
+    return m;
+  }, [tickets]);
+
+  // 월별 그룹
+  const grouped = useMemo(() => {
+    const g: Record<string, Ticket[]> = {};
     for (const t of filtered) {
-      const key = t.month || t.date.slice(0, 7);
-      (m.get(key) ?? m.set(key, []).get(key)!).push(t);
+      const key = (t.month || t.date.slice(0, 7)).replace('-', '.');
+      (g[key] ||= []).push(t);
     }
-    return Array.from(m.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+    return Object.entries(g).sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>티켓 컬렉션</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.topbar}>
+        <Text style={styles.title}>티켓함</Text>
         <Pressable onPress={() => router.push('/ticket/new')} hitSlop={8}>
-          <Text style={{ fontSize: 22 }}>＋</Text>
+          <Text style={styles.topIc}>＋</Text>
         </Pressable>
       </View>
-      <Divider />
 
-      {/* Stats banner */}
-      <View style={styles.stats}>
-        <Stat label="다녀온 공연" value={String(stats.total)} />
-        <View style={styles.statDivider} />
-        <Stat label="올해" value={String(stats.thisYear)} />
-        <View style={styles.statDivider} />
-        <Stat label="평균 별점" value={stats.avgRating ? Number(stats.avgRating).toFixed(1) : '-'} />
-      </View>
-      <Divider />
-
-      {/* Filter chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        {FILTERS.map(f => {
-          const active = filter === f.key;
-          const count = f.key === 'all' ? tickets.length : tickets.filter(t => t.category === f.key).length;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={[styles.chip, { backgroundColor: active ? Colors.text : chipBg(f.key === 'all' ? undefined : f.key) }]}
-            >
-              <Text style={{
-                fontSize: FontSizes.caption,
-                fontFamily: active ? Fonts.semibold : Fonts.medium,
-                color: active ? '#fff' : Colors.text,
-              }}>
-                {f.label} {count > 0 && `· ${count}`}
-              </Text>
-            </Pressable>
-          );
-        })}
+      {/* 카테고리 칩 가로 스크롤 */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  style={{ flexGrow: 0, maxHeight: 44 }}
+                  contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: 6, paddingVertical: Spacing.sm }}>
+        {CATEGORIES.filter(c => c === '전체' || (counts[c] ?? 0) > 0).map(c => (
+          <Chip key={c}
+                label={`${c} ${counts[c] ?? 0}`}
+                on={filter === c}
+                onPress={() => setFilter(c)} />
+        ))}
       </ScrollView>
-      <Divider />
 
       {tickets.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <Empty icon="🎟️" title="아직 티켓이 없어요" subtitle="다녀온 공연을 기록해 보세요" />
-        </View>
+        <Empty icon="▦" title="아직 티켓이 없어요" subtitle="＋ 버튼으로 다녀온 공연을 기록해보세요" />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingVertical: Spacing.sm, paddingBottom: 80 }}>
-          {byMonth.map(([month, items]) => (
-            <View key={month}>
-              <Text style={styles.monthLabel}>{month}</Text>
-              {items.map(t => (
-                <TicketRow key={t.id} t={t} onPress={() => router.push(`/ticket/${t.id}`)} />
-              ))}
+        <FlatList
+          data={grouped}
+          keyExtractor={([m]) => m}
+          renderItem={({ item: [month, list] }) => (
+            <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
+              <LabelCaps>{month}</LabelCaps>
+              {list.map(t => <TicketItem key={t.id} ticket={t} onPress={() => router.push(`/ticket/${t.id}`)} />)}
             </View>
-          ))}
-        </ScrollView>
+          )}
+          contentContainerStyle={{ paddingBottom: 80 }}
+          ListEmptyComponent={<Empty icon="·" title={`"${filter}" 결과 없음`} />}
+        />
       )}
     </SafeAreaView>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function TicketItem({ ticket, onPress }: { ticket: Ticket; onPress: () => void }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center' }}>
-      <Text style={{ fontSize: FontSizes.h2, fontFamily: Fonts.bold }}>{value}</Text>
-      <Text style={{ fontSize: FontSizes.tiny, color: Colors.textSub, marginTop: 2 }}>{label}</Text>
-    </View>
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      <Box style={styles.ticketBox}>
+        <Placeholder w={44} h={44} />
+        <View style={{ flex: 1, marginLeft: Spacing.md, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: FontSizes.body, fontFamily: Fonts.semibold, color: Colors.ink }}>
+            {ticket.title}
+          </Text>
+          <Mono style={{ fontSize: FontSizes.tiny, color: Colors.ink3, marginTop: 2 }}>
+            {formatDate(ticket.date)}{ticket.venue ? ` · ${ticket.venue}` : ''}
+          </Mono>
+          {ticket.rating > 0 && <Stars value={ticket.rating} size={11} />}
+        </View>
+        <Chip label={ticket.category} style={{ alignSelf: 'flex-start' }} />
+      </Box>
+    </Pressable>
   );
 }
 
+function formatDate(iso: string): string {
+  const m = iso.match(/^\d{4}-(\d{2})-(\d{2})/);
+  return m ? `${Number(m[1])}.${Number(m[2])}` : iso;
+}
+
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-            paddingHorizontal: Spacing.lg, height: 48 },
-  title: { fontSize: FontSizes.title, fontFamily: Fonts.semibold },
-  stats: { flexDirection: 'row', paddingVertical: Spacing.lg },
-  statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.divider, marginVertical: Spacing.sm },
-  chips: { paddingHorizontal: Spacing.lg, paddingVertical: 10, gap: 8, alignItems: 'center' },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.pill },
-  monthLabel: {
-    fontSize: FontSizes.caption, fontFamily: Fonts.semibold, color: Colors.textSub,
-    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 4,
+  safe: { flex: 1, backgroundColor: Colors.paper },
+  topbar: {
+    paddingHorizontal: Spacing.lg, height: 44,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderBottomWidth: 1, borderBottomColor: Colors.ink,
+  },
+  title: { fontFamily: Fonts.semibold, fontSize: FontSizes.subhead, color: Colors.ink },
+  topIc: { fontSize: 20, color: Colors.ink },
+  ticketBox: {
+    marginTop: 6, padding: 6,
+    flexDirection: 'row', alignItems: 'center',
   },
 });

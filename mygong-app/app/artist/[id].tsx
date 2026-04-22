@@ -70,7 +70,7 @@ export default function ArtistDetail() {
       >
         {/* Profile header — IG style */}
         <View style={styles.profileHead}>
-          <Avatar artist={artist} size={96} ring={artist.isFollowing} />
+          <Avatar artist={artist} size={96} />
           <View style={{ flex: 1, marginLeft: Spacing.xl }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <Stat n={events.length} label="공연" />
@@ -81,7 +81,7 @@ export default function ArtistDetail() {
         </View>
 
         <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.sm }}>
-          <Text style={{ fontFamily: Fonts.bold, fontSize: FontSizes.bodyLg }}>{artist.name}</Text>
+          <Text style={{ fontFamily: Fonts.bold, fontSize: FontSizes.title }}>{artist.name}</Text>
           {artist.role && <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginTop: 2 }}>{artist.role}</Text>}
           {artist.bio && <Text numberOfLines={3} style={{ fontSize: FontSizes.caption, color: Colors.text, marginTop: 8, lineHeight: 18 }}>{artist.bio}</Text>}
         </View>
@@ -116,7 +116,7 @@ export default function ArtistDetail() {
 
         {tab === 'past' && (tickets.length === 0
           ? <Empty icon="📖" title="아직 관람 기록 없음" />
-          : tickets.map(t => <TicketRow key={t.id} t={t} onPress={() => router.push(`/ticket/${t.id}`)} />))}
+          : tickets.map(t => <TicketRow key={t.id} ticket={t} onPress={() => router.push(`/ticket/${t.id}`)} />))}
 
         {tab === 'info' && (
           <View style={{ padding: Spacing.lg }}>
