@@ -13,9 +13,6 @@ import {
 import {
   NotoSansKR_400Regular, NotoSansKR_500Medium, NotoSansKR_700Bold,
 } from '@expo-google-fonts/noto-sans-kr';
-import {
-  JetBrainsMono_400Regular, JetBrainsMono_500Medium,
-} from '@expo-google-fonts/jetbrains-mono';
 import { Gaegu_700Bold } from '@expo-google-fonts/gaegu';
 
 import { initializeDatabase } from '@/db/database';
@@ -30,7 +27,6 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
     NotoSansKR_400Regular, NotoSansKR_500Medium, NotoSansKR_700Bold,
-    JetBrainsMono_400Regular, JetBrainsMono_500Medium,
     Gaegu_700Bold,
   });
 

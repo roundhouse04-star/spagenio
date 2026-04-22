@@ -2,6 +2,14 @@
  * 내공연관리 — 모노크롬 와이어프레임 테마.
  * minimal.css 의 디자인 토큰을 React Native 에 맞게 이식.
  */
+import { Platform } from 'react-native';
+
+// 시스템 기본 monospace — iOS 는 Menlo, Android 는 monospace
+const SYSTEM_MONO = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'Menlo',
+}) as string;
 
 export const Colors = {
   // Inks (본문·헤드)
@@ -49,9 +57,9 @@ export const Fonts = {
   semibold: 'Inter_600SemiBold',
   bold:     'Inter_700Bold',
 
-  // 숫자·라벨·코드용
-  mono:         'JetBrainsMono_400Regular',
-  monoMedium:   'JetBrainsMono_500Medium',
+  // 숫자·라벨·코드용 — 시스템 모노스페이스 (외부 패키지 불필요)
+  mono:         SYSTEM_MONO,
+  monoMedium:   SYSTEM_MONO,
 
   // 한국어 fallback
   ko:         'NotoSansKR_400Regular',

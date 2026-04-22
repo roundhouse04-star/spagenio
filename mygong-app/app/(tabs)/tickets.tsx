@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, ScrollView, Image } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -85,7 +85,11 @@ function TicketItem({ ticket, onPress }: { ticket: Ticket; onPress: () => void }
   return (
     <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
       <Box style={styles.ticketBox}>
-        <Placeholder w={44} h={44} />
+        {ticket.photoUri ? (
+          <Image source={{ uri: ticket.photoUri }} style={styles.thumb} />
+        ) : (
+          <Placeholder w={44} h={44} />
+        )}
         <View style={{ flex: 1, marginLeft: Spacing.md, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontSize: FontSizes.body, fontFamily: Fonts.semibold, color: Colors.ink }}>
             {ticket.title}
@@ -118,5 +122,10 @@ const styles = StyleSheet.create({
   ticketBox: {
     marginTop: 6, padding: 6,
     flexDirection: 'row', alignItems: 'center',
+  },
+  thumb: {
+    width: 44, height: 44,
+    borderWidth: 1, borderColor: Colors.ink,
+    resizeMode: 'cover',
   },
 });

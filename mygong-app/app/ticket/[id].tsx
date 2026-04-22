@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Image } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Fonts, FontSizes, Spacing, chipBg } from '@/theme/theme';
 import { Divider, CategoryChip, Stars } from '@/components/UI';
-import { Field, TextField, DateField, CategoryPicker, RatingPicker, SelectRow } from '@/components/Form';
+import { Field, TextField, DateField, CategoryPicker, RatingPicker, SelectRow, PhotoField } from '@/components/Form';
+import { parseTicketText } from '@/services/ticketParser';
 import { getTicketById, updateTicket, deleteTicket } from '@/db/tickets';
 import { getAllArtists } from '@/db/artists';
 import { iconForCategory, CATEGORIES } from '@/db/schema';
@@ -75,22 +76,28 @@ export default function TicketDetail() {
       <Divider />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-        {/* Ticket stub style — big card */}
-        <View style={[styles.stub, { backgroundColor: chipBg(ticket.category) }]}>
-          <Text style={{ fontSize: 56 }}>{ticket.catIcon ?? '🎟️'}</Text>
+        {/* 사진이 있으면 크게, 없으면 이모지 스텁 */}
+        {ticket.photoUri ? (
+          <Image source={{ uri: ticket.photoUri }} style={styles.heroPhoto} />
+        ) : (
+          <View style={[styles.stub, { backgroundColor: Colors.fill }]}>
+            <Text style={{ fontSize: 56 }}>{ticket.catIcon ?? '▦'}</Text>
+          </View>
+        )}
+        <View style={{ padding: Spacing.lg }}>
           <Text style={styles.stubTitle}>{ticket.title}</Text>
           <CategoryChip category={ticket.category} />
-          <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginTop: 8 }}>
+          <Text style={{ fontSize: FontSizes.caption, color: Colors.ink3, marginTop: 8, fontFamily: Fonts.mono }}>
             {ticket.date}{ticket.venue ? ` · ${ticket.venue}` : ''}
           </Text>
-          {ticket.seat && <Text style={{ fontSize: FontSizes.tiny, color: Colors.textSub }}>{ticket.seat}</Text>}
+          {ticket.seat && <Text style={{ fontSize: FontSizes.tiny, color: Colors.ink3 }}>{ticket.seat}</Text>}
           <View style={{ marginTop: 14 }}><Stars value={ticket.rating} size={22} /></View>
         </View>
 
         {ticket.notes && (
-          <View style={{ padding: Spacing.lg }}>
-            <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginBottom: 6 }}>메모</Text>
-            <Text style={{ fontSize: FontSizes.body, color: Colors.text, lineHeight: 22 }}>{ticket.notes}</Text>
+          <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg }}>
+            <Text style={{ fontSize: FontSizes.caption, color: Colors.ink3, marginBottom: 6 }}>메모</Text>
+            <Text style={{ fontSize: FontSizes.body, color: Colors.ink, lineHeight: 22 }}>{ticket.notes}</Text>
           </View>
         )}
       </ScrollView>
@@ -118,6 +125,35 @@ export function TicketFormView({ title, form, setForm, artists, onSave, onCancel
       </View>
       <Divider />
       <ScrollView contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+        <Field label="티켓 사진">
+          <PhotoField
+            value={form.photoUri}
+            onChange={(uri) => setForm({ ...form, photoUri: uri })}
+            onExtractRequest={(_uri, text) => {
+              if (!text) return;
+              const parsed = parseTicketText(text);
+              const next: Partial<Ticket> = { ...form };
+              // 기존 값이 비어있는 필드만 채움 (덮어쓰지 않음)
+              if (parsed.title && !form.title?.trim())   next.title = parsed.title;
+              if (parsed.date && !form.date)             next.date = parsed.date;
+              if (parsed.venue && !form.venue?.trim())   next.venue = parsed.venue;
+              if (parsed.seat && !form.seat?.trim())     next.seat = parsed.seat;
+              if (parsed.category && form.category === '콘서트') next.category = parsed.category;
+              setForm(next);
+              Alert.alert(
+                '자동 추출 완료',
+                [
+                  parsed.title && `제목: ${parsed.title}`,
+                  parsed.date && `날짜: ${parsed.date}`,
+                  parsed.time && `시간: ${parsed.time}`,
+                  parsed.venue && `장소: ${parsed.venue}`,
+                  parsed.seat && `좌석: ${parsed.seat}`,
+                  parsed.category && `카테고리: ${parsed.category}`,
+                ].filter(Boolean).join('\n') || '추출된 정보가 없어요. 수동으로 입력해주세요.'
+              );
+            }}
+          />
+        </Field>
         <Field label="제목" required>
           <TextField value={form.title ?? ''} onChangeText={t => setForm({ ...form, title: t })} placeholder="예) 두산 vs LG 직관" />
         </Field>
@@ -167,6 +203,7 @@ const styles = StyleSheet.create({
   navTitle: { fontSize: FontSizes.title, fontFamily: Fonts.semibold },
   stub: { padding: Spacing.xxl, alignItems: 'center', margin: Spacing.lg, borderRadius: 14 },
   stubTitle: { fontSize: FontSizes.h2, fontFamily: Fonts.bold, marginTop: 12, marginBottom: 10, textAlign: 'center' },
+  heroPhoto: { width: '100%', aspectRatio: 3 / 4, resizeMode: 'cover' },
   deleteBtn: { marginTop: Spacing.xl, padding: Spacing.md, alignItems: 'center',
                borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.heart, borderRadius: 6 },
 });
