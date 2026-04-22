@@ -69,7 +69,7 @@ export default function CalendarScreen() {
         {cells.map((c, i) => {
           const day = c.day;
           const dayEvents = day ? eventsByDay[day] ?? [] : [];
-          const isSelected = day && selected === day;
+          const isSelected = !!(day && selected === day);
           const isToday = c.isToday;
           return (
             <Pressable

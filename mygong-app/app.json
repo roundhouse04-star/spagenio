@@ -17,7 +17,17 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mygong.app",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "티켓 사진을 추가하기 위해 사진 라이브러리 접근이 필요합니다."
+        "NSPhotoLibraryUsageDescription": "티켓 사진을 추가하기 위해 사진 라이브러리 접근이 필요합니다.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "wikipedia.org": {
+              "NSIncludesSubdomains": true,
+              "NSThirdPartyExceptionAllowsInsecureHTTPLoads": false,
+              "NSThirdPartyExceptionRequiresForwardSecrecy": true
+            }
+          }
+        }
       }
     },
     "android": {
@@ -26,7 +36,11 @@
         "backgroundColor": "#faf5e8"
       },
       "package": "com.mygong.app",
-      "permissions": ["android.permission.READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",

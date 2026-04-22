@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { Colors, Fonts, FontSizes, Spacing, Radius } from '@/theme/theme';
-import { Divider, Empty, PrimaryButton } from '@/components/UI';
+import { Divider, Empty } from '@/components/UI';
 import { searchCelebrity } from '@/services/searchCelebrity';
 import { parseSearchHitToBundle } from '@/services/parseData';
 import { upsertArtistByExternalId } from '@/db/artists';
@@ -22,47 +22,64 @@ export default function SearchModal() {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [registering, setRegistering] = useState<string | null>(null);
+  const [lastStatus, setLastStatus] = useState<string>('');
   const debounceRef = useRef<any>(null);
+  const reqSeqRef = useRef(0);
 
-  // 디바운스 검색
+  // 디바운스 검색 — 400ms
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!q.trim()) { setHits([]); setError(null); return; }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true); setError(null);
-      try {
-        const rs = await searchCelebrity(q);
-        setHits(rs);
-      } catch (e: any) {
-        setError(e?.message ?? '검색 실패');
-        setHits([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 400);
+    if (!q.trim()) {
+      setHits([]); setError(null); setLastStatus('');
+      return;
+    }
+    debounceRef.current = setTimeout(() => runSearch(q), 400);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [q]);
+
+  async function runSearch(query: string) {
+    const seq = ++reqSeqRef.current;
+    setLoading(true); setError(null); setLastStatus('검색 중…');
+    console.log('[search-ui] querying:', query, 'seq', seq);
+    try {
+      const rs = await searchCelebrity(query);
+      if (seq !== reqSeqRef.current) {
+        console.log('[search-ui] discarded stale result for seq', seq);
+        return;
+      }
+      console.log('[search-ui] got hits:', rs.length);
+      setHits(rs);
+      setLastStatus(`${rs.length}개 결과`);
+    } catch (e: any) {
+      if (seq !== reqSeqRef.current) return;
+      const msg = e?.message ?? String(e);
+      console.warn('[search-ui] error:', msg);
+      setError(msg);
+      setHits([]);
+      setLastStatus('실패');
+    } finally {
+      if (seq === reqSeqRef.current) setLoading(false);
+    }
+  }
 
   const registerHit = async (hit: SearchHit) => {
     try {
       setRegistering(hit.externalId);
       const bundle = parseSearchHitToBundle(hit);
-      // 1) 아티스트 upsert
       const artistId = await upsertArtistByExternalId(bundle.artist.externalId, {
         ...bundle.artist,
         isFollowing: true,
         notifyEnabled: true,
       });
-      // 2) 알림 생성
       for (const n of bundle.notifications ?? []) {
         await createNotification({ ...n, artistId });
       }
-      // 3) (선택) 추가 이벤트 싱크 — 지금은 empty 반환이지만 구조 유지
       await syncOneArtist(artistId).catch(() => {});
 
       Keyboard.dismiss();
-      // 성공 시 상세로 이동
-      router.replace(`/artist/${artistId}`);
+      // 모달 닫고 → artist 상세로 push (stack 꼬임 방지)
+      router.back();
+      setTimeout(() => router.push(`/artist/${artistId}`), 80);
     } catch (e: any) {
       Alert.alert('등록 실패', e?.message ?? String(e));
     } finally {
@@ -72,6 +89,7 @@ export default function SearchModal() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }} edges={['top']}>
+      {/* 헤더 */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text style={{ fontSize: 20 }}>✕</Text>
@@ -81,6 +99,7 @@ export default function SearchModal() {
       </View>
       <Divider />
 
+      {/* 검색창 */}
       <View style={{ padding: Spacing.lg }}>
         <View style={styles.searchBox}>
           <Text style={{ color: Colors.textFaint, marginRight: 6 }}>🔍</Text>
@@ -89,6 +108,7 @@ export default function SearchModal() {
             placeholderTextColor={Colors.textFaint}
             value={q}
             onChangeText={setQ}
+            onSubmitEditing={() => q.trim() && runSearch(q)}
             autoFocus
             returnKeyType="search"
             style={{ flex: 1, fontFamily: Fonts.regular, fontSize: FontSizes.body, color: Colors.text }}
@@ -104,22 +124,44 @@ export default function SearchModal() {
         </Text>
       </View>
 
-      {loading && <ActivityIndicator style={{ marginTop: Spacing.xl }} />}
-      {error && <View style={{ padding: Spacing.lg }}>
-        <Text style={{ color: Colors.heart }}>❌ {error}</Text>
-      </View>}
+      {/* 상태 배너 — 항상 보이는 영역 */}
+      <View style={styles.statusWrap}>
+        {loading && (
+          <View style={styles.statusPill}>
+            <ActivityIndicator size="small" />
+            <Text style={styles.statusText}>검색 중…</Text>
+          </View>
+        )}
+        {error && !loading && (
+          <View style={[styles.errorBox]}>
+            <Text style={styles.errorTitle}>❌ 검색 실패</Text>
+            <Text style={styles.errorBody}>{error}</Text>
+            <Pressable onPress={() => runSearch(q)} style={styles.retryBtn}>
+              <Text style={styles.retryText}>다시 시도</Text>
+            </Pressable>
+          </View>
+        )}
+        {!loading && !error && !!q.trim() && hits.length > 0 && (
+          <Text style={styles.statusText}>{lastStatus}</Text>
+        )}
+      </View>
 
+      {/* 결과 리스트 */}
       <FlatList
+        style={{ flex: 1 }}
         data={hits}
         keyExtractor={h => `${h.source}:${h.externalId}`}
         ItemSeparatorComponent={() => <Divider />}
         renderItem={({ item }) => (
           <HitRow hit={item} onPress={() => registerHit(item)} loading={registering === item.externalId} />
         )}
-        ListEmptyComponent={!loading && !error && q.length > 0
-          ? <Empty icon="🔍" title={`"${q}" 결과 없음`} subtitle="다른 단어로 검색해 보세요" />
-          : null}
+        ListEmptyComponent={
+          !loading && !error && q.length > 0
+            ? <Empty icon="🔍" title={`"${q}" 결과 없음`} subtitle="다른 단어로 검색해 보세요" />
+            : null
+        }
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: 80 }}
       />
     </SafeAreaView>
@@ -162,7 +204,18 @@ const styles = StyleSheet.create({
   searchBox: { flexDirection: 'row', alignItems: 'center',
                backgroundColor: Colors.bgMuted, borderRadius: Radius.md,
                paddingHorizontal: 12, paddingVertical: 10 },
-  row: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg, gap: 0 },
+  statusWrap: { paddingHorizontal: Spacing.lg, minHeight: 8 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 8,
+                paddingVertical: 6 },
+  statusText: { fontSize: FontSizes.caption, color: Colors.textSub },
+  errorBox: { backgroundColor: '#fff7cc', borderColor: '#e6c200', borderWidth: 1,
+              borderRadius: Radius.md, padding: 12, marginVertical: 6 },
+  errorTitle: { fontFamily: Fonts.semibold, fontSize: FontSizes.body, color: '#8a6d00' },
+  errorBody:  { fontSize: FontSizes.caption, color: '#6a5200', marginTop: 4 },
+  retryBtn:   { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 12, paddingVertical: 6,
+                backgroundColor: '#e6c200', borderRadius: 6 },
+  retryText:  { fontFamily: Fonts.semibold, color: '#3d2f00', fontSize: FontSizes.caption },
+  row: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg },
   thumb: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.bgMuted,
            alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
            borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
