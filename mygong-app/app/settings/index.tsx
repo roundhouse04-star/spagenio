@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Share } from 'react-native';
+import React, { useCallback, useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator,
+         Share, Modal, TextInput, Linking } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -14,17 +15,23 @@ import { getAllEvents } from '@/db/events';
 import { getAllTickets } from '@/db/tickets';
 import { getAllNotifications } from '@/db/notifications';
 import { syncAllArtists } from '@/services/syncManager';
+import { getMeta, setMeta, deleteMeta, META_KEYS } from '@/db/app-meta';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const [counts, setCounts] = useState({ artists: 0, events: 0, tickets: 0, notifications: 0 });
   const [busy, setBusy] = useState<string | null>(null);
+  const [kopisKey, setKopisKey] = useState<string | null>(null);
+  const [showKopisModal, setShowKopisModal] = useState(false);
+  const [kopisInput, setKopisInput] = useState('');
 
   const refresh = useCallback(async () => {
-    const [a, e, t, n] = await Promise.all([
+    const [a, e, t, n, key] = await Promise.all([
       getAllArtists('all'), getAllEvents(), getAllTickets(), getAllNotifications(),
+      getMeta(META_KEYS.KOPIS_API_KEY),
     ]);
     setCounts({ artists: a.length, events: e.length, tickets: t.length, notifications: n.length });
+    setKopisKey(key);
   }, []);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
@@ -40,6 +47,30 @@ export default function SettingsScreen() {
     } finally {
       setBusy(null);
     }
+  };
+
+  const openKopisModal = () => {
+    setKopisInput(kopisKey ?? '');
+    setShowKopisModal(true);
+  };
+
+  const saveKopisKey = async () => {
+    const k = kopisInput.trim();
+    if (!k) {
+      await deleteMeta(META_KEYS.KOPIS_API_KEY);
+      setKopisKey(null);
+    } else {
+      await setMeta(META_KEYS.KOPIS_API_KEY, k);
+      setKopisKey(k);
+    }
+    setShowKopisModal(false);
+    Alert.alert('저장됨', k ? 'KOPIS 키가 저장됐어요. 다음 동기화부터 적용됩니다.' : 'KOPIS 키를 삭제했어요.');
+  };
+
+  const openKopisGuide = () => {
+    Linking.openURL('https://www.data.go.kr/data/15000343/openapi.do').catch(() => {
+      Alert.alert('오류', '링크를 열 수 없습니다.');
+    });
   };
 
   const handleExport = async () => {
@@ -155,6 +186,50 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <SectionLabel>🔌 외부 데이터 소스</SectionLabel>
+        <View style={styles.providerCard}>
+          <View style={styles.providerRow}>
+            <Text style={{ fontSize: 18, marginRight: 10 }}>🌐</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: FontSizes.body }}>Wikipedia 한국어</Text>
+              <Text style={{ fontSize: FontSizes.tiny, color: Colors.textSub, marginTop: 2 }}>
+                프로필 + 본문에서 콘서트·투어 추출 · 키 불필요
+              </Text>
+            </View>
+            <Text style={[styles.badge, { backgroundColor: Colors.verified, color: '#fff' }]}>활성</Text>
+          </View>
+          <Divider />
+          <Pressable onPress={openKopisModal} style={({ pressed }) => [styles.providerRow, pressed && { opacity: 0.6 }]}>
+            <Text style={{ fontSize: 18, marginRight: 10 }}>🎭</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: FontSizes.body }}>KOPIS 공연정보</Text>
+              <Text style={{ fontSize: FontSizes.tiny, color: Colors.textSub, marginTop: 2 }}>
+                {kopisKey
+                  ? `키 등록됨 · ${kopisKey.slice(0, 6)}…${kopisKey.slice(-4)}`
+                  : '뮤지컬·연극·콘서트 공식 DB · 키 필요'}
+              </Text>
+            </View>
+            <Text style={[styles.badge, kopisKey
+              ? { backgroundColor: Colors.verified, color: '#fff' }
+              : { backgroundColor: Colors.bgMuted, color: Colors.textSub }]}>
+              {kopisKey ? '활성' : '미설정'}
+            </Text>
+          </Pressable>
+          {!kopisKey && (
+            <Pressable onPress={openKopisGuide} style={({ pressed }) => [{ paddingTop: 8 }, pressed && { opacity: 0.5 }]}>
+              <Text style={{ fontSize: FontSizes.caption, color: Colors.primary, textAlign: 'center' }}>
+                🔑 KOPIS API 키 발급 받기 (공공데이터포털) ›
+              </Text>
+            </Pressable>
+          )}
+        </View>
+        <Text style={{ fontSize: FontSizes.tiny, color: Colors.textFaint, lineHeight: 16,
+                       marginTop: 8, paddingHorizontal: 4 }}>
+          • 모든 데이터는 개인 사용 목적으로만 사용됩니다.{'\n'}
+          • 각 공연 상세 화면에 출처가 자동으로 표시됩니다.{'\n'}
+          • 재배포·상업적 재판매는 각 제공처 정책을 따릅니다.
+        </Text>
+
         <SectionLabel>🔄 데이터</SectionLabel>
         <Row icon="🔄" label="전체 동기화" sub="팔로잉 중인 아티스트 모두 새로 조회" onPress={handleSync} busy={busy === 'sync'} />
         <Row icon="📤" label="데이터 내보내기" sub="JSON 백업 파일 생성·공유" onPress={handleExport} busy={busy === 'export'} />
@@ -168,6 +243,45 @@ export default function SettingsScreen() {
           기기 변경 · 앱 삭제 전엔 꼭 내보내기로 백업하세요.
         </Text>
       </ScrollView>
+
+      {/* KOPIS 키 입력 모달 */}
+      <Modal visible={showKopisModal} transparent animationType="fade" onRequestClose={() => setShowKopisModal(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowKopisModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>🎭 KOPIS API 키</Text>
+            <Text style={styles.modalSub}>
+              공공데이터포털에서 발급받은 일반 인증키를 붙여넣으세요.
+              디코딩된 키 또는 인코딩된 키 둘 다 동작합니다.
+            </Text>
+            <TextInput
+              value={kopisInput}
+              onChangeText={setKopisInput}
+              placeholder="예: a1b2c3d4..."
+              placeholderTextColor={Colors.textFaint}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.modalInput}
+            />
+            <Pressable onPress={openKopisGuide}>
+              <Text style={{ color: Colors.primary, fontSize: FontSizes.caption, marginTop: 8, textAlign: 'right' }}>
+                키 발급 페이지 열기 ›
+              </Text>
+            </Pressable>
+            <View style={{ flexDirection: 'row', marginTop: 20, gap: 8 }}>
+              <Pressable onPress={() => setShowKopisModal(false)}
+                         style={[styles.modalBtn, { backgroundColor: Colors.bgMuted }]}>
+                <Text style={{ fontFamily: Fonts.medium }}>취소</Text>
+              </Pressable>
+              <Pressable onPress={saveKopisKey}
+                         style={[styles.modalBtn, { backgroundColor: Colors.primary }]}>
+                <Text style={{ fontFamily: Fonts.medium, color: '#fff' }}>
+                  {kopisInput.trim() ? '저장' : (kopisKey ? '키 삭제' : '닫기')}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -217,4 +331,21 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md,
          backgroundColor: Colors.bg, borderRadius: Radius.md, marginBottom: 6, gap: 8,
          borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.divider },
+  providerCard: { backgroundColor: Colors.bg, borderRadius: Radius.md,
+                  borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.divider,
+                  padding: Spacing.md },
+  providerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  badge: { fontSize: FontSizes.tiny, fontFamily: Fonts.semibold,
+           paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+                   alignItems: 'center', justifyContent: 'center', padding: 24 },
+  modalCard: { width: '100%', backgroundColor: Colors.bg, borderRadius: Radius.lg,
+               padding: 20, maxWidth: 420 },
+  modalTitle: { fontFamily: Fonts.semibold, fontSize: FontSizes.title, marginBottom: 6 },
+  modalSub: { fontSize: FontSizes.caption, color: Colors.textSub, lineHeight: 18 },
+  modalInput: { borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm,
+                padding: 12, marginTop: 12, fontFamily: Fonts.regular,
+                fontSize: FontSizes.body, color: Colors.text },
+  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: Radius.sm,
+              alignItems: 'center', justifyContent: 'center' },
 });

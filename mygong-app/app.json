@@ -25,6 +25,11 @@
               "NSIncludesSubdomains": true,
               "NSThirdPartyExceptionAllowsInsecureHTTPLoads": false,
               "NSThirdPartyExceptionRequiresForwardSecrecy": true
+            },
+            "kopis.or.kr": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSExceptionRequiresForwardSecrecy": false
             }
           }
         }

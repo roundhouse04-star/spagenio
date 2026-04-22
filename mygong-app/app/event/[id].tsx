@@ -92,11 +92,29 @@ export default function EventDetail() {
           {ev.price && <InfoRow icon="💰" label="가격·좌석" value={ev.price} />}
           {ev.notes && <InfoRow icon="📝" label="메모" value={ev.notes} />}
           {ev.ticketUrl && <InfoRow icon="🔗" label="티켓" value={ev.ticketUrl} />}
-          {ev.source && <InfoRow icon="🏷️" label="소스" value={ev.source} />}
         </View>
+
+        {/* 출처 표기 — 데이터 원천에 따라 자동 표시 */}
+        {ev.source && ev.source !== 'manual' && (
+          <View style={styles.attributionBox}>
+            <Text style={styles.attributionLabel}>데이터 출처</Text>
+            <Text style={styles.attributionValue}>
+              {attributionText(ev.source)}
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function attributionText(source: string): string {
+  switch (source) {
+    case 'kopis':      return '공연예술통합전산망 (KOPIS) · www.kopis.or.kr';
+    case 'wikipedia':  return '한국어 위키백과 · ko.wikipedia.org';
+    case 'sync-auto':  return '자동 동기화';
+    default:           return source;
+  }
 }
 
 function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
@@ -198,4 +216,11 @@ const styles = StyleSheet.create({
   eventSub: { fontSize: FontSizes.body, color: Colors.textSub, marginTop: 4 },
   deleteBtn: { marginTop: Spacing.xl, padding: Spacing.md, alignItems: 'center',
                borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.heart, borderRadius: 6 },
+  attributionBox: { marginHorizontal: Spacing.lg, marginBottom: Spacing.xl,
+                    padding: Spacing.md, borderRadius: 6,
+                    backgroundColor: Colors.bgMuted,
+                    borderLeftWidth: 3, borderLeftColor: Colors.textFaint },
+  attributionLabel: { fontSize: FontSizes.tiny, color: Colors.textSub,
+                      fontFamily: Fonts.semibold, marginBottom: 2 },
+  attributionValue: { fontSize: FontSizes.caption, color: Colors.textSub },
 });

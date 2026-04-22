@@ -53,11 +53,13 @@ async function syncArtistIds(ids: number[]): Promise<SyncResult> {
     if (!artist || !artist.externalId) continue;
 
     try {
-      const events = await fetchEventsForArtist(artist.externalId, artist.name);
-      // 기존 동일 source 이벤트 삭제 (지금은 source='wikipedia' 또는 미래에 'ticketlink' 등)
-      const source = 'sync-auto';
+      const events = await fetchEventsForArtist(artist.externalId, artist.name, artist.tag);
+      // 기존 자동 동기화 출처 이벤트들 청소 (수동 입력은 보존)
+      const SYNC_SOURCES = ['wikipedia', 'kopis', 'sync-auto'];
       if (events.length > 0) {
-        await deleteEventsForArtistFromSource(id, source);
+        for (const src of SYNC_SOURCES) {
+          await deleteEventsForArtistFromSource(id, src);
+        }
       }
 
       for (const ev of events) {
@@ -65,7 +67,8 @@ async function syncArtistIds(ids: number[]): Promise<SyncResult> {
         const eventId = await upsertEventByExternalId(extId, id, {
           ...ev,
           artistId: id,
-          source,
+          // ev.source 가 있으면 보존, 없으면 sync-auto
+          source: ev.source ?? 'sync-auto',
         });
         const isNew = !(await getEventById(eventId));
         if (isNew) result.newEventCount += 1;
