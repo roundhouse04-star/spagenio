@@ -1,22 +1,30 @@
 /**
  * 앱 시작·수동 동기화 매니저.
  *
- * 흐름:
- *   1. "팔로잉 중"이면서 12시간 이상 지난 아티스트 목록 조회
- *   2. 각 아티스트에 대해 fetchEventsForArtist() 호출
- *   3. 결과를 events 테이블에 upsert (기존 source 데이터는 삭제 후 다시)
- *   4. 새로 추가된 이벤트에 대해 알림 생성 (D-30 이내만)
- *   5. artist_sync_state 업데이트
+ * 동기화 모드 설계:
+ *   - 처음 팔로우:         'full'         (2010년~, ~40초)  — syncOneArtist 내부에서 자동 판단
+ *   - 아티스트 상세 당겨서:  'incremental'  (1개월 전~, ~6초)  — syncOneArtist 기본값
+ *   - 홈 당겨서:           'future-only'  (오늘~, ~3초/명)    — syncAllArtists 기본값
+ *   - 앱 시작 자동 sync:    'future-only'  (오늘~, ~3초/명)    — syncStaleArtists 기본값
  *
- * 실제 스크래퍼가 아직 없어서 지금은 "상태만 갱신"하는 수준이지만,
- * 구조는 완성 — 스크래퍼 함수 하나만 parseData.fetchEventsForArtist 에 붙이면 자동 동작.
+ * 첫 sync(아직 한 번도 동기화 안 된 아티스트) 인 경우:
+ *   어느 함수로 호출되든 자동으로 'full' 로 승격 → 과거 이력 확보.
+ *
+ * 흐름:
+ *   1. 각 아티스트에 대해 fetchEventsForArtist(mode) 호출
+ *   2. 결과를 events 테이블에 upsert
+ *      - full: 기존 데이터 전체 삭제 후 재수집
+ *      - incremental/future-only: upsert 만 (기존 데이터 유지)
+ *   3. 새로 추가된 이벤트에 대해 알림 생성 (D-30 이내만)
+ *   4. artist_sync_state 업데이트
  */
 
 import { getAllArtists, updateArtist } from '@/db/artists';
 import { upsertEventByExternalId, deleteEventsForArtistFromSource, getEventById } from '@/db/events';
 import { createNotification } from '@/db/notifications';
-import { setSyncState, getStaleArtistIds } from '@/db/sync-state';
+import { setSyncState, getStaleArtistIds, getSyncState } from '@/db/sync-state';
 import { fetchEventsForArtist } from './parseData';
+import type { SyncMode } from './providers/kopisProvider';
 
 export type SyncResult = {
   artistCount: number;
@@ -24,24 +32,50 @@ export type SyncResult = {
   errors: { artistId: number; error: string }[];
 };
 
-/** 오래된 아티스트만 갱신 — 앱 시작 시 호출 */
-export async function syncStaleArtists(maxAgeHours = 12): Promise<SyncResult> {
+/**
+ * 오래된 아티스트만 갱신 — 앱 시작 시 호출.
+ * 기본 mode: 'future-only' (앞으로의 공연 체크만)
+ */
+export async function syncStaleArtists(
+  maxAgeHours = 12,
+  mode: SyncMode = 'future-only',
+): Promise<SyncResult> {
   const ids = await getStaleArtistIds(maxAgeHours);
-  return syncArtistIds(ids);
+  return syncArtistIds(ids, mode);
 }
 
-/** 전체 팔로잉 아티스트 강제 갱신 — "새로고침" 버튼에서 호출 */
-export async function syncAllArtists(): Promise<SyncResult> {
+/**
+ * 전체 팔로잉 아티스트 강제 갱신 — 홈 "당겨서 새로고침"에서 호출.
+ * 기본 mode: 'future-only' (앞으로의 공연 체크만, 빠름)
+ */
+export async function syncAllArtists(
+  mode: SyncMode = 'future-only',
+): Promise<SyncResult> {
   const artists = await getAllArtists('following');
-  return syncArtistIds(artists.map(a => a.id));
+  return syncArtistIds(artists.map(a => a.id), mode);
 }
 
-/** 단일 아티스트 — 상세 페이지 새로고침에서 호출 */
-export async function syncOneArtist(artistId: number): Promise<SyncResult> {
-  return syncArtistIds([artistId]);
+/**
+ * 단일 아티스트 갱신 — 아티스트 상세 페이지에서 호출.
+ * 기본 mode: 'incremental' (1개월 전부터, 과거 데이터 보강)
+ *
+ * 아직 한 번도 sync 안 된 아티스트면 자동으로 'full' 로 승격.
+ */
+export async function syncOneArtist(
+  artistId: number,
+  mode: SyncMode = 'incremental',
+): Promise<SyncResult> {
+  return syncArtistIds([artistId], mode);
 }
 
-async function syncArtistIds(ids: number[]): Promise<SyncResult> {
+/**
+ * @param ids         - 동기화할 아티스트 ID 목록
+ * @param requestedMode - 호출자가 원한 mode. 단, 첫 sync 면 'full' 로 승격됨.
+ */
+async function syncArtistIds(
+  ids: number[],
+  requestedMode: SyncMode,
+): Promise<SyncResult> {
   const result: SyncResult = { artistCount: ids.length, newEventCount: 0, errors: [] };
   if (ids.length === 0) return result;
 
@@ -53,13 +87,19 @@ async function syncArtistIds(ids: number[]): Promise<SyncResult> {
     if (!artist || !artist.externalId) continue;
 
     try {
-      const events = await fetchEventsForArtist(artist.externalId, artist.name, artist.tag);
-      // 기존 자동 동기화 출처 이벤트들 청소 (수동 입력은 보존)
-      const SYNC_SOURCES = ['wikipedia', 'kopis', 'sync-auto'];
-      if (events.length > 0) {
-        for (const src of SYNC_SOURCES) {
-          await deleteEventsForArtistFromSource(id, src);
-        }
+      // 첫 sync 여부 판단 — 아직 한 번도 sync 안 됐으면 full 로 승격
+      const prevState = await getSyncState(id);
+      const isFirstSync = !prevState?.lastFetchedAt;
+      const mode: SyncMode = isFirstSync ? 'full' : requestedMode;
+      console.log(`[sync] artist=${artist.name} requested=${requestedMode} actual=${mode} firstSync=${isFirstSync}`);
+
+      const events = await fetchEventsForArtist(artist.externalId, artist.name, artist.tag, mode, artist.nameEn);
+      const source = 'sync-auto';
+
+      // Full sync 때만 기존 데이터 전체 삭제 후 재수집.
+      // Incremental/future-only 는 upsert 만 → 기존 과거 데이터 유지.
+      if (mode === 'full' && events.length > 0) {
+        await deleteEventsForArtistFromSource(id, source);
       }
 
       for (const ev of events) {
@@ -67,8 +107,7 @@ async function syncArtistIds(ids: number[]): Promise<SyncResult> {
         const eventId = await upsertEventByExternalId(extId, id, {
           ...ev,
           artistId: id,
-          // ev.source 가 있으면 보존, 없으면 sync-auto
-          source: ev.source ?? 'sync-auto',
+          source,
         });
         const isNew = !(await getEventById(eventId));
         if (isNew) result.newEventCount += 1;

@@ -1,115 +1,133 @@
 /**
- * KOPIS 공연예술통합전산망 Open API 프로바이더 (v4.0 공식 스펙 기준).
+ * KOPIS 공연예술통합전산망 Open API 프로바이더.
  *
- * 공식 문서에서 발견한 중요 제약:
- *   - stdate/eddate 는 최대 31일 → 긴 기간은 청크 분할 필수
+ * v4.5 — 6개 카테고리 체계 적용
+ *   • genreNameToCategory 에 prfnm 전달 → 팬미팅/페스티벌 자동 분류
+ *
+ * v4.4 — 3가지 동기화 모드
+ *   • 'full'        → 2010년 ~ 미래 1년 (처음 팔로우 시, ~40초)
+ *   • 'incremental' → 1개월 전 ~ 미래 1년 (아티스트 상세 당겨서, ~6초)
+ *   • 'future-only' → 오늘 ~ 미래 1년 (홈 당겨서 / 앱 시작 자동, ~3초)
+ *
+ * v4.1 — Cloudflare Worker 프록시 경유로 변경.
+ *   • KOPIS 키는 Worker Secret 에만 존재
+ *
+ * Worker 엔드포인트:
+ *   공연목록:  GET /performances?stdate=&eddate=&shcate=&shprfnm=&openrun=&rows=&cpage=
+ *   공연상세:  GET /performance/{mt20id}
+ *
+ * KOPIS 스펙상 제약:
+ *   - stdate/eddate 는 최대 31일 → 긴 기간은 청크 분할
  *   - rows 는 최대 100
- *   - 응답은 XML (JSON 아님)
- *   - 엔드포인트:
- *       공연목록:  GET /openApi/restful/pblprfr
- *       공연상세:  GET /openApi/restful/pblprfr/{mt20id}
- *   - HTTPS 아님(http://) → iOS 에서 NSAppTransportSecurity 예외 필요
- *
- * 매칭 전략 (2단계):
- *   1차 - shprfnm (공연명 키워드) 로 기간 내 공연 가져오기
- *   2차 - (옵션) 각 공연 상세조회로 prfcast 에 아티스트 이름 포함되는지 확인
- *
- * 키 없으면 조용히 스킵, 캐싱은 상위 syncManager 에서 12시간 단위.
+ *   - 응답은 XML
  */
 
 import type { Event } from '@/types';
 import { iconForCategory } from '@/db/schema';
-import { getMeta, META_KEYS } from '@/db/app-meta';
 import {
-  KopisGenreCode, genreCodesForTag, genreNameToCategory,
+  genreNameToCategory,
   splitByMonth, toIsoDate, fmtYmd,
 } from './kopisCodes';
+import {
+  MYGONG_API_KOPIS_LIST, MYGONG_API_KOPIS_DETAIL, API_TIMEOUT_MS,
+} from '@/config/api';
 
-const KOPIS_LIST_URL   = 'http://www.kopis.or.kr/openApi/restful/pblprfr';
-const KOPIS_DETAIL_URL = 'http://www.kopis.or.kr/openApi/restful/pblprfr';  // + /{mt20id}
-const TIMEOUT_MS = 12000;
+// Full sync 시작일: 2010년 고정
+const HISTORY_START_DATE = new Date('2010-01-01');
 
-// 조회 기간: 과거 3년 + 미래 1년 (너무 넓으면 요청 수 폭발)
-const YEARS_BACK = 3;
+// Incremental sync: 1개월 전부터
+const INCREMENTAL_MONTHS_BACK = 1;
+
+// 미래는 공통으로 1년치
 const YEARS_AHEAD = 1;
 
-// 동시 실행 제한 (KOPIS 서버 배려)
+// 동시 실행 제한
 const MAX_CONCURRENCY = 4;
 
-// 출연진 정밀 매칭 활성화 여부 (느려짐. 필요 시 true)
+// 출연진 정밀 매칭
 const ENABLE_CAST_MATCHING = false;
 
 // ─── Raw Types ────────────────────────────────────────────────────
 export type KopisRawEvent = {
   mt20id: string;
   prfnm: string;
-  prfpdfrom: string;      // YYYY.MM.DD
-  prfpdto: string;        // YYYY.MM.DD
-  fcltynm: string;        // 공연시설명
-  area: string;           // 공연지역 (시도명)
-  genrenm: string;        // 장르명
+  prfpdfrom: string;
+  prfpdto: string;
+  fcltynm: string;
+  area: string;
+  genrenm: string;
   poster?: string;
-  prfstate: string;       // 공연예정/공연중/공연완료
-  openrun?: string;       // Y/N
+  prfstate: string;
+  openrun?: string;
 };
 
 export type KopisRawDetail = KopisRawEvent & {
-  prfcast?: string;       // 출연진
-  prfcrew?: string;       // 제작진
-  entrpsnmP?: string;     // 제작사
-  pcseguidance?: string;  // 티켓가격
-  dtguidance?: string;    // 공연시간
-  sty?: string;           // 줄거리
+  prfcast?: string;
+  prfcrew?: string;
+  entrpsnmP?: string;
+  pcseguidance?: string;
+  dtguidance?: string;
+  sty?: string;
 };
 
-// ─── 키 체크 ──────────────────────────────────────────────────────
+/** @deprecated Worker 경유라 항상 true */
 export async function hasKopisKey(): Promise<boolean> {
-  const k = await getMeta(META_KEYS.KOPIS_API_KEY);
-  return !!(k && k.trim().length > 10);
+  return true;
 }
 
 // ─── 메인 검색 ────────────────────────────────────────────────────
 
-/**
- * 아티스트 이름으로 KOPIS 공연 조회.
- * @param artistName - 아티스트 이름 (예: "아이유")
- * @param artistTag  - 앱 내부 tag (예: "가수", "배우")
- */
+export type SyncMode = 'full' | 'incremental' | 'future-only';
+
 export async function searchKopisEvents(
-  artistName: string, artistTag?: string,
+  artistName: string,
+  artistTag?: string,
+  mode: SyncMode = 'future-only',
+  aliases: string[] = [],
 ): Promise<KopisRawEvent[]> {
-  const key = await getMeta(META_KEYS.KOPIS_API_KEY);
-  if (!key || key.trim().length < 10) {
-    console.log('[kopis] no API key configured, skipping');
-    return [];
-  }
-  console.log('[kopis] searching:', artistName, 'tag:', artistTag ?? '(any)');
-
-  const genres = genreCodesForTag(artistTag);
+  // 알려진 K-pop 그룹 영↔한 매핑 자동 보강
+  const builtInAliases = KPOP_ALIAS_MAP[artistName.toLowerCase()] ?? [];
+  const allNames = [artistName, ...aliases, ...builtInAliases].filter(Boolean);
+  const uniqueNames = Array.from(new Set(allNames));
   const today = new Date();
-  const start = new Date(today); start.setFullYear(start.getFullYear() - YEARS_BACK);
-  const end   = new Date(today); end.setFullYear(end.getFullYear() + YEARS_AHEAD);
-  const chunks = splitByMonth(start, end);
-  console.log(`[kopis] ${chunks.length} date chunks × ${genres.length} genres = ${chunks.length * genres.length} requests (throttled to ${MAX_CONCURRENCY} concurrent)`);
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  end.setFullYear(end.getFullYear() + YEARS_AHEAD);
 
-  // 모든 (청크 × 장르) 조합 호출
+  let start: Date;
+  switch (mode) {
+    case 'full':
+      start = HISTORY_START_DATE;
+      break;
+    case 'incremental':
+      start = new Date(today);
+      start.setMonth(start.getMonth() - INCREMENTAL_MONTHS_BACK);
+      break;
+    case 'future-only':
+    default:
+      start = new Date(today);
+      break;
+  }
+
+  const chunks = splitByMonth(start, end);
+  console.log(`[kopis] ${artistName} mode=${mode} range=${fmtYmd(start)}~${fmtYmd(end)} chunks=${chunks.length} aliases=[${uniqueNames.slice(1).join(',')}]`);
+
   const tasks: Array<() => Promise<KopisRawEvent[]>> = [];
-  for (const [stdate, eddate] of chunks) {
-    for (const genre of genres) {
-      tasks.push(() => fetchList(key, {
-        stdate, eddate, shcate: genre, shprfnm: artistName,
+  // 각 이름(원본 + alias)으로 KOPIS 검색
+  for (const name of uniqueNames) {
+    for (const [stdate, eddate] of chunks) {
+      tasks.push(() => fetchList({
+        stdate, eddate, shprfnm: name,
       }));
     }
+    tasks.push(() => fetchList({
+      stdate: fmtYmd(today), eddate: fmtYmd(end),
+      shprfnm: name, openrun: 'Y',
+    }));
   }
-  // 오픈런도 추가로 (최근만)
-  tasks.push(() => fetchList(key, {
-    stdate: fmtYmd(today), eddate: fmtYmd(end),
-    shprfnm: artistName, openrun: 'Y',
-  }));
 
   const all = await runThrottled(tasks, MAX_CONCURRENCY);
 
-  // mt20id 기준 중복 제거
   const seen = new Set<string>();
   const dedup = all.flat().filter(e => {
     if (seen.has(e.mt20id)) return false;
@@ -117,14 +135,12 @@ export async function searchKopisEvents(
     return true;
   });
 
-  // 공연명에 아티스트 이름 포함되는 것만 (1차 필터)
-  // shprfnm 이 부분일치라 무관한 것도 올 수 있음
-  const cleaned = dedup.filter(e => includesName(e.prfnm, artistName));
+  // 하나라도 매칭되면 통과 (대소문자 무시)
+  const cleaned = dedup.filter(e => uniqueNames.some(n => includesName(e.prfnm, n)));
   console.log(`[kopis] fetched ${dedup.length} → ${cleaned.length} after name filter`);
 
-  // 2차 — 출연진 정밀 매칭 (옵션)
   if (ENABLE_CAST_MATCHING && cleaned.length > 0) {
-    const verified = await verifyCastMatching(key, cleaned, artistName);
+    const verified = await verifyCastMatching(cleaned, artistName);
     console.log(`[kopis] ${cleaned.length} → ${verified.length} after cast verification`);
     return verified;
   }
@@ -132,7 +148,7 @@ export async function searchKopisEvents(
   return cleaned;
 }
 
-// ─── 공연목록 조회 ────────────────────────────────────────────────
+// ─── 공연목록 조회 (Worker 경유) ──────────────────────────────────
 
 type ListParams = {
   stdate: string;
@@ -142,9 +158,8 @@ type ListParams = {
   openrun?: string;
 };
 
-async function fetchList(apiKey: string, params: ListParams): Promise<KopisRawEvent[]> {
+async function fetchList(params: ListParams): Promise<KopisRawEvent[]> {
   const q = new URLSearchParams({
-    service: apiKey,
     stdate: params.stdate,
     eddate: params.eddate,
     cpage: '1',
@@ -154,15 +169,13 @@ async function fetchList(apiKey: string, params: ListParams): Promise<KopisRawEv
   if (params.shprfnm) q.set('shprfnm', params.shprfnm);
   if (params.openrun) q.set('openrun', params.openrun);
 
-  const url = `${KOPIS_LIST_URL}?${q.toString()}`;
+  const url = `${MYGONG_API_KOPIS_LIST}?${q.toString()}`;
   const xml = await fetchXml(url, 'kopis-list');
   return parseListXml(xml);
 }
 
-// ─── 공연상세 조회 (prfcast 매칭용) ───────────────────────────────
-
-async function fetchDetail(apiKey: string, mt20id: string): Promise<KopisRawDetail | null> {
-  const url = `${KOPIS_DETAIL_URL}/${encodeURIComponent(mt20id)}?service=${encodeURIComponent(apiKey)}`;
+async function fetchDetail(mt20id: string): Promise<KopisRawDetail | null> {
+  const url = `${MYGONG_API_KOPIS_DETAIL}/${encodeURIComponent(mt20id)}`;
   try {
     const xml = await fetchXml(url, 'kopis-detail');
     return parseDetailXml(xml);
@@ -173,12 +186,10 @@ async function fetchDetail(apiKey: string, mt20id: string): Promise<KopisRawDeta
 }
 
 async function verifyCastMatching(
-  apiKey: string, events: KopisRawEvent[], artistName: string,
+  events: KopisRawEvent[], artistName: string,
 ): Promise<KopisRawEvent[]> {
-  // 상세조회 병렬 (MAX_CONCURRENCY 준수)
   const tasks = events.map(ev => async () => {
-    const detail = await fetchDetail(apiKey, ev.mt20id);
-    // prfcast 에 이름 포함되거나, prfnm 이 이미 이름 포함이면 통과
+    const detail = await fetchDetail(ev.mt20id);
     if (!detail) return null;
     const cast = detail.prfcast ?? '';
     if (includesName(cast, artistName) || includesName(ev.prfnm, artistName)) {
@@ -190,13 +201,21 @@ async function verifyCastMatching(
   return out.filter((x): x is KopisRawEvent => x !== null);
 }
 
-// ─── XML 파서 (정규식 기반 — 라이브러리 의존성 없이) ────────────
+// ─── XML 파서 ────────────────────────────────────────────────────
 
 function parseListXml(xml: string): KopisRawEvent[] {
-  // 에러 응답 체크
   if (/<OpenAPI_ServiceResponse>/.test(xml) || /SERVICE[_ ]KEY/i.test(xml)) {
     const reason = pick(xml, 'returnReasonCode') || pick(xml, 'returnAuthMsg') || 'UNKNOWN';
     throw new Error(`KOPIS API 오류: ${reason}`);
+  }
+  const trimmed = xml.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const err = JSON.parse(trimmed);
+      if (err && err.error) throw new Error(`mygong-api 오류: ${err.error}`);
+    } catch (parseErr: any) {
+      if (parseErr?.message?.startsWith('mygong-api')) throw parseErr;
+    }
   }
   const events: KopisRawEvent[] = [];
   const blocks = xml.match(/<db>[\s\S]*?<\/db>/g) ?? [];
@@ -242,7 +261,6 @@ function parseDetailXml(xml: string): KopisRawDetail | null {
 function pick(block: string, tag: string): string {
   const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
   if (!m) return '';
-  // CDATA 언래핑 + trim
   return m[1].replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, '$1').trim();
 }
 
@@ -250,7 +268,7 @@ function pick(block: string, tag: string): string {
 
 async function fetchXml(url: string, tag: string): Promise<string> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       method: 'GET',
@@ -259,20 +277,22 @@ async function fetchXml(url: string, tag: string): Promise<string> {
     });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        throw new Error(`KOPIS 키 인증 실패 (HTTP ${res.status})`);
+        throw new Error(`mygong-api 인증 실패 (HTTP ${res.status})`);
+      }
+      if (res.status === 404) {
+        throw new Error(`mygong-api 경로 오류 (HTTP 404)`);
       }
       throw new Error(`HTTP ${res.status}`);
     }
     return await res.text();
   } catch (e: any) {
-    if (e?.name === 'AbortError') throw new Error(`${tag} 타임아웃 (${TIMEOUT_MS/1000}초)`);
+    if (e?.name === 'AbortError') throw new Error(`${tag} 타임아웃 (${API_TIMEOUT_MS/1000}초)`);
     throw e;
   } finally {
     clearTimeout(timer);
   }
 }
 
-// 동시 실행 제한 (서버 배려)
 async function runThrottled<T>(
   tasks: Array<() => Promise<T>>, limit: number,
 ): Promise<T[]> {
@@ -291,20 +311,73 @@ async function runThrottled<T>(
   return results;
 }
 
-// 한국어 이름 포함 체크 (공백·괄호 영향 덜 받도록)
 function includesName(haystack: string, name: string): boolean {
   if (!haystack || !name) return false;
-  const h = haystack.replace(/\s+/g, '');
-  const n = name.replace(/\s+/g, '');
+  const h = haystack.replace(/\s+/g, '').toLowerCase();
+  const n = name.replace(/\s+/g, '').toLowerCase();
   return h.includes(n);
 }
+
+// 영문으로만 저장된 아티스트를 위한 한글 alias (KOPIS는 한글 공연명이 많음)
+// 키는 반드시 소문자
+const KPOP_ALIAS_MAP: Record<string, string[]> = {
+  'aespa': ['에스파'],
+  'bts': ['방탄소년단', '비티에스'],
+  'blackpink': ['블랙핑크'],
+  'twice': ['트와이스'],
+  'newjeans': ['뉴진스'],
+  'ive': ['아이브'],
+  'itzy': ['있지'],
+  'le sserafim': ['르세라핌'],
+  'nmixx': ['엔믹스'],
+  'stray kids': ['스트레이키즈'],
+  'seventeen': ['세븐틴'],
+  'nct': ['엔시티'],
+  'nct dream': ['엔시티 드림', '엔시티드림'],
+  'nct 127': ['엔시티127', '엔시티 127'],
+  'exo': ['엑소'],
+  'red velvet': ['레드벨벳'],
+  'mamamoo': ['마마무'],
+  'tomorrow x together': ['투모로우바이투게더', '투바투'],
+  'txt': ['투모로우바이투게더', '투바투'],
+  'ateez': ['에이티즈'],
+  'enhypen': ['엔하이픈'],
+  'iu': ['아이유'],
+  'bigbang': ['빅뱅'],
+  '2ne1': ['투애니원'],
+  'shinee': ['샤이니'],
+  'super junior': ['슈퍼주니어'],
+  'girls generation': ['소녀시대'],
+  'snsd': ['소녀시대'],
+  'day6': ['데이식스'],
+  'got7': ['갓세븐'],
+  'monsta x': ['몬스타엑스'],
+  'iz*one': ['아이즈원'],
+  'izone': ['아이즈원'],
+  'gfriend': ['여자친구'],
+  'oh my girl': ['오마이걸'],
+  'apink': ['에이핑크'],
+  '(g)i-dle': ['여자아이들', '지아이들'],
+  'gidle': ['여자아이들'],
+  'kiss of life': ['키스오브라이프'],
+  'riize': ['라이즈'],
+  'zerobaseone': ['제로베이스원', '제베원'],
+  'zb1': ['제로베이스원'],
+  'illit': ['아일릿'],
+  'babymonster': ['베이비몬스터'],
+  'kep1er': ['케플러'],
+  'fromis_9': ['프로미스나인'],
+  'loona': ['이달의 소녀'],
+  'dreamcatcher': ['드림캐쳐'],
+};
 
 // ─── Raw → 앱 Event 변환 ───────────────────────────────────────────
 
 export function kopisToEventInput(
   k: KopisRawEvent,
 ): Omit<Event, 'id' | 'artistId' | 'createdAt' | 'updatedAt' | 'notifyEnabled'> {
-  const cat = genreNameToCategory(k.genrenm);
+  // 공연명도 넘겨서 팬미팅/페스티벌 자동 분류
+  const cat = genreNameToCategory(k.genrenm, k.prfnm);
   const date = toIsoDate(k.prfpdfrom);
   return {
     externalId: `kopis:${k.mt20id}`,

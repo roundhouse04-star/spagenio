@@ -1,271 +1,245 @@
 /**
- * 공통 UI 컴포넌트 — 모노크롬 와이어프레임 스타일.
- * minimal.css 의 .chip .btn .box .label-caps .placeholder .line 등을 RN 으로 이식.
+ * IG 톤 공통 컴포넌트.
  */
 import React from 'react';
-import {
-  View, Text, Pressable, StyleSheet, Image,
-  PressableProps, StyleProp, ViewStyle, TextStyle,
-} from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing } from '@/theme/theme';
+import { View, Text, StyleSheet, Image, Pressable, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Fonts, Spacing, Radius, FontSizes, StoryGradient, Shadows, chipBg } from '@/theme/theme';
 import type { Artist, Event, Ticket } from '@/types';
 
-// ─── 라벨캡 (섹션 헤더) ───────────────────────────────────────────
-// "GREETING", "MY ARTISTS", "UPCOMING" 같은 mono uppercase 라벨
-export function LabelCaps({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.labelCaps, style]}>{String(children).toUpperCase()}</Text>;
-}
-
-// ─── Mono 숫자 (D-3, 3.18, 2026.03) ───────────────────────────────
-export function Mono({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.mono, style]}>{children}</Text>;
-}
-
-// ─── Chip (on / off / soft) ───────────────────────────────────────
-export function Chip({
-  label, on, soft, style, textStyle, onPress,
+/** 인스타 스토리 스타일의 원형 아바타 — 링 그라디언트 on/off */
+export function Avatar({
+  artist,
+  size = 44,
+  ring = false,
+  onPress,
 }: {
-  label: string; on?: boolean; soft?: boolean;
-  style?: StyleProp<ViewStyle>; textStyle?: StyleProp<TextStyle>;
+  artist?: Partial<Artist>;
+  size?: number;
+  ring?: boolean;
   onPress?: () => void;
 }) {
-  const bg = on ? Colors.ink : Colors.paper;
-  const fg = on ? '#fff' : (soft ? Colors.ink3 : Colors.ink);
-  const border = soft ? Colors.lineSoft : Colors.ink;
-  const Inner = (
-    <View style={[styles.chip, { backgroundColor: bg, borderColor: border }, style]}>
-      <Text style={[styles.chipText, { color: fg }, textStyle]}>{label}</Text>
-    </View>
-  );
-  if (!onPress) return Inner;
-  return <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>{Inner}</Pressable>;
-}
+  const inner = size - (ring ? 6 : 0);
+  const bg = artist?.thumbColor || '#eeeeee';
 
-// ─── Button (filled / outline / ghost) ────────────────────────────
-export function Btn({
-  label, filled, ghost, style, onPress, disabled,
-}: {
-  label: string; filled?: boolean; ghost?: boolean;
-  style?: StyleProp<ViewStyle>;
-  onPress?: () => void; disabled?: boolean;
-}) {
-  const bg = filled ? Colors.ink : Colors.paper;
-  const fg = filled ? '#fff' : (ghost ? Colors.ink2 : Colors.ink);
-  const border = ghost ? Colors.lineSoft : Colors.ink;
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.btn,
-        { backgroundColor: bg, borderColor: border },
-        pressed && { opacity: 0.6 },
-        disabled && { opacity: 0.3 },
-        style,
-      ]}>
-      <Text style={[styles.btnText, { color: fg }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-export const PrimaryButton = (props: { title: string; onPress?: () => void; disabled?: boolean; style?: StyleProp<ViewStyle> }) =>
-  <Btn label={props.title} filled onPress={props.onPress} disabled={props.disabled} style={props.style} />;
-export const SecondaryButton = (props: { title: string; onPress?: () => void; disabled?: boolean; style?: StyleProp<ViewStyle> }) =>
-  <Btn label={props.title} onPress={props.onPress} disabled={props.disabled} style={props.style} />;
-
-// ─── Box (기본 흰 박스) / BoxFill (fill 배경) ─────────────────────
-export function Box({ children, fill, style, soft }: {
-  children: React.ReactNode; fill?: boolean; soft?: boolean; style?: StyleProp<ViewStyle>;
-}) {
-  return (
-    <View style={[
-      styles.box,
-      fill && { backgroundColor: Colors.fill },
-      soft && { borderColor: Colors.lineSoft },
-      style,
-    ]}>
-      {children}
-    </View>
-  );
-}
-
-// ─── Placeholder (X 표시된 이미지 자리) ───────────────────────────
-export function Placeholder({
-  w, h, round, label, style,
-}: {
-  w?: number | string; h?: number | string; round?: boolean;
-  label?: string; style?: StyleProp<ViewStyle>;
-}) {
-  const size: ViewStyle = { width: w as any, height: h as any };
-  if (round && typeof w === 'number') size.borderRadius = w / 2;
-  return (
-    <View style={[styles.ph, size, style]}>
-      {/* 대각선 X 대신 · 표시 (RN 에선 CSS gradient 불가) */}
-      <Text style={styles.phDot}>{label || '·'}</Text>
-    </View>
-  );
-}
-
-// ─── Avatar (placeholder 원형 또는 사진) ──────────────────────────
-export function Avatar({
-  artist, size = 48, style,
-}: {
-  artist?: Artist; size?: number; style?: StyleProp<ViewStyle>;
-}) {
-  const base: ViewStyle = {
-    width: size, height: size, borderRadius: size / 2,
-    borderWidth: 1, borderColor: Colors.ink,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.paper, overflow: 'hidden',
-  };
-  if (artist?.avatarUrl) {
-    return (
-      <View style={[base, style]}>
+  const content = (
+    <View style={{ width: inner, height: inner, borderRadius: inner / 2, backgroundColor: bg,
+                   alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                   borderWidth: ring ? 2 : StyleSheet.hairlineWidth,
+                   borderColor: ring ? '#fff' : Colors.border }}>
+      {artist?.avatarUrl ? (
         <Image source={{ uri: artist.avatarUrl }} style={{ width: '100%', height: '100%' }} />
-      </View>
-    );
-  }
+      ) : (
+        <Text style={{ fontSize: inner * 0.5 }}>{artist?.emoji || '👤'}</Text>
+      )}
+    </View>
+  );
+
+  const body = ring ? (
+    <LinearGradient
+      colors={StoryGradient as any}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ width: size, height: size, borderRadius: size / 2, padding: 2,
+               alignItems: 'center', justifyContent: 'center' }}
+    >
+      {content}
+    </LinearGradient>
+  ) : content;
+
+  if (!onPress) return body;
+  return <Pressable onPress={onPress} hitSlop={6}>{body}</Pressable>;
+}
+
+export function CategoryChip({ category, compact }: { category?: string; compact?: boolean }) {
+  if (!category) return null;
   return (
-    <View style={[base, { backgroundColor: Colors.fill }, style]}>
-      <Text style={{ color: Colors.ink4, fontSize: Math.max(10, size / 3) }}>·</Text>
+    <View style={{
+      backgroundColor: chipBg(category), borderRadius: Radius.pill,
+      paddingHorizontal: compact ? 6 : 10, paddingVertical: compact ? 2 : 4, alignSelf: 'flex-start',
+    }}>
+      <Text style={{ fontSize: compact ? 10 : 11, color: Colors.text, fontFamily: Fonts.medium }}>
+        {category}
+      </Text>
     </View>
   );
 }
 
-// ─── Divider ──────────────────────────────────────────────────────
-export function Divider({ dark, style }: { dark?: boolean; style?: StyleProp<ViewStyle> }) {
-  return <View style={[
-    { height: StyleSheet.hairlineWidth, backgroundColor: dark ? Colors.ink : Colors.lineSoft },
-    style,
-  ]} />;
-}
-
-// ─── CategoryChip (카테고리만 표시) ───────────────────────────────
-export function CategoryChip({ category, style }: { category?: string; style?: StyleProp<ViewStyle> }) {
-  if (!category) return null;
-  return <Chip label={category} style={style} />;
-}
-
-// ─── Stars (★★★★☆) ────────────────────────────────────────────
-export function Stars({ value, size = 12 }: { value: number; size?: number }) {
-  const full = Math.round(value);
+export function Stars({ n = 0, size = 12 }: { n?: number; size?: number }) {
   return (
-    <Text style={{ fontSize: size, color: Colors.ink, letterSpacing: 1 }}>
-      {'★'.repeat(full)}{'☆'.repeat(Math.max(0, 5 - full))}
+    <Text style={{ fontSize: size, letterSpacing: 1 }}>
+      {'★'.repeat(Math.max(0, Math.min(5, n)))}{'☆'.repeat(5 - Math.max(0, Math.min(5, n)))}
     </Text>
   );
 }
 
-// ─── 빈 상태 ──────────────────────────────────────────────────────
-export function Empty({ icon, title, subtitle }: { icon?: string; title: string; subtitle?: string }) {
+export function PrimaryButton({
+  title, onPress, loading, disabled, style,
+}: {
+  title: string; onPress: () => void; loading?: boolean; disabled?: boolean; style?: ViewStyle;
+}) {
   return (
-    <View style={styles.empty}>
-      {icon && <Text style={{ fontSize: 28, color: Colors.ink4, marginBottom: 10 }}>{icon}</Text>}
-      <Text style={{ fontFamily: Fonts.semibold, fontSize: FontSizes.body, color: Colors.ink2 }}>{title}</Text>
-      {subtitle && <Text style={{ fontSize: FontSizes.caption, color: Colors.ink3, marginTop: 6, textAlign: 'center' }}>{subtitle}</Text>}
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || loading}
+      style={({ pressed }) => [
+        styles.btnPrimary,
+        { opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+        style,
+      ]}
+    >
+      {loading
+        ? <ActivityIndicator color="#fff" />
+        : <Text style={styles.btnPrimaryText}>{title}</Text>}
+    </Pressable>
+  );
+}
+
+export function SecondaryButton({
+  title, onPress, style,
+}: { title: string; onPress: () => void; style?: ViewStyle }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.btnSecondary, pressed && { opacity: 0.7 }, style]}
+    >
+      <Text style={styles.btnSecondaryText}>{title}</Text>
+    </Pressable>
+  );
+}
+
+export function Divider({ style }: { style?: ViewStyle }) {
+  return <View style={[{ height: StyleSheet.hairlineWidth, backgroundColor: Colors.divider }, style]} />;
+}
+
+export function Empty({ icon = '🫧', title, subtitle }: { icon?: string; title: string; subtitle?: string }) {
+  return (
+    <View style={{ alignItems: 'center', padding: Spacing.xxl, gap: 8 }}>
+      <Text style={{ fontSize: 40 }}>{icon}</Text>
+      <Text style={{ fontSize: FontSizes.bodyLg, fontFamily: Fonts.semibold, color: Colors.text }}>{title}</Text>
+      {subtitle && <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, textAlign: 'center' }}>{subtitle}</Text>}
     </View>
   );
 }
 
-// ─── 이벤트 행 ────────────────────────────────────────────────────
 export function EventRow({ ev, onPress }: { ev: Event; onPress?: () => void }) {
   const dday = daysUntil(ev.date);
   const ddayLabel = dday === 0 ? 'D-DAY' : dday > 0 ? `D-${dday}` : `D+${-dday}`;
+  const soon = dday >= 0 && dday <= 7;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-      <Box style={{ padding: 8, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-        <Text style={[styles.mono, { fontSize: 12, fontWeight: '600', minWidth: 48 }]}>{ddayLabel}</Text>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: Fonts.semibold, color: Colors.ink }}>{ev.title}</Text>
-          {ev.venue && <Text numberOfLines={1} style={{ fontSize: 10, color: Colors.ink3, marginTop: 2 }}>{ev.venue}</Text>}
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+        <View style={{ alignItems: 'center', width: 54 }}>
+          <Text style={{ fontFamily: Fonts.bold, fontSize: 18, color: soon ? Colors.heart : Colors.text }}>
+            {ddayLabel}
+          </Text>
+          <Text style={{ fontSize: 10, color: Colors.textSub }}>{ev.weekday ?? ''}</Text>
         </View>
-        {ev.category && <Chip label={ev.category} />}
-      </Box>
+        <View style={{ width: StyleSheet.hairlineWidth, backgroundColor: Colors.divider, alignSelf: 'stretch' }} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: FontSizes.bodyLg, fontFamily: Fonts.semibold, color: Colors.text }}>
+            {ev.catIcon ?? ''} {ev.title}
+          </Text>
+          <Text numberOfLines={1} style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginTop: 2 }}>
+            {ev.date} · {ev.venue ?? '장소 미정'}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+            <CategoryChip category={ev.category} compact />
+            <SourceBadge source={ev.source} />
+          </View>
+        </View>
+      </View>
     </Pressable>
   );
 }
 
-// ─── 티켓 행 ──────────────────────────────────────────────────────
-export function TicketRow({ ticket, onPress }: { ticket: Ticket; onPress?: () => void }) {
+/**
+ * 데이터 출처 표시 뱃지. Event.source 에 따라 "KOPIS" / "위키백과" / (수동 입력이면 표시 안 함).
+ * 저작권/출처 표기 의무 이행 + 사용자에게 정보 신뢰도 힌트 제공.
+ */
+export function SourceBadge({ source }: { source?: string }) {
+  if (!source || source === 'manual' || source === 'sync-auto') return null;
+  const label = sourceLabel(source);
+  if (!label) return null;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.6 }}>
-      <Box style={{ padding: 6, flexDirection: 'row', gap: 8 }}>
-        <Placeholder w={44} h={44} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: Fonts.semibold }}>{ticket.title}</Text>
-          <Text style={[styles.mono, { fontSize: 10, color: Colors.ink3 }]}>{formatDate(ticket.date)}</Text>
-          {ticket.rating > 0 && <Stars value={ticket.rating} size={10} />}
+    <View style={{
+      paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+      backgroundColor: Colors.bgMuted,
+      borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.divider,
+    }}>
+      <Text style={{ fontSize: 10, color: Colors.textSub, fontFamily: Fonts.medium }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function sourceLabel(source: string): string | null {
+  if (source === 'kopis' || source.startsWith('kopis:')) return 'KOPIS';
+  if (source === 'wikipedia' || source.startsWith('wiki:')) return '위키백과';
+  return null;
+}
+
+export function TicketRow({ t, onPress }: { t: Ticket; onPress?: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+        <View style={{ width: 52, height: 52, borderRadius: Radius.md, backgroundColor: chipBg(t.category),
+                       alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 24 }}>{t.catIcon ?? '🎟️'}</Text>
         </View>
-        <Chip label={ticket.category} style={{ alignSelf: 'flex-start' }} />
-      </Box>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: FontSizes.bodyLg, fontFamily: Fonts.semibold }}>{t.title}</Text>
+          <Text numberOfLines={1} style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginTop: 2 }}>
+            {t.date} · {t.venue ?? ''}
+          </Text>
+          <View style={{ marginTop: 4 }}>
+            <Stars n={t.rating} />
+          </View>
+        </View>
+      </View>
     </Pressable>
   );
 }
 
-// ─── helpers ──────────────────────────────────────────────────────
-function daysUntil(date?: string): number {
+function daysUntil(date: string): number {
   if (!date) return -9999;
   const d = new Date(date);
   if (isNaN(d.getTime())) return -9999;
-  const n = new Date(); n.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
+  const n = new Date(); n.setHours(0,0,0,0); d.setHours(0,0,0,0);
   return Math.round((d.getTime() - n.getTime()) / 86400000);
 }
 
-function formatDate(iso: string): string {
-  // "2026-03-18" → "3.18"
-  const m = iso.match(/^\d{4}-(\d{2})-(\d{2})/);
-  if (!m) return iso;
-  return `${Number(m[1])}.${Number(m[2])}`;
-}
-
-// ─── 스타일 ───────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  labelCaps: {
-    fontFamily: Fonts.mono,
-    fontSize: FontSizes.micro,
-    letterSpacing: 1.2,
-    color: Colors.ink3,
+  card: {
+    backgroundColor: Colors.card,
+    padding: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.divider,
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.xs,
   },
-  mono: {
-    fontFamily: Fonts.mono,
-  },
-  chip: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  chipText: {
-    fontFamily: Fonts.medium,
-    fontSize: FontSizes.micro + 1,
-  },
-  btn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-  },
-  btnText: {
-    fontFamily: Fonts.medium,
-    fontSize: FontSizes.caption,
-  },
-  box: {
-    backgroundColor: Colors.paper,
-    borderWidth: 1,
-    borderColor: Colors.ink,
-  },
-  ph: {
-    backgroundColor: Colors.fill,
+  btnPrimary: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.sm,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  phDot: {
-    color: Colors.ink4,
-    fontSize: 10,
+  btnPrimaryText: {
+    color: '#fff', fontFamily: Fonts.semibold, fontSize: FontSizes.body,
   },
-  empty: {
-    alignItems: 'center', justifyContent: 'center',
-    padding: Spacing.xxl,
+  btnSecondary: {
+    backgroundColor: Colors.bgMuted,
+    borderRadius: Radius.sm,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  btnSecondaryText: {
+    color: Colors.text, fontFamily: Fonts.medium, fontSize: FontSizes.body,
   },
 });

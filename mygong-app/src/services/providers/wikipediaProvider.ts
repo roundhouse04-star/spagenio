@@ -24,8 +24,30 @@ const WIKIPEDIA_KO_API = 'https://ko.wikipedia.org/w/api.php';
 const USER_AGENT = 'MygongApp/1.0 (personal-use; https://github.com/roundhouse04-star/spagenio)';
 const TIMEOUT_MS = 10000;
 
-// 공연 관련 섹션 제목 키워드
-const PERF_SECTION_RE = /(콘서트|투어|공연|라이브|뮤직|음악회|리사이틀|팬미팅|팬콘|페스티벌|쇼케이스|뮤지컬|연극)/;
+// 공연·출연 섹션 분류. 위에서 아래로 매칭, 먼저 걸리는 카테고리가 적용됨.
+// 구체적인 것부터 → 일반적인 것 순서로 배치.
+const SECTION_CATEGORY_MAP: Array<[RegExp, string]> = [
+  [/(뮤직비디오|뮤비|\bMV\b)/i,                           '뮤직비디오'],
+  [/(뮤지컬)/,                                             '뮤지컬'],
+  [/(연극)/,                                               '연극'],
+  [/(드라마|연속극|시리즈물)/,                             '드라마'],
+  [/(영화|필모그래피|출연.*영화)/,                         '영화'],
+  [/(예능|버라이어티|방송|TV.?쇼|텔레비전|라디오|MC|진행|출연\s*작품|^출연$)/, '방송'],
+  [/(광고|CF|브랜드.*모델)/i,                              '광고'],
+  [/(앨범|음반|디스코그래피|정규|미니.?앨범|싱글)/,        '앨범'],
+  [/(수상|시상|상\s*목록|수훈|영예)/,                      '수상'],
+  [/(팬미팅|팬콘|쇼케이스)/,                               '팬미팅'],
+  [/(페스티벌)/,                                           '페스티벌'],
+  [/(콘서트|투어|라이브|음악회|리사이틀|뮤직|공연|월드투어)/,'콘서트'],
+];
+
+/** 섹션 제목으로 카테고리 결정. 매칭 안 되면 null (섹션 무시) */
+function categoryForHeading(heading: string): string | null {
+  for (const [re, cat] of SECTION_CATEGORY_MAP) {
+    if (re.test(heading)) return cat;
+  }
+  return null;
+}
 
 type RawEventRow = {
   date?: string;     // YYYY-MM-DD
@@ -57,11 +79,11 @@ export async function fetchWikipediaEvents(pageId: number, artistName: string): 
     console.log('[wiki-events] wikitext length:', wikitext.length);
 
     const sections = extractPerformanceSections(wikitext);
-    console.log('[wiki-events] performance sections found:', sections.length);
+    console.log('[wiki-events] sections matched:', sections.map(s => `${s.heading}→${s.category}`).join(', ') || '(none)');
 
     const events: RawEventRow[] = [];
     for (const sec of sections) {
-      events.push(...parseSection(sec, artistName));
+      events.push(...parseSection(sec.body, artistName, sec.category));
     }
     console.log('[wiki-events] parsed events:', events.length);
     return dedupe(events);
@@ -105,27 +127,32 @@ async function fetchWikitext(pageId: number): Promise<string | null> {
 // 섹션 추출
 // ---------------------------------------------------------------------------
 
-function extractPerformanceSections(wikitext: string): string[] {
+type SectionWithCategory = { body: string; category: string; heading: string };
+
+function extractPerformanceSections(wikitext: string): SectionWithCategory[] {
   // == 헤딩 == 또는 === 서브헤딩 === 단위로 자르기
   const lines = wikitext.split(/\r?\n/);
-  const sections: string[] = [];
+  const sections: SectionWithCategory[] = [];
   let current: { heading: string; body: string[] } | null = null;
+
+  const flush = () => {
+    if (!current) return;
+    const cat = categoryForHeading(current.heading);
+    if (cat) {
+      sections.push({ body: current.body.join('\n'), category: cat, heading: current.heading });
+    }
+  };
 
   for (const line of lines) {
     const headMatch = line.match(/^\s*={2,4}\s*(.+?)\s*={2,4}\s*$/);
     if (headMatch) {
-      if (current && PERF_SECTION_RE.test(current.heading)) {
-        sections.push(current.body.join('\n'));
-      }
+      flush();
       current = { heading: headMatch[1], body: [] };
     } else if (current) {
       current.body.push(line);
     }
   }
-  // 마지막 섹션 처리
-  if (current && PERF_SECTION_RE.test(current.heading)) {
-    sections.push(current.body.join('\n'));
-  }
+  flush();
   return sections;
 }
 
@@ -133,7 +160,7 @@ function extractPerformanceSections(wikitext: string): string[] {
 // 섹션 본문 파싱 — wikitable + 글머리 항목
 // ---------------------------------------------------------------------------
 
-function parseSection(body: string, artistName: string): RawEventRow[] {
+function parseSection(body: string, artistName: string, category: string): RawEventRow[] {
   const events: RawEventRow[] = [];
 
   // 1) wikitable 파싱
@@ -153,7 +180,8 @@ function parseSection(body: string, artistName: string): RawEventRow[] {
     if (ev) events.push(ev);
   }
 
-  return events;
+  // 모든 이벤트에 섹션 카테고리 스탬프
+  return events.map(e => ({ ...e, category }));
 }
 
 /** wikitable 한 개를 행 단위로 파싱. 첫 행은 보통 헤더(!) */

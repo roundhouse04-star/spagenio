@@ -1,11 +1,13 @@
 /**
  * app_meta — 키-값 설정 저장소.
- * KOPIS API 키 같은 사용자별 설정을 SQLite 에 저장.
+ * 온보딩 완료 여부, 사용자 프리퍼런스 등 가벼운 설정을 SQLite 에 저장.
+ *
+ * v4.1 부터 KOPIS API 키는 더 이상 여기에 저장하지 않음
+ * (Cloudflare Worker 환경변수로 이관).
  */
 import { getDB } from './database';
 
 export const META_KEYS = {
-  KOPIS_API_KEY: 'kopis_api_key',
   ONBOARDING_DONE: 'onboarding_done',
 } as const;
 

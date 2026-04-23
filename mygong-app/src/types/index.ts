@@ -38,11 +38,16 @@ export type Event = {
   ticketUrl?: string;
   posterUrl?: string;
   notifyEnabled: boolean;
+  isWishlisted?: boolean;      // v2: 위시리스트
+  ticketOpenAt?: string;       // v2: "YYYY-MM-DD HH:mm"
   notes?: string;
   source?: string;             // "wikipedia" | "ticketlink" | "manual"
   createdAt: string;
   updatedAt: string;
 };
+
+/** v2: 항목별 별점 — key는 RATING_ITEMS의 key와 매칭 */
+export type DetailedRatings = Record<string, number>;
 
 export type Ticket = {
   id: number;
@@ -57,6 +62,8 @@ export type Ticket = {
   seat?: string;
   photoUri?: string;
   rating: number;              // 0~5
+  detailedRatings?: DetailedRatings;  // v2: 항목별 별점
+  price?: number;                     // v2: 가격 (원)
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -103,4 +110,15 @@ export type ArtistFetchBundle = {
   events: Omit<Event, 'id' | 'artistId' | 'createdAt' | 'updatedAt' | 'notifyEnabled'>[];
   tickets?: Omit<Ticket, 'id' | 'artistId' | 'createdAt' | 'updatedAt' | 'month'>[];
   notifications?: Omit<Notification, 'id' | 'artistId' | 'createdAt' | 'isNew'>[];
+};
+
+/** v2: 뱃지 */
+export type Badge = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'special';
+  unlocked: boolean;
+  unlockedAt?: string;
 };

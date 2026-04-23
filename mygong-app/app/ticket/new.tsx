@@ -10,8 +10,10 @@ import type { Ticket, Artist } from '@/types';
 
 export default function NewTicket() {
   const router = useRouter();
+  // 초기값: 카테고리만 기본값. 날짜는 비워둠 → 사진 OCR 또는 사용자가 직접 입력
   const [form, setForm] = useState<Partial<Ticket>>({
-    category: '콘서트', date: todayISO(), rating: 0,
+    category: '콘서트',
+    rating: 0,
   });
   const [artists, setArtists] = useState<Artist[]>([]);
 
@@ -38,9 +40,4 @@ export default function NewTicket() {
       onSave={save}
     />
   );
-}
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

@@ -22,6 +22,8 @@ function rowToEvent(r: any): Event {
     ticketUrl: r.ticket_url ?? undefined,
     posterUrl: r.poster_url ?? undefined,
     notifyEnabled: !!r.notify_enabled,
+    isWishlisted: !!r.is_wishlisted,
+    ticketOpenAt: r.ticket_open_at ?? undefined,
     notes: r.notes ?? undefined,
     source: r.source ?? undefined,
     createdAt: r.created_at,
@@ -35,6 +37,7 @@ export type EventFilter = {
   upcoming?: boolean;
   from?: string;   // YYYY-MM-DD
   to?: string;
+  wishlisted?: boolean;   // v2
 };
 
 export async function getAllEvents(filter: EventFilter = {}): Promise<Event[]> {
@@ -47,6 +50,7 @@ export async function getAllEvents(filter: EventFilter = {}): Promise<Event[]> {
   if (filter.upcoming)          { where.push('date >= date("now")'); }
   if (filter.from)              { where.push('date >= ?'); params.push(filter.from); }
   if (filter.to)                { where.push('date <= ?'); params.push(filter.to); }
+  if (filter.wishlisted)        { where.push('is_wishlisted = 1'); }
 
   const sql = `SELECT * FROM events
                ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
@@ -70,6 +74,20 @@ export async function getUpcomingEventsForArtist(artistId: number, limit = 5): P
   return rows.map(rowToEvent);
 }
 
+/**
+ * 특정 아티스트의 "지난 공연" 목록 (오늘 이전).
+ * Wikipedia/KOPIS에서 수집한 과거 공연 이력 및 앨범 발매 기록 등.
+ * 최신순(DESC)으로 정렬.
+ */
+export async function getPastEventsForArtist(artistId: number, limit = 50): Promise<Event[]> {
+  const db = await getDB();
+  const rows = await db.getAllAsync<any>(
+    `SELECT * FROM events WHERE artist_id = ? AND date < date("now") ORDER BY date DESC LIMIT ?`,
+    [artistId, limit]
+  );
+  return rows.map(rowToEvent);
+}
+
 export async function createEvent(data: Partial<Event>): Promise<number> {
   const db = await getDB();
   const now = new Date().toISOString();
@@ -77,8 +95,8 @@ export async function createEvent(data: Partial<Event>): Promise<number> {
   const result = await db.runAsync(
     `INSERT INTO events
       (artist_id, external_id, title, category, cat_icon, date, weekday, time, venue, city,
-       price, ticket_url, poster_url, notify_enabled, notes, source, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       price, ticket_url, poster_url, notify_enabled, is_wishlisted, ticket_open_at, notes, source, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       data.artistId ?? null,
       data.externalId ?? null,
@@ -94,6 +112,8 @@ export async function createEvent(data: Partial<Event>): Promise<number> {
       data.ticketUrl ?? null,
       data.posterUrl ?? null,
       data.notifyEnabled === false ? 0 : 1,
+      data.isWishlisted ? 1 : 0,
+      data.ticketOpenAt ?? null,
       data.notes ?? null,
       data.source ?? 'manual',
       now, now,
@@ -127,11 +147,13 @@ export async function updateEvent(id: number, data: Partial<Event>): Promise<voi
     category: 'category', catIcon: 'cat_icon', date: 'date', weekday: 'weekday',
     time: 'time', venue: 'venue', city: 'city', price: 'price',
     ticketUrl: 'ticket_url', posterUrl: 'poster_url', notes: 'notes', source: 'source',
+    ticketOpenAt: 'ticket_open_at',
   };
   for (const [k, col] of Object.entries(map)) {
     if (k in data) { fields.push(`${col} = ?`); values.push((data as any)[k] ?? null); }
   }
   if ('notifyEnabled' in data) { fields.push('notify_enabled = ?'); values.push(data.notifyEnabled ? 1 : 0); }
+  if ('isWishlisted' in data)  { fields.push('is_wishlisted = ?');  values.push(data.isWishlisted  ? 1 : 0); }
   if (fields.length === 0) return;
   fields.push('updated_at = ?');
   values.push(now, id);
@@ -151,6 +173,49 @@ export async function deleteEventsForArtistFromSource(
     `DELETE FROM events WHERE artist_id = ? AND source = ?`, [artistId, source]
   );
   return result.changes ?? 0;
+}
+
+// ────────── v2: 위시리스트 & 티켓오픈 ──────────
+
+/** 위시리스트 이벤트 조회 (다가오는 것 우선) */
+export async function getWishlistedEvents(limit = 20): Promise<Event[]> {
+  const db = await getDB();
+  const rows = await db.getAllAsync<any>(
+    `SELECT * FROM events
+     WHERE is_wishlisted = 1
+     ORDER BY
+       CASE WHEN date >= date("now") THEN 0 ELSE 1 END,
+       date ASC
+     LIMIT ?`,
+    [limit]
+  );
+  return rows.map(rowToEvent);
+}
+
+/** 위시리스트 토글. 바뀐 값(true/false) 리턴 */
+export async function toggleWishlist(id: number): Promise<boolean> {
+  const db = await getDB();
+  const row = await db.getFirstAsync<{ is_wishlisted: number }>(
+    `SELECT is_wishlisted FROM events WHERE id = ?`, [id]
+  );
+  const next = row?.is_wishlisted ? 0 : 1;
+  await db.runAsync(
+    `UPDATE events SET is_wishlisted = ?, updated_at = ? WHERE id = ?`,
+    [next, new Date().toISOString(), id]
+  );
+  return !!next;
+}
+
+/** 다가오는 티켓 오픈 이벤트 (알림 스케줄링용) */
+export async function getUpcomingTicketOpens(): Promise<Event[]> {
+  const db = await getDB();
+  const rows = await db.getAllAsync<any>(
+    `SELECT * FROM events
+     WHERE ticket_open_at IS NOT NULL
+       AND ticket_open_at >= datetime("now")
+     ORDER BY ticket_open_at ASC`
+  );
+  return rows.map(rowToEvent);
 }
 
 function weekdayFor(iso?: string): string | null {

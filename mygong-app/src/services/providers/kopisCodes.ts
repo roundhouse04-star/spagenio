@@ -20,7 +20,7 @@ export type KopisGenreCode = typeof KOPIS_GENRE[keyof typeof KOPIS_GENRE];
 
 /** 아티스트 tag 에 따라 우선 조회할 장르 코드들 */
 export function genreCodesForTag(tag?: string): KopisGenreCode[] {
-  if (!tag) return Object.values(KOPIS_GENRE); // 전부
+  if (!tag) return Object.values(KOPIS_GENRE);
   switch (tag) {
     case '가수':
     case '아이돌':
@@ -50,21 +50,40 @@ export const KOPIS_PRFSTATE = {
   FINISHED: '03',  // 공연완료
 } as const;
 
-// ─── 장르 → 앱 내부 카테고리 매핑 ────────────────────────────────
+// ─── 장르/공연명 → 앱 내부 카테고리 매핑 (6개) ──────────────────
+//
+// 앱 카테고리: 콘서트, 뮤지컬, 연극, 팬미팅, 페스티벌, 전시
+// (전시는 KOPIS 에 없음 — 사용자 수동 입력 전용)
+//
+// 무용/서커스/복합 등 애매한 장르는 가장 가까운 '페스티벌' 로 귀속.
 const GENRE_NAME_TO_CATEGORY: Record<string, string> = {
-  '연극': '연극',
-  '뮤지컬': '뮤지컬',
-  '대중음악': '콘서트',
-  '서양음악(클래식)': '콘서트',
-  '한국음악(국악)': '콘서트',
-  '무용(서양/한국무용)': '공연',
-  '대중무용': '공연',
-  '서커스/마술': '공연',
-  '복합': '공연',
+  '연극':              '연극',
+  '뮤지컬':            '뮤지컬',
+  '대중음악':          '콘서트',
+  '서양음악(클래식)':  '콘서트',
+  '한국음악(국악)':    '콘서트',
+  '무용(서양/한국무용)':'페스티벌',
+  '대중무용':          '페스티벌',
+  '서커스/마술':       '페스티벌',
+  '복합':              '페스티벌',
 };
 
-export function genreNameToCategory(genrenm: string): string {
-  return GENRE_NAME_TO_CATEGORY[genrenm] || '공연';
+/**
+ * 공연 카테고리 결정.
+ *
+ * @param genrenm KOPIS 장르명 (예: '대중음악')
+ * @param prfnm   공연명 (팬미팅 여부 판단용, optional)
+ */
+export function genreNameToCategory(genrenm: string, prfnm?: string): string {
+  // 공연명에 '팬미팅/팬콘/쇼케이스' 들어있으면 팬미팅으로 우선 분류
+  if (prfnm && /(팬미팅|팬콘|쇼케이스|FANMEETING|FAN\s*MEETING|SHOWCASE)/i.test(prfnm)) {
+    return '팬미팅';
+  }
+  // 공연명에 '페스티벌/페스/축제/FESTIVAL' 들어있으면 페스티벌
+  if (prfnm && /(페스티벌|페스\b|축제|FESTIVAL)/i.test(prfnm)) {
+    return '페스티벌';
+  }
+  return GENRE_NAME_TO_CATEGORY[genrenm] || '콘서트';
 }
 
 // ─── 기간 유틸 ────────────────────────────────────────────────────

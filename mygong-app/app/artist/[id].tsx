@@ -1,17 +1,20 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, RefreshControl,
+  Linking,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, Fonts, FontSizes, Spacing, Radius } from '@/theme/theme';
 import { Avatar, EventRow, TicketRow, Empty, Divider, PrimaryButton, SecondaryButton } from '@/components/UI';
+import { EventGridItem, EventGridContainer } from '@/components/EventGridItem';
 import { getArtistById, toggleFollowing, updateArtist, deleteArtist } from '@/db/artists';
-import { getUpcomingEventsForArtist } from '@/db/events';
+import { getUpcomingEventsForArtist, getPastEventsForArtist } from '@/db/events';
 import { getTicketsByArtist } from '@/db/tickets';
 import { getSyncState } from '@/db/sync-state';
 import { syncOneArtist } from '@/services/syncManager';
+import { parseArtistBio } from '@/services/artistInfoParser';
 import type { Artist, Event, Ticket, ArtistSyncState } from '@/types';
 
 export default function ArtistDetail() {
@@ -21,22 +24,27 @@ export default function ArtistDetail() {
 
   const [artist, setArtist] = useState<Artist | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [syncState, setSyncStateObj] = useState<ArtistSyncState | null>(null);
-  const [tab, setTab] = useState<'upcoming' | 'past' | 'info'>('upcoming');
+  const [tab, setTab] = useState<'upcoming' | 'attended' | 'history' | 'info'>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, e, t, s] = await Promise.all([
+    const [a, e, past, t, s] = await Promise.all([
       getArtistById(artistId),
       getUpcomingEventsForArtist(artistId, 20),
+      getPastEventsForArtist(artistId, 50),
       getTicketsByArtist(artistId),
       getSyncState(artistId),
     ]);
-    setArtist(a); setEvents(e); setTickets(t); setSyncStateObj(s);
+    setArtist(a); setEvents(e); setPastEvents(past); setTickets(t); setSyncStateObj(s);
   }, [artistId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // bio 파싱 — 본명/생년월일/국적/직업 등 구조화 정보 추출
+  const parsedInfo = useMemo(() => parseArtistBio(artist?.bio), [artist?.bio]);
 
   if (!artist) return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator /></SafeAreaView>;
 
@@ -45,7 +53,17 @@ export default function ArtistDetail() {
     try { await syncOneArtist(artistId); await load(); } finally { setRefreshing(false); }
   };
 
-  const toggleFollow = async () => { await toggleFollowing(artistId); await load(); };
+  const toggleFollow = async () => {
+    const wasFollowing = artist.isFollowing;
+    await toggleFollowing(artistId);
+    await load();
+    if (!wasFollowing) {
+      console.log('[artist] follow started → auto sync:', artist.name);
+      syncOneArtist(artistId)
+        .then(() => load())
+        .catch(e => console.warn('[artist] auto sync failed:', e?.message ?? e));
+    }
+  };
   const toggleNotify = async () => { await updateArtist(artistId, { notifyEnabled: !artist.notifyEnabled }); await load(); };
 
   const onDelete = () => {
@@ -53,6 +71,13 @@ export default function ArtistDetail() {
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: async () => { await deleteArtist(artistId); router.back(); } },
     ]);
+  };
+
+  const openWikipedia = () => {
+    const pageId = artist.externalId?.replace(/^wiki:/, '');
+    if (!pageId) return;
+    const url = `https://ko.wikipedia.org/?curid=${pageId}`;
+    Linking.openURL(url).catch(e => Alert.alert('링크를 열 수 없어요', e?.message ?? ''));
   };
 
   return (
@@ -70,7 +95,7 @@ export default function ArtistDetail() {
       >
         {/* Profile header — IG style */}
         <View style={styles.profileHead}>
-          <Avatar artist={artist} size={96} />
+          <Avatar artist={artist} size={96} ring={artist.isFollowing} />
           <View style={{ flex: 1, marginLeft: Spacing.xl }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <Stat n={events.length} label="공연" />
@@ -81,9 +106,14 @@ export default function ArtistDetail() {
         </View>
 
         <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.sm }}>
-          <Text style={{ fontFamily: Fonts.bold, fontSize: FontSizes.title }}>{artist.name}</Text>
+          <Text style={{ fontFamily: Fonts.bold, fontSize: FontSizes.bodyLg }}>{artist.name}</Text>
           {artist.role && <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginTop: 2 }}>{artist.role}</Text>}
           {artist.bio && <Text numberOfLines={3} style={{ fontSize: FontSizes.caption, color: Colors.text, marginTop: 8, lineHeight: 18 }}>{artist.bio}</Text>}
+          {artist.bio && artist.externalId?.startsWith('wiki:') && (
+            <Text style={{ fontSize: 10, color: Colors.textFaint, marginTop: 6 }}>
+              출처: 위키백과 · CC BY-SA 4.0
+            </Text>
+          )}
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8, padding: Spacing.lg }}>
@@ -99,11 +129,12 @@ export default function ArtistDetail() {
         <View style={styles.tabs}>
           {[
             { k: 'upcoming', label: `다가오는 ${events.length}` },
-            { k: 'past',     label: `다녀온 ${tickets.length}` },
+            { k: 'attended', label: `다녀온 ${tickets.length}` },
+            { k: 'history',  label: `지난공연 ${pastEvents.length}` },
             { k: 'info',     label: '정보' },
           ].map(t => (
             <Pressable key={t.k} onPress={() => setTab(t.k as any)} style={[styles.tab, tab === t.k && styles.tabActive]}>
-              <Text style={{ fontFamily: tab === t.k ? Fonts.bold : Fonts.medium, color: tab === t.k ? Colors.text : Colors.textSub }}>
+              <Text style={{ fontFamily: tab === t.k ? Fonts.bold : Fonts.medium, color: tab === t.k ? Colors.text : Colors.textSub, fontSize: FontSizes.caption }}>
                 {t.label}
               </Text>
             </Pressable>
@@ -114,21 +145,81 @@ export default function ArtistDetail() {
           ? <Empty icon="🎫" title="다가오는 공연 없음" subtitle="캘린더에서 ＋ 버튼으로 추가하거나 동기화를 시도하세요" />
           : events.map(e => <EventRow key={e.id} ev={e} onPress={() => router.push(`/event/${e.id}`)} />))}
 
-        {tab === 'past' && (tickets.length === 0
+        {tab === 'attended' && (tickets.length === 0
           ? <Empty icon="📖" title="아직 관람 기록 없음" />
-          : tickets.map(t => <TicketRow key={t.id} ticket={t} onPress={() => router.push(`/ticket/${t.id}`)} />))}
+          : tickets.map(t => <TicketRow key={t.id} t={t} onPress={() => router.push(`/ticket/${t.id}`)} />))}
+
+        {tab === 'history' && (pastEvents.length === 0
+          ? <Empty icon="📼" title="지난 공연 없음" subtitle="위키백과·KOPIS에서 수집된 과거 공연이 여기 표시됩니다" />
+          : (
+            <View style={{ paddingTop: Spacing.sm }}>
+              <EventGridContainer>
+                {pastEvents.map(e => (
+                  <EventGridItem
+                    key={e.id}
+                    ev={e}
+                    artist={artist}
+                    onPress={() => router.push(`/event/${e.id}`)}
+                  />
+                ))}
+              </EventGridContainer>
+            </View>
+          ))}
 
         {tab === 'info' && (
           <View style={{ padding: Spacing.lg }}>
-            <InfoRow label="ID" value={String(artist.id)} />
-            <InfoRow label="외부 ID" value={artist.externalId ?? '-'} />
-            <InfoRow label="마지막 동기화" value={artist.lastSyncedAt ? new Date(artist.lastSyncedAt).toLocaleString('ko-KR') : '-'} />
-            <InfoRow label="등록일" value={new Date(artist.createdAt).toLocaleDateString('ko-KR')} />
-            {syncState?.lastFetchError && (
-              <Text style={{ fontSize: FontSizes.tiny, color: Colors.heart, marginTop: 12 }}>
-                최근 동기화 오류: {syncState.lastFetchError}
-              </Text>
+            {/* 프로필 정보 */}
+            <Text style={styles.sectionTitle}>프로필</Text>
+            {parsedInfo.realName && <InfoRow icon="🪪" label="본명" value={parsedInfo.realName} />}
+            {parsedInfo.aliases && parsedInfo.aliases.length > 0 && (
+              <InfoRow icon="✨" label="별칭" value={parsedInfo.aliases.join(', ')} />
             )}
+            {parsedInfo.birthDate && (
+              <InfoRow
+                icon="🎂"
+                label={parsedInfo.deathDate ? '생몰' : '생년월일'}
+                value={parsedInfo.deathDate
+                  ? `${parsedInfo.birthDate} ~ ${parsedInfo.deathDate}`
+                  : parsedInfo.birthDate}
+              />
+            )}
+            {parsedInfo.nationality && <InfoRow icon="🌏" label="국적" value={parsedInfo.nationality} />}
+            {parsedInfo.occupations && parsedInfo.occupations.length > 0 && (
+              <InfoRow icon="💼" label="직업" value={parsedInfo.occupations.join(' · ')} />
+            )}
+            {artist.role && !parsedInfo.occupations?.length && (
+              <InfoRow icon="💼" label="직업" value={artist.role} />
+            )}
+
+            {/* 위키백과 원문 보기 */}
+            {artist.externalId?.startsWith('wiki:') && (
+              <View style={{ marginTop: Spacing.lg }}>
+                <SecondaryButton title="📖 위키백과에서 더 보기" onPress={openWikipedia} />
+              </View>
+            )}
+
+            {/* bio 원문 전문 */}
+            {artist.bio && (
+              <View style={{ marginTop: Spacing.xl }}>
+                <Text style={styles.sectionTitle}>소개</Text>
+                <Text style={styles.bioFull}>{artist.bio}</Text>
+                <Text style={{ fontSize: 10, color: Colors.textFaint, marginTop: 8 }}>
+                  출처: 위키백과 · CC BY-SA 4.0
+                </Text>
+              </View>
+            )}
+
+            {/* 동기화 상태 — 작게 */}
+            <View style={{ marginTop: Spacing.xl }}>
+              <Text style={styles.sectionTitle}>동기화</Text>
+              <MetaRow label="마지막 동기화" value={artist.lastSyncedAt ? new Date(artist.lastSyncedAt).toLocaleString('ko-KR') : '-'} />
+              <MetaRow label="등록일" value={new Date(artist.createdAt).toLocaleDateString('ko-KR')} />
+              {syncState?.lastFetchError && (
+                <Text style={{ fontSize: FontSizes.tiny, color: Colors.heart, marginTop: 8 }}>
+                  최근 오류: {syncState.lastFetchError}
+                </Text>
+              )}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -145,11 +236,25 @@ function Stat({ n, label }: { n: number; label: string }) {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+/** 프로필 정보 한 줄 — 아이콘 + 레이블 + 값 */
+function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <View style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.divider }}>
-      <Text style={{ width: 100, fontSize: FontSizes.caption, color: Colors.textSub }}>{label}</Text>
-      <Text style={{ flex: 1, fontSize: FontSizes.caption, color: Colors.text }}>{value}</Text>
+    <View style={styles.infoRow}>
+      <Text style={styles.infoIcon}>{icon}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** 메타 정보 (동기화 시각 등) — 작은 글씨 */
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metaRow}>
+      <Text style={styles.metaLabel}>{label}</Text>
+      <Text style={styles.metaValue}>{value}</Text>
     </View>
   );
 }
@@ -162,4 +267,51 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.divider },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: Colors.text },
+  sectionTitle: {
+    fontSize: FontSizes.caption,
+    fontFamily: Fonts.bold,
+    color: Colors.textSub,
+    marginBottom: Spacing.sm,
+    letterSpacing: 0.3,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.divider,
+  },
+  infoIcon: {
+    fontSize: 20,
+    width: 32,
+  },
+  infoLabel: {
+    fontSize: FontSizes.tiny,
+    color: Colors.textSub,
+  },
+  infoValue: {
+    fontSize: FontSizes.body,
+    color: Colors.text,
+    fontFamily: Fonts.medium,
+    marginTop: 2,
+  },
+  bioFull: {
+    fontSize: FontSizes.body,
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+  },
+  metaLabel: {
+    width: 110,
+    fontSize: FontSizes.tiny,
+    color: Colors.textSub,
+  },
+  metaValue: {
+    flex: 1,
+    fontSize: FontSizes.tiny,
+    color: Colors.text,
+  },
 });

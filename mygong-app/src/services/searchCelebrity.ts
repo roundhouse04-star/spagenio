@@ -1,17 +1,11 @@
 /**
- * 연예인 검색 서비스 (v2 — 안정성 + 디버깅 강화).
+ * 연예인 검색 서비스 (v3 — 아티스트 필터링 강화).
  *
- * 기존 v1 의 문제:
- *   - opensearch → query 2회 fetch 체인이 Expo Go 에서 불안정
- *   - title 매칭으로 page 찾는 로직이 리다이렉트/정규화 시 실패
- *   - User-Agent 미설정 → 위키미디어가 간헐적으로 429/빈응답
- *   - 타임아웃 없음 → 느린 네트워크에서 무한대기
- *   - 실패해도 로그가 안 찍혀서 디버깅 불가
- *
- * v2 개선:
- *   1. generator=search 로 "검색 + 상세" 단일 요청
- *   2. User-Agent / 10초 타임아웃 / 단계별 console.log
- *   3. 에러 시 어디서 터졌는지 명확히 보이게
+ * v2 → v3:
+ *   - 사람/아티스트가 아닌 결과 (영화, 앨범, 회사, 게임 등) 완전 제외
+ *   - description + extract 텍스트 기반 EXCLUDE 키워드 우선
+ *   - inferRole 결과가 있으면 우선 통과
+ *   - 검색어 자동 보강 (결과 0건이면 "이름 가수" 로 재시도)
  */
 
 import type { SearchHit } from '@/types';
@@ -20,9 +14,7 @@ const WIKIPEDIA_KO_API = 'https://ko.wikipedia.org/w/api.php';
 const USER_AGENT = 'MygongApp/1.0 (personal-use; https://github.com/roundhouse04-star/spagenio)';
 const TIMEOUT_MS = 10000;
 
-// ---------------------------------------------------------------------------
-// fetch 래퍼 — 타임아웃 + UA + 로깅
-// ---------------------------------------------------------------------------
+// ─── fetch 래퍼 ─────────────────────────────────────────
 async function fetchJson(url: string, tag: string): Promise<any> {
   console.log(`[${tag}] GET`, url);
   const ctrl = new AbortController();
@@ -66,19 +58,24 @@ export async function searchCelebrity(query: string): Promise<SearchHit[]> {
   console.log('[search] start:', q);
 
   try {
-    const hits = await searchWikipedia(q);
-    console.log('[search] total hits:', hits.length);
+    let hits = await searchWikipedia(q);
+    console.log('[search] hits after filter:', hits.length);
+
+    // 결과가 0개면 "이름 가수" 로 재시도 (자동 보강)
+    if (hits.length === 0 && !q.includes(' ')) {
+      console.log('[search] retry with role hint');
+      hits = await searchWikipedia(`${q} 가수 OR 배우 OR 선수 OR 아이돌`);
+      console.log('[search] retry hits:', hits.length);
+    }
+
     return hits;
   } catch (e: any) {
     console.warn('[search] provider failed:', e?.message ?? e);
-    throw e; // UI 에서 보이도록 re-throw
+    throw e;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Wikipedia 한국어 — generator=search 로 단일 요청
-// ---------------------------------------------------------------------------
-
+// ─── Wikipedia 한국어 검색 ───────────────────────────────
 type WikiHit = SearchHit & { _rank?: number };
 
 async function searchWikipedia(q: string): Promise<SearchHit[]> {
@@ -86,7 +83,7 @@ async function searchWikipedia(q: string): Promise<SearchHit[]> {
     action: 'query',
     generator: 'search',
     gsrsearch: q,
-    gsrlimit: '10',
+    gsrlimit: '15',                // 필터링 후 줄어드므로 더 넉넉하게
     gsrnamespace: '0',
     prop: 'pageimages|extracts|description',
     piprop: 'thumbnail',
@@ -106,35 +103,99 @@ async function searchWikipedia(q: string): Promise<SearchHit[]> {
 
   if (pages.length === 0) return [];
 
-  // generator=search 는 index 순서로 오지 않을 수 있어 정렬
   pages.sort((a, b) => (a.index ?? 999) - (b.index ?? 999));
 
-  const hits: WikiHit[] = pages.map((p) => {
+  // 1) 매핑 + 분류
+  const mapped: { hit: WikiHit; rank: number; reason: string }[] = pages.map((p) => {
     const extract = String(p.extract ?? '').slice(0, 400);
     const desc    = String(p.description ?? '');
     const role    = inferRole(desc, extract);
-    const person  = matchesPersonKeywords(`${desc} ${extract}`);
+    const text    = `${p.title} ${desc} ${extract}`;
+
+    // 분류 로직 (3단계)
+    let rank: number;
+    let reason: string;
+
+    if (isExplicitlyNotArtist(text)) {
+      rank = -1; reason = `EXCLUDE (${desc.slice(0, 40)})`;
+    } else if (role) {
+      rank = 2; reason = `ARTIST (role=${role})`;
+    } else if (matchesPersonKeywords(text)) {
+      rank = 1; reason = `MAYBE PERSON (${desc.slice(0, 40)})`;
+    } else {
+      rank = 0; reason = `UNKNOWN (${desc.slice(0, 40)})`;
+    }
+
     return {
-      externalId: `wiki:${p.pageid}`,
-      name: p.title,
-      role,
-      bio: extract || desc || undefined,
-      avatarUrl: p.thumbnail?.source,
-      source: 'wikipedia',
-      _rank: person ? 1 : 0,
+      hit: {
+        externalId: `wiki:${p.pageid}`,
+        name: p.title,
+        role,
+        bio: extract || desc || undefined,
+        avatarUrl: p.thumbnail?.source,
+        source: 'wikipedia',
+        _rank: rank,
+      },
+      rank,
+      reason,
     };
   });
 
-  // 사람 같은 결과를 앞으로
-  hits.sort((a, b) => (b._rank ?? 0) - (a._rank ?? 0));
-  console.log('[wiki] final:', hits.map(h => `${h.name}(${h.role ?? '?'})`).join(', '));
+  // 2) 디버깅 로그
+  for (const m of mapped) {
+    console.log(`[wiki] ${m.hit.name}: ${m.reason}`);
+  }
 
-  return hits.map(({ _rank, ...h }) => h);
+  // 3) 필터링: rank >= 1 만 통과 (아티스트 또는 사람 키워드 매칭)
+  //    UNKNOWN (rank 0) 도 제외 — 너무 노이즈 많음
+  const filtered = mapped.filter(m => m.rank >= 1);
+
+  // 4) rank 내림차순 정렬 (배우/가수가 위로)
+  filtered.sort((a, b) => b.rank - a.rank);
+
+  console.log(`[wiki] kept ${filtered.length}/${mapped.length}`);
+  return filtered.map(({ hit }) => {
+    const { _rank, ...rest } = hit;
+    return rest;
+  });
+}
+
+// ─── 키워드 매칭 ─────────────────────────────────────────
+
+/**
+ * 명시적으로 아티스트가 아닌 항목 (음반, 영화, 회사 등).
+ * 매칭되면 무조건 제외.
+ */
+function isExplicitlyNotArtist(text: string): boolean {
+  // 우선순위 높은 제외 패턴
+  const EXCLUDE_PATTERNS = [
+    // 음반/곡 (단, "가수의 음반 목록" 같은 건 통과시키기 위해 단독 description 만)
+    /(^|\s|·)(음반|앨범|싱글|미니앨범|정규앨범|EP음반|OST|사운드트랙|컴필레이션)(\s|$|이다|입니다|\.)/,
+    // 영상물
+    /(^|\s|·)(영화|드라마|예능|시트콤|시즌|시리즈|TV 프로그램|텔레비전 프로그램)(\s|$|이다|입니다|\.)/,
+    // 출판물
+    /(^|\s|·)(소설|만화|웹툰|책|도서|잡지|에세이|시집)(\s|$|이다|입니다|\.)/,
+    // 회사/조직
+    /(^|\s|·)(회사|기업|주식회사|레이블|에이전시|소속사|협회|단체|재단)(\s|$|이다|입니다|\.)/,
+    // IT/서비스
+    /(^|\s|·)(웹사이트|사이트|앱|게임|소프트웨어|플랫폼|서비스|애플리케이션)(\s|$|이다|입니다|\.)/,
+    // 지역
+    /(^|\s|·)(도시|지역|마을|시 |구 |동 |군 |강|산|섬)(\s|$|이다|입니다|\.)/,
+    // 학교/공공
+    /(^|\s|·)(학교|대학교|초등학교|중학교|고등학교|학원|병원)(\s|$|이다|입니다|\.)/,
+    // 영어
+    /\b(album|single|soundtrack|compilation|film|movie|tv series|drama series|novel|comic|manga|webtoon|book|company|corporation|label|website|application|video game|software)\b/i,
+  ];
+
+  for (const re of EXCLUDE_PATTERNS) {
+    if (re.test(text)) return true;
+  }
+  return false;
 }
 
 function matchesPersonKeywords(s: string): boolean {
   if (!s) return false;
-  return /(가수|배우|뮤지컬|아이돌|그룹|선수|감독|프로듀서|래퍼|성우|코미디언|방송인|모델|투수|타자|작곡가|싱어송라이터|아나운서|MC)/.test(s);
+  return /(가수|배우|뮤지컬|아이돌|그룹|선수|감독|프로듀서|래퍼|성우|코미디언|방송인|모델|투수|타자|작곡가|싱어송라이터|아나운서|MC|연기자|예술가|음악가|개그맨|개그우먼|진행자|댄서)/.test(s);
 }
 
 function inferRole(desc: string, extract: string): string | undefined {
@@ -150,5 +211,7 @@ function inferRole(desc: string, extract: string): string | undefined {
   if (/(축구|프리미어리그|K리그|분데스리가)/.test(s)) roles.push('축구 선수');
   if (/(농구|KBL|NBA|WKBL)/.test(s))         roles.push('농구 선수');
   if (/(아나운서|방송인|MC)/.test(s))        roles.push('방송인');
+  if (/(코미디언|개그맨|개그우먼)/.test(s))  roles.push('코미디언');
+  if (/(모델)/.test(s))                      roles.push('모델');
   return roles.length ? roles.slice(0, 2).join(' · ') : undefined;
 }

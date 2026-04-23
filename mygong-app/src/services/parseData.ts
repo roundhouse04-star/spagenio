@@ -1,20 +1,18 @@
 /**
  * 페치한 raw 데이터를 → 앱 엔티티(Artist/Event/Notification) 로 분리하는 파서.
  *
- * v2:
- *   1. 검색 결과 → Artist + 등록 알림 (기존)
- *   2. fetchEventsForArtist() — Wikipedia 본문 + KOPIS API 동시 조회 → Event[]
- *
- * 프로바이더는 Promise.allSettled 로 병렬 호출, 한쪽 실패해도 나머지는 살림.
- * 중복 이벤트는 (date|title) 정규화 키로 dedupe.
+ * 역할:
+ *   1. Wikipedia 검색 hit → Artist 1건 생성 (parseSearchHitToBundle)
+ *      - 아티스트 정보(이름, 역할, 소개, 대표사진)만 가져옴
+ *   2. 팔로잉 중인 아티스트 → 공연 이력 수집 (fetchEventsForArtist)
+ *      - KOPIS 공연정보 (Worker 경유) → 공식 공연 DB 만 사용
+ *      - mode: 'full' / 'incremental' / 'future-only'
  */
 
-import type { ArtistFetchBundle, Event, SearchHit } from '@/types';
-import { fetchWikipediaEvents } from './providers/wikipediaProvider';
-import { searchKopisEvents, kopisToEventInput, hasKopisKey } from './providers/kopisProvider';
-import { iconForCategory } from '@/db/schema';
+import type { ArtistFetchBundle, SearchHit } from '@/types';
+import { searchKopisEvents, kopisToEventInput, type SyncMode } from './providers/kopisProvider';
 
-/** Wikipedia 검색 hit 한 건 → 아티스트 등록 번들 */
+/** Wikipedia hit 한 건을 번들로 변환 */
 export function parseSearchHitToBundle(hit: SearchHit): ArtistFetchBundle {
   const tag = inferTag(hit.role);
   return {
@@ -46,94 +44,36 @@ export function parseSearchHitToBundle(hit: SearchHit): ArtistFetchBundle {
   };
 }
 
-/**
- * 한 명의 아티스트에 대한 공연 이력을 여러 프로바이더에서 가져옴.
+/** 한 명의 아티스트를 "리프레시"할 때 새 이벤트를 파생시키는 함수.
+ *  KOPIS 공연정보만 사용 (공식 공연 DB).
  *
- * artistExternalId: "wiki:12345" 형태 (parseData 가 알 필요는 없지만 호환 유지)
- * artistName: 검색·매칭에 쓰는 이름
+ *  @param artistExternalId - "wiki:1234" 형식 (현재 미사용)
+ *  @param artistName       - 아티스트 이름 (KOPIS 검색 키워드)
+ *  @param artistTag        - 앱 내부 tag
+ *  @param mode             - 'full' / 'incremental' / 'future-only'
  */
 export async function fetchEventsForArtist(
   artistExternalId: string,
   artistName: string,
   artistTag?: string,
-): Promise<Omit<Event, 'id' | 'artistId' | 'createdAt' | 'updatedAt' | 'notifyEnabled'>[]> {
-  console.log('[fetchEvents] start', artistName, artistExternalId, 'tag:', artistTag);
+  mode: SyncMode = 'future-only',
+  artistNameEn?: string,
+): Promise<ArtistFetchBundle['events']> {
+  console.log(`[fetchEvents] start ${artistName} mode=${mode} tag=${artistTag ?? '-'}${artistNameEn ? ` en=${artistNameEn}` : ''}`);
 
-  // pageId 추출 (wikipedia 출처일 때만)
-  const wikiPageId = extractWikiPageId(artistExternalId);
-
-  // 프로바이더 병렬 호출
-  const [wikiRes, kopisRes] = await Promise.allSettled([
-    wikiPageId ? fetchWikipediaEvents(wikiPageId, artistName) : Promise.resolve([]),
-    searchKopisEvents(artistName, artistTag),
-  ]);
-
-  const events: Omit<Event, 'id' | 'artistId' | 'createdAt' | 'updatedAt' | 'notifyEnabled'>[] = [];
-
-  // Wikipedia 결과 변환
-  if (wikiRes.status === 'fulfilled') {
-    for (const w of wikiRes.value) {
-      const cat = inferCategoryFromTitle(w.title) || '콘서트';
-      events.push({
-        externalId: `wiki-evt:${w.title}-${w.date ?? w.year ?? '?'}`,
-        title: w.title,
-        category: cat,
-        catIcon: iconForCategory(cat),
-        date: w.date ?? (w.year ? `${w.year}-01-01` : ''),
-        venue: w.venue,
-        city: w.city,
-        source: 'wikipedia',
-      });
-    }
-  } else {
-    console.warn('[fetchEvents] wiki failed:', wikiRes.reason);
+  try {
+    const aliases = artistNameEn && artistNameEn !== artistName ? [artistNameEn] : [];
+    const kopisRaw = await searchKopisEvents(artistName, artistTag, mode, aliases);
+    const events = kopisRaw.map(e => kopisToEventInput(e));
+    console.log(`[fetchEvents] ${artistName}: kopis=${events.length} (mode=${mode})`);
+    return events;
+  } catch (e: any) {
+    console.warn('[fetchEvents] kopis failed:', e?.message ?? e);
+    return [];
   }
-
-  // KOPIS 결과 변환 — 출연진 매칭은 우선 제목 기준 (키워드 포함이면 신뢰)
-  if (kopisRes.status === 'fulfilled') {
-    for (const k of kopisRes.value) {
-      // KOPIS shprfnm 가 부분일치라 너무 광범위할 수 있음 → 한 번 더 거름
-      if (!k.prfnm.includes(artistName)) continue;
-      events.push(kopisToEventInput(k));
-    }
-  } else {
-    console.warn('[fetchEvents] kopis failed:', kopisRes.reason);
-  }
-
-  // 중복 제거 (date|normalized title)
-  const seen = new Set<string>();
-  const dedup = events.filter(e => {
-    const key = `${e.date}|${e.title.replace(/\s+/g, '').toLowerCase()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  // 최신순 정렬
-  dedup.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
-  console.log('[fetchEvents] total:', dedup.length, '(wiki+kopis combined)');
-  return dedup;
 }
 
-// ---------------------------------------------------------------------------
-// 보조 함수들
-// ---------------------------------------------------------------------------
-
-function extractWikiPageId(externalId?: string): number | null {
-  if (!externalId) return null;
-  const m = externalId.match(/^wiki:(\d+)$/);
-  return m ? Number(m[1]) : null;
-}
-
-function inferCategoryFromTitle(title: string): string | undefined {
-  if (/(콘서트|투어|라이브|TOUR|LIVE|콘써트)/i.test(title)) return '콘서트';
-  if (/(뮤지컬|MUSICAL)/i.test(title)) return '뮤지컬';
-  if (/(연극|PLAY)/i.test(title)) return '연극';
-  if (/(페스티벌|FESTIVAL|FEST)/i.test(title)) return '페스티벌';
-  if (/(팬미팅|팬콘|FAN ?MEETING)/i.test(title)) return '콘서트';
-  return undefined;
-}
+// ---------- 보조 함수들 ----------
 
 function inferTag(role?: string): string {
   if (!role) return '기타';
@@ -162,12 +102,4 @@ function pickThumbColor(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return THUMB_COLORS[h % THUMB_COLORS.length];
-}
-
-// 프로바이더 상태 (설정 화면에서 표시용)
-export async function getProviderStatus() {
-  return {
-    wikipedia: true,                    // 항상 동작
-    kopis: await hasKopisKey(),         // 키 있을 때만
-  };
 }
