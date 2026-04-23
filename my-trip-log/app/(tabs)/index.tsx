@@ -72,6 +72,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.brandHeader}>
+          <Text style={styles.brandName}>✈️ Spagenio</Text>
+          <Text style={styles.brandSubtitle}>My Trip Log</Text>
+        </View>
+
         <View style={styles.header}>
           <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.name}>{user?.nickname ?? '여행자'}님</Text>
@@ -261,6 +266,25 @@ function createStyles(c: ColorPalette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xxl, paddingBottom: Spacing.huge },
+  brandHeader: {
+    marginBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  brandName: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: c.textPrimary,
+    letterSpacing: -0.5,
+  },
+  brandSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: c.textTertiary,
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
   header: { marginBottom: Spacing.xl },
   greeting: {
     fontSize: Typography.bodyMedium,

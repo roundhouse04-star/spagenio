@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, Appearance, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Appearance, useColorScheme } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -89,16 +89,7 @@ export default function RootLayout() {
   }, [isReady, fontsLoaded, hasUser]);
 
   if (!isReady || !fontsLoaded) {
-    return (
-      <View style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: Colors.primary,
-      }}>
-        <ActivityIndicator size="large" color={Colors.accent} />
-      </View>
-    );
+    return <BrandSplash />;
   }
 
   return (
@@ -225,3 +216,54 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+function BrandSplash() {
+  return (
+    <View style={splashStyles.container}>
+      <View style={splashStyles.content}>
+        <Text style={splashStyles.word1}>Spa</Text>
+        <Text style={splashStyles.word2}>Trip Log</Text>
+      </View>
+      <View style={splashStyles.bottom}>
+        <Text style={splashStyles.icon}>✈️</Text>
+        <ActivityIndicator size="small" color="#1E2A3A" style={{ marginTop: 16 }} />
+      </View>
+    </View>
+  );
+}
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5EFE4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  word1: {
+    fontSize: 56,
+    fontWeight: '800',
+    color: '#1E2A3A',
+    letterSpacing: -1.5,
+    lineHeight: 64,
+  },
+  word2: {
+    fontSize: 56,
+    fontWeight: '800',
+    color: '#1E2A3A',
+    letterSpacing: -1.5,
+    lineHeight: 64,
+  },
+  bottom: {
+    position: 'absolute',
+    bottom: 80,
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: 28,
+  },
+});
