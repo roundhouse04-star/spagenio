@@ -21,10 +21,11 @@ export default function PrivacyScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.lastUpdated}>최종 수정: 2026년 4월 19일</Text>
+        <Text style={styles.lastUpdated}>시행일: 2026년 4월 24일</Text>
 
         <Text style={styles.intro}>
-          My Trip Log는 사용자의 개인정보를 소중히 여기며, 최소한의 정보만 수집합니다.
+          Spagenio는 사용자의 개인정보를 소중히 여기며, 서비스 제공에 필요한 최소한의 정보만 수집합니다.
+          모든 여행 데이터는 기본적으로 사용자 기기에만 저장되며, 외부로 전송되지 않습니다.
         </Text>
 
         <Section title="1. 수집하는 정보" styles={styles}>
@@ -32,55 +33,98 @@ export default function PrivacyScreen() {
 • 닉네임, 국적
 • 여행 기록 (제목, 내용, 사진, 위치)
 • 비용 및 예산 정보
-• 체크리스트
+• 체크리스트, 일정
+• 영수증 사진 및 OCR 인식 텍스트
+
+[iCloud / Google Drive 자동 백업]
+• 사용자의 기기 설정에 따라 위 데이터가 OS 기본 백업에 포함될 수 있습니다.
+• Spagenio는 별도의 백업 서버를 운영하지 않습니다.
 
 [선택적 익명 통계 (동의 시에만)]
 • 익명 UUID (개인 식별 불가)
-• OS 종류 및 버전
-• 앱 버전, 기기 언어
+• OS 종류 및 버전, 앱 버전, 기기 언어
 • 가입일, 마지막 접속일
-• 여행/기록 개수 (내용은 절대 전송 안 됨)`}
+• 여행/기록 개수 (내용은 전송하지 않음)
+
+[광고 식별자 (광고 동의 시)]
+• iOS: IDFA (추적 허용 시에만)
+• Android: 광고 ID (재설정/거부 가능)`}
         </Section>
 
-        <Section title="2. 개인정보의 저장" styles={styles}>
+        <Section title="2. 개인정보의 저장 및 이용" styles={styles}>
           {`• 대부분의 데이터는 사용자 기기의 로컬 DB(SQLite)에만 저장됩니다.
-• 익명 통계에 동의한 경우, 위 정보는 spagenio 서버에 저장됩니다.
-• 서버 저장 데이터는 개인을 식별할 수 없는 익명 정보입니다.`}
+• 익명 통계 동의 시, 식별 불가능한 집계 데이터만 개발자가 운영하는 서버에 저장됩니다.
+• 서버 데이터는 앱 개선, 기능 우선순위 결정, 지역별 사용 현황 분석에만 사용됩니다.
+• 여행 기록, 사진, 영수증 등 개인 콘텐츠는 절대 외부 서버로 전송되지 않습니다.`}
         </Section>
 
-        <Section title="3. 개인정보의 사용" styles={styles}>
-          {`익명 통계 정보는 다음 목적으로만 사용됩니다:
-• 앱 사용 현황 파악
-• 기능 개선 우선순위 결정
-• 지역별 사용자 분포 분석`}
+        <Section title="3. 외부 서비스" styles={styles}>
+          {`본 앱은 다음 외부 서비스를 이용합니다:
+
+[환율 정보]
+• frankfurter.dev: 실시간 환율 조회 (개인정보 전송 없음)
+
+[AI 일정 생성]
+• 사용자가 AI 일정 생성 기능을 사용할 때, 입력한 여행 조건(도시, 기간, 취향 등)이 OpenAI API로 전송됩니다.
+• 전송 정보에 개인 식별 정보는 포함되지 않습니다.
+• OpenAI의 데이터 처리 정책: https://openai.com/policies/privacy-policy
+
+[영수증 OCR]
+• 사용자가 영수증 스캔 기능을 사용할 때, 해당 이미지가 OCR.space API로 전송되어 텍스트 인식 후 즉시 파기됩니다.
+• OCR.space 정책: https://ocr.space/privacy
+
+[광고 (향후 도입 예정)]
+• Google AdMob: 배너 광고 제공
+• AdMob은 광고 식별자를 사용하여 맞춤 광고를 제공합니다.
+• 사용자는 iOS 설정 또는 Android 설정에서 광고 추적을 거부할 수 있습니다.
+• Google 개인정보 처리방침: https://policies.google.com/privacy
+
+[글꼴]
+• Google Fonts (CDN): 글꼴 로딩 시 IP 주소가 Google에 전송될 수 있습니다.`}
         </Section>
 
-        <Section title="4. 제3자 제공 및 외부 서비스" styles={styles}>
-          {`[개인정보 제공]
-• 어떠한 경우에도 사용자 개인정보를 제3자에게 제공하지 않습니다.
+        <Section title="4. 제3자 제공" styles={styles}>
+          {`개발자는 어떠한 경우에도 사용자의 개인 콘텐츠(여행 기록, 사진, 비용 정보 등)를 제3자에게 제공하거나 판매하지 않습니다.
 
-[외부 서비스 이용]
-• frankfurter.dev: 환율 정보 조회 (개인정보 전송 없음)
-• Google Fonts: 폰트 로딩 (CDN, 개인정보 전송 없음)`}
+단, 아래의 경우는 예외입니다:
+• 법령에 따라 수사기관의 적법한 요청이 있는 경우
+• 사용자가 명시적으로 동의한 경우`}
         </Section>
 
         <Section title="5. 이용자의 권리" styles={styles}>
-          {`• 언제든지 앱에서 모든 데이터를 삭제할 수 있습니다
-• 데이터를 JSON 파일로 내보낼 수 있습니다
-• 익명 통계 동의를 언제든지 철회할 수 있습니다
-• 앱 삭제 시 로컬 데이터는 즉시 제거됩니다`}
+          {`• 언제든지 앱 내에서 모든 데이터를 삭제할 수 있습니다 ([내 정보] → [데이터 초기화])
+• 데이터를 JSON 파일로 내보낼 수 있습니다 ([내 정보] → [데이터 내보내기])
+• 익명 통계 수집 동의를 언제든지 철회할 수 있습니다
+• 앱 삭제 시 로컬 데이터는 즉시 제거됩니다 (iCloud 백업이 활성화된 경우 별도 삭제 필요)
+• 광고 추적을 iOS/Android 설정에서 거부할 수 있습니다`}
         </Section>
 
         <Section title="6. 데이터 보관 기간" styles={styles}>
-          {`• 로컬 데이터: 사용자가 삭제하거나 앱 제거 시까지
-• 서버 익명 데이터: 익명 ID 기준, 사용자 요청 시 즉시 삭제`}
+          {`• 로컬 데이터: 사용자가 삭제하거나 앱을 제거할 때까지
+• 서버 익명 통계: 사용자 요청 시 즉시 삭제 (익명 UUID 필요)
+• 영수증 OCR: 텍스트 추출 후 이미지 즉시 파기 (서버 미보관)
+• AI 일정 생성 요청: OpenAI 정책에 따라 처리 (Spagenio는 별도 보관 안 함)`}
         </Section>
 
-        <Section title="7. 개인정보 보호책임자" styles={styles}>
-          {`개인정보 관련 문의: roundhouse04@gmail.com
+        <Section title="7. 만 14세 미만 이용자" styles={styles}>
+          {`본 앱은 만 14세 미만의 아동을 대상으로 하지 않습니다.
+만 14세 미만의 이용자는 법정대리인의 동의 없이 본 서비스를 이용할 수 없습니다.
+만 14세 미만 이용자가 발견될 경우, 관련 데이터는 즉시 삭제됩니다.`}
+        </Section>
 
-사용자의 권리 행사 (데이터 삭제 등) 요청 시,
-위 이메일로 익명 UUID와 함께 요청 주시기 바랍니다.`}
+        <Section title="8. 개인정보 보호책임자" styles={styles}>
+          {`• 개발자: 이태호
+• 연락처: roundhouse04@gmail.com
+
+개인정보 관련 문의, 데이터 삭제 요청, 광고 관련 문의 등은
+위 이메일로 연락 주시기 바랍니다.
+
+데이터 삭제 요청 시, 익명 UUID를 함께 알려주시면 신속히 처리해 드립니다.`}
+        </Section>
+
+        <Section title="9. 방침 변경 고지" styles={styles}>
+          {`본 개인정보처리방침이 변경될 경우, 앱 업데이트 또는 앱 내 공지를 통해 안내드립니다.
+중대한 변경(새로운 정보 수집, 제3자 제공 등)의 경우 사전 고지 후 사용자 동의를 다시 받습니다.`}
         </Section>
 
         <View style={{ height: Spacing.huge }} />
