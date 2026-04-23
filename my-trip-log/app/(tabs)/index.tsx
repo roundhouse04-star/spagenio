@@ -72,7 +72,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.pageTitle}>✈️ 나의 여행기록</Text>
+        <Text style={styles.pageTitle}>✈️ Travel Diary</Text>
 
         <View style={styles.header}>
           <Text style={styles.greeting}>{greeting}</Text>
