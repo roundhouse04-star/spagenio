@@ -48,11 +48,11 @@ export function CategoryPieChart({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  const pieHtml = useMemo(() => buildPieChartHtml(stats, total), [stats, total]);
+
   if (stats.length === 0 || total <= 0) {
     return null;
   }
-
-  const pieHtml = useMemo(() => buildPieChartHtml(stats, total), [stats, total]);
 
   return (
     <View style={styles.section}>
