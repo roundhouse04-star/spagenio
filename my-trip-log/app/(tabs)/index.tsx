@@ -72,11 +72,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.pageTitle}>✈️ Travel Diary</Text>
-
-        <View style={styles.header}>
-          <Text style={styles.greeting}>{greeting}</Text>
-          <Text style={styles.name}>{user?.nickname ?? '여행자'}님</Text>
+        <View style={styles.topRow}>
+          <Text style={styles.pageTitle}>✈️ Travel Diary</Text>
+          <View style={styles.greetBlock}>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.name}>{user?.nickname ?? '여행자'}님</Text>
+          </View>
         </View>
 
         {/* 진행 중인 여행 */}
@@ -263,21 +264,29 @@ function createStyles(c: ColorPalette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
   scroll: { padding: Spacing.xxl, paddingBottom: Spacing.huge },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xl,
+  },
   pageTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
     color: '#C9A961',
     letterSpacing: -0.5,
-    marginBottom: Spacing.lg,
+  },
+  greetBlock: {
+    alignItems: 'flex-end',
   },
   header: { marginBottom: Spacing.xl },
   greeting: {
-    fontSize: Typography.bodyMedium,
+    fontSize: Typography.labelSmall,
     color: c.textSecondary,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   name: {
-    fontSize: Typography.displaySmall,
+    fontSize: Typography.bodyLarge,
     color: c.textPrimary,
     fontWeight: '700',
   },
