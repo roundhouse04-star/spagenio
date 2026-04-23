@@ -72,7 +72,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.pageTitle}>나의 여행기록</Text>
+        <Text style={styles.pageTitle}>✈️ 나의 여행기록</Text>
 
         <View style={styles.header}>
           <Text style={styles.greeting}>{greeting}</Text>
@@ -266,7 +266,7 @@ function createStyles(c: ColorPalette) {
   pageTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: c.textPrimary,
+    color: '#C9A961',
     letterSpacing: -0.5,
     marginBottom: Spacing.lg,
   },
