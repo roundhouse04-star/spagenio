@@ -1,13 +1,13 @@
 import { useMemo, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, TextInput,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Image, Alert,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
-import { createExpense } from '@/db/expenses';
+import { getExpense, updateExpense, deleteExpense } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
 import { getRates } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
@@ -23,28 +23,60 @@ const CURRENCIES = [
   { code: 'VND', flag: '🇻🇳' },
 ];
 
-export default function ExpenseNewScreen() {
+export default function ExpenseEditScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, expenseId } = useLocalSearchParams<{ id: string; expenseId: string }>();
   const tripId = parseInt(id);
+  const expIdNum = parseInt(expenseId);
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  const [expenseDate, setExpenseDate] = useState(today);
+  const [loading, setLoading] = useState(true);
+  const [expenseDate, setExpenseDate] = useState('');
   const [category, setCategory] = useState<string>('food');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('KRW');
   const [memo, setMemo] = useState('');
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const [ocrEngine, setOcrEngine] = useState<string | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
 
-  // 환율 상태 (KRW 기준으로 가져옴)
+  // 환율
   const [rates, setRates] = useState<Record<string, number>>({});
   const [ratesLoading, setRatesLoading] = useState(true);
 
+  // 기존 데이터 로드
   useEffect(() => {
-    // 화면 진입 시 환율 미리 로드 (KRW 기준)
+    (async () => {
+      try {
+        const exp = await getExpense(expIdNum);
+        if (!exp) {
+          Alert.alert('오류', '비용을 찾을 수 없습니다.');
+          router.back();
+          return;
+        }
+        setExpenseDate(exp.expenseDate);
+        setCategory(exp.category);
+        setTitle(exp.title || '');
+        setAmount(String(exp.amount));
+        setCurrency(exp.currency);
+        setMemo(exp.memo || '');
+        setReceiptImage(exp.receiptImage);
+        setOcrEngine(exp.ocrEngine);
+        setConfidence(exp.receiptConfidence);
+      } catch (err) {
+        console.error(err);
+        Alert.alert('오류', '비용을 불러올 수 없습니다.');
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [expIdNum]);
+
+  // 환율 로드
+  useEffect(() => {
     (async () => {
       try {
         const data = await getRates('KRW');
@@ -57,13 +89,10 @@ export default function ExpenseNewScreen() {
     })();
   }, []);
 
-  // amount in KRW 계산 (사용자에게 미리 보여줌)
   const homeCurrencyAmount = (() => {
     const num = parseFloat(amount);
     if (!num || isNaN(num)) return null;
     if (currency === 'KRW') return num;
-    // KRW 기준 rates에서 외화의 rate를 보면 1 KRW = X 외화
-    // 따라서 외화 금액 / rate = KRW
     const rate = rates[currency];
     if (!rate) return null;
     return num / rate;
@@ -73,7 +102,7 @@ export default function ExpenseNewScreen() {
     if (currency === 'KRW') return 1;
     const r = rates[currency];
     if (!r) return null;
-    return 1 / r; // 1 외화 = ? KRW
+    return 1 / r;
   })();
 
   const canSave = !!title.trim() && parseFloat(amount) > 0;
@@ -83,21 +112,54 @@ export default function ExpenseNewScreen() {
       haptic.warning();
       return;
     }
-    await createExpense({
-      tripId,
-      expenseDate,
-      category,
-      title: title.trim(),
-      amount: parseFloat(amount),
-      currency,
-      amountInHomeCurrency: homeCurrencyAmount ?? undefined,
-      exchangeRate: exchangeRate ?? undefined,
-      paymentMethod: undefined,
-      memo: memo.trim() || undefined,
-    });
-    haptic.success();
-    router.back();
+    try {
+      await updateExpense(expIdNum, {
+        expenseDate,
+        category: category as any,
+        title: title.trim(),
+        amount: parseFloat(amount),
+        currency,
+        amountInHomeCurrency: homeCurrencyAmount ?? null,
+        exchangeRate: exchangeRate ?? null,
+        memo: memo.trim() || null,
+      });
+      haptic.success();
+      router.back();
+    } catch (err) {
+      console.error(err);
+      Alert.alert('저장 실패');
+    }
   };
+
+  const handleDelete = () => {
+    Alert.alert('비용 삭제', '이 비용을 삭제하시겠어요? 되돌릴 수 없습니다.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteExpense(expIdNum);
+            haptic.success();
+            router.back();
+          } catch (err) {
+            console.error(err);
+            Alert.alert('삭제 실패');
+          }
+        },
+      },
+    ]);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={[styles.center, { flex: 1 }]}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -109,13 +171,35 @@ export default function ExpenseNewScreen() {
           <Pressable onPress={() => { haptic.tap(); router.back(); }}>
             <Text style={styles.cancel}>취소</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>비용 추가</Text>
+          <Text style={styles.headerTitle}>비용 편집</Text>
           <Pressable onPress={handleSave} disabled={!canSave}>
             <Text style={[styles.save, !canSave && styles.saveDisabled]}>저장</Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll}>
+          {/* 영수증 이미지 (있으면) */}
+          {receiptImage && (
+            <View style={styles.field}>
+              <Text style={styles.label}>영수증</Text>
+              <View style={styles.receiptBox}>
+                <Image source={{ uri: receiptImage }} style={styles.receiptImage} />
+                {(ocrEngine || confidence != null) && (
+                  <View style={styles.receiptMeta}>
+                    {ocrEngine && (
+                      <Text style={styles.receiptMetaText}>📷 {ocrEngine}</Text>
+                    )}
+                    {confidence != null && (
+                      <Text style={styles.receiptMetaText}>
+                        신뢰도 {Math.round(confidence * 100)}%
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           <View style={styles.field}>
             <Text style={styles.label}>날짜</Text>
             <TextInput
@@ -173,15 +257,12 @@ export default function ExpenseNewScreen() {
                     style={[styles.currencyChip, currency === c.code && styles.currencyChipActive]}
                     onPress={() => { haptic.select(); setCurrency(c.code); }}
                   >
-                    <Text style={[styles.currencyChipText, currency === c.code && styles.currencyChipTextActive]}>
-                      {c.flag}
-                    </Text>
+                    <Text style={styles.currencyChipText}>{c.flag}</Text>
                   </Pressable>
                 ))}
               </View>
             </View>
 
-            {/* 환산 결과 미리보기 */}
             {currency !== 'KRW' && parseFloat(amount) > 0 && (
               <View style={styles.conversionBox}>
                 {ratesLoading ? (
@@ -217,6 +298,10 @@ export default function ExpenseNewScreen() {
               numberOfLines={3}
             />
           </View>
+
+          <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.deleteBtnText}>🗑️  이 비용 삭제</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -226,6 +311,7 @@ export default function ExpenseNewScreen() {
 function createStyles(c: ColorPalette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: c.background },
+  center: { alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -258,6 +344,30 @@ function createStyles(c: ColorPalette) {
     paddingHorizontal: Spacing.md,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
+  receiptBox: {
+    backgroundColor: c.surface,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  receiptImage: {
+    width: '100%',
+    height: 220,
+    resizeMode: 'cover',
+    backgroundColor: c.surfaceAlt,
+  },
+  receiptMeta: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: c.border,
+  },
+  receiptMetaText: {
+    fontSize: Typography.labelSmall,
+    color: c.textTertiary,
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   chip: {
     paddingVertical: Spacing.sm,
@@ -284,7 +394,6 @@ function createStyles(c: ColorPalette) {
   },
   currencyChipActive: { backgroundColor: c.primary, borderColor: c.primary },
   currencyChipText: { fontSize: 16 },
-  currencyChipTextActive: { fontSize: 16 },
   conversionBox: {
     marginTop: Spacing.sm,
     padding: Spacing.md,
@@ -301,6 +410,20 @@ function createStyles(c: ColorPalette) {
     fontSize: Typography.labelSmall,
     color: c.textTertiary,
     marginTop: 2,
+  },
+  deleteBtn: {
+    marginTop: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: 12,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.error,
+    alignItems: 'center',
+  },
+  deleteBtnText: {
+    fontSize: Typography.bodyMedium,
+    color: c.error,
+    fontWeight: '600',
   },
 });
 }

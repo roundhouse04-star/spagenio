@@ -1,0 +1,22 @@
+{
+  "name": "@spagenio/transit-crawler",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OSM Overpass API based subway data crawler for Spagenio",
+  "scripts": {
+    "crawl-busan": "tsx cities/busan.ts",
+    "crawl-fukuoka": "tsx cities/fukuoka.ts",
+    "crawl-kyoto": "tsx cities/kyoto.ts",
+    "crawl-taipei": "tsx cities/taipei.ts",
+    "crawl-shanghai": "tsx cities/shanghai.ts",
+    "crawl-beijing": "tsx cities/beijing.ts",
+    "crawl-all": "tsx run-all.ts",
+    "merge": "tsx merge.ts",
+    "merge-dry": "tsx merge.ts --dry",
+    "inspect": "tsx inspect.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}
