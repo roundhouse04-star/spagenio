@@ -135,17 +135,15 @@ export async function searchKopisEvents(
     return true;
   });
 
-  // 하나라도 매칭되면 통과 (대소문자 무시)
-  const cleaned = dedup.filter(e => uniqueNames.some(n => includesName(e.prfnm, n)));
-  console.log(`[kopis] fetched ${dedup.length} → ${cleaned.length} after name filter`);
+  console.log(`[kopis] fetched ${dedup.length} events (duplicates removed)`);
 
-  if (ENABLE_CAST_MATCHING && cleaned.length > 0) {
-    const verified = await verifyCastMatching(cleaned, artistName);
-    console.log(`[kopis] ${cleaned.length} → ${verified.length} after cast verification`);
+  if (ENABLE_CAST_MATCHING && dedup.length > 0) {
+    const verified = await verifyCastMatching(dedup, artistName);
+    console.log(`[kopis] ${dedup.length} → ${verified.length} after cast verification`);
     return verified;
   }
 
-  return cleaned;
+  return dedup;
 }
 
 // ─── 공연목록 조회 (Worker 경유) ──────────────────────────────────
