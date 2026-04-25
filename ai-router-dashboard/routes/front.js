@@ -307,9 +307,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   // ✅ 퀀트/주식 프록시
   router.all('/proxy/quant/*', async (req, res) => {
     try {
-      let quantPath = req.path.replace('/proxy/quant', '');
-      // 프론트 호환: /api/ prefix 없이 호출돼도 자동 보정
-      if (!quantPath.startsWith('/api/')) quantPath = '/api/quant' + quantPath;
+      const quantPath = req.path.replace('/proxy/quant', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5002${quantPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
       const rawText = await response.text();
@@ -319,9 +317,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
 
   router.all('/proxy/stock/*', async (req, res) => {
     try {
-      let stockPath = req.path.replace('/proxy/stock', '');
-      // 프론트 호환: /api/ prefix 없이 호출돼도 자동 보정
-      if (!stockPath.startsWith('/api/')) stockPath = '/api/stock' + stockPath;
+      const stockPath = req.path.replace('/proxy/stock', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
       const response = await fetch(`http://localhost:5001${stockPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
       const rawText = await response.text();
@@ -894,7 +890,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
-  router.post('/api/lotto/prediction/check', (req, res) => {
+  router.post('/api/lotto/prediction/check', async (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
       const { prediction_id } = req.body;
@@ -902,10 +898,37 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const pred = db.prepare('SELECT * FROM lotto_predictions WHERE id=?').get(prediction_id);
       if (!pred) return res.status(404).json({ error: '예측 없음' });
       const picks = JSON.parse(pred.picks);
-      // based_on_round 다음 회차로 자동 계산
       const actual_round = pred.predicted_for_round || (pred.based_on_round + 1);
-      const actual = db.prepare('SELECT numbers FROM lotto_history WHERE drw_no=?').get(actual_round);
+
+      // 1) lotto_history에서 조회
+      let actual = db.prepare('SELECT numbers FROM lotto_history WHERE drw_no=?').get(actual_round);
+
+      // 2) 없으면 lotto.oot.kr API에서 가져와서 INSERT
+      if (!actual) {
+        try {
+          const apiRes = await fetch(`https://lotto.oot.kr/api/lotto/${actual_round}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(10000)
+          });
+          if (apiRes.ok) {
+            const data = await apiRes.json();
+            if (data?.drwtNo1) {
+              const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+              db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
+                .run(actual_round, JSON.stringify(winning), data.bnusNo, data.drwNoDate || '');
+              console.log(`[prediction/check] ${actual_round}회 자동 수집: ${winning.join(',')} + ${data.bnusNo}`);
+              actual = { numbers: JSON.stringify(winning) };
+            }
+          }
+        } catch (e) {
+          console.log(`[prediction/check] ${actual_round}회 API 호출 실패:`, e.message);
+        }
+      }
+
+      // 3) 그래도 없으면 추첨 전
       if (!actual) return res.status(200).json({ ok: false, pending: true, error: `${actual_round}회 아직 추첨 전입니다` });
+
+      // 4) 비교 후 결과 저장
       const actualNums = JSON.parse(actual.numbers);
       const hits = picks.filter(n => actualNums.includes(n));
       const updateWeight = db.prepare('UPDATE lotto_weights SET weight=MAX(0.1,MIN(5.0,weight*?)),appear_count=appear_count+1,hit_count=hit_count+?,updated_at=CURRENT_TIMESTAMP WHERE num=?');
@@ -1123,14 +1146,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/api/manual-trade/positions', (req, res) => {
     if (!req.user) return res.status(401).json({ error: '로그인 필요' });
     try {
-      // 활성 계좌(broker_key_id)로 필터링 - 계좌별로 분리된 보유종목을 반환
-      const accountId = req.headers['x-account-id'] || req.query.accountId;
-      const keys = getUserAlpacaKeys(req.user.id, accountId);
-      if (!keys) return res.json({ positions: [], no_account: true });
-
-      const rows = db.prepare(
-        "SELECT * FROM trade_log WHERE user_id=? AND broker_key_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC"
-      ).all(req.user.id, keys.id);
+      const rows = db.prepare("SELECT * FROM trade_log WHERE user_id=? AND trade_type=1 AND action='BUY' AND status='active' ORDER BY created_at DESC").all(req.user.id);
       res.json({ positions: rows });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
