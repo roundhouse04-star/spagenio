@@ -146,9 +146,9 @@ async function searchWikipedia(q: string): Promise<SearchHit[]> {
     console.log(`[wiki] ${m.hit.name}: ${m.reason}`);
   }
 
-  // 3) 필터링: rank >= 1 만 통과 (아티스트 또는 사람 키워드 매칭)
-  //    UNKNOWN (rank 0) 도 제외 — 너무 노이즈 많음
-  const filtered = mapped.filter(m => m.rank >= 1);
+  // 3) 필터링: rank >= 0 만 통과 (명확히 아티스트 아닌 것만 제외)
+  //    UNKNOWN (rank 0) 도 포함 — 더 많은 검색 결과
+  const filtered = mapped.filter(m => m.rank >= 0);
 
   // 4) rank 내림차순 정렬 (배우/가수가 위로)
   filtered.sort((a, b) => b.rank - a.rank);
