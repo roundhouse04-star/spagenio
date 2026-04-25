@@ -87,9 +87,24 @@ export function genreNameToCategory(genrenm: string, prfnm?: string): string {
 }
 
 // ─── 기간 유틸 ────────────────────────────────────────────────────
-/** KOPIS 는 stdate/eddate 최대 31일 제약. 주어진 범위를 31일 청크로 분할 */
-export function splitByMonth(startDate: Date, endDate: Date): Array<[string, string]> {
-  const chunks: Array<[string, string]> = [];
+
+/**
+ * 🔧 수정: 문자열 날짜 입력 지원 + 객체 형태 반환
+ * KOPIS 는 stdate/eddate 최대 31일 제약. 주어진 범위를 31일 청크로 분할
+ * 
+ * @param stdate "20100101" 형식 또는 Date 객체
+ * @param eddate "20260424" 형식 또는 Date 객체
+ * @returns { stdate: string, eddate: string }[] 형식
+ */
+export function splitByMonth(
+  stdate: string | Date, 
+  eddate: string | Date
+): Array<{ stdate: string; eddate: string }> {
+  // 문자열이면 Date로 변환
+  const startDate = typeof stdate === 'string' ? parseYmd(stdate) : stdate;
+  const endDate = typeof eddate === 'string' ? parseYmd(eddate) : eddate;
+  
+  const chunks: Array<{ stdate: string; eddate: string }> = [];
   let cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
 
@@ -97,13 +112,33 @@ export function splitByMonth(startDate: Date, endDate: Date): Array<[string, str
     const chunkEnd = new Date(cursor);
     chunkEnd.setDate(chunkEnd.getDate() + 30); // 31일치 (포함)
     if (chunkEnd > endDate) chunkEnd.setTime(endDate.getTime());
-    chunks.push([fmtYmd(cursor), fmtYmd(chunkEnd)]);
+    
+    chunks.push({
+      stdate: fmtYmd(cursor),
+      eddate: fmtYmd(chunkEnd)
+    });
+    
     cursor = new Date(chunkEnd);
     cursor.setDate(cursor.getDate() + 1);
   }
+  
   return chunks;
 }
 
+/**
+ * "20260424" → Date 객체
+ */
+export function parseYmd(ymd: string): Date {
+  // "20260424" → "2026-04-24"
+  const year = parseInt(ymd.substring(0, 4), 10);
+  const month = parseInt(ymd.substring(4, 6), 10) - 1; // 0-based
+  const day = parseInt(ymd.substring(6, 8), 10);
+  return new Date(year, month, day);
+}
+
+/**
+ * Date → "20260424"
+ */
 export function fmtYmd(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -111,7 +146,9 @@ export function fmtYmd(d: Date): string {
   return `${y}${m}${dd}`;
 }
 
+/**
+ * "2025.06.15" → "2025-06-15"
+ */
 export function toIsoDate(kopisDate: string): string {
-  // "2025.06.15" → "2025-06-15"
   return kopisDate.replace(/\./g, '-');
 }

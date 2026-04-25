@@ -249,7 +249,7 @@ export async function restoreFromFile(uri: string): Promise<RestoreResult> {
       stats: snapshot.stats,
     };
   } catch (e: any) {
-    console.error('[backup] restore failed:', e);
+    // console.error('[backup] restore failed:', e);
     return { success: false, message: e?.message ?? '복원 실패' };
   }
 }

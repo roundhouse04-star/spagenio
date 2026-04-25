@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, Image, StyleSheet, Dimensions } from 'react-native';
 import { Colors, Fonts, FontSizes, Radius } from '@/theme/theme';
 import type { Event, Artist } from '@/types';
+import { getPosterUri, secureUrl } from '@/utils/imageUtils';
 
 /**
  * 3열 그리드용 이벤트 카드.
@@ -32,14 +33,8 @@ function placeholderStyle(category?: string, catIcon?: string) {
   return { bg: '#eee', icon: catIcon || '🎤' };
 }
 
-/** iOS http:// 차단 → https 변환 */
-function secureUrl(url?: string): string | undefined {
-  if (!url) return undefined;
-  return url.replace(/^http:\/\//i, 'https://');
-}
-
 export function EventGridItem({ ev, artist, onPress }: { ev: Event; artist?: Artist | null; onPress?: () => void }) {
-  const posterUri = secureUrl(ev.posterUrl) || secureUrl(artist?.avatarUrl);
+  const posterUri = getPosterUri(ev.posterUrl) || secureUrl(artist?.avatarUrl);
   const hasPoster = !!posterUri;
   const isFallback = !ev.posterUrl && !!posterUri;
   const ph = placeholderStyle(ev.category, ev.catIcon);

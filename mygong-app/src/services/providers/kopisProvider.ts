@@ -1,392 +1,280 @@
-/**
- * KOPIS 공연예술통합전산망 Open API 프로바이더.
- *
- * v4.5 — 6개 카테고리 체계 적용
- *   • genreNameToCategory 에 prfnm 전달 → 팬미팅/페스티벌 자동 분류
- *
- * v4.4 — 3가지 동기화 모드
- *   • 'full'        → 2010년 ~ 미래 1년 (처음 팔로우 시, ~40초)
- *   • 'incremental' → 1개월 전 ~ 미래 1년 (아티스트 상세 당겨서, ~6초)
- *   • 'future-only' → 오늘 ~ 미래 1년 (홈 당겨서 / 앱 시작 자동, ~3초)
- *
- * v4.1 — Cloudflare Worker 프록시 경유로 변경.
- *   • KOPIS 키는 Worker Secret 에만 존재
- *
- * Worker 엔드포인트:
- *   공연목록:  GET /performances?stdate=&eddate=&shcate=&shprfnm=&openrun=&rows=&cpage=
- *   공연상세:  GET /performance/{mt20id}
- *
- * KOPIS 스펙상 제약:
- *   - stdate/eddate 는 최대 31일 → 긴 기간은 청크 분할
- *   - rows 는 최대 100
- *   - 응답은 XML
- */
+// ============================================================
+// kopisProvider.ts - 한방에 XML 가져오기
+// 로컬에서 파싱 최적화
+// ============================================================
 
-import type { Event } from '@/types';
-import { iconForCategory } from '@/db/schema';
-import {
-  genreNameToCategory,
-  splitByMonth, toIsoDate, fmtYmd,
-} from './kopisCodes';
-import {
-  MYGONG_API_KOPIS_LIST, MYGONG_API_KOPIS_DETAIL, API_TIMEOUT_MS,
-} from '@/config/api';
+import { MYGONG_API_BASE, MYGONG_API_KOPIS_LIST, MYGONG_API_KOPIS_DETAIL } from '../../config/api';
+import { splitByMonth } from './kopisCodes';
 
-// Full sync 시작일: 2010년 고정
-const HISTORY_START_DATE = new Date('2010-01-01');
-
-// Incremental sync: 1개월 전부터
-const INCREMENTAL_MONTHS_BACK = 1;
-
-// 미래는 공통으로 1년치
-const YEARS_AHEAD = 1;
-
-// 동시 실행 제한
 const MAX_CONCURRENCY = 4;
 
-// 출연진 정밀 매칭
-const ENABLE_CAST_MATCHING = false;
-
-// ─── Raw Types ────────────────────────────────────────────────────
-export type KopisRawEvent = {
-  mt20id: string;
-  prfnm: string;
-  prfpdfrom: string;
-  prfpdto: string;
-  fcltynm: string;
-  area: string;
-  genrenm: string;
-  poster?: string;
-  prfstate: string;
-  openrun?: string;
-};
-
-export type KopisRawDetail = KopisRawEvent & {
-  prfcast?: string;
-  prfcrew?: string;
-  entrpsnmP?: string;
-  pcseguidance?: string;
-  dtguidance?: string;
-  sty?: string;
-};
-
-/** @deprecated Worker 경유라 항상 true */
-export async function hasKopisKey(): Promise<boolean> {
-  return true;
-}
-
-// ─── 메인 검색 ────────────────────────────────────────────────────
-
-export type SyncMode = 'full' | 'incremental' | 'future-only';
-
-export async function searchKopisEvents(
-  artistName: string,
-  artistTag?: string,
-  mode: SyncMode = 'future-only',
-  aliases: string[] = [],
-): Promise<KopisRawEvent[]> {
-  // 알려진 K-pop 그룹 영↔한 매핑 자동 보강
-  const builtInAliases = KPOP_ALIAS_MAP[artistName.toLowerCase()] ?? [];
-  const allNames = [artistName, ...aliases, ...builtInAliases].filter(Boolean);
-  const uniqueNames = Array.from(new Set(allNames));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const end = new Date(today);
-  end.setFullYear(end.getFullYear() + YEARS_AHEAD);
-
-  let start: Date;
-  switch (mode) {
-    case 'full':
-      start = HISTORY_START_DATE;
-      break;
-    case 'incremental':
-      start = new Date(today);
-      start.setMonth(start.getMonth() - INCREMENTAL_MONTHS_BACK);
-      break;
-    case 'future-only':
-    default:
-      start = new Date(today);
-      break;
-  }
-
-  const chunks = splitByMonth(start, end);
-  console.log(`[kopis] ${artistName} mode=${mode} range=${fmtYmd(start)}~${fmtYmd(end)} chunks=${chunks.length} aliases=[${uniqueNames.slice(1).join(',')}]`);
-
-  const tasks: Array<() => Promise<KopisRawEvent[]>> = [];
-  // 각 이름(원본 + alias)으로 KOPIS 검색
-  for (const name of uniqueNames) {
-    for (const [stdate, eddate] of chunks) {
-      tasks.push(() => fetchList({
-        stdate, eddate, shprfnm: name,
-      }));
-    }
-    tasks.push(() => fetchList({
-      stdate: fmtYmd(today), eddate: fmtYmd(end),
-      shprfnm: name, openrun: 'Y',
-    }));
-  }
-
-  const all = await runThrottled(tasks, MAX_CONCURRENCY);
-
-  const seen = new Set<string>();
-  const dedup = all.flat().filter(e => {
-    if (seen.has(e.mt20id)) return false;
-    seen.add(e.mt20id);
-    return true;
-  });
-
-  console.log(`[kopis] fetched ${dedup.length} events (duplicates removed)`);
-
-  if (ENABLE_CAST_MATCHING && dedup.length > 0) {
-    const verified = await verifyCastMatching(dedup, artistName);
-    console.log(`[kopis] ${dedup.length} → ${verified.length} after cast verification`);
-    return verified;
-  }
-
-  return dedup;
-}
-
-// ─── 공연목록 조회 (Worker 경유) ──────────────────────────────────
-
-type ListParams = {
+export interface KopisSearchParams {
+  artistName: string;
   stdate: string;
   eddate: string;
   shcate?: string;
-  shprfnm?: string;
-  openrun?: string;
-};
-
-async function fetchList(params: ListParams): Promise<KopisRawEvent[]> {
-  const q = new URLSearchParams({
-    stdate: params.stdate,
-    eddate: params.eddate,
-    cpage: '1',
-    rows: '100',
-  });
-  if (params.shcate)  q.set('shcate',  params.shcate);
-  if (params.shprfnm) q.set('shprfnm', params.shprfnm);
-  if (params.openrun) q.set('openrun', params.openrun);
-
-  const url = `${MYGONG_API_KOPIS_LIST}?${q.toString()}`;
-  const xml = await fetchXml(url, 'kopis-list');
-  return parseListXml(xml);
+  afterdate?: string;
 }
 
-async function fetchDetail(mt20id: string): Promise<KopisRawDetail | null> {
-  const url = `${MYGONG_API_KOPIS_DETAIL}/${encodeURIComponent(mt20id)}`;
+/**
+ * 🆕 한방에 모든 XML 데이터 가져오기
+ * 로컬에서 파싱하도록 raw XML 반환
+ */
+export async function fetchAllRawXML(params: KopisSearchParams): Promise<string[]> {
+  const { artistName, stdate, eddate, shcate, afterdate } = params;
+  
+  // 날짜 범위를 31일 단위로 분할
+  const dateChunks = splitByMonth(stdate, eddate);
+  
+  console.log(`[KOPIS] XML 수집 시작: ${artistName}`);
+  console.log(`[KOPIS] 날짜: ${stdate} ~ ${eddate} (${dateChunks.length}개 청크)`);
+  if (afterdate) {
+    console.log(`[KOPIS] ⚡ afterdate: ${afterdate} 이후 수정분만`);
+  }
+  
+  const allXmlChunks: string[] = [];
+  
+  // 청크를 MAX_CONCURRENCY 크기로 배치 처리
+  for (let i = 0; i < dateChunks.length; i += MAX_CONCURRENCY) {
+    const batch = dateChunks.slice(i, i + MAX_CONCURRENCY);
+    
+    const batchPromises = batch.map(chunk => 
+      fetchChunkRawXML({
+        artistName,
+        stdate: chunk.stdate,
+        eddate: chunk.eddate,
+        shcate,
+        afterdate
+      })
+    );
+    
+    const batchResults = await Promise.all(batchPromises);
+    
+    // XML 청크 수집
+    for (const xml of batchResults) {
+      if (xml) {
+        allXmlChunks.push(xml);
+      }
+    }
+    
+    console.log(`[KOPIS] 진행: ${Math.min(i + MAX_CONCURRENCY, dateChunks.length)}/${dateChunks.length} 청크 완료`);
+  }
+  
+  console.log(`[KOPIS] XML 수집 완료: ${allXmlChunks.length}개 청크`);
+  return allXmlChunks;
+}
+
+/**
+ * 단일 청크의 raw XML 가져오기
+ */
+async function fetchChunkRawXML(params: {
+  artistName: string;
+  stdate: string;
+  eddate: string;
+  shcate?: string;
+  afterdate?: string;
+}): Promise<string | null> {
+  const { artistName, stdate, eddate, shcate, afterdate } = params;
+  
+  const url = new URL(MYGONG_API_KOPIS_LIST, MYGONG_API_BASE);
+  url.searchParams.set('stdate', stdate);
+  url.searchParams.set('eddate', eddate);
+  url.searchParams.set('shprfnm', artistName);
+  url.searchParams.set('rows', '100');
+  url.searchParams.set('cpage', '1');
+  
+  if (shcate) {
+    url.searchParams.set('shcate', shcate);
+  }
+  
+  if (afterdate) {
+    url.searchParams.set('afterdate', afterdate);
+  }
+  
   try {
-    const xml = await fetchXml(url, 'kopis-detail');
-    return parseDetailXml(xml);
-  } catch (e: any) {
-    console.warn(`[kopis-detail] ${mt20id} failed:`, e?.message ?? e);
-    return null;
-  }
-}
-
-async function verifyCastMatching(
-  events: KopisRawEvent[], artistName: string,
-): Promise<KopisRawEvent[]> {
-  const tasks = events.map(ev => async () => {
-    const detail = await fetchDetail(ev.mt20id);
-    if (!detail) return null;
-    const cast = detail.prfcast ?? '';
-    if (includesName(cast, artistName) || includesName(ev.prfnm, artistName)) {
-      return ev;
-    }
-    return null;
-  });
-  const out = await runThrottled(tasks, MAX_CONCURRENCY);
-  return out.filter((x): x is KopisRawEvent => x !== null);
-}
-
-// ─── XML 파서 ────────────────────────────────────────────────────
-
-function parseListXml(xml: string): KopisRawEvent[] {
-  if (/<OpenAPI_ServiceResponse>/.test(xml) || /SERVICE[_ ]KEY/i.test(xml)) {
-    const reason = pick(xml, 'returnReasonCode') || pick(xml, 'returnAuthMsg') || 'UNKNOWN';
-    throw new Error(`KOPIS API 오류: ${reason}`);
-  }
-  const trimmed = xml.trim();
-  if (trimmed.startsWith('{')) {
-    try {
-      const err = JSON.parse(trimmed);
-      if (err && err.error) throw new Error(`mygong-api 오류: ${err.error}`);
-    } catch (parseErr: any) {
-      if (parseErr?.message?.startsWith('mygong-api')) throw parseErr;
-    }
-  }
-  const events: KopisRawEvent[] = [];
-  const blocks = xml.match(/<db>[\s\S]*?<\/db>/g) ?? [];
-  for (const block of blocks) {
-    events.push({
-      mt20id:    pick(block, 'mt20id'),
-      prfnm:     pick(block, 'prfnm'),
-      prfpdfrom: pick(block, 'prfpdfrom'),
-      prfpdto:   pick(block, 'prfpdto'),
-      fcltynm:   pick(block, 'fcltynm'),
-      area:      pick(block, 'area'),
-      genrenm:   pick(block, 'genrenm'),
-      poster:    pick(block, 'poster') || undefined,
-      prfstate:  pick(block, 'prfstate'),
-      openrun:   pick(block, 'openrun') || undefined,
+    const response = await fetch(url.toString(), {
+      headers: { Accept: 'application/xml' }
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    return await response.text();
+    
+  } catch (error) {
+    // console.error(`[KOPIS] 청크 조회 실패 (${stdate}~${eddate}):`, error);
+    return null;
   }
+}
+
+/**
+ * 🆕 로컬에서 XML 파싱
+ * 여러 XML 청크를 받아서 이벤트 배열로 변환
+ */
+export function parseXMLChunksLocally(xmlChunks: string[]): any[] {
+  const events: any[] = [];
+  const seenIds = new Set<string>();
+  
+  console.log(`[PARSE] 로컬 파싱 시작: ${xmlChunks.length}개 청크`);
+  
+  for (const xml of xmlChunks) {
+    const chunkEvents = parseKopisXML(xml);
+    
+    for (const event of chunkEvents) {
+      if (!seenIds.has(event.mt20id)) {
+        seenIds.add(event.mt20id);
+        events.push(event);
+      }
+    }
+  }
+  
+  console.log(`[PARSE] 로컬 파싱 완료: ${events.length}개 이벤트 (중복 제거 후)`);
   return events;
 }
 
-function parseDetailXml(xml: string): KopisRawDetail | null {
-  const block = xml.match(/<db>[\s\S]*?<\/db>/)?.[0];
-  if (!block) return null;
-  return {
-    mt20id:      pick(block, 'mt20id'),
-    prfnm:       pick(block, 'prfnm'),
-    prfpdfrom:   pick(block, 'prfpdfrom'),
-    prfpdto:     pick(block, 'prfpdto'),
-    fcltynm:     pick(block, 'fcltynm'),
-    area:        pick(block, 'area') || '',
-    genrenm:     pick(block, 'genrenm'),
-    poster:      pick(block, 'poster') || undefined,
-    prfstate:    pick(block, 'prfstate'),
-    prfcast:     pick(block, 'prfcast') || undefined,
-    prfcrew:     pick(block, 'prfcrew') || undefined,
-    entrpsnmP:   pick(block, 'entrpsnmP') || undefined,
-    pcseguidance: pick(block, 'pcseguidance') || undefined,
-    dtguidance:  pick(block, 'dtguidance') || undefined,
-    sty:         pick(block, 'sty') || undefined,
-  };
+/**
+ * KOPIS XML 파싱
+ */
+function parseKopisXML(xml: string): any[] {
+  const events: any[] = [];
+  
+  // <db> 태그로 각 공연 추출
+  const dbMatches = xml.matchAll(/<db>([\s\S]*?)<\/db>/g);
+  
+  for (const match of dbMatches) {
+    const dbContent = match[1];
+    
+    // 전체 데이터 파싱
+    const event = {
+      mt20id: extractTag(dbContent, 'mt20id'),
+      prfnm: extractTag(dbContent, 'prfnm'),
+      prfpdfrom: extractTag(dbContent, 'prfpdfrom'),
+      prfpdto: extractTag(dbContent, 'prfpdto'),
+      fcltynm: extractTag(dbContent, 'fcltynm'),
+      poster: extractTag(dbContent, 'poster'),
+      area: extractTag(dbContent, 'area'),
+      genrenm: extractTag(dbContent, 'genrenm'),
+      prfstate: extractTag(dbContent, 'prfstate'),
+      openrun: extractTag(dbContent, 'openrun'),
+      prfcast: extractTag(dbContent, 'prfcast'),
+      prfcrew: extractTag(dbContent, 'prfcrew'),
+      prfruntime: extractTag(dbContent, 'prfruntime'),
+      prfage: extractTag(dbContent, 'prfage'),
+      entrpsnm: extractTag(dbContent, 'entrpsnm'),
+      pcseguidance: extractTag(dbContent, 'pcseguidance'),
+      sty: extractTag(dbContent, 'sty'),
+      updatedate: extractTag(dbContent, 'updatedate')
+    };
+    
+    if (event.mt20id && event.prfnm) {
+      events.push(event);
+    }
+  }
+  
+  return events;
 }
 
-function pick(block: string, tag: string): string {
-  const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
-  if (!m) return '';
-  return m[1].replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, '$1').trim();
+/**
+ * 🆕 상세 정보 일괄 조회 (병렬)
+ */
+export async function fetchDetailsInBatch(
+  mt20ids: string[], 
+  batchSize: number = 20,  // 🆕 10 → 20으로 증가
+  artistName?: string      // 🆕 로그용
+): Promise<any[]> {
+  const details: any[] = [];
+  const startTime = Date.now();
+  
+  // CULTURE_ ID 필터링 (KOPIS API에서 조회 불가)
+  const validIds = mt20ids.filter(id => !id.startsWith('CULTURE_'));
+  
+  const prefix = artistName ? `[${artistName}]` : '[KOPIS]';
+  console.log(`${prefix} 상세 조회 시작: ${validIds.length}개 (배치 크기: ${batchSize})`);
+  
+  for (let i = 0; i < validIds.length; i += batchSize) {
+    const batch = validIds.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(id => fetchKopisDetail(id));
+    const batchResults = await Promise.all(batchPromises);
+    
+    for (const detail of batchResults) {
+      if (detail) {
+        details.push(detail);
+      }
+    }
+    
+    const progress = Math.min(i + batchSize, mt20ids.length);
+    const percent = Math.round((progress / mt20ids.length) * 100);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const remaining = mt20ids.length - progress;
+    const estimatedTotal = (remaining / progress) * (Date.now() - startTime);
+    const eta = remaining > 0 ? Math.round(estimatedTotal / 1000) : 0;
+    
+    console.log(`${prefix} 상세 조회: ${progress}/${mt20ids.length} (${percent}%) | ${elapsed}초 경과 | 남은시간: ~${eta}초`);
+  }
+  
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`${prefix} 상세 조회 완료: ${details.length}개 | 총 ${totalTime}초`);
+  return details;
 }
 
-// ─── HTTP 유틸 ────────────────────────────────────────────────────
+/**
+ * XML에서 태그 값 추출
+ */
+function extractTag(xml: string, tagName: string): string {
+  const regex = new RegExp(`<${tagName}>(.*?)<\/${tagName}>`, 's');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : '';
+}
 
-async function fetchXml(url: string, tag: string): Promise<string> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_MS);
+/**
+ * 공연 상세 정보 조회
+ */
+export async function fetchKopisDetail(mt20id: string): Promise<any> {
+  const url = `${MYGONG_API_KOPIS_DETAIL}/${mt20id}`;
+  
   try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/xml,text/xml,*/*' },
-      signal: ctrl.signal,
+    const response = await fetch(url, {
+      headers: { Accept: 'application/xml' }
     });
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        throw new Error(`mygong-api 인증 실패 (HTTP ${res.status})`);
-      }
-      if (res.status === 404) {
-        throw new Error(`mygong-api 경로 오류 (HTTP 404)`);
-      }
-      throw new Error(`HTTP ${res.status}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-    return await res.text();
-  } catch (e: any) {
-    if (e?.name === 'AbortError') throw new Error(`${tag} 타임아웃 (${API_TIMEOUT_MS/1000}초)`);
-    throw e;
-  } finally {
-    clearTimeout(timer);
+    
+    const xml = await response.text();
+    return parseDetailXML(xml);
+    
+  } catch (error) {
+    // console.error(`[KOPIS] 상세 조회 실패 (${mt20id}):`, error);
+    return null;
   }
 }
 
-async function runThrottled<T>(
-  tasks: Array<() => Promise<T>>, limit: number,
-): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
-  let next = 0;
-  async function worker() {
-    while (true) {
-      const i = next++;
-      if (i >= tasks.length) return;
-      try { results[i] = await tasks[i](); }
-      catch (e) { console.warn('[kopis] task failed:', (e as any)?.message ?? e); results[i] = undefined as any; }
-    }
-  }
-  const workers = Array(Math.min(limit, tasks.length)).fill(0).map(() => worker());
-  await Promise.all(workers);
-  return results;
-}
-
-function includesName(haystack: string, name: string): boolean {
-  if (!haystack || !name) return false;
-  const h = haystack.replace(/\s+/g, '').toLowerCase();
-  const n = name.replace(/\s+/g, '').toLowerCase();
-  return h.includes(n);
-}
-
-// 영문으로만 저장된 아티스트를 위한 한글 alias (KOPIS는 한글 공연명이 많음)
-// 키는 반드시 소문자
-const KPOP_ALIAS_MAP: Record<string, string[]> = {
-  'aespa': ['에스파'],
-  'bts': ['방탄소년단', '비티에스'],
-  'blackpink': ['블랙핑크'],
-  'twice': ['트와이스'],
-  'newjeans': ['뉴진스'],
-  'ive': ['아이브'],
-  'itzy': ['있지'],
-  'le sserafim': ['르세라핌'],
-  'nmixx': ['엔믹스'],
-  'stray kids': ['스트레이키즈'],
-  'seventeen': ['세븐틴'],
-  'nct': ['엔시티'],
-  'nct dream': ['엔시티 드림', '엔시티드림'],
-  'nct 127': ['엔시티127', '엔시티 127'],
-  'exo': ['엑소'],
-  'red velvet': ['레드벨벳'],
-  'mamamoo': ['마마무'],
-  'tomorrow x together': ['투모로우바이투게더', '투바투'],
-  'txt': ['투모로우바이투게더', '투바투'],
-  'ateez': ['에이티즈'],
-  'enhypen': ['엔하이픈'],
-  'iu': ['아이유'],
-  'bigbang': ['빅뱅'],
-  '2ne1': ['투애니원'],
-  'shinee': ['샤이니'],
-  'super junior': ['슈퍼주니어'],
-  'girls generation': ['소녀시대'],
-  'snsd': ['소녀시대'],
-  'day6': ['데이식스'],
-  'got7': ['갓세븐'],
-  'monsta x': ['몬스타엑스'],
-  'iz*one': ['아이즈원'],
-  'izone': ['아이즈원'],
-  'gfriend': ['여자친구'],
-  'oh my girl': ['오마이걸'],
-  'apink': ['에이핑크'],
-  '(g)i-dle': ['여자아이들', '지아이들'],
-  'gidle': ['여자아이들'],
-  'kiss of life': ['키스오브라이프'],
-  'riize': ['라이즈'],
-  'zerobaseone': ['제로베이스원', '제베원'],
-  'zb1': ['제로베이스원'],
-  'illit': ['아일릿'],
-  'babymonster': ['베이비몬스터'],
-  'kep1er': ['케플러'],
-  'fromis_9': ['프로미스나인'],
-  'loona': ['이달의 소녀'],
-  'dreamcatcher': ['드림캐쳐'],
-};
-
-// ─── Raw → 앱 Event 변환 ───────────────────────────────────────────
-
-export function kopisToEventInput(
-  k: KopisRawEvent,
-): Omit<Event, 'id' | 'artistId' | 'createdAt' | 'updatedAt' | 'notifyEnabled'> {
-  // 공연명도 넘겨서 팬미팅/페스티벌 자동 분류
-  const cat = genreNameToCategory(k.genrenm, k.prfnm);
-  const date = toIsoDate(k.prfpdfrom);
+/**
+ * 상세 정보 XML 파싱
+ */
+function parseDetailXML(xml: string): any {
   return {
-    externalId: `kopis:${k.mt20id}`,
-    title: k.prfnm,
-    category: cat,
-    catIcon: iconForCategory(cat),
-    date,
-    venue: k.fcltynm,
-    city: k.area,
-    posterUrl: k.poster,
-    ticketUrl: `http://www.kopis.or.kr/por/db/pblprfr/pblprfrView.do?menuId=MNU_00020&mt20Id=${k.mt20id}`,
-    source: 'kopis',
+    mt20id: extractTag(xml, 'mt20id'),
+    prfnm: extractTag(xml, 'prfnm'),
+    prfpdfrom: extractTag(xml, 'prfpdfrom'),
+    prfpdto: extractTag(xml, 'prfpdto'),
+    fcltynm: extractTag(xml, 'fcltynm'),
+    prfcast: extractTag(xml, 'prfcast'),
+    prfcrew: extractTag(xml, 'prfcrew'),
+    prfruntime: extractTag(xml, 'prfruntime'),
+    prfage: extractTag(xml, 'prfage'),
+    entrpsnm: extractTag(xml, 'entrpsnm'),
+    pcseguidance: extractTag(xml, 'pcseguidance'),
+    poster: extractTag(xml, 'poster'),
+    sty: extractTag(xml, 'sty'),
+    genrenm: extractTag(xml, 'genrenm'),
+    prfstate: extractTag(xml, 'prfstate'),
+    openrun: extractTag(xml, 'openrun'),
+    area: extractTag(xml, 'area'),
+    dtguidance: extractTag(xml, 'dtguidance'),  // 🆕 공연시간
+    relates: extractTag(xml, 'relates')          // 🆕 관련링크
   };
 }

@@ -1,22 +1,27 @@
 /**
  * 앱 시작·수동 동기화 매니저.
  *
- * v6.0 — 병렬 처리 + 한방 조회 최적화
+ * v5.0 — 병렬 처리 (8개씩 배치)
  *   - 최대 8개 아티스트 동시 동기화
- *   - 한방 XML 수집으로 속도 개선
  *   - 진행 상황 콜백 지원
+ *   - UI 업데이트 가능
+ *
+ * 동기화 모드 설계:
+ *   - 처음 팔로우:         'full'         (2010년~, ~40초)
+ *   - 아티스트 상세 당겨서:  'incremental'  (1개월 전~, ~6초)
+ *   - 홈 당겨서:           'future-only'  (오늘~, ~3초/명)
+ *   - 앱 시작 자동 sync:    'future-only'  (오늘~, ~3초/명)
  */
 
 import { getAllArtists, updateArtist } from '@/db/artists';
-import { upsertEventByExternalId, deleteEventsForArtistFromSource } from '@/db/events';
+import { upsertEventByExternalId, deleteEventsForArtistFromSource, getEventById } from '@/db/events';
 import { createNotification } from '@/db/notifications';
 import { setSyncState, getStaleArtistIds, getSyncState } from '@/db/sync-state';
 import { fetchEventsForArtist } from './parseData';
+import type { SyncMode } from './providers/kopisProvider';
 
 // 병렬 처리 배치 크기
 const PARALLEL_BATCH_SIZE = 8;
-
-export type SyncMode = 'full' | 'incremental' | 'future-only';
 
 export type SyncResult = {
   artistCount: number;
@@ -46,14 +51,14 @@ export async function syncStaleArtists(
 }
 
 /**
- * 전체 팔로잉 아티스트 강제 갱신 — 홈 "당겨서 새로고침"에서 호출.
+ * 전체 팔로잉 아티스트 강제 갱신 — 홈 \"당겨서 새로고침\"에서 호출.
  */
 export async function syncAllArtists(
   mode: SyncMode = 'future-only',
   onProgress?: SyncProgressCallback,
 ): Promise<SyncResult> {
   const artists = await getAllArtists('following');
-  return syncArtistIds(artists.map(a => a.id!), mode, onProgress);
+  return syncArtistIds(artists.map(a => a.id), mode, onProgress);
 }
 
 /**
@@ -81,7 +86,7 @@ async function syncArtistIds(
   if (ids.length === 0) return result;
 
   const all = await getAllArtists('all');
-  const map = new Map(all.map(a => [a.id!, a]));
+  const map = new Map(all.map(a => [a.id, a]));
 
   // 8개씩 배치로 나누기
   const batches: number[][] = [];
@@ -101,7 +106,7 @@ async function syncArtistIds(
     
     console.log(`[sync] Batch ${batchIndex + 1}/${batches.length}: [${batchArtists.join(', ')}]`);
     
-    // 진행 상황 업데이트 (배치 시작)
+    // 진행 상황 업데이트
     if (onProgress) {
       onProgress({
         total: ids.length,
@@ -111,40 +116,17 @@ async function syncArtistIds(
       });
     }
 
-    // 배치 내 병렬 실행 (각 완료 시마다 progress 업데이트)
-    const batchPromises = batch.map(async (id) => {
-      try {
-        await syncSingleArtist(id, map, requestedMode, result);
-        completed++;
-        
-        // 각 아티스트 완료 시 즉시 업데이트 ⭐
-        if (onProgress) {
-          const currentArtist = map.get(id)?.name || `ID:${id}`;
-          onProgress({
-            total: ids.length,
-            completed,
-            current: [currentArtist],
-            failed,
-          });
-        }
-      } catch (error) {
-        completed++;
+    // 배치 내 병렬 실행
+    const batchPromises = batch.map(id => syncSingleArtist(id, map, requestedMode, result));
+    const batchResults = await Promise.allSettled(batchPromises);
+
+    // 결과 집계
+    for (const res of batchResults) {
+      completed++;
+      if (res.status === 'rejected') {
         failed++;
-        
-        // 실패 시에도 업데이트
-        if (onProgress) {
-          onProgress({
-            total: ids.length,
-            completed,
-            current: [],
-            failed,
-          });
-        }
-        throw error;
       }
-    });
-    
-    await Promise.allSettled(batchPromises);
+    }
   }
 
   // 최종 진행 상황
@@ -181,7 +163,6 @@ async function syncSingleArtist(
     console.log(`[sync] ${artist.name} mode=${mode} firstSync=${isFirstSync}`);
 
     const events = await fetchEventsForArtist(
-      artist.id,           // ← artistId 추가!
       artist.externalId, 
       artist.name, 
       artist.tag, 
@@ -189,7 +170,7 @@ async function syncSingleArtist(
       artist.nameEn
     );
     
-    const source = 'kopis';  // KOPIS API 데이터
+    const source = 'sync-auto';
 
     // Full sync 때만 기존 데이터 삭제
     if (mode === 'full') {
@@ -197,18 +178,18 @@ async function syncSingleArtist(
     }
 
     // 이벤트 upsert
-    let newCount = 0;
     for (const ev of events) {
-      const eventId = await upsertEventByExternalId({
+      const eventId = await upsertEventByExternalId(ev.externalId, {
         ...ev,
         artistId: id,
         source,
       });
-      
+      const isNew = !(await getEventById(eventId));
+      if (isNew) result.newEventCount += 1;
+
       // D-30 이내 공연이면 알림 생성
       const ddays = daysUntil(ev.date);
       if (ddays >= 0 && ddays <= 30) {
-        newCount++;
         await createNotification({
           kind: 'new_event',
           title: `🎉 새 공연: ${ev.title}`,
@@ -219,8 +200,6 @@ async function syncSingleArtist(
         });
       }
     }
-    
-    result.newEventCount += newCount;
 
     await updateArtist(id, { lastSyncedAt: new Date().toISOString() });
     await setSyncState({
@@ -241,7 +220,7 @@ async function syncSingleArtist(
       lastFetchError: msg,
       eventsFound: 0,
     });
-    // console.error(`[sync] ❌ ${artist.name} failed:`, msg);
+    console.error(`[sync] ❌ ${artist.name} failed:`, msg);
   }
 }
 

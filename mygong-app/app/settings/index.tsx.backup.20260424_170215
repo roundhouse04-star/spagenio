@@ -10,8 +10,7 @@ import { getAllEvents } from '@/db/events';
 import { getAllTickets } from '@/db/tickets';
 import { getAllNotifications } from '@/db/notifications';
 import { resetDatabase } from '@/db/database';
-import { syncAllArtists, type SyncProgress } from '@/services/syncManager'; // ✨ 수정: type SyncProgress 추가
-import { SyncProgressOverlay } from '@/components/SyncProgressOverlay'; // ✨ 추가
+import { syncAllArtists } from '@/services/syncManager';
 import {
   createBackup,
   listBackups,
@@ -32,10 +31,6 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [backups, setBackups] = useState<BackupFile[]>([]);
   const [lastBackup, setLastBackup] = useState<LastBackupInfo>({ display: '없음' });
-  
-  // ✨ 추가: 동기화 진행 상황
-  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const refresh = useCallback(async () => {
     const [a, e, t, n, list, last] = await Promise.all([
@@ -49,11 +44,10 @@ export default function SettingsScreen() {
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
-  // ✨ 수정: 진행 상황 UI 추가
   const handleSync = async () => {
     Alert.alert(
       '전체 동기화',
-      '팔로잉 중인 아티스트 전원의 과거·미래 공연을 모두 조회해요.\n\n⏳ 아티스트 수에 따라 최대 5분 정도 걸릴 수 있어요.\n그동안 앱을 닫지 말고 기다려주세요.',
+      '팔로잉 중인 아티스트 전원의 과거·미래 공연을 모두 조회해요.\n\n⏳ 아티스트 수에 따라 1~3분 정도 걸릴 수 있어요.\n그동안 앱을 닫지 말고 기다려주세요.',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -61,27 +55,11 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               setBusy('sync');
-              setIsSyncing(true);
-              setSyncProgress({ total: 0, completed: 0, current: [], failed: 0 });
-              
-              // ✨ 진행 상황 콜백 추가
-              const r = await syncAllArtists('full', (progress) => {
-                console.log('[UI] Progress:', progress);
-                setSyncProgress(progress);
-              });
-              
+              const r = await syncAllArtists('full');
               Alert.alert('동기화 완료', `아티스트 ${r.artistCount}명 · 신규 이벤트 ${r.newEventCount}건${r.errors.length ? ` · 오류 ${r.errors.length}건` : ''}`);
               await refresh();
-              
-              // ✨ 3초 후 오버레이 닫기
-              setTimeout(() => {
-                setIsSyncing(false);
-                setSyncProgress(null);
-              }, 3000);
             } catch (e: any) {
               Alert.alert('동기화 실패', e?.message ?? String(e));
-              setIsSyncing(false);
-              setSyncProgress(null);
             } finally {
               setBusy(null);
             }
@@ -299,12 +277,6 @@ export default function SettingsScreen() {
           중요한 데이터는 가끔 외부로 공유해서 보관하세요.
         </Text>
       </ScrollView>
-
-      {/* ✨ 추가: 진행 상황 오버레이 */}
-      <SyncProgressOverlay 
-        progress={syncProgress}
-        visible={isSyncing}
-      />
     </SafeAreaView>
   );
 }

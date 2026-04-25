@@ -1,0 +1,242 @@
+// ============================================================
+// events.ts - rawData 최적화 버전
+// 한방에 데이터 가져와서 로컬 파싱 후 저장
+// ============================================================
+
+import { db } from './database';
+
+export interface Event {
+  id?: number;
+  mt20id: string;
+  prfnm: string;
+  prfpdfrom: string;
+  prfpdto: string;
+  artistId: number;
+  rawData: string;  // 🆕 JSON 전체 데이터
+  createdAt?: string;
+  updatedAt: string;
+}
+
+/**
+ * 🆕 한방에 이벤트 저장
+ * rawData에 전체 데이터를 JSON으로 저장
+ */
+export async function bulkUpsertEvents(events: Event[]): Promise<number> {
+  let savedCount = 0;
+  
+  const stmt = await db.prepareAsync(
+    `INSERT INTO events (mt20id, prfnm, prfpdfrom, prfpdto, artistId, rawData, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(mt20id) DO UPDATE SET
+       prfnm = excluded.prfnm,
+       prfpdfrom = excluded.prfpdfrom,
+       prfpdto = excluded.prfpdto,
+       rawData = excluded.rawData,
+       updatedAt = excluded.updatedAt`
+  );
+  
+  try {
+    for (const event of events) {
+      try {
+        await stmt.executeAsync([
+          event.mt20id,
+          event.prfnm,
+          event.prfpdfrom,
+          event.prfpdto,
+          event.artistId,
+          event.rawData,
+          event.updatedAt
+        ]);
+        savedCount++;
+      } catch (error) {
+        console.error(`[DB] 이벤트 저장 실패 (${event.mt20id}):`, error);
+      }
+    }
+  } finally {
+    await stmt.finalizeAsync();
+  }
+  
+  return savedCount;
+}
+
+/**
+ * 🆕 모든 이벤트 조회 (필터 옵션)
+ */
+export async function getAllEvents(options?: {
+  upcoming?: boolean;
+  limit?: number;
+}): Promise<any[]> {
+  const { upcoming = false, limit } = options || {};
+  
+  let query = 'SELECT * FROM events';
+  const params: any[] = [];
+  
+  if (upcoming) {
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '.');
+    query += ' WHERE prfpdto >= ?';
+    params.push(today);
+  }
+  
+  query += ' ORDER BY prfpdfrom DESC';
+  
+  if (limit) {
+    query += ' LIMIT ?';
+    params.push(limit);
+  }
+  
+  const rows = await db.getAllAsync<Event>(query, params);
+  
+  return rows.map(row => {
+    try {
+      const parsed = JSON.parse(row.rawData);
+      return {
+        ...parsed,
+        id: row.id,
+        artistId: row.artistId,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      };
+    } catch (error) {
+      console.error(`[DB] rawData 파싱 실패 (${row.mt20id}):`, error);
+      return {
+        id: row.id,
+        mt20id: row.mt20id,
+        prfnm: row.prfnm,
+        prfpdfrom: row.prfpdfrom,
+        prfpdto: row.prfpdto,
+        artistId: row.artistId
+      };
+    }
+  });
+}
+
+/**
+ * 아티스트별 이벤트 조회
+ * rawData를 파싱해서 반환
+ */
+export async function getEventsByArtist(artistId: number): Promise<any[]> {
+  const rows = await db.getAllAsync<Event>(
+    `SELECT * FROM events WHERE artistId = ? ORDER BY prfpdfrom DESC`,
+    [artistId]
+  );
+  
+  return rows.map(row => {
+    try {
+      const parsed = JSON.parse(row.rawData);
+      return {
+        ...parsed,
+        id: row.id,
+        artistId: row.artistId,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      };
+    } catch (error) {
+      console.error(`[DB] rawData 파싱 실패 (${row.mt20id}):`, error);
+      return {
+        id: row.id,
+        mt20id: row.mt20id,
+        prfnm: row.prfnm,
+        prfpdfrom: row.prfpdfrom,
+        prfpdto: row.prfpdto,
+        artistId: row.artistId
+      };
+    }
+  });
+}
+
+/**
+ * 이벤트 ID로 조회
+ */
+export async function getEventById(id: number): Promise<any | null> {
+  const row = await db.getFirstAsync<Event>(
+    `SELECT * FROM events WHERE id = ?`,
+    [id]
+  );
+  
+  if (!row) return null;
+  
+  try {
+    const parsed = JSON.parse(row.rawData);
+    return {
+      ...parsed,
+      id: row.id,
+      artistId: row.artistId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    };
+  } catch (error) {
+    console.error(`[DB] rawData 파싱 실패 (${row.mt20id}):`, error);
+    return row;
+  }
+}
+
+/**
+ * mt20id로 조회
+ */
+export async function getEventByExternalId(mt20id: string): Promise<any | null> {
+  const row = await db.getFirstAsync<Event>(
+    `SELECT * FROM events WHERE mt20id = ?`,
+    [mt20id]
+  );
+  
+  if (!row) return null;
+  
+  try {
+    const parsed = JSON.parse(row.rawData);
+    return {
+      ...parsed,
+      id: row.id,
+      artistId: row.artistId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    };
+  } catch (error) {
+    return row;
+  }
+}
+
+/**
+ * 전체 이벤트 수 조회
+ */
+export async function getTotalEventsCount(): Promise<number> {
+  const result = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM events`
+  );
+  return result?.count || 0;
+}
+
+/**
+ * 아티스트별 이벤트 수 조회
+ */
+export async function getEventsCountByArtist(artistId: number): Promise<number> {
+  const result = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM events WHERE artistId = ?`,
+    [artistId]
+  );
+  return result?.count || 0;
+}
+
+/**
+ * events 테이블 생성
+ */
+export async function createEventsTable(): Promise<void> {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mt20id TEXT UNIQUE NOT NULL,
+      prfnm TEXT NOT NULL,
+      prfpdfrom TEXT,
+      prfpdto TEXT,
+      artistId INTEGER NOT NULL,
+      rawData TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (artistId) REFERENCES artists(id) ON DELETE CASCADE
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_events_artist ON events(artistId);
+    CREATE INDEX IF NOT EXISTS idx_events_dates ON events(prfpdfrom, prfpdto);
+    CREATE INDEX IF NOT EXISTS idx_events_name ON events(prfnm);
+    CREATE INDEX IF NOT EXISTS idx_events_mt20id ON events(mt20id);
+  `);
+}

@@ -10,6 +10,7 @@ import { KeyboardAwareScroll } from '@/components/KeyboardAwareScroll';
 import { getEventById, updateEvent, deleteEvent, toggleWishlist } from '@/db/events';
 import { getAllArtists, getArtistById } from '@/db/artists';
 import { iconForCategory, CATEGORIES } from '@/db/schema';
+import { getPosterUri } from '@/utils/imageUtils';
 import type { Event, Artist } from '@/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -63,7 +64,7 @@ export default function EventDetail() {
   const dday = daysUntil(ev.date);
   const isPast = dday < 0;
   const label = dday === 0 ? 'D-DAY' : dday > 0 ? `D-${dday}` : `D+${-dday}`;
-  const posterUri = secureUrl(ev.posterUrl) || secureUrl(eventArtist?.avatarUrl);
+  const posterUri = getPosterUri(ev.posterUrl) || secureUrl(eventArtist?.avatarUrl);
   const hasPoster = !!posterUri;
   const isFallback = !ev.posterUrl && !!posterUri;
 
@@ -357,4 +358,27 @@ const styles = StyleSheet.create({
   },
   deleteBtn: { marginTop: Spacing.xl, padding: Spacing.md, alignItems: 'center',
                borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.heart, borderRadius: 6 },
+  naverBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: Spacing.md,
+    backgroundColor: Colors.cardBg,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  naverBtnIcon: {
+    fontSize: 24,
+  },
+  naverBtnTitle: {
+    fontSize: FontSizes.body,
+    fontFamily: Fonts.semibold,
+    color: Colors.text,
+  },
+  naverBtnSub: {
+    fontSize: FontSizes.caption,
+    color: Colors.textSub,
+    marginTop: 2,
+  },
 });

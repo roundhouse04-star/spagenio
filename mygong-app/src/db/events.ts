@@ -37,9 +37,16 @@ export type EventFilter = {
   upcoming?: boolean;
   from?: string;   // YYYY-MM-DD
   to?: string;
-  wishlisted?: boolean;   // v2
+  wishlisted?: boolean;
 };
 
+// ─────────────────────────────────────────────────────────────
+// 📖 READ 함수들
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 모든 이벤트 조회 (필터 옵션)
+ */
 export async function getAllEvents(filter: EventFilter = {}): Promise<Event[]> {
   const db = await getDB();
   const where: string[] = [];
@@ -59,168 +66,200 @@ export async function getAllEvents(filter: EventFilter = {}): Promise<Event[]> {
   return rows.map(rowToEvent);
 }
 
+/**
+ * ID로 이벤트 단건 조회
+ */
 export async function getEventById(id: number): Promise<Event | null> {
   const db = await getDB();
   const row = await db.getFirstAsync<any>('SELECT * FROM events WHERE id = ?', [id]);
   return row ? rowToEvent(row) : null;
 }
 
-export async function getUpcomingEventsForArtist(artistId: number, limit = 5): Promise<Event[]> {
+/**
+ * external_id로 이벤트 조회
+ */
+export async function getEventByExternalId(externalId: string): Promise<Event | null> {
+  const db = await getDB();
+  const row = await db.getFirstAsync<any>(
+    'SELECT * FROM events WHERE external_id = ?',
+    [externalId]
+  );
+  return row ? rowToEvent(row) : null;
+}
+
+/**
+ * 위시리스트 이벤트 조회
+ * @param limit 최대 개수 (기본 제한 없음)
+ */
+export async function getWishlistedEvents(limit?: number): Promise<Event[]> {
+  const db = await getDB();
+  const sql = `SELECT * FROM events 
+               WHERE is_wishlisted = 1 
+               ORDER BY date ASC${limit ? ` LIMIT ${limit}` : ''}`;
+  const rows = await db.getAllAsync<any>(sql);
+  return rows.map(rowToEvent);
+}
+
+/**
+ * 아티스트의 다가오는 공연 조회
+ */
+export async function getUpcomingEventsForArtist(artistId: number): Promise<Event[]> {
   const db = await getDB();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM events WHERE artist_id = ? AND date >= date("now") ORDER BY date ASC LIMIT ?`,
-    [artistId, limit]
+    `SELECT * FROM events 
+     WHERE artist_id = ? AND date >= date('now')
+     ORDER BY date ASC`,
+    [artistId]
   );
   return rows.map(rowToEvent);
 }
 
 /**
- * 특정 아티스트의 "지난 공연" 목록 (오늘 이전).
- * Wikipedia/KOPIS에서 수집한 과거 공연 이력 및 앨범 발매 기록 등.
- * 최신순(DESC)으로 정렬.
+ * 아티스트의 지난 공연 조회
  */
-export async function getPastEventsForArtist(artistId: number, limit = 50): Promise<Event[]> {
+export async function getPastEventsForArtist(artistId: number): Promise<Event[]> {
   const db = await getDB();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM events WHERE artist_id = ? AND date < date("now") ORDER BY date DESC LIMIT ?`,
-    [artistId, limit]
+    `SELECT * FROM events 
+     WHERE artist_id = ? AND date < date('now')
+     ORDER BY date DESC`,
+    [artistId]
   );
   return rows.map(rowToEvent);
 }
 
-export async function createEvent(data: Partial<Event>): Promise<number> {
+// ─────────────────────────────────────────────────────────────
+// ✏️ WRITE 함수들
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 이벤트 생성
+ */
+export async function createEvent(event: Partial<Event>): Promise<number> {
   const db = await getDB();
-  const now = new Date().toISOString();
-  const weekday = data.weekday ?? weekdayFor(data.date);
   const result = await db.runAsync(
-    `INSERT INTO events
-      (artist_id, external_id, title, category, cat_icon, date, weekday, time, venue, city,
-       price, ticket_url, poster_url, notify_enabled, is_wishlisted, ticket_open_at, notes, source, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO events (
+      artist_id, external_id, title, category, cat_icon,
+      date, weekday, time, venue, city, price,
+      ticket_url, poster_url, notify_enabled, is_wishlisted,
+      ticket_open_at, notes, source, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
     [
-      data.artistId ?? null,
-      data.externalId ?? null,
-      data.title ?? '',
-      data.category ?? '콘서트',
-      data.catIcon ?? null,
-      data.date ?? null,
-      weekday,
-      data.time ?? null,
-      data.venue ?? null,
-      data.city ?? null,
-      data.price ?? null,
-      data.ticketUrl ?? null,
-      data.posterUrl ?? null,
-      data.notifyEnabled === false ? 0 : 1,
-      data.isWishlisted ? 1 : 0,
-      data.ticketOpenAt ?? null,
-      data.notes ?? null,
-      data.source ?? 'manual',
-      now, now,
+      event.artistId ?? null,
+      event.externalId ?? null,
+      event.title ?? '',
+      event.category ?? '',
+      event.catIcon ?? null,
+      event.date ?? '',
+      event.weekday ?? null,
+      event.time ?? null,
+      event.venue ?? null,
+      event.city ?? null,
+      event.price ?? null,
+      event.ticketUrl ?? null,
+      event.posterUrl ?? null,
+      event.notifyEnabled ? 1 : 0,
+      event.isWishlisted ? 1 : 0,
+      event.ticketOpenAt ?? null,
+      event.notes ?? null,
+      event.source ?? null,
     ]
   );
   return result.lastInsertRowId;
 }
 
-export async function upsertEventByExternalId(
-  externalId: string, artistId: number | null, data: Partial<Event>
-): Promise<number> {
+/**
+ * 이벤트 수정
+ */
+export async function updateEvent(id: number, updates: Partial<Event>): Promise<void> {
   const db = await getDB();
-  const row = await db.getFirstAsync<any>(
-    `SELECT id FROM events WHERE external_id = ? AND (artist_id IS ? OR artist_id = ?)`,
-    [externalId, artistId, artistId]
-  );
-  if (row) {
-    await updateEvent(row.id, data);
-    return row.id;
-  }
-  return createEvent({ ...data, externalId, artistId: artistId ?? undefined });
-}
-
-export async function updateEvent(id: number, data: Partial<Event>): Promise<void> {
-  const db = await getDB();
-  const now = new Date().toISOString();
   const fields: string[] = [];
   const values: any[] = [];
-  const map: Record<string, string> = {
-    artistId: 'artist_id', externalId: 'external_id', title: 'title',
-    category: 'category', catIcon: 'cat_icon', date: 'date', weekday: 'weekday',
-    time: 'time', venue: 'venue', city: 'city', price: 'price',
-    ticketUrl: 'ticket_url', posterUrl: 'poster_url', notes: 'notes', source: 'source',
-    ticketOpenAt: 'ticket_open_at',
-  };
-  for (const [k, col] of Object.entries(map)) {
-    if (k in data) { fields.push(`${col} = ?`); values.push((data as any)[k] ?? null); }
-  }
-  if ('notifyEnabled' in data) { fields.push('notify_enabled = ?'); values.push(data.notifyEnabled ? 1 : 0); }
-  if ('isWishlisted' in data)  { fields.push('is_wishlisted = ?');  values.push(data.isWishlisted  ? 1 : 0); }
+
+  if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
+  if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category); }
+  if (updates.catIcon !== undefined) { fields.push('cat_icon = ?'); values.push(updates.catIcon); }
+  if (updates.date !== undefined) { fields.push('date = ?'); values.push(updates.date); }
+  if (updates.weekday !== undefined) { fields.push('weekday = ?'); values.push(updates.weekday); }
+  if (updates.time !== undefined) { fields.push('time = ?'); values.push(updates.time); }
+  if (updates.venue !== undefined) { fields.push('venue = ?'); values.push(updates.venue); }
+  if (updates.city !== undefined) { fields.push('city = ?'); values.push(updates.city); }
+  if (updates.price !== undefined) { fields.push('price = ?'); values.push(updates.price); }
+  if (updates.ticketUrl !== undefined) { fields.push('ticket_url = ?'); values.push(updates.ticketUrl); }
+  if (updates.posterUrl !== undefined) { fields.push('poster_url = ?'); values.push(updates.posterUrl); }
+  if (updates.notifyEnabled !== undefined) { fields.push('notify_enabled = ?'); values.push(updates.notifyEnabled ? 1 : 0); }
+  if (updates.isWishlisted !== undefined) { fields.push('is_wishlisted = ?'); values.push(updates.isWishlisted ? 1 : 0); }
+  if (updates.ticketOpenAt !== undefined) { fields.push('ticket_open_at = ?'); values.push(updates.ticketOpenAt); }
+  if (updates.notes !== undefined) { fields.push('notes = ?'); values.push(updates.notes); }
+
   if (fields.length === 0) return;
-  fields.push('updated_at = ?');
-  values.push(now, id);
-  await db.runAsync(`UPDATE events SET ${fields.join(', ')} WHERE id = ?`, values);
+
+  fields.push('updated_at = datetime("now")');
+  values.push(id);
+
+  await db.runAsync(
+    `UPDATE events SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  );
 }
 
+/**
+ * 이벤트 삭제
+ */
 export async function deleteEvent(id: number): Promise<void> {
   const db = await getDB();
   await db.runAsync('DELETE FROM events WHERE id = ?', [id]);
 }
 
+/**
+ * 특정 아티스트 + 소스의 이벤트 전체 삭제
+ * (동기화 시 오래된 데이터 정리용)
+ */
 export async function deleteEventsForArtistFromSource(
-  artistId: number, source: string
-): Promise<number> {
+  artistId: number,
+  source: string
+): Promise<void> {
   const db = await getDB();
-  const result = await db.runAsync(
-    `DELETE FROM events WHERE artist_id = ? AND source = ?`, [artistId, source]
+  await db.runAsync(
+    'DELETE FROM events WHERE artist_id = ? AND source = ?',
+    [artistId, source]
   );
-  return result.changes ?? 0;
 }
 
-// ────────── v2: 위시리스트 & 티켓오픈 ──────────
-
-/** 위시리스트 이벤트 조회 (다가오는 것 우선) */
-export async function getWishlistedEvents(limit = 20): Promise<Event[]> {
-  const db = await getDB();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM events
-     WHERE is_wishlisted = 1
-     ORDER BY
-       CASE WHEN date >= date("now") THEN 0 ELSE 1 END,
-       date ASC
-     LIMIT ?`,
-    [limit]
-  );
-  return rows.map(rowToEvent);
-}
-
-/** 위시리스트 토글. 바뀐 값(true/false) 리턴 */
+/**
+ * 위시리스트 토글
+ */
 export async function toggleWishlist(id: number): Promise<boolean> {
   const db = await getDB();
-  const row = await db.getFirstAsync<{ is_wishlisted: number }>(
-    `SELECT is_wishlisted FROM events WHERE id = ?`, [id]
-  );
-  const next = row?.is_wishlisted ? 0 : 1;
+  const event = await getEventById(id);
+  if (!event) return false;
+
+  const newValue = !event.isWishlisted;
   await db.runAsync(
-    `UPDATE events SET is_wishlisted = ?, updated_at = ? WHERE id = ?`,
-    [next, new Date().toISOString(), id]
+    'UPDATE events SET is_wishlisted = ?, updated_at = datetime("now") WHERE id = ?',
+    [newValue ? 1 : 0, id]
   );
-  return !!next;
+  return newValue;
 }
 
-/** 다가오는 티켓 오픈 이벤트 (알림 스케줄링용) */
-export async function getUpcomingTicketOpens(): Promise<Event[]> {
+/**
+ * external_id 기준 upsert
+ * (KOPIS 같은 외부 API 데이터 동기화 시 사용)
+ */
+export async function upsertEventByExternalId(event: Partial<Event>): Promise<number> {
+  if (!event.externalId) {
+    throw new Error('externalId is required for upsert');
+  }
+
   const db = await getDB();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM events
-     WHERE ticket_open_at IS NOT NULL
-       AND ticket_open_at >= datetime("now")
-     ORDER BY ticket_open_at ASC`
-  );
-  return rows.map(rowToEvent);
-}
+  const existing = await getEventByExternalId(event.externalId);
 
-function weekdayFor(iso?: string): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  return ['일','월','화','수','목','금','토'][d.getDay()];
+  if (existing) {
+    // 업데이트
+    await updateEvent(existing.id!, event);
+    return existing.id!;
+  } else {
+    // 생성
+    return await createEvent(event);
+  }
 }
