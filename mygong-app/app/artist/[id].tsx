@@ -1,10 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, RefreshControl,
-  Linking,
+  Linking, Image, FlatList, Modal, TextInput,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 import { Colors, Fonts, FontSizes, Spacing, Radius } from '@/theme/theme';
 import { Avatar, EventRow, TicketRow, Empty, Divider, PrimaryButton, SecondaryButton } from '@/components/UI';
@@ -13,6 +15,7 @@ import { getArtistById, toggleFollowing, updateArtist, deleteArtist } from '@/db
 import { getUpcomingEventsForArtist, getPastEventsForArtist } from '@/db/events';
 import { getTicketsByArtist } from '@/db/tickets';
 import { getSyncState } from '@/db/sync-state';
+import { getPhotosByArtist, createPhoto, updatePhoto, deletePhoto, type Photo } from '@/db/photos';
 import { syncOneArtist } from '@/services/syncManager';
 import { parseArtistBio } from '@/services/artistInfoParser';
 import type { Artist, Event, Ticket, ArtistSyncState } from '@/types';
@@ -26,19 +29,25 @@ export default function ArtistDetail() {
   const [events, setEvents] = useState<Event[]>([]);
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [syncState, setSyncStateObj] = useState<ArtistSyncState | null>(null);
-  const [tab, setTab] = useState<'upcoming' | 'attended' | 'history' | 'info'>('upcoming');
+  const [tab, setTab] = useState<'upcoming' | 'attended' | 'history' | 'photos' | 'info'>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
+  
+  // 사진 상세보기 모달
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [editingCaption, setEditingCaption] = useState('');
 
   const load = useCallback(async () => {
-    const [a, e, past, t, s] = await Promise.all([
+    const [a, e, past, t, p, s] = await Promise.all([
       getArtistById(artistId),
       getUpcomingEventsForArtist(artistId, 20),
       getPastEventsForArtist(artistId, 50),
       getTicketsByArtist(artistId),
+      getPhotosByArtist(artistId),
       getSyncState(artistId),
     ]);
-    setArtist(a); setEvents(e); setPastEvents(past); setTickets(t); setSyncStateObj(s);
+    setArtist(a); setEvents(e); setPastEvents(past); setTickets(t); setPhotos(p); setSyncStateObj(s);
   }, [artistId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -67,7 +76,7 @@ export default function ArtistDetail() {
   const toggleNotify = async () => { await updateArtist(artistId, { notifyEnabled: !artist.notifyEnabled }); await load(); };
 
   const onDelete = () => {
-    Alert.alert('아티스트 삭제', `"${artist.name}"의 관련 공연·티켓·알림도 모두 삭제됩니다.`, [
+    Alert.alert('아티스트 삭제', `"${artist.name}"의 관련 공연·티켓·알림·사진도 모두 삭제됩니다.`, [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: async () => { await deleteArtist(artistId); router.back(); } },
     ]);
@@ -78,6 +87,125 @@ export default function ArtistDetail() {
     if (!pageId) return;
     const url = `https://ko.wikipedia.org/?curid=${pageId}`;
     Linking.openURL(url).catch(e => Alert.alert('링크를 열 수 없어요', e?.message ?? ''));
+  };
+
+  // 사진 추가
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '사진첩 접근 권한이 필요해요');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await savePhoto(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '카메라 접근 권한이 필요해요');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await savePhoto(result.assets[0].uri);
+    }
+  };
+
+  const savePhoto = async (uri: string) => {
+    try {
+      // 파일 저장
+      const filename = `${Date.now()}.jpg`;
+      const directory = `${FileSystem.documentDirectory}artist-photos/`;
+      await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+      const newPath = `${directory}${filename}`;
+      await FileSystem.copyAsync({ from: uri, to: newPath });
+
+      // DB에 저장 (파일명만)
+      await createPhoto({
+        artistId,
+        photoUri: filename,
+        takenAt: new Date().toISOString(),
+      });
+
+      await load();
+      Alert.alert('✅ 사진 추가 완료!');
+    } catch (e: any) {
+      Alert.alert('사진 저장 실패', e?.message ?? String(e));
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      '사진 추가',
+      '공연 사진을 추가하세요',
+      [
+        { text: '📷 카메라', onPress: takePhoto },
+        { text: '🖼️ 갤러리', onPress: pickImage },
+        { text: '취소', style: 'cancel' },
+      ]
+    );
+  };
+
+  const openPhotoDetail = (photo: Photo) => {
+    setSelectedPhoto(photo);
+    setEditingCaption(photo.caption || '');
+  };
+
+  const closePhotoDetail = () => {
+    setSelectedPhoto(null);
+    setEditingCaption('');
+  };
+
+  const saveCaption = async () => {
+    if (!selectedPhoto) return;
+    await updatePhoto(selectedPhoto.id, { caption: editingCaption });
+    await load();
+    closePhotoDetail();
+  };
+
+  const deleteSelectedPhoto = async () => {
+    if (!selectedPhoto) return;
+    Alert.alert(
+      '사진 삭제',
+      '이 사진을 삭제할까요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            // 파일 삭제
+            const photoPath = `${FileSystem.documentDirectory}artist-photos/${selectedPhoto.photoUri}`;
+            try {
+              await FileSystem.deleteAsync(photoPath, { idempotent: true });
+            } catch (e) {
+              console.warn('[photo] file delete failed:', e);
+            }
+            // DB 삭제
+            await deletePhoto(selectedPhoto.id);
+            await load();
+            closePhotoDetail();
+          },
+        },
+      ]
+    );
+  };
+
+  const getPhotoFullUri = (photoUri: string) => {
+    return `${FileSystem.documentDirectory}artist-photos/${photoUri}`;
   };
 
   return (
@@ -100,7 +228,7 @@ export default function ArtistDetail() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <Stat n={events.length} label="공연" />
               <Stat n={tickets.length} label="관람" />
-              <Stat n={syncState?.eventsFound ?? 0} label="동기화" />
+              <Stat n={photos.length} label="사진" />
             </View>
           </View>
         </View>
@@ -131,10 +259,11 @@ export default function ArtistDetail() {
             { k: 'upcoming', label: `다가오는 ${events.length}` },
             { k: 'attended', label: `다녀온 ${tickets.length}` },
             { k: 'history',  label: `지난공연 ${pastEvents.length}` },
+            { k: 'photos',   label: `사진첩 ${photos.length}` },
             { k: 'info',     label: '정보' },
           ].map(t => (
             <Pressable key={t.k} onPress={() => setTab(t.k as any)} style={[styles.tab, tab === t.k && styles.tabActive]}>
-              <Text style={{ fontFamily: tab === t.k ? Fonts.bold : Fonts.medium, color: tab === t.k ? Colors.text : Colors.textSub, fontSize: FontSizes.caption }}>
+              <Text style={{ fontFamily: tab === t.k ? Fonts.bold : Fonts.medium, color: tab === t.k ? Colors.text : Colors.textSub, fontSize: FontSizes.tiny }}>
                 {t.label}
               </Text>
             </Pressable>
@@ -165,6 +294,35 @@ export default function ArtistDetail() {
               </EventGridContainer>
             </View>
           ))}
+
+        {tab === 'photos' && (
+          <View style={{ padding: Spacing.lg }}>
+            <PrimaryButton title="📸 사진 추가" onPress={showPhotoOptions} />
+            {photos.length === 0 ? (
+              <Empty icon="📷" title="사진이 없어요" subtitle="공연 중 찍은 사진을 추가해보세요!" />
+            ) : (
+              <View style={{ marginTop: Spacing.lg }}>
+                <FlatList
+                  data={photos}
+                  numColumns={3}
+                  scrollEnabled={false}
+                  keyExtractor={p => String(p.id)}
+                  renderItem={({ item }) => (
+                    <Pressable
+                      onPress={() => openPhotoDetail(item)}
+                      style={{ width: '33.33%', aspectRatio: 1, padding: 2 }}
+                    >
+                      <Image
+                        source={{ uri: getPhotoFullUri(item.photoUri) }}
+                        style={{ width: '100%', height: '100%', borderRadius: 4 }}
+                      />
+                    </Pressable>
+                  )}
+                />
+              </View>
+            )}
+          </View>
+        )}
 
         {tab === 'info' && (
           <View style={{ padding: Spacing.lg }}>
@@ -223,6 +381,47 @@ export default function ArtistDetail() {
           </View>
         )}
       </ScrollView>
+
+      {/* 사진 상세 모달 */}
+      <Modal visible={!!selectedPhoto} transparent animationType="fade">
+        <Pressable onPress={closePhotoDetail} style={styles.modalOverlay}>
+          <Pressable onPress={e => e.stopPropagation()} style={styles.photoModal}>
+            {selectedPhoto && (
+              <>
+                <Image
+                  source={{ uri: getPhotoFullUri(selectedPhoto.photoUri) }}
+                  style={{ width: '100%', aspectRatio: 1, borderRadius: Radius.md }}
+                  resizeMode="cover"
+                />
+                <View style={{ padding: Spacing.lg }}>
+                  <Text style={{ fontSize: FontSizes.caption, color: Colors.textSub, marginBottom: 8 }}>
+                    사진 설명
+                  </Text>
+                  <TextInput
+                    value={editingCaption}
+                    onChangeText={setEditingCaption}
+                    placeholder="어떤 공연이었나요?"
+                    placeholderTextColor={Colors.textFaint}
+                    multiline
+                    style={{
+                      backgroundColor: Colors.bgMuted,
+                      borderRadius: Radius.sm,
+                      padding: 12,
+                      fontSize: FontSizes.body,
+                      color: Colors.text,
+                      minHeight: 80,
+                    }}
+                  />
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: Spacing.lg }}>
+                    <SecondaryButton title="삭제" onPress={deleteSelectedPhoto} style={{ flex: 1 }} />
+                    <PrimaryButton title="저장" onPress={saveCaption} style={{ flex: 1 }} />
+                  </View>
+                </View>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -313,5 +512,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.tiny,
     color: Colors.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoModal: {
+    width: '90%',
+    backgroundColor: Colors.bg,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
   },
 });

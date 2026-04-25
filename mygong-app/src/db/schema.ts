@@ -8,9 +8,11 @@
  *   - events: is_wishlisted, ticket_open_at 추가
  *   - tickets: ratings_json, price 추가
  *   - badges 테이블 신규
+ * v3:
+ *   - photos 테이블 신규 (아티스트별 공연 사진첩)
  */
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const DB_NAME = 'mygong.db';
 
 export const CREATE_TABLES_SQL = `
@@ -131,6 +133,19 @@ CREATE TABLE IF NOT EXISTS badges (
   badge_id      TEXT PRIMARY KEY,
   unlocked_at   TEXT NOT NULL
 );
+
+/** v3: 아티스트별 공연 사진첩 */
+CREATE TABLE IF NOT EXISTS photos (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  artist_id       INTEGER NOT NULL,
+  photo_uri       TEXT NOT NULL,
+  caption         TEXT,
+  taken_at        TEXT,
+  created_at      TEXT NOT NULL,
+  FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_photos_artist ON photos(artist_id);
+CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at DESC);
 `;
 
 export const MIGRATIONS: { version: number; sql: string }[] = [
@@ -147,6 +162,22 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
         badge_id      TEXT PRIMARY KEY,
         unlocked_at   TEXT NOT NULL
       );
+    `,
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE IF NOT EXISTS photos (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        artist_id       INTEGER NOT NULL,
+        photo_uri       TEXT NOT NULL,
+        caption         TEXT,
+        taken_at        TEXT,
+        created_at      TEXT NOT NULL,
+        FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_photos_artist ON photos(artist_id);
+      CREATE INDEX IF NOT EXISTS idx_photos_created ON photos(created_at DESC);
     `,
   },
 ];
