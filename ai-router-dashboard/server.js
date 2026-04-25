@@ -2294,6 +2294,56 @@ async function lottoHistoryFn() {
 }
 
 // ============================================================
+// 로또 당첨번호 캐치업 — 서버 시작 시 + 매시간 누락분 자동 수집
+// 토요일 21:05에 서버가 다운돼있었어도 다음 시작 시 누락분 보강
+// ============================================================
+async function lottoHistoryCatchup() {
+  try {
+    const maxRow = db.prepare('SELECT MAX(drw_no) AS m FROM lotto_history').get();
+    const startFrom = (maxRow?.m || 0) + 1;
+
+    // 오늘 기준 발표됐어야 할 회차 (토요일 21시 이후만 카운트)
+    const now = new Date();
+    const kstNow = new Date(now.getTime() + 9 * 3600 * 1000); // KST 변환
+    const baseDate = new Date('2002-12-07'); // 1회차 추첨일 (토)
+    let expectedDrw = Math.floor((kstNow - baseDate) / (7 * 86400 * 1000)) + 1;
+    // 아직 이번 주 토요일 21시가 안 지났으면 -1
+    const dayUTC = kstNow.getUTCDay(), hourUTC = kstNow.getUTCHours();
+    if (dayUTC === 6 && hourUTC < 21) expectedDrw -= 1;
+    if (dayUTC === 0 && hourUTC < 21) { /* 일요일 새벽 */ }
+
+    let added = 0;
+    for (let drw = startFrom; drw <= expectedDrw; drw++) {
+      try {
+        const res = await fetch(`https://lotto.oot.kr/api/lotto/${drw}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(10000)
+        });
+        if (!res.ok) break;
+        const data = await res.json();
+        if (!data.drwtNo1) break; // 아직 추첨 전이면 종료
+        const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+        db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
+          .run(drw, JSON.stringify(winning), data.bnusNo, data.drwNoDate || '');
+        console.log(`[로또 캐치업] ${drw}회 수집: ${winning.join(', ')} + ${data.bnusNo}`);
+        added++;
+      } catch (e) {
+        console.log(`[로또 캐치업] ${drw}회 실패:`, e.message);
+        break;
+      }
+    }
+    if (added > 0) {
+      console.log(`[로또 캐치업] ${added}회차 추가됨 → 동반출현 재계산`);
+      try { recomputeCooccurrence(); } catch (e) { }
+    }
+  } catch (e) { console.log('[로또 캐치업] 오류:', e.message); }
+}
+
+// 서버 시작 5초 후 1회 + 매 1시간마다 (토요일 21시 직후를 놓치지 않도록)
+setTimeout(() => lottoHistoryCatchup(), 5000);
+setInterval(() => lottoHistoryCatchup(), 60 * 60 * 1000);
+
+// ============================================================
 // 로또 당첨번호 자동 수집 스케줄러 (토요일 KST 21:00 = UTC 12:00)
 // ============================================================
 setInterval(async () => {
@@ -2618,7 +2668,18 @@ function lottoBuildGames(count) {
   }
 
   const games = [];
-  for (let g = 0; g < count; g++) games.push(predictOne());
+  for (let g = 0; g < count; g++) {
+    let picks = null;
+    // 완전 동일한 조합 방지 (최대 10회 재시도)
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = predictOne();
+      const key = candidate.join(',');
+      const isDuplicate = games.some(g => g.join(',') === key);
+      if (!isDuplicate) { picks = candidate; break; }
+      picks = candidate; // 10회 재시도 후에도 모두 중복이면 마지막 후보 사용
+    }
+    games.push(picks);
+  }
   return games;
 }
 
