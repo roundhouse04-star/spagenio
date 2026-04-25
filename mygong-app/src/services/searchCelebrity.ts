@@ -106,21 +106,31 @@ async function searchWikipedia(q: string): Promise<SearchHit[]> {
   pages.sort((a, b) => (a.index ?? 999) - (b.index ?? 999));
 
   // 1) 매핑 + 분류
-  const mapped: { hit: WikiHit; rank: number; reason: string }[] = pages.map((p) => {
+  const mapped: { hit: WikiHit; rank: number; reason: string }[] = pages
+    // 검색어가 제목에 포함된 것만 (정확한 결과)
+    .filter(p => {
+      const title = p.title.toLowerCase();
+      const search = q.toLowerCase().replace(/\s+(가수|배우|or|선수|아이돌)/g, '').trim();
+      return title.includes(search);
+    })
+    .map((p) => {
     const extract = String(p.extract ?? '').slice(0, 400);
     const desc    = String(p.description ?? '');
     const role    = inferRole(desc, extract);
-    const text    = `${p.title} ${desc} ${extract}`;
+    
+    // EXCLUDE는 description만, 키워드는 전체 텍스트
+    const descOnly = `${p.title} ${desc}`;
+    const fullText = `${p.title} ${desc} ${extract}`;
 
     // 분류 로직 (3단계)
     let rank: number;
     let reason: string;
 
-    if (isExplicitlyNotArtist(text)) {
+    if (isExplicitlyNotArtist(descOnly)) {
       rank = -1; reason = `EXCLUDE (${desc.slice(0, 40)})`;
     } else if (role) {
       rank = 2; reason = `ARTIST (role=${role})`;
-    } else if (matchesPersonKeywords(text)) {
+    } else if (matchesPersonKeywords(fullText)) {
       rank = 1; reason = `MAYBE PERSON (${desc.slice(0, 40)})`;
     } else {
       rank = 0; reason = `UNKNOWN (${desc.slice(0, 40)})`;
@@ -187,8 +197,11 @@ function isExplicitlyNotArtist(text: string): boolean {
     /\b(album|single|soundtrack|compilation|film|movie|tv series|drama series|novel|comic|manga|webtoon|book|company|corporation|label|website|application|video game|software)\b/i,
   ];
 
-  for (const re of EXCLUDE_PATTERNS) {
-    if (re.test(text)) return true;
+  for (let i = 0; i < EXCLUDE_PATTERNS.length; i++) {
+    if (EXCLUDE_PATTERNS[i].test(text)) {
+      console.log(`[wiki-debug] EXCLUDE 패턴 ${i+1} 매칭:`, text.slice(0, 100));
+      return true;
+    }
   }
   return false;
 }

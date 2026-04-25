@@ -10,10 +10,10 @@ import { Colors, Fonts, FontSizes, Spacing, Radius } from '@/theme/theme';
 import { Divider, Empty } from '@/components/UI';
 import { searchCelebrity } from '@/services/searchCelebrity';
 import { parseSearchHitToBundle } from '@/services/parseData';
-import { upsertArtistByExternalId } from '@/db/artists';
+import { upsertArtistByExternalId, getAllArtists } from '@/db/artists';
 import { createNotification } from '@/db/notifications';
 import { syncOneArtist } from '@/services/syncManager';
-import type { SearchHit } from '@/types';
+import type { SearchHit, Artist } from '@/types';
 
 export default function SearchModal() {
   const router = useRouter();
@@ -23,8 +23,28 @@ export default function SearchModal() {
   const [error, setError] = useState<string | null>(null);
   const [registering, setRegistering] = useState<string | null>(null);
   const [lastStatus, setLastStatus] = useState<string>('');
+  const [existingArtists, setExistingArtists] = useState<Artist[]>([]);
   const debounceRef = useRef<any>(null);
   const reqSeqRef = useRef(0);
+
+  // 기존 아티스트 목록 로드
+  useEffect(() => {
+    loadArtists();
+  }, []);
+
+  async function loadArtists() {
+    try {
+      const artists = await getAllArtists('all');
+      setExistingArtists(artists);
+    } catch (e) {
+      console.warn('[search] failed to load artists:', e);
+    }
+  }
+
+  // 등록 여부 확인
+  function isRegistered(externalId: string): boolean {
+    return existingArtists.some(a => a.externalId === externalId);
+  }
 
   // 디바운스 검색 — 400ms
   useEffect(() => {
@@ -75,6 +95,9 @@ export default function SearchModal() {
         await createNotification({ ...n, artistId });
       }
       await syncOneArtist(artistId).catch(() => {});
+
+      // 목록 갱신
+      await loadArtists();
 
       Keyboard.dismiss();
       // 모달 닫고 → artist 상세로 push (stack 꼬임 방지)
@@ -153,7 +176,12 @@ export default function SearchModal() {
         keyExtractor={h => `${h.source}:${h.externalId}`}
         ItemSeparatorComponent={() => <Divider />}
         renderItem={({ item }) => (
-          <HitRow hit={item} onPress={() => registerHit(item)} loading={registering === item.externalId} />
+          <HitRow 
+            hit={item} 
+            onPress={() => registerHit(item)} 
+            loading={registering === item.externalId}
+            isRegistered={isRegistered(item.externalId)}
+          />
         )}
         ListEmptyComponent={
           !loading && !error && q.length > 0
@@ -168,10 +196,22 @@ export default function SearchModal() {
   );
 }
 
-function HitRow({ hit, onPress, loading }: { hit: SearchHit; onPress: () => void; loading: boolean }) {
+function HitRow({ hit, onPress, loading, isRegistered }: { 
+  hit: SearchHit; 
+  onPress: () => void; 
+  loading: boolean;
+  isRegistered: boolean;
+}) {
   return (
-    <Pressable onPress={onPress} disabled={loading}
-               style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
+    <Pressable 
+      onPress={isRegistered ? undefined : onPress} 
+      disabled={loading || isRegistered}
+      style={({ pressed }) => [
+        styles.row, 
+        pressed && !isRegistered && { opacity: 0.7 },
+        isRegistered && { opacity: 0.5 }
+      ]}
+    >
       <View style={styles.thumb}>
         {hit.avatarUrl
           ? <Image source={{ uri: hit.avatarUrl }} style={{ width: '100%', height: '100%' }} />
@@ -190,9 +230,15 @@ function HitRow({ hit, onPress, loading }: { hit: SearchHit; onPress: () => void
           </Text>
         )}
       </View>
-      {loading
-        ? <ActivityIndicator size="small" />
-        : <Text style={styles.addBtn}>등록</Text>}
+      {loading ? (
+        <ActivityIndicator size="small" />
+      ) : isRegistered ? (
+        <View style={styles.registeredBadge}>
+          <Text style={styles.registeredText}>✓ 등록됨</Text>
+        </View>
+      ) : (
+        <Text style={styles.addBtn}>등록</Text>
+      )}
     </Pressable>
   );
 }
@@ -220,4 +266,15 @@ const styles = StyleSheet.create({
            alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
            borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   addBtn: { color: Colors.primary, fontFamily: Fonts.semibold, fontSize: FontSizes.body },
+  registeredBadge: { 
+    backgroundColor: Colors.bgMuted, 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: Radius.sm 
+  },
+  registeredText: { 
+    fontSize: FontSizes.caption, 
+    color: Colors.textSub, 
+    fontFamily: Fonts.medium 
+  },
 });
