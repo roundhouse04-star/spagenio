@@ -15,6 +15,9 @@ import { createNotification } from '@/db/notifications';
 import { syncOneArtist } from '@/services/syncManager';
 import type { SearchHit, Artist } from '@/types';
 
+// 무료 플랜 제한
+const FREE_ARTIST_LIMIT = 10;
+
 export default function SearchModal() {
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -83,6 +86,25 @@ export default function SearchModal() {
   }
 
   const registerHit = async (hit: SearchHit) => {
+    // 무료 제한 확인 (10명)
+    if (existingArtists.length >= FREE_ARTIST_LIMIT) {
+      Alert.alert(
+        '🎭 프리미엄으로 업그레이드',
+        `무료 플랜은 최대 ${FREE_ARTIST_LIMIT}명까지 등록할 수 있어요.\n\n더 많은 아티스트를 등록하려면 프리미엄으로 업그레이드하세요!`,
+        [
+          { text: '나중에', style: 'cancel' },
+          { 
+            text: '업그레이드', 
+            onPress: () => {
+              // TODO: 실제 구매 화면으로 이동
+              Alert.alert('준비 중', '프리미엄 기능은 곧 출시될 예정이에요! 🚀');
+            }
+          },
+        ]
+      );
+      return;
+    }
+
     try {
       setRegistering(hit.externalId);
       const bundle = parseSearchHitToBundle(hit);
@@ -181,6 +203,7 @@ export default function SearchModal() {
             onPress={() => registerHit(item)} 
             loading={registering === item.externalId}
             isRegistered={isRegistered(item.externalId)}
+            showPremiumBadge={!isRegistered(item.externalId) && existingArtists.length >= FREE_ARTIST_LIMIT}
           />
         )}
         ListEmptyComponent={
@@ -196,20 +219,21 @@ export default function SearchModal() {
   );
 }
 
-function HitRow({ hit, onPress, loading, isRegistered }: { 
+function HitRow({ hit, onPress, loading, isRegistered, showPremiumBadge }: { 
   hit: SearchHit; 
   onPress: () => void; 
   loading: boolean;
   isRegistered: boolean;
+  showPremiumBadge?: boolean;
 }) {
   return (
     <Pressable 
-      onPress={isRegistered ? undefined : onPress} 
-      disabled={loading || isRegistered}
+      onPress={showPremiumBadge || isRegistered ? undefined : onPress} 
+      disabled={loading || isRegistered || showPremiumBadge}
       style={({ pressed }) => [
         styles.row, 
-        pressed && !isRegistered && { opacity: 0.7 },
-        isRegistered && { opacity: 0.5 }
+        pressed && !isRegistered && !showPremiumBadge && { opacity: 0.7 },
+        (isRegistered || showPremiumBadge) && { opacity: 0.6 }
       ]}
     >
       <View style={styles.thumb}>
@@ -235,6 +259,10 @@ function HitRow({ hit, onPress, loading, isRegistered }: {
       ) : isRegistered ? (
         <View style={styles.registeredBadge}>
           <Text style={styles.registeredText}>✓ 등록됨</Text>
+        </View>
+      ) : showPremiumBadge ? (
+        <View style={styles.premiumBadge}>
+          <Text style={styles.premiumText}>💎 프리미엄</Text>
         </View>
       ) : (
         <Text style={styles.addBtn}>등록</Text>
@@ -276,5 +304,18 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.caption, 
     color: Colors.textSub, 
     fontFamily: Fonts.medium 
+  },
+  premiumBadge: { 
+    backgroundColor: '#fff7e6', 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: '#ffd700',
+  },
+  premiumText: { 
+    fontSize: FontSizes.caption, 
+    color: '#d4a017', 
+    fontFamily: Fonts.semibold 
   },
 });
