@@ -21,10 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Fonts, FontSizes, Spacing, Radius } from '@/theme/theme';
 import { Divider } from '@/components/UI';
 
-// TODO(배포 전): 실제 URL 로 교체
-const PRIVACY_POLICY_URL   = 'https://roundhouse04.github.io/mygong/privacy.html';
-const TERMS_OF_SERVICE_URL = 'https://roundhouse04.github.io/mygong/terms.html';
-const SUPPORT_EMAIL        = '5ive111@hanmail.net';
+const SUPPORT_EMAIL = '5ive111@hanmail.net';
 
 const APP_VERSION = '1.0.0';
 const APP_BUILD   = '4.2';
@@ -98,17 +95,54 @@ export default function AboutScreen() {
           </Text>
         </View>
 
+        {/* ─── 면책 핵심 요약 ──────────────────────────────── */}
+        <SectionLabel>⚠️ 면책 핵심 사항</SectionLabel>
+        <View style={styles.disclaimerCard}>
+          <DisclaimerLine
+            icon="🎫"
+            text="본 앱은 정보 제공 도구이며, 예매·결제·환불 기능을 제공하지 않습니다."
+          />
+          <DisclaimerLine
+            icon="📅"
+            text="공연 정보는 외부 데이터(KOPIS·위키백과)에 기반하므로 실제와 다를 수 있습니다. 예매·관람 전 공식 판매처에서 재확인하세요."
+          />
+          <DisclaimerLine
+            icon="💾"
+            text="모든 데이터는 본인 기기에만 저장됩니다. 기기 분실·고장·초기화 시 데이터가 소실될 수 있으므로 정기 백업을 권장합니다."
+          />
+          <DisclaimerLine
+            icon="🌐"
+            text="외부 API 장애·네트워크 문제로 일부 기능이 제한될 수 있습니다."
+          />
+          <DisclaimerLine
+            icon="📜"
+            text='본 앱은 "있는 그대로(AS-IS)" 제공되며, 명시적·묵시적 보증을 제공하지 않습니다.'
+          />
+          <Pressable
+            onPress={() => router.push('/settings/legal/disclaimer')}
+            style={({ pressed }) => [styles.disclaimerLink, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.disclaimerLinkText}>전체 면책조항 보기 ›</Text>
+          </Pressable>
+        </View>
+
         {/* ─── 법적 문서 ────────────────────────────────────── */}
         <SectionLabel>📝 법적 문서</SectionLabel>
         <LinkRow
-          icon="🔒"
-          label="개인정보처리방침"
-          onPress={() => openUrl(PRIVACY_POLICY_URL)}
-        />
-        <LinkRow
           icon="📄"
           label="이용약관"
-          onPress={() => openUrl(TERMS_OF_SERVICE_URL)}
+          onPress={() => router.push('/settings/legal/terms')}
+        />
+        <LinkRow
+          icon="🔒"
+          label="개인정보처리방침"
+          onPress={() => router.push('/settings/legal/privacy')}
+        />
+        <LinkRow
+          icon="⚠️"
+          label="면책조항"
+          sub="데이터 정확성·외부 링크·보증 면책"
+          onPress={() => router.push('/settings/legal/disclaimer')}
         />
 
         {/* ─── 외부 링크 ───────────────────────────────────── */}
@@ -190,6 +224,25 @@ function InfoLine({ icon, title, desc, sub }: {
   );
 }
 
+function DisclaimerLine({ icon, text }: { icon: string; text: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+      <Text style={{ fontSize: 16, width: 22, marginTop: 1 }}>{icon}</Text>
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: Fonts.krRegular,
+          fontSize: FontSizes.caption,
+          lineHeight: 20,
+          color: Colors.text,
+        }}
+      >
+        {text}
+      </Text>
+    </View>
+  );
+}
+
 function LinkRow({ icon, label, sub, onPress }: {
   icon: string; label: string; sub?: string; onPress: () => void;
 }) {
@@ -214,6 +267,25 @@ const styles = StyleSheet.create({
   navTitle: { fontSize: FontSizes.title, fontFamily: Fonts.semibold },
   legalCard: {
     backgroundColor: Colors.bgMuted, padding: Spacing.md, borderRadius: Radius.md,
+  },
+  disclaimerCard: {
+    backgroundColor: '#fff8e6',
+    borderWidth: 1,
+    borderColor: '#f5e6b3',
+    padding: Spacing.md,
+    borderRadius: Radius.md,
+  },
+  disclaimerLink: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e8d27a',
+    alignItems: 'flex-end',
+  },
+  disclaimerLinkText: {
+    fontFamily: Fonts.medium,
+    fontSize: FontSizes.caption,
+    color: Colors.primary,
   },
   legalText: {
     fontSize: FontSizes.caption, color: Colors.text, lineHeight: 20,
