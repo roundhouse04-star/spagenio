@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "스파제니오 로또",
+    "slug": "lotto-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366f1"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.spagenio.lotto",
+      "infoPlist": {
+        "NSCameraUsageDescription": "로또 복권 QR코드를 스캔하여 당첨여부를 확인합니다.",
+        "NSPhotoLibraryUsageDescription": "갤러리에 저장된 복권 QR 이미지를 가져와 등록합니다.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.spagenio.lotto",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366f1"
+      },
+      "edgeToEdgeEnabled": true,
+      "allowBackup": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "로또 복권 QR코드를 스캔하여 당첨여부를 확인합니다."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "갤러리에 저장된 복권 QR 이미지를 가져와 등록합니다."
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6366f1"
+        }
+      ]
+    ]
+  }
+}
