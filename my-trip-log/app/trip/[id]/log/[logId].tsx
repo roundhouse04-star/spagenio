@@ -28,8 +28,7 @@ export default function EditLogScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { id, logId } = useLocalSearchParams<{ id: string; logId: string }>();
-  const tripId = Number(id);
+  const { logId } = useLocalSearchParams<{ id: string; logId: string }>();
   const logIdNum = Number(logId);
 
   const [loading, setLoading] = useState(true);

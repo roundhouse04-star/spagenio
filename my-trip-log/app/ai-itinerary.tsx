@@ -398,7 +398,7 @@ JSON 형식:
               router.replace({
                 pathname: '/trip/[id]',
                 params: { id: String(tripId) },
-              } as any);
+              });
             },
           },
         ]
@@ -518,7 +518,7 @@ JSON 형식:
                 <Text style={styles.label}>여행 선택</Text>
                 {trips.length === 0 ? (
                   <Text style={styles.emptyText}>
-                    저장된 여행이 없어요.{'\n'}"새 여행"을 선택해주세요.
+                    저장된 여행이 없어요.{'\n'}{'"'}새 여행{'"'}을 선택해주세요.
                   </Text>
                 ) : (
                   <View style={styles.tripList}>
@@ -769,7 +769,7 @@ JSON 형식:
                 {'\n'}
                 🔹 마크다운 코드블록(```json ```) 있어도 자동 처리{'\n'}
                 🔹 설명 섞여있어도 JSON만 추출해서 일정 추가{'\n'}
-                🔹 답변이 길면 위쪽 "저장" 버튼을 눌러도 됩니다
+                🔹 답변이 길면 위쪽 {'"'}저장{'"'} 버튼을 눌러도 됩니다
               </Text>
             </View>
 

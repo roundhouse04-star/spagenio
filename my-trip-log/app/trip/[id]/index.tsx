@@ -135,7 +135,7 @@ export default function TripDetailScreen() {
                   router.push({
                     pathname: '/trips/new',
                     params: { id: String(trip.id) },
-                  } as any);
+                  });
                 }}
                 hitSlop={6}
               >

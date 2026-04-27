@@ -128,7 +128,7 @@ export default function ExpenseDetailScreen() {
               router.push({
                 pathname: '/trip/[id]/receipt-scan',
                 params: { id: String(tripId) },
-              } as any)
+              })
             }
             hitSlop={10}
             style={styles.iconBtn}
@@ -140,7 +140,7 @@ export default function ExpenseDetailScreen() {
               router.push({
                 pathname: '/trip/[id]/expense-new',
                 params: { id: String(tripId) },
-              } as any)
+              })
             }
             hitSlop={10}
             style={styles.addBtn}
@@ -287,7 +287,7 @@ export default function ExpenseDetailScreen() {
                 router.push({
                   pathname: '/trip/[id]/receipts',
                   params: { id: String(tripId) },
-                } as any)
+                })
               }
               style={styles.receiptLink}
             >
@@ -315,7 +315,7 @@ export default function ExpenseDetailScreen() {
                   onEdit={() => router.push({
                     pathname: '/trip/[id]/expense/[expenseId]',
                     params: { id: String(tripId), expenseId: String(e.id) },
-                  } as any)}
+                  })}
                   styles={styles}
                 />
               ))}

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { format, parseISO, isValid } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import DatePickerModal from '@/components/DatePickerModal';

@@ -18,19 +18,10 @@ import React, {
 } from 'react';
 import { useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import {
-  Colors as _LegacyColors, // (참고만)
-  setGlobalThemeMode,
-} from './theme';
+import { setGlobalThemeMode, ColorsLight, ColorsDark } from './theme';
 
 // ============ TYPES ============
 export type ThemeMode = 'system' | 'light' | 'dark';
-
-// LightColors / DarkColors는 theme.ts에 비공개. 여기서 다시 정의하지 말고
-// 필요할 때 Colors Proxy를 통해 접근하거나, 명시적 export를 추가.
-// 하지만 useTheme의 colors 반환을 위해선 명시적 팔레트가 필요함.
-// → theme.ts에서 ColorsLight/ColorsDark export 가져오기
-import { ColorsLight, ColorsDark } from './theme';
 
 export type ColorPalette = typeof ColorsLight;
 

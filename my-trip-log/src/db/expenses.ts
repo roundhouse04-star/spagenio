@@ -92,7 +92,7 @@ export async function updateExpense(id: number, data: Partial<Expense>): Promise
   for (const [key, col] of Object.entries(map)) {
     if (key in data) {
       fields.push(`${col} = ?`);
-      values.push((data as any)[key]);
+      values.push(data[key as keyof Expense]);
     }
   }
   if (fields.length === 0) return;

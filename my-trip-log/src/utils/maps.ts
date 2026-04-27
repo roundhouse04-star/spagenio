@@ -84,7 +84,8 @@ export const openDirections = async (location: MapLocation): Promise<void> => {
     return;
   }
 
-  const encodedLabel = encodeURIComponent(label || '목적지');
+  // label은 길찾기에서 destination 좌표로만 라우팅하므로 사용하지 않음 (검색과 달리)
+  void label;
 
   const urls =
     Platform.OS === 'ios'

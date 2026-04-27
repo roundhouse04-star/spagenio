@@ -54,7 +54,7 @@ export function LogsTab({ trip }: { trip: Trip }) {
               onEdit={() => router.push({
                 pathname: '/trip/[id]/log/[logId]',
                 params: { id: String(trip.id), logId: String(log.id) },
-              } as any)}
+              })}
               styles={styles}
             />
           ))}
@@ -66,7 +66,7 @@ export function LogsTab({ trip }: { trip: Trip }) {
         onPress={() => router.push({
           pathname: '/trip/[id]/log-new',
           params: { id: String(trip.id) },
-        } as any)}
+        })}
       >
         <Text style={styles.addButtonText}>+ 새 기록 작성</Text>
       </Pressable>
@@ -115,11 +115,10 @@ function LogCard({ log, onDelete, onEdit, styles }: {
         {log.location && (
           <Pressable
             onPress={() => {
-              const anyLog = log as any;
-              if (anyLog.lat && anyLog.lng) {
+              if (log.latitude && log.longitude) {
                 showMapOptions({
-                  lat: anyLog.lat,
-                  lng: anyLog.lng,
+                  lat: log.latitude,
+                  lng: log.longitude,
                   label: log.location!,
                 });
               } else {

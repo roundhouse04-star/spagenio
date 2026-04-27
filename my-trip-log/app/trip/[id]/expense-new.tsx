@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { createExpense } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';

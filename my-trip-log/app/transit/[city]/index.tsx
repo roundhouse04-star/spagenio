@@ -4,7 +4,7 @@
  * - ROUTE 탭: 경로 검색 (Dijkstra + 세그먼트 + 환승 표시)
  * - LINES 탭: 노선 목록 + 역 펼침
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator,
 } from 'react-native';
@@ -15,13 +15,27 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import transitData from '@/data/transit.json';
 
+interface CityInfo {
+  id: string;
+  nameKo: string;
+  nameEn: string;
+  country: string;
+  timezone: string;
+}
+
 // 컴포넌트 밖에서 한 번만 파싱 (리렌더 시 참조 안정)
-const DATA = transitData as any;
-const ALL_CITIES = DATA.cities || [];
-const ALL_LINES = DATA.lines || [];
-const ALL_STATIONS = DATA.stations || [];
-const ALL_STATION_LINES = DATA.stationLines || [];
-const ALL_CONNECTIONS = DATA.connections || [];
+const DATA = transitData as {
+  cities?: CityInfo[];
+  lines?: Line[];
+  stations?: Station[];
+  stationLines?: StationLine[];
+  connections?: Connection[];
+};
+const ALL_CITIES: CityInfo[] = DATA.cities ?? [];
+const ALL_LINES: Line[] = DATA.lines ?? [];
+const ALL_STATIONS: Station[] = DATA.stations ?? [];
+const ALL_STATION_LINES: StationLine[] = DATA.stationLines ?? [];
+const ALL_CONNECTIONS: Connection[] = DATA.connections ?? [];
 
 interface Line {
   id: string;
@@ -85,7 +99,7 @@ export default function TransitCityScreen() {
 
   const { city } = useLocalSearchParams<{ city: string }>();
   const cityId = city as string;
-  const cityInfo = ALL_CITIES.find((c: any) => c.id === cityId);
+  const cityInfo = ALL_CITIES.find((c) => c.id === cityId);
   const flag = CITY_FLAGS[cityId] || '🌍';
 
   const lines: Line[] = useMemo(

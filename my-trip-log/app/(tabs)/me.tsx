@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Switch, Alert, ActivityIndicator, Platform,
@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import Constants from 'expo-constants';
 
-import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB, resetDatabase } from '@/db/database';

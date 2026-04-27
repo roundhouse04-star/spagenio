@@ -12,7 +12,7 @@ import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getAllTrips } from '@/db/trips';
 import { getTripTotalSpent, getAllExpensesByCategory } from '@/db/expenses';
-import { Trip, ExpenseCategory } from '@/types';
+import { Trip } from '@/types';
 import { CategoryPieChart, type CategoryStat } from '@/components/CategoryPieChart';
 
 interface TripExpenseSummary {
@@ -173,7 +173,7 @@ function TripExpenseCard({ summary, styles, colors }: {
   return (
     <Pressable
       style={styles.tripCard}
-      onPress={() => router.push(`/expenses/${trip.id}` as any)}
+      onPress={() => router.push(`/expenses/${trip.id}`)}
     >
       <View style={styles.tripCardHeader}>
         <View style={[styles.statusDot, { backgroundColor: statusColor }]} />

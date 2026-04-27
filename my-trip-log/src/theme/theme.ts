@@ -127,7 +127,7 @@ function getColors() {
 export const Colors = new Proxy({} as typeof LightColors, {
   get(_, key: string) {
     const colors = getColors();
-    return (colors as any)[key];
+    return colors[key as keyof typeof LightColors];
   },
 });
 

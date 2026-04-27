@@ -7,7 +7,7 @@
  * - app.json의 ios.infoPlist.ITSAppUsesNonExemptEncryption + android.allowBackup=true 와 함께 동작
  */
 import * as SQLite from 'expo-sqlite';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { CREATE_TABLES_SQL, SCHEMA_VERSION, MIGRATIONS } from './schema';
 
 const DB_NAME = 'my_trip_log.db';
@@ -25,7 +25,7 @@ export async function getDB(): Promise<SQLite.SQLiteDatabase> {
  */
 export async function getDBPath(): Promise<string> {
   // expo-sqlite v16+: documentDirectory/SQLite/<DB_NAME>
-  const dir = (FileSystem as any).documentDirectory ?? '';
+  const dir = FileSystem.documentDirectory ?? '';
   return `${dir}SQLite/${DB_NAME}`;
 }
 
@@ -70,7 +70,9 @@ export async function initializeDatabase(): Promise<void> {
   try {
     const path = await getDBPath();
     console.log(`[DB] Path: ${path}`);
-  } catch {}
+  } catch (err) {
+    console.warn('[DB] getDBPath failed (debug log only):', err);
+  }
 }
 
 /**

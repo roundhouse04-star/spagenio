@@ -108,7 +108,7 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
           onPress={() => router.push({
             pathname: '/trip/[id]/expense-new',
             params: { id: String(trip.id) },
-          } as any)}
+          })}
         >
           <Text style={styles.actionIcon}>✏️</Text>
           <Text style={styles.actionLabel}>수동 입력</Text>
@@ -153,7 +153,7 @@ export function ExpensesTab({ trip }: { trip: Trip }) {
               onEdit={() => router.push({
                 pathname: '/trip/[id]/expense/[expenseId]',
                 params: { id: String(trip.id), expenseId: String(exp.id) },
-              } as any)}
+              })}
               styles={styles}
             />
           ))}

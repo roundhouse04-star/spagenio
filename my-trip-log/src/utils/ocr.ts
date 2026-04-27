@@ -80,9 +80,9 @@ export async function recognizeReceiptDual(
 
 async function tryMLKit(imageUri: string): Promise<{ rawText: string } | null> {
   try {
-    const mod = await import('@react-native-ml-kit/text-recognition');
-    const TextRecognition = (mod as any).default ?? mod;
-    const result = await TextRecognition.recognize(imageUri);
+    const mod: { default?: { recognize: (uri: string) => Promise<{ text?: string }> }; recognize?: (uri: string) => Promise<{ text?: string }> } = await import('@react-native-ml-kit/text-recognition');
+    const TextRecognition = mod.default ?? mod;
+    const result = await TextRecognition.recognize!(imageUri);
     return { rawText: result?.text ?? '' };
   } catch {
     return null;
@@ -94,6 +94,8 @@ export async function getOcrStatus(): Promise<{ mlkit: boolean; ocrspace: boolea
   try {
     await import('@react-native-ml-kit/text-recognition');
     mlkit = true;
-  } catch {}
+  } catch {
+    // 모듈 미설치/번들 미포함 시 fallback (OCR.space 사용) — 정상 분기
+  }
   return { mlkit, ocrspace: true };
 }

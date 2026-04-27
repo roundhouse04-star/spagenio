@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet, ActivityIndicator, Appearance, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -60,7 +60,9 @@ export default function RootLayout() {
         setHasUser(registered);
 
         if (registered) {
-          syncStatsOnAppStart().catch(() => {});
+          syncStatsOnAppStart().catch((err) => {
+            console.warn('[stats sync] non-fatal background sync failed:', err);
+          });
         }
       } catch (err) {
         console.error('App init error:', err);

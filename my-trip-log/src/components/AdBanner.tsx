@@ -30,11 +30,13 @@ let BannerAdSize: any = null;
 let TestIds: any = null;
 if (ADS_ENABLED) {
   try {
+    // 광고 SDK는 EAS dev/prod 빌드에만 포함 — Expo Go에서는 미설치라 require로 옵셔널 로드
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const GMA = require('react-native-google-mobile-ads');
     BannerAd = GMA.BannerAd;
     BannerAdSize = GMA.BannerAdSize;
     TestIds = GMA.TestIds;
-  } catch (err) {
+  } catch {
     console.warn('[AdBanner] react-native-google-mobile-ads 없음, 플레이스홀더 fallback');
   }
 }

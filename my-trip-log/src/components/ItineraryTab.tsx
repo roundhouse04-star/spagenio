@@ -90,7 +90,7 @@ export function ItineraryTab({ trip }: { trip: Trip }) {
         onPress={() => router.push({
           pathname: '/trip/[id]/item-new',
           params: { id: String(trip.id), day: String(selectedDay) },
-        } as any)}
+        })}
       >
         <Text style={styles.addButtonText}>+ Day {selectedDay} 일정 추가</Text>
       </Pressable>

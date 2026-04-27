@@ -89,7 +89,7 @@ export async function updateTripLog(id: number, data: Partial<TripLog>): Promise
   for (const [key, col] of Object.entries(map)) {
     if (key in data) {
       fields.push(`${col} = ?`);
-      values.push((data as any)[key]);
+      values.push(data[key as keyof TripLog]);
     }
   }
   if ('images' in data) {

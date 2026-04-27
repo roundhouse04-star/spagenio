@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, FlatList,
+  View, Text, StyleSheet, ScrollView, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -12,7 +12,7 @@ import { getDB } from '@/db/database';
 import {
   DESTINATIONS, TRAVEL_TIPS, CATEGORIES, TIP_CATEGORIES,
   SEASON_INFO, getCurrentSeason,
-  DestinationCity, Category, Season,
+  DestinationCity, Category,
 } from '@/data/destinations';
 
 export default function DiscoverScreen() {

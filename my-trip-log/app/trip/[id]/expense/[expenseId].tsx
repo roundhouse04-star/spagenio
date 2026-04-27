@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getExpense, updateExpense, deleteExpense } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
 import { getRates } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
+import type { ExpenseCategory } from '@/types';
 
 const CURRENCIES = [
   { code: 'KRW', flag: '🇰🇷' },
@@ -27,13 +28,12 @@ export default function ExpenseEditScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { id, expenseId } = useLocalSearchParams<{ id: string; expenseId: string }>();
-  const tripId = parseInt(id);
+  const { expenseId } = useLocalSearchParams<{ id: string; expenseId: string }>();
   const expIdNum = parseInt(expenseId);
 
   const [loading, setLoading] = useState(true);
   const [expenseDate, setExpenseDate] = useState('');
-  const [category, setCategory] = useState<string>('food');
+  const [category, setCategory] = useState<ExpenseCategory>('food');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('KRW');
@@ -115,7 +115,7 @@ export default function ExpenseEditScreen() {
     try {
       await updateExpense(expIdNum, {
         expenseDate,
-        category: category as any,
+        category,
         title: title.trim(),
         amount: parseFloat(amount),
         currency,

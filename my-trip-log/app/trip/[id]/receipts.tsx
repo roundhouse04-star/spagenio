@@ -5,9 +5,9 @@
  * - 카테고리별 총액
  * - 그리드 뷰
  */
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, Pressable, Image, Modal,
+  View, Text, StyleSheet, Pressable, Image, Modal,
   ScrollView, Dimensions, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -371,7 +371,7 @@ export default function ReceiptGalleryScreen() {
                     router.push({
                       pathname: '/trip/[id]/expense/[expenseId]',
                       params: { id: String(tripId), expenseId: String(expenseId) },
-                    } as any);
+                    });
                   }}
                 >
                   <Text style={styles.editBtnText}>✏️  비용 정보 편집</Text>

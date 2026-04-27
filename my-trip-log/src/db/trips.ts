@@ -91,7 +91,7 @@ export async function updateTrip(id: number, data: Partial<Trip>): Promise<void>
   for (const [key, col] of Object.entries(map)) {
     if (key in data) {
       fields.push(`${col} = ?`);
-      values.push((data as any)[key]);
+      values.push(data[key as keyof Trip]);
     }
   }
   if ('isFavorite' in data) {

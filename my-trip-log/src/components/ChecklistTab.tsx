@@ -8,7 +8,7 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ChecklistItem, ChecklistCategory, Trip } from '@/types';
 import {
   getChecklist, createChecklistItem, toggleChecklistItem,
-  deleteChecklistItem, addTemplateItems, DEFAULT_CHECKLIST_TEMPLATES,
+  deleteChecklistItem, addTemplateItems,
 } from '@/db/checklists';
 import { CHECKLIST_CATEGORIES } from '@/db/schema';
 

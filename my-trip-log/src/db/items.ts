@@ -97,7 +97,7 @@ export async function updateTripItem(id: number, data: Partial<TripItem>): Promi
   for (const [key, col] of Object.entries(map)) {
     if (key in data) {
       fields.push(`${col} = ?`);
-      values.push((data as any)[key]);
+      values.push(data[key as keyof TripItem]);
     }
   }
   if ('isDone' in data) {

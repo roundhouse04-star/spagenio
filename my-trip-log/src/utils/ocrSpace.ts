@@ -1,7 +1,13 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
+import Constants from 'expo-constants';
 
-const DEFAULT_API_KEY = 'helloworld';
+// app.json의 expo.extra.ocrSpaceApiKey 또는 EXPO_PUBLIC_OCR_SPACE_KEY 환경변수에서 키 로드
+// 기본값 'helloworld'는 OCR.space 공개 데모 키 — quota·요청 크기 제한 있어 운영 부적합
+const DEFAULT_API_KEY: string =
+  (Constants.expoConfig?.extra as { ocrSpaceApiKey?: string } | undefined)?.ocrSpaceApiKey
+  ?? process.env.EXPO_PUBLIC_OCR_SPACE_KEY
+  ?? 'helloworld';
 const MAX_BYTES = 1024 * 1024;
 
 export interface OcrSpaceResult {
@@ -13,7 +19,7 @@ export interface OcrSpaceResult {
 /** OCR.space 1MB 한도에 맞게 자동 압축 */
 async function ensureUnder1MB(uri: string): Promise<string> {
   const info = await FileSystem.getInfoAsync(uri);
-  const size = (info as any).size ?? 0;
+  const size = info.exists ? info.size : 0;
   if (size <= MAX_BYTES) {
     console.log('🗜️ 건너뜀 (' + Math.round(size / 1024) + 'KB)');
     return uri;
@@ -22,7 +28,7 @@ async function ensureUnder1MB(uri: string): Promise<string> {
   console.log('🗜️ 원본 ' + Math.round(size / 1024) + 'KB → 압축 시작');
 
   // 3단계로 점진적 압축
-  const steps: Array<{ width: number; quality: number }> = [
+  const steps: { width: number; quality: number }[] = [
     { width: 1600, quality: 0.6 },
     { width: 1200, quality: 0.5 },
     { width: 900, quality: 0.4 },
@@ -37,7 +43,7 @@ async function ensureUnder1MB(uri: string): Promise<string> {
       { compress: step.quality, format: ImageManipulator.SaveFormat.JPEG }
     );
     const newInfo = await FileSystem.getInfoAsync(result.uri);
-    const newSize = (newInfo as any).size ?? 0;
+    const newSize = newInfo.exists ? newInfo.size : 0;
     console.log(`🗜️ ${step.width}px/q${step.quality}: ${Math.round(newSize / 1024)}KB`);
     if (newSize <= MAX_BYTES) return result.uri;
   }

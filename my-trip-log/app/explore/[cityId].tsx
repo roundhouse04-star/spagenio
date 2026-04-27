@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
-import { DESTINATIONS, CATEGORIES, SEASON_INFO } from '@/data/destinations';
+import { DESTINATIONS, CATEGORIES } from '@/data/destinations';
 import { getRates } from '@/utils/exchange';
 import transitData from '@/data/transit.json';
 
@@ -44,8 +44,8 @@ export default function CityDetailScreen() {
 
   // 해당 도시 교통 데이터 있는지
   const transitLines = (() => {
-    const data = transitData as any;
-    return (data.lines || []).filter((l: any) => l.cityId === cityId).length;
+    const data = transitData as { lines?: { cityId: string }[] };
+    return (data.lines ?? []).filter((l) => l.cityId === cityId).length;
   })();
 
   if (!city) {

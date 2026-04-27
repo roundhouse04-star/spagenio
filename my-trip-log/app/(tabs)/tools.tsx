@@ -4,10 +4,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
+import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { router } from 'expo-router';
-import { getRates, refreshRates, getLastUpdated, SUPPORTED_CURRENCIES } from '@/utils/exchange';
+import { getRates, refreshRates, getLastUpdated } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
 
 type Currency = { code: string; name: string; flag: string };
