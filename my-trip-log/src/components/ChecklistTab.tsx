@@ -244,7 +244,10 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
                   key={item.id}
                   item={item}
                   onToggle={handleToggle}
-                  onDelete={handleDelete} styles={styles} />
+                  onDelete={handleDelete}
+                  styles={styles}
+                  colors={colors}
+                />
               ))}
             </View>
           ))}
@@ -260,13 +263,15 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
 function ChecklistRow({
   item,
   onToggle,
-  onDelete, styles,
+  onDelete,
+  styles,
+  colors,
 }: {
   item: ChecklistItem;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
-
   styles: ReturnType<typeof createStyles>;
+  colors: ColorPalette;
 }) {
   return (
     <Pressable

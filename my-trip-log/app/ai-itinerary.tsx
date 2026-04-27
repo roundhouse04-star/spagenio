@@ -19,7 +19,16 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getAllTrips, createTrip } from '@/db/trips';
 import { createTripItem } from '@/db/items';
 import DatePickerModal from '@/components/DatePickerModal';
-import { Trip } from '@/types';
+import { Trip, TripItemCategory } from '@/types';
+
+const TRIP_ITEM_CATEGORY_VALUES: readonly TripItemCategory[] = [
+  'sightseeing', 'food', 'activity', 'accommodation', 'transport', 'shopping', 'other',
+];
+function normalizeTripItemCategory(v: unknown): TripItemCategory {
+  return TRIP_ITEM_CATEGORY_VALUES.includes(v as TripItemCategory)
+    ? (v as TripItemCategory)
+    : 'other';
+}
 
 // 관심사 6개 고정
 const INTEREST_PRESETS = [
@@ -359,9 +368,7 @@ JSON 형식:
             startTime: String(item.startTime || ''),
             title: String(item.title || '제목 없음'),
             location: String(item.location || ''),
-            lat: 0,
-            lng: 0,
-            category: String(item.category || 'other'),
+            category: normalizeTripItemCategory(item.category),
             memo: String(item.memo || ''),
             cost: Number(item.cost) || 0,
             currency: 'KRW',

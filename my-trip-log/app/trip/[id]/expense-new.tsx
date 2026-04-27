@@ -9,6 +9,7 @@ import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { createExpense } from '@/db/expenses';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
+import type { ExpenseCategory } from '@/types';
 import { getRates } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
 
@@ -33,7 +34,7 @@ export default function ExpenseNewScreen() {
   const today = new Date().toISOString().slice(0, 10);
 
   const [expenseDate, setExpenseDate] = useState(today);
-  const [category, setCategory] = useState<string>('food');
+  const [category, setCategory] = useState<ExpenseCategory>('food');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('KRW');

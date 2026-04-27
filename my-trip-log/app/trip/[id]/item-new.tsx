@@ -18,6 +18,7 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { createTripItem } from '@/db/items';
 import { TRIP_ITEM_CATEGORIES } from '@/db/schema';
 import { showMapOptions } from '@/utils/maps';
+import type { TripItemCategory } from '@/types';
 
 interface NominatimResult {
   place_id: number;
@@ -39,7 +40,7 @@ export default function ItemNewScreen() {
   const [title, setTitle] = useState('');
   const [day, setDay] = useState(String(defaultDay));
   const [startTime, setStartTime] = useState('');
-  const [category, setCategory] = useState(TRIP_ITEM_CATEGORIES[0].key);
+  const [category, setCategory] = useState<TripItemCategory>(TRIP_ITEM_CATEGORIES[0].key);
   const [location, setLocation] = useState('');
   const [cost, setCost] = useState('');
   const [memo, setMemo] = useState('');
@@ -105,8 +106,8 @@ export default function ItemNewScreen() {
         startTime: startTime.trim(),
         category,
         location: location.trim(),
-        lat,
-        lng,
+        latitude: lat || null,
+        longitude: lng || null,
         cost: Number(cost) || 0,
         currency: 'KRW',
         memo: memo.trim(),

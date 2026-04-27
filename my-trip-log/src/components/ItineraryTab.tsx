@@ -133,11 +133,11 @@ function ItemCard({
             💰 {item.cost.toLocaleString()} {item.currency ?? ''}
           </Text>
         )}
-        {((item.lat !== 0 && item.lng !== 0) || item.location) && (
+        {((item.latitude && item.longitude) || item.location) && (
           <Pressable
             onPress={() => showMapOptions({
-              lat: item.lat,
-              lng: item.lng,
+              lat: item.latitude ?? 0,
+              lng: item.longitude ?? 0,
               label: item.location || item.title,
             })}
             style={styles.mapButton}
