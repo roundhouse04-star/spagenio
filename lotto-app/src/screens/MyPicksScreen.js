@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, SectionList, Pressable, RefreshControl, Alert,
 } from 'react-native';
+import BannerAdSlot from '../components/BannerAdSlot';
 import { useFocusEffect } from '@react-navigation/native';
 import LottoBall from '../components/LottoBall';
 import { theme } from '../lib/theme';
@@ -145,6 +146,7 @@ export default function MyPicksScreen({ navigation }) {
   };
 
   return (
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
     <SectionList
       style={styles.list}
       contentContainerStyle={styles.content}
@@ -250,6 +252,8 @@ export default function MyPicksScreen({ navigation }) {
         );
       }}
     />
+    <BannerAdSlot position="bottom" />
+    </View>
   );
 }
 

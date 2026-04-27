@@ -5,6 +5,7 @@ import {
 import LottoBall from '../components/LottoBall';
 import { fetchRecentHistory } from '../lib/lottoApi';
 import { theme } from '../lib/theme';
+import BannerAdSlot from '../components/BannerAdSlot';
 
 function formatWon(amount) {
   if (!amount) return '-';
@@ -49,6 +50,7 @@ export default function HistoryScreen({ navigation }) {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
     <FlatList
       style={styles.list}
       contentContainerStyle={styles.content}
@@ -114,6 +116,8 @@ export default function HistoryScreen({ navigation }) {
         );
       }}
     />
+    <BannerAdSlot position="bottom" />
+    </View>
   );
 }
 

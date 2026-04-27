@@ -539,6 +539,29 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </View>
 
+      {/* 약관 및 면책조항 */}
+      <Text style={styles.sectionTitle}>약관 및 정책</Text>
+      <Pressable
+        style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+        onPress={() => navigation?.navigate('Legal')}
+      >
+        <Text style={styles.navEmoji}>⚖️</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.navTitle}>약관 및 면책조항</Text>
+          <Text style={styles.navSub}>이용약관 · 개인정보 · 면책 · 광고 안내</Text>
+        </View>
+        <Text style={styles.navChevron}>›</Text>
+      </Pressable>
+
+      <View style={styles.legalNotice}>
+        <Text style={styles.legalNoticeTitle}>⚠️ 면책 안내</Text>
+        <Text style={styles.legalNoticeTxt}>
+          본 앱이 제공하는 추천 번호는 <Text style={{ fontWeight: '800' }}>통계 분석에 기반한 참고용</Text>이며,
+          당첨을 보장하지 않습니다. 로또 구매 및 결과는 전적으로 사용자의 판단과 책임이며,
+          본 앱은 <Text style={{ fontWeight: '800' }}>어떠한 법적 책임도 지지 않습니다</Text>.
+        </Text>
+      </View>
+
       <Text style={styles.footer}>v1.0.0 · 데이터는 회사 서버를 거치지 않습니다</Text>
     </ScrollView>
     </KeyboardAvoidingView>
@@ -675,5 +698,11 @@ const styles = StyleSheet.create({
   dataInfo: { fontSize: 12, color: theme.textSub, lineHeight: 18, marginBottom: 8 },
   bold: { fontWeight: '800', color: theme.text },
 
+  legalNotice: {
+    backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fde68a',
+    borderRadius: 10, padding: 12, marginTop: 12,
+  },
+  legalNoticeTitle: { fontSize: 12, fontWeight: '800', color: '#b45309', marginBottom: 5 },
+  legalNoticeTxt: { fontSize: 11, color: '#92400e', lineHeight: 17 },
   footer: { textAlign: 'center', color: theme.textMuted, fontSize: 11, marginTop: 24 },
 });

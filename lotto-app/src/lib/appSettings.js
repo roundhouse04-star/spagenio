@@ -13,7 +13,13 @@ const KEYS = {
   WIN_ALERT_ENABLED: 'win_alert_enabled', // '0'/'1'
   WIN_ALERT_HOUR: 'win_alert_hour',       // '0'~'23'
   WIN_ALERT_LAST_CHECK: 'win_alert_last_check', // ms
+  // 약관 동의
+  TERMS_VERSION: 'terms_agreed_version',  // 동의한 약관 버전
+  TERMS_AGREED_AT: 'terms_agreed_at',     // 동의 시각 ms
 };
+
+// 현재 약관 버전 — 약관 본문이 실질적으로 바뀔 때 ↑ 시 사용자 재동의 트리거
+export const CURRENT_TERMS_VERSION = '1.0';
 
 export async function loadAppSettings() {
   const [tg, push] = await Promise.all([
@@ -81,4 +87,27 @@ export async function saveWinningAlertSchedule({ enabled, hour }) {
 
 export async function setWinningAlertLastCheck(ts = Date.now()) {
   await setSetting(KEYS.WIN_ALERT_LAST_CHECK, String(ts));
+}
+
+// ── 약관 동의 ──
+export async function loadTermsAgreement() {
+  const [version, ts] = await Promise.all([
+    getSetting(KEYS.TERMS_VERSION, ''),
+    getSetting(KEYS.TERMS_AGREED_AT, '0'),
+  ]);
+  return {
+    version: version || '',
+    agreedAt: parseInt(ts, 10) || 0,
+    isAgreed: version === CURRENT_TERMS_VERSION,
+  };
+}
+
+export async function saveTermsAgreement() {
+  await setSetting(KEYS.TERMS_VERSION, CURRENT_TERMS_VERSION);
+  await setSetting(KEYS.TERMS_AGREED_AT, String(Date.now()));
+}
+
+export async function clearTermsAgreement() {
+  await setSetting(KEYS.TERMS_VERSION, null);
+  await setSetting(KEYS.TERMS_AGREED_AT, null);
 }

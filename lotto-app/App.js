@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, Platform } from 'react-native';
+import { Text, View, Platform, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabBar } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { initDb } from './src/lib/db';
 import { setupSchedulerListeners, runCatchup, reapplyTelegramSchedule, reapplyWinningAlertSchedule } from './src/lib/scheduler';
-import { loadAppSettings } from './src/lib/appSettings';
+import { loadAppSettings, loadTermsAgreement } from './src/lib/appSettings';
+import TermsAgreementScreen from './src/screens/TermsAgreementScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import GenerateScreen from './src/screens/GenerateScreen';
 import PurchasedScreen from './src/screens/PurchasedScreen';
@@ -19,6 +20,8 @@ import WeightsScreen from './src/screens/WeightsScreen';
 import MyPicksScreen from './src/screens/MyPicksScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import QRScanScreen from './src/screens/QRScanScreen';
+import LegalScreen from './src/screens/LegalScreen';
+import BannerAdSlot from './src/components/BannerAdSlot';
 import { theme } from './src/lib/theme';
 
 const Tab = createBottomTabNavigator();
@@ -48,6 +51,12 @@ function MainTabs() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
     <Tab.Navigator
+      tabBar={(props) => (
+        <View>
+          <BannerAdSlot position="bottom" />
+          <BottomTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.primary,
@@ -97,29 +106,69 @@ const stackHeader = {
 };
 
 export default function App() {
+  // null = 로딩 중 / false = 동의 필요 / true = 정상 진입
+  const [termsState, setTermsState] = useState(null);
+
   useEffect(() => {
     let unsubscribe;
     (async () => {
       try {
-        // 1) DB 초기화
+        // 1) DB 초기화 (반드시 먼저)
         await initDb();
 
-        // 2) 알림 리스너 등록 (텔레그램 자동발송 + 당첨 자동확인 트리거)
-        unsubscribe = setupSchedulerListeners();
+        // 2) 약관 동의 상태 확인 — 미동의면 동의 화면만 표시
+        const terms = await loadTermsAgreement();
+        setTermsState(terms.isAgreed);
 
-        // 3) 토글 상태에 맞게 OS 스케줄 재등록 (앱 갱신/재설치 후에도 일관성 유지)
-        const sets = await loadAppSettings();
-        await reapplyTelegramSchedule(sets.autoSendTelegram);
-        await reapplyWinningAlertSchedule();
-
-        // 4) 놓친 스케줄 catch-up (앱 죽어있던 동안 발사된 알림 보정)
-        runCatchup().catch((e) => console.warn('[catchup]', e?.message));
+        // 3) 동의된 경우에만 스케줄러/리스너 활성화
+        if (terms.isAgreed) {
+          unsubscribe = setupSchedulerListeners();
+          const sets = await loadAppSettings();
+          await reapplyTelegramSchedule(sets.autoSendTelegram);
+          await reapplyWinningAlertSchedule();
+          runCatchup().catch((e) => console.warn('[catchup]', e?.message));
+        }
       } catch (e) {
         console.warn('[App init]', e?.message);
+        setTermsState(false); // 안전 폴백
       }
     })();
     return () => unsubscribe?.();
   }, []);
+
+  // 로딩 화면
+  if (termsState === null) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+          <Text style={{ fontSize: 32, marginBottom: 12 }}>🍀</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+        <StatusBar style="dark" />
+      </SafeAreaProvider>
+    );
+  }
+
+  // 약관 미동의 — 동의 화면만 표시 (메인 앱 차단)
+  if (termsState === false) {
+    return (
+      <SafeAreaProvider>
+        <TermsAgreementScreen
+          onAgreed={async () => {
+            setTermsState(true);
+            // 동의 후 스케줄러/리스너 활성화
+            try {
+              setupSchedulerListeners();
+              const sets = await loadAppSettings();
+              await reapplyTelegramSchedule(sets.autoSendTelegram);
+              await reapplyWinningAlertSchedule();
+            } catch (e) { console.warn('[post-agree init]', e?.message); }
+          }}
+        />
+        <StatusBar style="dark" />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
@@ -131,6 +180,7 @@ export default function App() {
           <Stack.Screen name="WinningStores" component={WinningStoresScreen} options={{ title: '당첨 판매점' }} />
           <Stack.Screen name="Weights" component={WeightsScreen} options={{ title: '알고리즘 가중치' }} />
           <Stack.Screen name="MyPicks" component={MyPicksScreen} options={{ title: '알고리즘추천' }} />
+          <Stack.Screen name="Legal" component={LegalScreen} options={{ title: '약관 및 면책조항' }} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>

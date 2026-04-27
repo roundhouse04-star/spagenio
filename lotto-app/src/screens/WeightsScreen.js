@@ -6,6 +6,7 @@ import Slider from '@react-native-community/slider';
 import { DEFAULT_ALGOS } from '../lib/lottoEngine';
 import { loadWeights, saveWeights } from '../lib/storage';
 import { theme } from '../lib/theme';
+import BannerAdSlot from '../components/BannerAdSlot';
 
 export default function WeightsScreen() {
   const [algos, setAlgos] = useState([]);
@@ -60,6 +61,7 @@ export default function WeightsScreen() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={[styles.summary, total === 100 ? styles.summaryOk : styles.summaryWarn]}>
         <Text style={styles.summaryLabel}>가중치 합계</Text>
@@ -97,6 +99,8 @@ export default function WeightsScreen() {
         </Pressable>
       </View>
     </ScrollView>
+    <BannerAdSlot position="bottom" />
+    </View>
   );
 }
 
