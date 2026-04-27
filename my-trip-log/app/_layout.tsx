@@ -24,7 +24,7 @@ import {
   NotoSansKR_700Bold,
 } from '@expo-google-fonts/noto-sans-kr';
 
-import { initializeDatabase, isUserRegistered } from '@/db/database';
+import { initializeDatabase, isUserRegistered, hasFullConsent } from '@/db/database';
 import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { setupGlobalFont } from '@/utils/globalFont';
 import { Colors } from '@/theme/theme';
@@ -35,6 +35,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [hasUser, setHasUser] = useState(false);
+  const [hasConsent, setHasConsent] = useState(false);
 
   // 시스템 테마 변경 감지 → 리렌더 트리거
   const colorScheme = useColorScheme();
@@ -57,9 +58,11 @@ export default function RootLayout() {
       try {
         await initializeDatabase();
         const registered = await isUserRegistered();
+        const consented = registered ? await hasFullConsent() : false;
         setHasUser(registered);
+        setHasConsent(consented);
 
-        if (registered) {
+        if (registered && consented) {
           syncStatsOnAppStart().catch((err) => {
             console.warn('[stats sync] non-fatal background sync failed:', err);
           });
@@ -85,10 +88,15 @@ export default function RootLayout() {
   }, [isReady, fontsLoaded]);
 
   useEffect(() => {
-    if (isReady && fontsLoaded && !hasUser) {
+    if (!isReady || !fontsLoaded) return;
+    if (!hasUser) {
+      // 신규: 처음부터 시작
       router.replace('/(onboarding)/welcome');
+    } else if (!hasConsent) {
+      // 닉네임만 입력하고 약관 단계에서 종료한 사용자 → 약관 화면으로 직진
+      router.replace('/(onboarding)/terms');
     }
-  }, [isReady, fontsLoaded, hasUser]);
+  }, [isReady, fontsLoaded, hasUser, hasConsent]);
 
   if (!isReady || !fontsLoaded) {
     return <BrandSplash />;

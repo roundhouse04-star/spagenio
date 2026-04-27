@@ -4,7 +4,7 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS user (
   home_currency TEXT DEFAULT 'KRW',
   agree_terms INTEGER DEFAULT 0,
   agree_privacy INTEGER DEFAULT 0,
+  agree_disclaimer INTEGER DEFAULT 0,
   agree_stats INTEGER DEFAULT 0,
   agree_sns_alert INTEGER DEFAULT 0,
   server_registered INTEGER DEFAULT 0,
@@ -185,6 +186,12 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       ALTER TABLE expenses ADD COLUMN receipt_ocr_text TEXT;
       ALTER TABLE expenses ADD COLUMN receipt_confidence REAL;
       ALTER TABLE expenses ADD COLUMN ocr_engine TEXT;
+    `,
+  },
+  {
+    version: 4,
+    sql: `
+      ALTER TABLE user ADD COLUMN agree_disclaimer INTEGER DEFAULT 0;
     `,
   },
 ];

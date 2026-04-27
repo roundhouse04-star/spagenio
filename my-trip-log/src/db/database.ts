@@ -138,7 +138,7 @@ export async function initializeDatabase(): Promise<void> {
 }
 
 /**
- * 사용자 가입 여부 확인
+ * 사용자 가입 여부 확인 (user 레코드 존재만 체크)
  */
 export async function isUserRegistered(): Promise<boolean> {
   const db = await getDB();
@@ -146,6 +146,27 @@ export async function isUserRegistered(): Promise<boolean> {
     'SELECT COUNT(*) as count FROM user'
   );
   return (result?.count ?? 0) > 0;
+}
+
+/**
+ * 약관/개인정보/면책 모두 동의했는지 확인.
+ * 닉네임만 입력하고 약관 단계에서 종료한 사용자가 다음 부팅 시
+ * 메인 화면으로 곧장 진입하는 것을 막기 위한 게이트.
+ */
+export async function hasFullConsent(): Promise<boolean> {
+  const db = await getDB();
+  const row = await db.getFirstAsync<{
+    agree_terms: number;
+    agree_privacy: number;
+    agree_disclaimer: number;
+  }>(
+    `SELECT agree_terms, agree_privacy, agree_disclaimer
+     FROM user
+     ORDER BY id ASC
+     LIMIT 1`,
+  );
+  if (!row) return false;
+  return row.agree_terms === 1 && row.agree_privacy === 1 && row.agree_disclaimer === 1;
 }
 
 /**

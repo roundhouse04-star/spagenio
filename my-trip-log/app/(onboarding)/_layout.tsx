@@ -12,6 +12,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="nickname" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="terms" />
+      <Stack.Screen name="disclaimer" />
     </Stack>
   );
 }

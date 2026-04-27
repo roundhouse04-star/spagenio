@@ -14,20 +14,23 @@ export default function TermsScreen() {
 
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeDisclaimer, setAgreeDisclaimer] = useState(false);
   const [agreeStats, setAgreeStats] = useState(true);
   const [agreeSnsAlert, setAgreeSnsAlert] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const canProceed = agreeTerms && agreePrivacy;
+  const canProceed = agreeTerms && agreePrivacy && agreeDisclaimer;
 
   const toggleAll = (val: boolean) => {
     haptic.medium();
     setAgreeTerms(val);
     setAgreePrivacy(val);
+    setAgreeDisclaimer(val);
     setAgreeStats(val);
     setAgreeSnsAlert(val);
   };
-  const allChecked = agreeTerms && agreePrivacy && agreeStats && agreeSnsAlert;
+  const allChecked =
+    agreeTerms && agreePrivacy && agreeDisclaimer && agreeStats && agreeSnsAlert;
 
   const handleComplete = async () => {
     if (!canProceed || submitting) {
@@ -42,6 +45,7 @@ export default function TermsScreen() {
         `UPDATE user
          SET agree_terms = 1,
              agree_privacy = 1,
+             agree_disclaimer = 1,
              agree_stats = ?,
              agree_sns_alert = ?,
              updated_at = ?
@@ -115,6 +119,31 @@ export default function TermsScreen() {
             앱 삭제 시 완전히 제거됩니다.
             아래 선택 항목에 동의하지 않으면 외부로 전송되지 않습니다.
           </Text>
+        </View>
+
+        <View style={styles.termCard}>
+          <Pressable
+            style={styles.termHeader}
+            onPress={() => { haptic.select(); setAgreeDisclaimer(!agreeDisclaimer); }}
+          >
+            <View style={[styles.checkbox, agreeDisclaimer && styles.checkboxActive]}>
+              {agreeDisclaimer && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.termTitle}>
+              <Text style={styles.required}>[필수]</Text> 면책 조항 확인
+            </Text>
+          </Pressable>
+          <Text style={styles.termBody}>
+            본 앱은 무료 개인 도구로 &ldquo;있는 그대로(AS IS)&rdquo; 제공됩니다.
+            환율·교통·AI 일정 등은 참고용이며, 데이터 손실·부정확성으로 인한 손해에
+            개발자는 책임지지 않습니다.
+          </Text>
+          <Pressable
+            style={styles.detailLink}
+            onPress={() => { haptic.tap(); router.push('/(onboarding)/disclaimer'); }}
+          >
+            <Text style={styles.detailLinkText}>자세히 보기 →</Text>
+          </Pressable>
         </View>
 
         <View style={styles.optionalSection}>
@@ -271,6 +300,15 @@ function createStyles(c: ColorPalette) {
     color: c.textSecondary,
     lineHeight: Typography.bodySmall * 1.7,
     paddingLeft: Spacing.xxxl + Spacing.sm,
+  },
+  detailLink: {
+    paddingLeft: Spacing.xxxl + Spacing.sm,
+    paddingTop: Spacing.sm,
+  },
+  detailLinkText: {
+    fontFamily: Fonts.bodyKrMedium,
+    fontSize: Typography.labelSmall,
+    color: c.accent,
   },
   optionalSection: {
     paddingTop: Spacing.md,

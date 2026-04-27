@@ -289,7 +289,13 @@ export default function MeScreen() {
             label="개인정보처리방침"
             onPress={() => { haptic.tap(); router.push('/settings/privacy'); }}
             styles={styles}
-          
+
+          />
+          <MenuRow
+            icon="⚠️"
+            label="면책 조항"
+            onPress={() => { haptic.tap(); router.push('/settings/disclaimer'); }}
+            styles={styles}
           />
           <MenuRow
             icon="✉️"
