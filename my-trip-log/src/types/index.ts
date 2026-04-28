@@ -149,3 +149,28 @@ export interface Bookmark {
   url: string | null;
   createdAt: string;
 }
+
+export type TicketCategory =
+  | 'flight'
+  | 'train'
+  | 'bus'
+  | 'attraction'
+  | 'show'
+  | 'other';
+
+export interface Ticket {
+  id: number;
+  tripId: number | null;
+  category: TicketCategory;
+  title: string;
+  useDate: string | null;
+  origin: string | null;
+  destination: string | null;
+  seat: string | null;
+  amount: number | null;
+  currency: string | null;
+  imageUri: string;
+  ocrText: string | null;
+  memo: string | null;
+  createdAt: string;
+}

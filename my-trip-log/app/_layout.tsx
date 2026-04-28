@@ -220,6 +220,39 @@ export default function RootLayout() {
               animationDuration: 280,
             }}
           />
+          <Stack.Screen
+            name="tickets/index"
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              animationDuration: 280,
+            }}
+          />
+          <Stack.Screen
+            name="tickets/new"
+            options={{
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              animationDuration: 300,
+            }}
+          />
+          <Stack.Screen
+            name="tickets/[id]/index"
+            options={{
+              presentation: 'card',
+              animation: 'slide_from_right',
+              animationDuration: 280,
+            }}
+          />
+          <Stack.Screen
+            name="tickets/[id]/preview"
+            options={{
+              presentation: 'fullScreenModal',
+              animation: 'fade',
+              animationDuration: 200,
+              contentStyle: { backgroundColor: '#000' },
+            }}
+          />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

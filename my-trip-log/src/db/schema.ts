@@ -4,7 +4,7 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
@@ -165,6 +165,27 @@ CREATE TABLE IF NOT EXISTS app_meta (
   value TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+-- 여행 티켓 (보딩패스, 입장권, 공연 티켓 등)
+CREATE TABLE IF NOT EXISTS tickets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  trip_id INTEGER,
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  use_date TEXT,
+  origin TEXT,
+  destination TEXT,
+  seat TEXT,
+  amount REAL,
+  currency TEXT,
+  image_uri TEXT NOT NULL,
+  ocr_text TEXT,
+  memo TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tickets_trip ON tickets(trip_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_use_date ON tickets(use_date);
 `;
 
 // 기존 사용자를 위한 마이그레이션 (신규 설치는 위 CREATE_TABLES_SQL로 처리됨)
@@ -194,6 +215,30 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       ALTER TABLE user ADD COLUMN agree_disclaimer INTEGER DEFAULT 0;
     `,
   },
+  {
+    version: 5,
+    sql: `
+      CREATE TABLE IF NOT EXISTS tickets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id INTEGER,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        use_date TEXT,
+        origin TEXT,
+        destination TEXT,
+        seat TEXT,
+        amount REAL,
+        currency TEXT,
+        image_uri TEXT NOT NULL,
+        ocr_text TEXT,
+        memo TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE SET NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_tickets_trip ON tickets(trip_id);
+      CREATE INDEX IF NOT EXISTS idx_tickets_use_date ON tickets(use_date);
+    `,
+  },
 ];
 
 // 카테고리 상수 (entertainment 추가 - receiptParser와 일관성)
@@ -215,6 +260,15 @@ export const TRIP_ITEM_CATEGORIES = [
   { key: 'accommodation', label: '숙소', icon: '🏨' },
   { key: 'transport', label: '이동', icon: '🚇' },
   { key: 'shopping', label: '쇼핑', icon: '🛍️' },
+  { key: 'other', label: '기타', icon: '📌' },
+] as const;
+
+export const TICKET_CATEGORIES = [
+  { key: 'flight', label: '비행', icon: '✈️' },
+  { key: 'train', label: '기차', icon: '🚄' },
+  { key: 'bus', label: '버스', icon: '🚌' },
+  { key: 'attraction', label: '입장권', icon: '🎫' },
+  { key: 'show', label: '공연', icon: '🎭' },
   { key: 'other', label: '기타', icon: '📌' },
 ] as const;
 

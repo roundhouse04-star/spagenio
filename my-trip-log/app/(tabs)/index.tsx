@@ -160,6 +160,7 @@ export default function HomeScreen() {
           <QuickButton icon="🚇" label="교통" onPress={() => router.push('/(tabs)/tools')} styles={styles} />
           <QuickButton icon="📝" label="새 기록" onPress={() => router.push('/trips/new')} styles={styles} />
           <QuickButton icon="📋" label="체크리스트" onPress={() => router.push('/(tabs)/trips')} styles={styles} />
+          <QuickButton icon="🎫" label="티켓관리" onPress={() => router.push('/tickets')} styles={styles} />
         </View>
       </ScrollView>
     </SafeAreaView>
