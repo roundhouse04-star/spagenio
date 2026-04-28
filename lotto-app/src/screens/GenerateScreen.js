@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import GameCard from '../components/GameCard';
 import { generateGames, weightsSum } from '../lib/lottoEngine';
-import { fetchRecentHistory } from '../lib/lottoApi';
+import { fetchAllHistory } from '../lib/lottoApi';
 import { loadWeights } from '../lib/storage';
 import { addPickEntry } from '../lib/storage';
 import { theme } from '../lib/theme';
@@ -32,7 +32,8 @@ export default function GenerateScreen() {
   const reload = useCallback(async () => {
     const w = await loadWeights();
     setAlgos(w);
-    const { latest, history: rows } = await fetchRecentHistory(80);
+    // 1회 ~ 최신회차 전체로 분석 (번들 + 캐시로 즉시 로드)
+    const { latest, history: rows } = await fetchAllHistory();
     setLatestRound(latest);
     setHistory(rows.map((r) => r.numbers));
   }, []);
@@ -162,7 +163,7 @@ export default function GenerateScreen() {
       <View style={styles.headerCard}>
         <Text style={styles.headerTitle}>🍀 스마트 로또 추천</Text>
         <Text style={styles.headerSub}>
-          최신 {latestRound ?? '?'}회 · 분석 {history.length}회차 기반
+          최신 {latestRound ?? '?'}회 · 전체 {history.length}회차 분석
         </Text>
         <Text style={styles.headerSub}>
           가중치 합계: {weightsSum(algos)}%

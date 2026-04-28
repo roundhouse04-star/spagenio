@@ -11,7 +11,7 @@ import {
 import { loadTelegramConfig, sendTelegramFromConfig, formatLottoMessage } from './telegram';
 import { ensureNotificationReady } from './notifications';
 import { generateGames, weightsSum, evaluateRank } from './lottoEngine';
-import { fetchRecentHistory, fetchRound, detectLatestRound } from './lottoApi';
+import { fetchAllHistory, fetchRound, detectLatestRound } from './lottoApi';
 import { loadWeights, loadPurchases, updatePurchase, addPickEntry } from './storage';
 
 const TG_PREFIX = 'lotto-tg-sch-';
@@ -117,7 +117,7 @@ export async function performTelegramAutoSend() {
   if (weightsSum(algos) === 0) throw new Error('알고리즘 가중치 합이 0입니다');
 
   const sch = await loadTelegramSchedule();
-  const { latest, history } = await fetchRecentHistory(80);
+  const { latest, history } = await fetchAllHistory();
   const games = generateGames({ algos, history: history.map((r) => r.numbers), count: sch.count });
 
   const text = formatLottoMessage(games, { round: latest, kind: '자동' });

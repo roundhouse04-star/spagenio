@@ -96,29 +96,60 @@ async function saveCache(map) {
   } catch (e) {}
 }
 
-// 최근 N회차 가져오기 (캐시 우선)
+// 병렬 batch fetch (서버 친화적 + 빠름)
+async function fetchManyParallel(rounds, batchSize = 5) {
+  const out = {};
+  for (let i = 0; i < rounds.length; i += batchSize) {
+    const batch = rounds.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map((n) => fetchOne(n).catch(() => null)));
+    results.forEach((r, j) => { if (r) out[batch[j]] = r; });
+  }
+  return out;
+}
+
+// 최근 N회차 가져오기 (캐시 우선) — 호환성 유지
 export async function fetchRecentHistory(count = 50, onProgress) {
   const latest = await detectLatestRound();
   const cache = await loadCache();
-  const results = [];
-  let fetched = 0;
-
+  const missing = [];
   for (let drwNo = latest; drwNo > Math.max(0, latest - count); drwNo--) {
-    if (cache[drwNo]) {
-      results.push(cache[drwNo]);
-    } else {
-      const r = await fetchOne(drwNo);
-      if (r) {
-        cache[drwNo] = r;
-        results.push(r);
-        fetched += 1;
-      }
-    }
-    if (onProgress) onProgress({ done: latest - drwNo + 1, total: count, latest });
+    if (!cache[drwNo]) missing.push(drwNo);
   }
-
-  if (fetched > 0) await saveCache(cache);
+  if (missing.length > 0) {
+    const fetched = await fetchManyParallel(missing);
+    Object.assign(cache, fetched);
+    await saveCache(cache);
+  }
+  const results = [];
+  for (let drwNo = latest; drwNo > Math.max(0, latest - count); drwNo--) {
+    if (cache[drwNo]) results.push(cache[drwNo]);
+  }
+  if (onProgress) onProgress({ done: count, total: count, latest });
   results.sort((a, b) => a.drwNo - b.drwNo);
+  return { latest, history: results };
+}
+
+// 1회 ~ 최신회차 전부 가져오기 (스마트 추천 분석용 — 모든 회차 분석)
+// 번들에 거의 전부 들어있으므로 첫 호출도 즉시
+export async function fetchAllHistory(onProgress) {
+  const latest = await detectLatestRound();
+  const cache = await loadCache();
+  // 누락 회차만 fetch (보통 번들 이후 1~3회 추가)
+  const missing = [];
+  for (let n = 1; n <= latest; n++) {
+    if (!cache[n]) missing.push(n);
+  }
+  if (missing.length > 0) {
+    if (onProgress) onProgress({ stage: 'fetching', missing: missing.length });
+    const fetched = await fetchManyParallel(missing);
+    Object.assign(cache, fetched);
+    await saveCache(cache);
+  }
+  const results = [];
+  for (let n = 1; n <= latest; n++) {
+    if (cache[n]) results.push(cache[n]);
+  }
+  if (onProgress) onProgress({ stage: 'done', total: results.length });
   return { latest, history: results };
 }
 
