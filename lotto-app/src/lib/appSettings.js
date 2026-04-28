@@ -19,7 +19,7 @@ const KEYS = {
 };
 
 // 현재 약관 버전 — 약관 본문이 실질적으로 바뀔 때 ↑ 시 사용자 재동의 트리거
-export const CURRENT_TERMS_VERSION = '1.0';
+export const CURRENT_TERMS_VERSION = '1.1';
 
 export async function loadAppSettings() {
   const [tg, push] = await Promise.all([

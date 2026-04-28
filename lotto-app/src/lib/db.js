@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_ALGOS } from './lottoEngine';
 
 const DB_NAME = 'spagenio_lotto.db';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 let _dbPromise = null;
 
@@ -77,6 +77,16 @@ async function runMigrations(db) {
     try {
       await db.execAsync(`ALTER TABLE picks ADD COLUMN source TEXT DEFAULT 'manual'`);
     } catch (e) { /* 이미 존재할 수 있음 */ }
+  }
+
+  if (current < 3) {
+    // v2 → v3: 알고리즘이 8개 → 2개(carryover, zone)로 축소
+    //   - 백테스트 결과 freq/hot/cold/balance/ac/prime/delta/recent5Hot 모두 비유의 → 제거
+    //   - 옛 carryover/zone default(0/10)도 함께 정리해 새 default(60/40) 적용 보장
+    //   - 알고리즘 가중치는 슬라이더로 다시 조정 가능 (사용자 데이터인 picks/purchases는 안 건드림)
+    try {
+      await db.runAsync(`DELETE FROM algo_weights`);
+    } catch (e) { /* 무시 */ }
   }
 
   if (current < SCHEMA_VERSION) {

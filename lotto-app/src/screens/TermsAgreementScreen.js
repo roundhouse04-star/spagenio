@@ -148,7 +148,7 @@ export default function TermsAgreementScreen({ onAgreed, onShowDetails }) {
           <Text style={styles.noticeTitle}>⚠️ 중요 안내</Text>
           <Text style={styles.noticeTxt}>
             본 앱이 제공하는 추천 번호는{' '}
-            <Text style={styles.bold}>통계 분석에 기반한 참고용</Text>이며 당첨을 보장하지 않습니다.
+            <Text style={styles.bold}>참고용</Text>이며 당첨을 보장하지 않습니다.
             로또 구매 및 결과는 전적으로 사용자의 판단과 책임이며, 본 앱은 어떠한 법적 책임도 지지 않습니다.
             도박 중독이 의심되면 한국도박문제예방치유원(
             <Text style={styles.link} onPress={() => Linking.openURL('tel:1336')}>1336</Text>

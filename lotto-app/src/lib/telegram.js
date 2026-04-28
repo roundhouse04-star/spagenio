@@ -57,5 +57,5 @@ export function formatLottoMessage(games, { round, kind = '추천' } = {}) {
     .map((g, i) => `${i + 1}게임 *${g.numbers.map((n) => String(n).padStart(2, '0')).join(', ')}*`)
     .join('\n');
   const head = `🍀 *로또 ${kind}번호*\n📅 ${today}` + (round ? ` · 기준 ${round}회` : '');
-  return `${head}\n\n${lines}\n\n📊 알고리즘 가중치 기반 추천`;
+  return `${head}\n\n${lines}`;
 }

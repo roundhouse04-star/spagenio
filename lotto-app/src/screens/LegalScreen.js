@@ -41,9 +41,9 @@ export default function LegalScreen({ navigation }) {
 
       <Section title="❗ 면책 조항 (Disclaimer)">
         <P em>
-          본 앱은 통계적 분석에 기반한 로또 번호 추천 서비스를 제공하며, 어떠한 형태의 당첨도 보장하지 않습니다.
+          본 앱은 로또 번호 추천 서비스를 제공하며, 어떠한 형태의 당첨도 보장하지 않습니다.
         </P>
-        <Bullet>본 앱이 제공하는 모든 추천 번호는 과거 회차 데이터를 분석한 통계적 참고용 정보일 뿐, 미래의 당첨을 예측하거나 보장하지 않습니다.</Bullet>
+        <Bullet>본 앱이 제공하는 모든 추천 번호는 과거 회차 데이터를 참고하여 생성한 참고용 정보일 뿐, 미래의 당첨을 예측하거나 보장하지 않습니다.</Bullet>
         <Bullet>로또 복권 구매 및 그에 따른 결과는 전적으로 사용자 본인의 자유 의사와 판단에 의한 것이며, 본 앱은 어떠한 법적 책임도 지지 않습니다.</Bullet>
         <Bullet>사용자가 본 앱의 추천 번호로 복권을 구매하여 발생한 금전적 손실, 심리적 손실, 시간적 손실 등 일체의 손해에 대해 본 앱 및 개발자는 책임지지 않습니다.</Bullet>
         <Bullet>본 앱은 사행성을 조장하지 않으며, 책임감 있는 복권 이용을 권장합니다.</Bullet>
@@ -95,13 +95,13 @@ export default function LegalScreen({ navigation }) {
       <Section title="🔄 약관 변경">
         <Bullet>본 약관은 법령 또는 서비스 변경에 따라 사전 통보 없이 갱신될 수 있습니다.</Bullet>
         <Bullet>변경된 약관은 앱 업데이트 후 본 화면에서 확인할 수 있습니다.</Bullet>
-        <Bullet>최종 갱신일: 2026-04-28</Bullet>
+        <Bullet>최종 갱신일: 2026-04-28 (v1.1)</Bullet>
       </Section>
 
       <View style={styles.footer}>
         <Text style={styles.footerTitle}>📌 요약</Text>
         <Text style={styles.footerTxt}>
-          본 앱이 제공하는 추천 번호는 <Text style={styles.bold}>참고용 통계 정보</Text>입니다.
+          본 앱이 제공하는 추천 번호는 <Text style={styles.bold}>참고용 정보</Text>입니다.
           {'\n'}로또 구매 및 그에 따른 모든 결과는 <Text style={styles.bold}>사용자 본인의 판단과 책임</Text>입니다.
           {'\n'}본 앱은 <Text style={styles.bold}>당첨을 보장하지 않으며</Text> 어떠한 손실에 대해서도 <Text style={styles.bold}>법적 책임을 지지 않습니다</Text>.
         </Text>

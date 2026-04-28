@@ -74,7 +74,6 @@ export default function WeightsScreen() {
             <Text style={styles.cardTitle}>{a.name}</Text>
             <Text style={styles.cardWeight}>{a.weight}%</Text>
           </View>
-          <Text style={styles.cardDesc}>{a.desc}</Text>
           <Slider
             style={styles.slider}
             minimumValue={0}

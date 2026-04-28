@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import GameCard from '../components/GameCard';
-import { generateGames, generateAutoCarryover, weightsSum } from '../lib/lottoEngine';
+import { generateGames, generateAuto, weightsSum } from '../lib/lottoEngine';
 import { fetchAllHistory } from '../lib/lottoApi';
 import { loadWeights } from '../lib/storage';
 import { addPickEntry } from '../lib/storage';
@@ -17,7 +17,7 @@ import { sendLocalLottoNotification } from '../lib/notifications';
 const COUNT_OPTIONS = [1, 3, 5, 10];
 
 export default function GenerateScreen({ route }) {
-  // 모드: 'auto' (자동추천 — carryover 프리셋) | 'algo' (알고리즘 추천 — 사용자 가중치)
+  // 모드: 'auto' (자동추천 — carryover 고정 프리셋) | 'algo' (알고리즘 추천 — 사용자 가중치)
   const mode = route?.params?.mode === 'algo' ? 'algo' : 'auto';
   const isAuto = mode === 'auto';
 
@@ -103,12 +103,12 @@ export default function GenerateScreen({ route }) {
     }
   };
 
-  // [🎯 자동추천] — 전주 번호 기반 + hot 임계치 1~2 랜덤 (carryover 프리셋)
+  // [🎯 자동추천] — carryover 고정 프리셋 (사용자 가중치 무시)
   const onAutoRecommend = async () => {
     setGenerating(true);
     setAutoStatus(null);
     setTimeout(async () => {
-      const { games: result, meta } = generateAutoCarryover({ history, count });
+      const { games: result, meta } = generateAuto({ history, count });
       setGames(result);
       setGenerating(false);
       // 자동 저장
@@ -186,11 +186,6 @@ export default function GenerateScreen({ route }) {
         </Text>
         <Text style={styles.headerSub}>
           최신 {latestRound ?? '?'}회 · 전체 {history.length}회차 분석
-        </Text>
-        <Text style={styles.headerSub}>
-          {isAuto
-            ? '전주번호 강조 + hot 임계치 1~2 랜덤 (고정 프리셋)'
-            : `사용자 가중치 ${weightsSum(algos)}% 적용`}
         </Text>
         {(autoTg || autoPush) && (
           <View style={styles.autoBadgeRow}>

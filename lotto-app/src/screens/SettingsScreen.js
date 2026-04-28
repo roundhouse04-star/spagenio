@@ -281,7 +281,6 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.navEmoji}>⚙️</Text>
         <View style={{ flex: 1 }}>
           <Text style={styles.navTitle}>알고리즘 가중치</Text>
-          <Text style={styles.navSub}>8개 알고리즘 비중 조정 (freq · hot · cold · ...)</Text>
         </View>
         <Text style={styles.navChevron}>›</Text>
       </Pressable>
@@ -293,7 +292,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={{ flex: 1 }}>
             <Text style={styles.toggleTitle}>📲 텔레그램 자동발송</Text>
             <Text style={styles.toggleSub}>
-              스케줄 시각에 스마트 자동추천 → 텔레그램 발송
+              스케줄 시각에 자동추천 → 텔레그램 발송
             </Text>
           </View>
           <Switch
@@ -556,7 +555,7 @@ export default function SettingsScreen({ navigation }) {
       <View style={styles.legalNotice}>
         <Text style={styles.legalNoticeTitle}>⚠️ 면책 안내</Text>
         <Text style={styles.legalNoticeTxt}>
-          본 앱이 제공하는 추천 번호는 <Text style={{ fontWeight: '800' }}>통계 분석에 기반한 참고용</Text>이며,
+          본 앱이 제공하는 추천 번호는 <Text style={{ fontWeight: '800' }}>참고용</Text>이며,
           당첨을 보장하지 않습니다. 로또 구매 및 결과는 전적으로 사용자의 판단과 책임이며,
           본 앱은 <Text style={{ fontWeight: '800' }}>어떠한 법적 책임도 지지 않습니다</Text>.
         </Text>

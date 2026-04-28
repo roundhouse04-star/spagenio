@@ -160,11 +160,11 @@ export default function HomeScreen({ navigation }) {
       <Text style={styles.section}>번호 생성기</Text>
       <View style={styles.grid}>
         <MenuTile
-          emoji="🎯" title="자동추천" subtitle="전주번호 강조 + 랜덤"
+          emoji="🎯" title="자동추천"
           color="#e0e7ff" onPress={() => go('Generate', { mode: 'auto' })}
         />
         <MenuTile
-          emoji="⚙️" title="알고리즘 추천" subtitle="가중치 기반 분석"
+          emoji="⚙️" title="알고리즘 추천"
           color="#f3e8ff" onPress={() => go('Generate', { mode: 'algo' })}
         />
       </View>

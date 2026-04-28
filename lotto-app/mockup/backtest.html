@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>알고리즘별 단독 백테스트 — trials=100</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif; background: #f8fafc; padding: 20px; max-width: 1100px; margin: 0 auto; }
+  h1 { color: #111827; font-size: 24px; }
+  h2 { color: #6366f1; font-size: 18px; margin-top: 28px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+  .meta { background: #eef2ff; border: 1px solid #6366f1; padding: 12px 16px; border-radius: 10px; color: #4338ca; font-size: 13px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #f9fafb; color: #6b7280; font-weight: 700; font-size: 12px; }
+  .row-validated { background: #ecfdf5; }
+  .row-validated td:first-child { font-weight: 800; color: #065f46; }
+  .row-legacy td:first-child { color: #6b7280; }
+  .row-default { background: #fef3c7; font-weight: 700; }
+  .row-default td:first-child { color: #92400e; }
+  .row-random { background: #f3f4f6; font-weight: 700; }
+  .row-random td:first-child { color: #6b7280; }
+  .num { font-family: 'SF Mono', monospace; font-weight: 700; }
+  .pos { color: #10b981; font-weight: 800; }
+  .neg { color: #ef4444; font-weight: 800; }
+  .neutral { color: #6b7280; }
+  .legend { display:flex;gap:16px;font-size:12px;margin-bottom:8px;flex-wrap:wrap; }
+  .legend span { padding: 4px 10px; border-radius: 6px; }
+  .leg-validated { background: #ecfdf5; color: #065f46; }
+  .leg-legacy { background: #fff; border: 1px solid #e5e7eb; color: #6b7280; }
+  .leg-default { background: #fef3c7; color: #92400e; }
+  .leg-random { background: #f3f4f6; color: #6b7280; }
+  .small { font-size: 11px; color: #9ca3af; }
+</style>
+</head>
+<body>
+  <h1>🧪 알고리즘별 단독 백테스트 결과</h1>
+  <div class="meta">
+    <b>실험 설계:</b> 매 알고리즘을 weight=100, 다른 9개는 weight=0으로 설정해 단독 효과 측정<br>
+    <b>샘플:</b> 60,500게임/시나리오 (121회 × 5게임 × 100 trials)<br>
+    <b>코드 변경:</b> DEFAULT_ALGOS 그대로 (런타임 임시 override)<br>
+    <b>이론값:</b> 5등 1357.7회 (2.244%) · 4등 82.56회 (0.137%) · 3등 1.74회 (0.0030%)
+  </div>
+
+  <div class="legend">
+    <span class="leg-validated">✅ 데이터 검증 알고리즘 (recent5Hot, carryover)</span>
+    <span class="leg-legacy">⚪ 미검증 (원본 spagenio)</span>
+    <span class="leg-default">📦 DEFAULT 기본 mix</span>
+    <span class="leg-random">🎲 랜덤 (대조군)</span>
+  </div>
+
+  <h2>📊 등수별 적중 비교</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>시나리오 (단독 100%)</th>
+        <th>1등</th><th>2등</th><th>3등</th>
+        <th>4등</th><th>4등 z</th>
+        <th>5등</th><th>5등 z</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row-legacy">
+          <td>1. 빈도 분석 (freq)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">79</td>
+          <td class="num neutral">+0.93σ</td>
+          <td class="num">1355</td>
+          <td class="num neutral">-0.49σ</td>
+        </tr><tr class="row-legacy">
+          <td>2. 핫넘버 (hot)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">69</td>
+          <td class="num neutral">+0.16σ</td>
+          <td class="num">1270</td>
+          <td class="num neg">-2.14σ</td>
+        </tr><tr class="row-legacy">
+          <td>3. 미출현 주기 (cold)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">81</td>
+          <td class="num neutral">+1.09σ</td>
+          <td class="num">1324</td>
+          <td class="num neutral">-1.09σ</td>
+        </tr><tr class="row-legacy">
+          <td>4. 홀짝 균형 (balance)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">83</td>
+          <td class="num neutral">+1.25σ</td>
+          <td class="num">1304</td>
+          <td class="num neutral">-1.48σ</td>
+        </tr><tr class="row-legacy">
+          <td>5. 구간 분포 (zone)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">94</td>
+          <td class="num pos">+2.10σ</td>
+          <td class="num">1294</td>
+          <td class="num neutral">-1.67σ</td>
+        </tr><tr class="row-legacy">
+          <td>6. AC값 최적화 (ac)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">82</td>
+          <td class="num neutral">+1.17σ</td>
+          <td class="num">1369</td>
+          <td class="num neutral">-0.21σ</td>
+        </tr><tr class="row-legacy">
+          <td>7. 소수 패턴 (prime)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">83</td>
+          <td class="num neutral">+1.25σ</td>
+          <td class="num">1319</td>
+          <td class="num neutral">-1.18σ</td>
+        </tr><tr class="row-legacy">
+          <td>8. 델타 시퀀스 (delta)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">83</td>
+          <td class="num neutral">+1.25σ</td>
+          <td class="num">1247</td>
+          <td class="num neg">-2.58σ</td>
+        </tr><tr class="row-validated">
+          <td>9. 단기 핫넘버 (recent5Hot)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">83</td>
+          <td class="num neutral">+1.25σ</td>
+          <td class="num">1451</td>
+          <td class="num neutral">+1.38σ</td>
+        </tr><tr class="row-validated">
+          <td>10. 전주 이월 (carryover)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">103</td>
+          <td class="num pos">+2.80σ</td>
+          <td class="num">1386</td>
+          <td class="num neutral">+0.12σ</td>
+        </tr><tr class="row-default">
+          <td>📦 DEFAULT_ALGOS (현재 기본 mix)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">69</td>
+          <td class="num neutral">+0.16σ</td>
+          <td class="num">1305</td>
+          <td class="num neutral">-1.46σ</td>
+        </tr><tr class="row-random">
+          <td>🎲 순수 랜덤 (대조군)</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">67</td>
+          <td class="num neutral">—</td>
+          <td class="num">1380</td>
+          <td class="num neutral">—</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <h2>📈 4등 적중 — 시각 비교</h2>
+  <p class="small">이론값: 82.56회 (60,500게임 × 0.137%) · 막대 길이 = 적중 횟수</p>
+  <div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">1. 빈도 분석 (freq)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:76.7%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">79</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+0.93σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">2. 핫넘버 (hot)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:67.0%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">69</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+0.16σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">3. 미출현 주기 (cold)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:78.6%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">81</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.09σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">4. 홀짝 균형 (balance)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:80.6%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">83</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.25σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">5. 구간 분포 (zone)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:91.3%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">94</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#10b981;">+2.10σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">6. AC값 최적화 (ac)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:79.6%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">82</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.17σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">7. 소수 패턴 (prime)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:80.6%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">83</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.25σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">8. 델타 시퀀스 (delta)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:80.6%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">83</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.25σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">9. 단기 핫넘버 (recent5Hot)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#10b981;height:22px;width:80.6%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">83</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.25σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">10. 전주 이월 (carryover)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#10b981;height:22px;width:100.0%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">103</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#10b981;">+2.80σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">📦 DEFAULT_ALGOS (현재 기본 mix)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#f59e0b;height:22px;width:67.0%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">69</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+0.16σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">🎲 순수 랜덤 (대조군)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#9ca3af;height:22px;width:65.0%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">67</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">기준</div>
+    </div>
+
+  <h2>📈 5등 적중 — 시각 비교</h2>
+  <p class="small">이론값: 1357.7회 (60,500게임 × 2.244%)</p>
+  <div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">1. 빈도 분석 (freq)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:93.4%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1355</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-0.49σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">2. 핫넘버 (hot)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:87.5%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1270</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#ef4444;">-2.14σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">3. 미출현 주기 (cold)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:91.2%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1324</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-1.09σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">4. 홀짝 균형 (balance)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:89.9%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1304</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-1.48σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">5. 구간 분포 (zone)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:89.2%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1294</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-1.67σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">6. AC값 최적화 (ac)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:94.3%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1369</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-0.21σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">7. 소수 패턴 (prime)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:90.9%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1319</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-1.18σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">8. 델타 시퀀스 (delta)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#6366f1;height:22px;width:85.9%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1247</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#ef4444;">-2.58σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">9. 단기 핫넘버 (recent5Hot)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#10b981;height:22px;width:100.0%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1451</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+1.38σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">10. 전주 이월 (carryover)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#10b981;height:22px;width:95.5%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1386</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">+0.12σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">📦 DEFAULT_ALGOS (현재 기본 mix)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#f59e0b;height:22px;width:89.9%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1305</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">-1.46σ</div>
+    </div><div style="margin:6px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:200px;font-size:12px;font-weight:700;">🎲 순수 랜덤 (대조군)</div>
+      <div style="flex:1;background:#f3f4f6;border-radius:4px;height:22px;position:relative;">
+        <div style="background:#9ca3af;height:22px;width:95.1%;border-radius:4px;color:#fff;text-align:right;padding:0 8px;line-height:22px;font-weight:700;font-size:11px;">1380</div>
+      </div>
+      <div style="width:80px;text-align:right;font-size:11px;font-weight:700;color:#6b7280;">기준</div>
+    </div>
+
+  <h2>🔍 판정 기준</h2>
+  <ul style="font-size:13px;color:#374151;line-height:1.8;">
+    <li><b>|z| > 1.96</b> → 95% 신뢰수준 유의 (p < 0.05)</li>
+    <li><b>|z| > 2.58</b> → 99% 신뢰수준 유의 (p < 0.01)</li>
+    <li><b>z 부호</b>: + 는 랜덤보다 높음, − 는 낮음</li>
+    <li><b>4등 (4개 일치)</b>이 더 민감한 척도 (5등은 노이즈가 큼)</li>
+  </ul>
+
+  <div style="margin-top:20px;font-size:11px;color:#9ca3af;text-align:center;">
+    생성: 2026. 4. 28. PM 7:30:42 · trials=100 · 726,000게임 총 시뮬
+  </div>
+</body>
+</html>
