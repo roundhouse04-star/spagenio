@@ -12,6 +12,7 @@ export const DEFAULT_ALGOS = [
   { id: 'delta',      name: '델타 시퀀스',     weight: 10, desc: '간격 패턴 반영' },
   // 신규: 1221회 데이터 분석 결과 "직전 5회 중 3+ 출현" 번호의 다음 회차 출현률 +9.7% 신호
   { id: 'recent5Hot', name: '단기 핫넘버',     weight: 5,  desc: '직전 5회 중 3번 이상 나온 번호 (실데이터 +10%)' },
+  { id: 'carryover',  name: '전주 이월',       weight: 0,  desc: '직전 회차에 나온 번호 강조 (자동추천 핵심)' },
 ];
 
 const PRIME_SET = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
@@ -99,16 +100,17 @@ function makeFrequencyContext(history) {
 }
 
 function getNumberScore(n, ctx) {
-  const { algos, dbWeights, streakCache, freqCtx } = ctx;
+  const { algos, dbWeights, streakCache, freqCtx, hotThreshold = 2, carryoverSet } = ctx;
   const dbW = dbWeights[n] || 1.0;
   const streakMul = streakCache ? (streakCache[n] || 1.0) : 1.0;
   let score = dbW * streakMul;
 
   const { recentFreq, recent5Freq, totalFreq, avgFreq } = freqCtx;
-  const isHot = (recentFreq[n] || 0) >= 2;
+  const isHot = (recentFreq[n] || 0) >= hotThreshold;  // 자동추천에선 1 또는 2 랜덤
   const isCold = (recentFreq[n] || 0) === 0;
   const freqRatio = (totalFreq[n] || 0) / avgFreq;
   const recent5Count = recent5Freq?.[n] || 0;
+  const isCarryover = carryoverSet?.has(n) || false;
 
   for (const algo of algos) {
     if (algo.weight <= 0) continue;
@@ -142,6 +144,10 @@ function getNumberScore(n, ctx) {
         // 출현 횟수에 비례해 더 많이 부스트 (3→0.07, 4→0.14, 5→0.21)
         if (recent5Count >= 3) score += algo.weight * 0.07 * (recent5Count - 2);
         break;
+      case 'carryover':
+        // 직전 회차 6번호에 가산 (자동추천 모드의 핵심)
+        if (isCarryover) score += algo.weight * 0.07;
+        break;
     }
   }
   return score;
@@ -171,11 +177,14 @@ function generateOneGame(ctx) {
 }
 
 // 실제 호출: 알고리즘 가중치 + 회차 history → games 배열 (배치 내 중복 제거)
-export function generateGames({ algos, history, count = 5 }) {
+// hotThreshold: 'hot' 알고리즘이 활성화되는 출현 횟수 임계값 (기본 2, 자동추천에선 1~2 랜덤)
+// carryoverNumbers: 직전 회차 본번호 6개 (carryover 알고리즘용)
+export function generateGames({ algos, history, count = 5, hotThreshold = 2, carryoverNumbers }) {
   const dbWeights = buildDbWeights(history);
   const streakCache = buildStreakCache(history);
   const freqCtx = makeFrequencyContext(history);
-  const ctx = { algos, dbWeights, streakCache, freqCtx };
+  const carryoverSet = carryoverNumbers ? new Set(carryoverNumbers) : null;
+  const ctx = { algos, dbWeights, streakCache, freqCtx, hotThreshold, carryoverSet };
 
   const games = [];
   const seen = new Set();
@@ -192,6 +201,32 @@ export function generateGames({ algos, history, count = 5 }) {
     games.push(g);
   }
   return games;
+}
+
+// ── 자동추천 모드 ──
+// 전주 번호를 강조하는 프리셋 + hot 임계치 1 또는 2 랜덤 + 사용자 가중치 무시
+// 사용처: GenerateScreen 의 [🎯 자동추천] 버튼
+export function generateAutoCarryover({ history, count = 5 }) {
+  const presetAlgos = [
+    { id: 'freq',       weight: 5 },
+    { id: 'hot',        weight: 25 },
+    { id: 'cold',       weight: 5 },
+    { id: 'balance',    weight: 10 },
+    { id: 'zone',       weight: 5 },
+    { id: 'ac',         weight: 5 },
+    { id: 'prime',      weight: 0 },
+    { id: 'delta',      weight: 5 },
+    { id: 'recent5Hot', weight: 10 },
+    { id: 'carryover',  weight: 30 },  // 핵심: 전주 6번호에 큰 가산
+  ];
+  // hot 임계치 1 또는 2 랜덤 (50:50)
+  const hotThreshold = Math.random() < 0.5 ? 1 : 2;
+  // 직전 회차 본번호
+  const carryoverNumbers = history.length > 0 ? history[history.length - 1] : [];
+  return {
+    games: generateGames({ algos: presetAlgos, history, count, hotThreshold, carryoverNumbers }),
+    meta: { hotThreshold, carryoverNumbers },
+  };
 }
 
 // 가중치 합계 검증

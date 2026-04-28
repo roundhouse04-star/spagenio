@@ -324,13 +324,24 @@
       </div>
     </div>
 
-    <div class="primary-btn" style="margin-top:12px">🎯 번호 추천 받기</div>
-    <div style="display:flex;gap:6px">
-      <div class="secondary-btn" style="flex:1">💾 저장</div>
-      <div class="secondary-btn" style="flex:1">📲 텔레그램</div>
+    <div style="display:flex;gap:6px;margin-top:12px">
+      <div style="flex:1;background:#6366f1;color:#fff;padding:11px;border-radius:11px;text-align:center">
+        <div style="font-weight:900;font-size:13px">🎯 자동추천</div>
+        <div style="font-size:9px;opacity:0.85;margin-top:1px;font-weight:600">전주번호 기반 + 랜덤</div>
+      </div>
+      <div style="flex:1;background:#fff;border:2px solid #6366f1;color:#6366f1;padding:10px;border-radius:11px;text-align:center">
+        <div style="font-weight:900;font-size:13px">⚙️ 알고리즘 추천</div>
+        <div style="font-size:9px;opacity:0.85;margin-top:1px;font-weight:600">가중치 (105%)</div>
+      </div>
     </div>
 
-    <div style="margin-top:10px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px;color:#0e7490;font-size:10px;font-weight:700">
+    <div class="secondary-btn" style="margin-top:8px">📲 텔레그램으로 발송</div>
+
+    <div style="margin-top:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:9px;text-align:center">
+      <div style="color:#065f46;font-size:10px;font-weight:700">✓ 자동 저장됨 — [추천번호 확인]에서 회차별로 확인 가능</div>
+    </div>
+
+    <div style="margin-top:8px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px;color:#0e7490;font-size:10px;font-weight:700">
       ✅ 텔레그램 발송 완료<br>
       🔔 알림 표시됨
     </div>
@@ -762,11 +773,12 @@
       <div style="font-size:11px;color:#6b7280;margin-top:2px">가중치 기반 추천 모음 · 자동발송 + 직접저장 통합</div>
     </div>
 
-    <!-- 필터 chip -->
-    <div style="display:flex;gap:5px;margin-bottom:10px">
-      <div style="padding:6px 12px;border-radius:999px;background:#6366f1;color:#fff;font-size:11px;font-weight:700">전체 15</div>
-      <div style="padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;color:#6b7280;font-size:11px;font-weight:700">🚀 자동 10</div>
-      <div style="padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;color:#6b7280;font-size:11px;font-weight:700">💾 직접 5</div>
+    <!-- 필터 chip (가로 스크롤) -->
+    <div style="display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
+      <div style="padding:6px 11px;border-radius:999px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;flex-shrink:0">전체 15</div>
+      <div style="padding:6px 11px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;color:#6b7280;font-size:11px;font-weight:700;flex-shrink:0">🎯 자동추천 5</div>
+      <div style="padding:6px 11px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;color:#6b7280;font-size:11px;font-weight:700;flex-shrink:0">⚙️ 알고리즘 5</div>
+      <div style="padding:6px 11px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;color:#6b7280;font-size:11px;font-weight:700;flex-shrink:0">🚀 자동발송 5</div>
     </div>
 
     <!-- 회차 그룹: 1221회 -->
@@ -780,7 +792,7 @@
         <div>
           <div style="display:flex;gap:5px;align-items:center">
             <span style="font-size:12px;font-weight:800">1게임</span>
-            <span style="background:#eef2ff;color:#6366f1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">🚀 자동</span>
+            <span style="background:#fff7ed;color:#ea580c;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">🎯 자동추천</span>
           </div>
           <div style="font-size:10px;color:#6b7280;margin-top:2px">04/27 08:30 · 합 161 · 홀짝 4:2</div>
         </div>
@@ -798,7 +810,7 @@
         <div>
           <div style="display:flex;gap:5px;align-items:center">
             <span style="font-size:12px;font-weight:800">2게임</span>
-            <span style="background:#eef2ff;color:#6366f1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">🚀 자동</span>
+            <span style="background:#fff7ed;color:#ea580c;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">🎯 자동추천</span>
           </div>
           <div style="font-size:10px;color:#6b7280;margin-top:2px">04/27 08:30 · 합 137 · 홀짝 3:3</div>
         </div>
@@ -816,7 +828,7 @@
         <div>
           <div style="display:flex;gap:5px;align-items:center">
             <span style="font-size:12px;font-weight:800">3게임</span>
-            <span style="background:#ecfdf5;color:#10b981;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">💾 직접</span>
+            <span style="background:#ecfdf5;color:#10b981;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">⚙️ 알고리즘</span>
           </div>
           <div style="font-size:10px;color:#6b7280;margin-top:2px">04/26 19:42 · 합 138 · 홀짝 5:1</div>
         </div>
@@ -839,7 +851,7 @@
         <div>
           <div style="display:flex;gap:5px;align-items:center">
             <span style="font-size:12px;font-weight:800">1게임</span>
-            <span style="background:#eef2ff;color:#6366f1;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">🚀 자동</span>
+            <span style="background:#fff7ed;color:#ea580c;font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px">🎯 자동추천</span>
           </div>
           <div style="font-size:10px;color:#6b7280;margin-top:2px">04/20 08:30 · 합 124</div>
         </div>

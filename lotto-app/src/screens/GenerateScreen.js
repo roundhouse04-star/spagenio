@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import GameCard from '../components/GameCard';
-import { generateGames, weightsSum } from '../lib/lottoEngine';
+import { generateGames, generateAutoCarryover, weightsSum } from '../lib/lottoEngine';
 import { fetchAllHistory } from '../lib/lottoApi';
 import { loadWeights } from '../lib/storage';
 import { addPickEntry } from '../lib/storage';
@@ -84,19 +84,31 @@ export default function GenerateScreen() {
     return result;
   };
 
-  const onGenerate = async () => {
-    const sum = weightsSum(algos);
-    if (sum === 0) {
-      Alert.alert('가중치 오류', '알고리즘 가중치 합이 0입니다. 설정에서 조정하세요.');
-      return;
+  // 공통: 생성된 게임을 picks DB에 자동 저장 (source 구분)
+  const autoSaveGames = async (gameList, source) => {
+    const ts = Date.now();
+    for (let i = 0; i < gameList.length; i++) {
+      await addPickEntry({
+        id: `${source}_${ts}_${i}`,
+        createdAt: ts + i,
+        baseRound: latestRound,
+        numbers: gameList[i].numbers,
+        meta: gameList[i].meta,
+        source,
+      });
     }
+  };
+
+  // [🎯 자동추천] — 전주 번호 기반 + hot 임계치 1~2 랜덤 (carryover 프리셋)
+  const onAutoRecommend = async () => {
     setGenerating(true);
     setAutoStatus(null);
-    // 다음 프레임에 무거운 계산을 양보 (ScrollView 즉시 응답)
     setTimeout(async () => {
-      const result = generateGames({ algos, history, count });
+      const { games: result, meta } = generateAutoCarryover({ history, count });
       setGames(result);
       setGenerating(false);
+      // 자동 저장
+      await autoSaveGames(result, 'auto');
       // 토글 ON이면 백그라운드에서 자동 발송
       if (autoTg || autoPush) {
         const status = await triggerAutoActions(result);
@@ -105,22 +117,26 @@ export default function GenerateScreen() {
     }, 16);
   };
 
-  const onSaveAll = async () => {
-    if (!games.length) {
-      Alert.alert('알림', '먼저 번호를 생성해주세요.');
+  // [⚙️ 알고리즘 추천] — 사용자가 설정한 가중치로 생성
+  const onAlgoRecommend = async () => {
+    const sum = weightsSum(algos);
+    if (sum === 0) {
+      Alert.alert('가중치 오류', '알고리즘 가중치 합이 0입니다. 설정 → 알고리즘 가중치에서 조정하세요.');
       return;
     }
-    const ts = Date.now();
-    for (let i = 0; i < games.length; i++) {
-      await addPickEntry({
-        id: `${ts}_${i}`,
-        createdAt: ts,
-        baseRound: latestRound,
-        numbers: games[i].numbers,
-        meta: games[i].meta,
-      });
-    }
-    Alert.alert('저장 완료', `${games.length}게임이 '내 번호'에 저장되었습니다.`);
+    setGenerating(true);
+    setAutoStatus(null);
+    setTimeout(async () => {
+      const result = generateGames({ algos, history, count });
+      setGames(result);
+      setGenerating(false);
+      // 자동 저장
+      await autoSaveGames(result, 'algo');
+      if (autoTg || autoPush) {
+        const status = await triggerAutoActions(result);
+        setAutoStatus(status);
+      }
+    }, 16);
   };
 
   const onSendTelegram = async () => {
@@ -191,24 +207,36 @@ export default function GenerateScreen() {
         </View>
       </View>
 
-      <Pressable
-        onPress={onGenerate}
-        disabled={generating}
-        style={[styles.primaryBtn, generating && { opacity: 0.6 }]}
-      >
-        <Text style={styles.primaryBtnText}>
-          {generating ? '생성 중...' : '🎯 번호 추천 받기'}
-        </Text>
-      </Pressable>
+      <View style={styles.dualBtnRow}>
+        <Pressable
+          onPress={onAutoRecommend}
+          disabled={generating}
+          style={[styles.autoBtn, generating && { opacity: 0.6 }]}
+        >
+          <Text style={styles.autoBtnTitle}>{generating ? '생성 중...' : '🎯 자동추천'}</Text>
+          <Text style={styles.autoBtnSub}>전주번호 기반 + 랜덤</Text>
+        </Pressable>
+        <Pressable
+          onPress={onAlgoRecommend}
+          disabled={generating}
+          style={[styles.algoBtn, generating && { opacity: 0.6 }]}
+        >
+          <Text style={styles.algoBtnTitle}>{generating ? '생성 중...' : '⚙️ 알고리즘 추천'}</Text>
+          <Text style={styles.algoBtnSub}>가중치 ({weightsSum(algos)}%)</Text>
+        </Pressable>
+      </View>
 
       {games.length > 0 && (
-        <View style={styles.actionRow}>
-          <Pressable onPress={onSaveAll} style={[styles.secondaryBtn, { flex: 1 }]}>
-            <Text style={styles.secondaryBtnText}>💾 저장</Text>
-          </Pressable>
-          <Pressable onPress={onSendTelegram} style={[styles.secondaryBtn, { flex: 1 }]}>
-            <Text style={styles.secondaryBtnText}>📲 텔레그램</Text>
-          </Pressable>
+        <Pressable onPress={onSendTelegram} style={[styles.secondaryBtn, { marginTop: 8 }]}>
+          <Text style={styles.secondaryBtnText}>📲 텔레그램으로 발송</Text>
+        </Pressable>
+      )}
+
+      {games.length > 0 && (
+        <View style={styles.savedHint}>
+          <Text style={styles.savedHintTxt}>
+            ✓ 자동 저장됨 — [추천번호 확인] 메뉴에서 회차별로 확인 가능
+          </Text>
         </View>
       )}
 
@@ -260,20 +288,28 @@ const styles = StyleSheet.create({
   countBtnActive: { backgroundColor: theme.primary, borderColor: theme.primary },
   countTxt: { color: theme.text, fontWeight: '600' },
   countTxtActive: { color: '#fff' },
-  primaryBtn: {
-    backgroundColor: theme.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 4,
+  dualBtnRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  autoBtn: {
+    flex: 1, backgroundColor: theme.primary, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
   },
-  primaryBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  autoBtnTitle: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  autoBtnSub: { color: 'rgba(255,255,255,0.85)', fontSize: 10, marginTop: 2, fontWeight: '600' },
+  algoBtn: {
+    flex: 1, backgroundColor: '#fff', borderWidth: 2, borderColor: theme.primary,
+    paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+  },
+  algoBtnTitle: { color: theme.primary, fontWeight: '900', fontSize: 14 },
+  algoBtnSub: { color: theme.primary, fontSize: 10, marginTop: 2, fontWeight: '600', opacity: 0.8 },
   secondaryBtn: {
     backgroundColor: '#fff', borderWidth: 1, borderColor: theme.border,
-    paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 8,
+    paddingVertical: 12, borderRadius: 10, alignItems: 'center',
   },
-  actionRow: { flexDirection: 'row', gap: 8 },
   secondaryBtnText: { color: theme.text, fontWeight: '700' },
+  savedHint: {
+    backgroundColor: '#ecfdf5', borderWidth: 1, borderColor: '#a7f3d0',
+    borderRadius: 8, padding: 9, marginTop: 8, alignItems: 'center',
+  },
+  savedHintTxt: { color: '#065f46', fontSize: 11, fontWeight: '700' },
   empty: {
     textAlign: 'center', color: theme.textSub, paddingVertical: 32, fontSize: 14,
   },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, SectionList, Pressable, RefreshControl, Alert,
+  View, Text, StyleSheet, SectionList, Pressable, RefreshControl, Alert, ScrollView,
 } from 'react-native';
 import BannerAdSlot from '../components/BannerAdSlot';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,8 +21,10 @@ const RANK_LABEL = {
 };
 
 const SOURCE_BADGE = {
-  'auto-tg': { txt: '🚀 자동', color: '#6366f1', bg: '#eef2ff' },
-  'manual':  { txt: '💾 직접', color: '#10b981', bg: '#ecfdf5' },
+  'auto-tg': { txt: '🚀 자동발송', color: '#6366f1', bg: '#eef2ff' },
+  'auto':    { txt: '🎯 자동추천',  color: '#ea580c', bg: '#fff7ed' },
+  'algo':    { txt: '⚙️ 알고리즘',  color: '#10b981', bg: '#ecfdf5' },
+  'manual':  { txt: '💾 직접',      color: '#6b7280', bg: '#f3f4f6' },
 };
 
 const formatNumbers = (nums) => nums.map((n) => String(n).padStart(2, '0')).join(', ');
@@ -65,9 +67,11 @@ export default function MyPicksScreen({ navigation }) {
   }, [picks, filter]);
 
   const counts = useMemo(() => {
-    const auto = picks.filter((p) => p.source === 'auto-tg').length;
+    const autoTg = picks.filter((p) => p.source === 'auto-tg').length;
+    const auto = picks.filter((p) => p.source === 'auto').length;
+    const algo = picks.filter((p) => p.source === 'algo').length;
     const manual = picks.filter((p) => p.source === 'manual').length;
-    return { all: picks.length, 'auto-tg': auto, manual };
+    return { all: picks.length, 'auto-tg': autoTg, auto, algo, manual };
   }, [picks]);
 
   const onDelete = (id) => {
@@ -161,11 +165,13 @@ export default function MyPicksScreen({ navigation }) {
             <Text style={styles.headerSub}>가중치 기반 추천 모음 · 자동발송 + 직접저장 통합</Text>
           </View>
 
-          <View style={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             {renderFilterChip('all', '전체')}
-            {renderFilterChip('auto-tg', '🚀 자동')}
+            {renderFilterChip('auto', '🎯 자동추천')}
+            {renderFilterChip('algo', '⚙️ 알고리즘')}
+            {renderFilterChip('auto-tg', '🚀 자동발송')}
             {renderFilterChip('manual', '💾 직접')}
-          </View>
+          </ScrollView>
 
           {picks.length > 0 && (
             <>
