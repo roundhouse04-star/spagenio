@@ -114,6 +114,7 @@ export default function TicketsListScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipScroll}
         contentContainerStyle={styles.chipRow}
       >
         <CategoryChip
@@ -331,11 +332,16 @@ function createStyles(c: ColorPalette) {
       paddingVertical: 0,
     },
     searchClear: { fontSize: 16, color: c.textTertiary, paddingHorizontal: Spacing.xs },
+    chipScroll: {
+      flexGrow: 0,
+      flexShrink: 0,
+    },
     chipRow: {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.md,
       paddingBottom: Spacing.xs,
       gap: Spacing.sm,
+      alignItems: 'center',
     },
     chip: {
       paddingVertical: Spacing.xs,
@@ -344,6 +350,7 @@ function createStyles(c: ColorPalette) {
       borderWidth: 1,
       borderColor: c.border,
       backgroundColor: c.surface,
+      alignSelf: 'center',
     },
     chipActive: { backgroundColor: c.primary, borderColor: c.primary },
     chipText: { fontSize: Typography.labelSmall, color: c.textSecondary },
