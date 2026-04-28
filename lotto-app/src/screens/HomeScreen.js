@@ -156,12 +156,16 @@ export default function HomeScreen({ navigation }) {
         />
       </View>
 
-      {/* 번호생성기 — 스마트 자동추천 */}
+      {/* 번호생성기 — 두 가지 추천 모드 분리 */}
       <Text style={styles.section}>번호 생성기</Text>
       <View style={styles.grid}>
         <MenuTile
-          emoji="🎯" title="자동추천" subtitle="알고리즘 기반 번호 생성"
-          color="#e0e7ff" full onPress={() => go('Generate')}
+          emoji="🎯" title="자동추천" subtitle="전주번호 강조 + 랜덤"
+          color="#e0e7ff" onPress={() => go('Generate', { mode: 'auto' })}
+        />
+        <MenuTile
+          emoji="⚙️" title="알고리즘 추천" subtitle="가중치 기반 분석"
+          color="#f3e8ff" onPress={() => go('Generate', { mode: 'algo' })}
         />
       </View>
 

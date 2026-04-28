@@ -16,7 +16,11 @@ import { sendLocalLottoNotification } from '../lib/notifications';
 
 const COUNT_OPTIONS = [1, 3, 5, 10];
 
-export default function GenerateScreen() {
+export default function GenerateScreen({ route }) {
+  // 모드: 'auto' (자동추천 — carryover 프리셋) | 'algo' (알고리즘 추천 — 사용자 가중치)
+  const mode = route?.params?.mode === 'algo' ? 'algo' : 'auto';
+  const isAuto = mode === 'auto';
+
   const [count, setCount] = useState(5);
   const [games, setGames] = useState([]);
   const [history, setHistory] = useState([]);
@@ -177,12 +181,16 @@ export default function GenerateScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.headerCard}>
-        <Text style={styles.headerTitle}>🍀 스마트 로또 추천</Text>
+        <Text style={styles.headerTitle}>
+          {isAuto ? '🎯 자동추천' : '⚙️ 알고리즘 추천'}
+        </Text>
         <Text style={styles.headerSub}>
           최신 {latestRound ?? '?'}회 · 전체 {history.length}회차 분석
         </Text>
         <Text style={styles.headerSub}>
-          가중치 합계: {weightsSum(algos)}%
+          {isAuto
+            ? '전주번호 강조 + hot 임계치 1~2 랜덤 (고정 프리셋)'
+            : `사용자 가중치 ${weightsSum(algos)}% 적용`}
         </Text>
         {(autoTg || autoPush) && (
           <View style={styles.autoBadgeRow}>
@@ -207,24 +215,15 @@ export default function GenerateScreen() {
         </View>
       </View>
 
-      <View style={styles.dualBtnRow}>
-        <Pressable
-          onPress={onAutoRecommend}
-          disabled={generating}
-          style={[styles.autoBtn, generating && { opacity: 0.6 }]}
-        >
-          <Text style={styles.autoBtnTitle}>{generating ? '생성 중...' : '🎯 자동추천'}</Text>
-          <Text style={styles.autoBtnSub}>전주번호 기반 + 랜덤</Text>
-        </Pressable>
-        <Pressable
-          onPress={onAlgoRecommend}
-          disabled={generating}
-          style={[styles.algoBtn, generating && { opacity: 0.6 }]}
-        >
-          <Text style={styles.algoBtnTitle}>{generating ? '생성 중...' : '⚙️ 알고리즘 추천'}</Text>
-          <Text style={styles.algoBtnSub}>가중치 ({weightsSum(algos)}%)</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={isAuto ? onAutoRecommend : onAlgoRecommend}
+        disabled={generating}
+        style={[styles.primaryBtn, generating && { opacity: 0.6 }]}
+      >
+        <Text style={styles.primaryBtnText}>
+          {generating ? '생성 중...' : (isAuto ? '🎯 자동추천 받기' : '⚙️ 알고리즘 추천 받기')}
+        </Text>
+      </Pressable>
 
       {games.length > 0 && (
         <Pressable onPress={onSendTelegram} style={[styles.secondaryBtn, { marginTop: 8 }]}>
@@ -288,18 +287,11 @@ const styles = StyleSheet.create({
   countBtnActive: { backgroundColor: theme.primary, borderColor: theme.primary },
   countTxt: { color: theme.text, fontWeight: '600' },
   countTxtActive: { color: '#fff' },
-  dualBtnRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  autoBtn: {
-    flex: 1, backgroundColor: theme.primary, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+  primaryBtn: {
+    backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 12,
+    alignItems: 'center', marginTop: 4,
   },
-  autoBtnTitle: { color: '#fff', fontWeight: '900', fontSize: 14 },
-  autoBtnSub: { color: 'rgba(255,255,255,0.85)', fontSize: 10, marginTop: 2, fontWeight: '600' },
-  algoBtn: {
-    flex: 1, backgroundColor: '#fff', borderWidth: 2, borderColor: theme.primary,
-    paddingVertical: 12, borderRadius: 12, alignItems: 'center',
-  },
-  algoBtnTitle: { color: theme.primary, fontWeight: '900', fontSize: 14 },
-  algoBtnSub: { color: theme.primary, fontSize: 10, marginTop: 2, fontWeight: '600', opacity: 0.8 },
+  primaryBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
   secondaryBtn: {
     backgroundColor: '#fff', borderWidth: 1, borderColor: theme.border,
     paddingVertical: 12, borderRadius: 10, alignItems: 'center',
