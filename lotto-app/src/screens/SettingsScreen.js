@@ -91,7 +91,7 @@ export default function SettingsScreen({ navigation }) {
     try {
       await sendTelegramMessage({
         token, chatId,
-        text: '🔔 *스파제니오 로또* 봇 연결 테스트\n정상 수신되면 성공입니다 🍀',
+        text: '🔔 *로또부스터* 봇 연결 테스트\n정상 수신되면 성공입니다 🍀',
       });
       Alert.alert('전송 성공', '텔레그램으로 테스트 메시지가 전송되었습니다.');
     } catch (e) { Alert.alert('전송 실패', e.message); }
@@ -293,7 +293,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={{ flex: 1 }}>
             <Text style={styles.toggleTitle}>📲 텔레그램 자동발송</Text>
             <Text style={styles.toggleSub}>
-              스케줄 시각에 AI 자동추천 → 텔레그램 발송
+              스케줄 시각에 스마트 자동추천 → 텔레그램 발송
             </Text>
           </View>
           <Switch

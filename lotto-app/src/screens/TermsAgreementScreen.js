@@ -102,7 +102,7 @@ export default function TermsAgreementScreen({ onAgreed, onShowDetails }) {
           style={styles.hero}
         >
           <Text style={styles.heroEmoji}>🍀</Text>
-          <Text style={styles.heroTitle}>스파제니오 로또</Text>
+          <Text style={styles.heroTitle}>로또부스터</Text>
           <Text style={styles.heroSub}>이용을 위해 약관 동의가 필요합니다</Text>
         </LinearGradient>
 

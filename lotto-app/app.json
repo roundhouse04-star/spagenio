@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "스파제니오 로또",
-    "slug": "lotto-app",
+    "name": "로또부스터",
+    "slug": "lotto-booster",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

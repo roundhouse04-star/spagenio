@@ -105,7 +105,7 @@ export default function HomeScreen({ navigation }) {
         style={styles.hero}
       >
         <View style={styles.heroTop}>
-          <Text style={styles.heroBrand}>🍀 스파제니오 로또</Text>
+          <Text style={styles.heroBrand}>🍀 로또부스터</Text>
           <CountdownToNextDraw />
         </View>
 
@@ -156,11 +156,11 @@ export default function HomeScreen({ navigation }) {
         />
       </View>
 
-      {/* 번호생성기 — AI 자동추천 */}
+      {/* 번호생성기 — 스마트 자동추천 */}
       <Text style={styles.section}>번호 생성기</Text>
       <View style={styles.grid}>
         <MenuTile
-          emoji="🎯" title="자동추천" subtitle="AI 알고리즘 기반 번호 생성"
+          emoji="🎯" title="자동추천" subtitle="알고리즘 기반 번호 생성"
           color="#e0e7ff" full onPress={() => go('Generate')}
         />
       </View>

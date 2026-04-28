@@ -106,7 +106,7 @@ export async function reapplyWinningAlertSchedule() {
   }
 }
 
-// ── 액션: AI 자동추천 → 텔레그램 발송 ──
+// ── 액션: 스마트 자동추천 → 텔레그램 발송 ──
 export async function performTelegramAutoSend() {
   const tgCfg = await loadTelegramConfig();
   if (!tgCfg.token || !tgCfg.chatId) {

@@ -160,7 +160,7 @@ export default function GenerateScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.headerCard}>
-        <Text style={styles.headerTitle}>🍀 AI 로또 추천</Text>
+        <Text style={styles.headerTitle}>🍀 스마트 로또 추천</Text>
         <Text style={styles.headerSub}>
           최신 {latestRound ?? '?'}회 · 분석 {history.length}회차 기반
         </Text>
