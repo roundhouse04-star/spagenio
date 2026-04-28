@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -17,15 +17,12 @@ import { Gaegu_700Bold } from '@expo-google-fonts/gaegu';
 
 import { initializeDatabase } from '@/db/database';
 import { syncStaleArtists } from '@/services/syncManager';
-import { hasAcceptedConsent } from '@/services/consent';
 import { Colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const router = useRouter();
   const [isReady, setIsReady] = useState(false);
-  const [consented, setConsented] = useState<boolean | null>(null);
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
@@ -33,40 +30,25 @@ export default function RootLayout() {
     Gaegu_700Bold,
   });
 
+  // DB 초기화 + 백그라운드 sync. 동의 분기는 app/index.tsx 가 담당한다.
   useEffect(() => {
     (async () => {
       try {
-        // 1) 동의 상태 우선 로드 (UI 분기에 필요)
-        const accepted = await hasAcceptedConsent();
-        setConsented(accepted);
-
-        // 2) DB 테이블 생성·마이그레이션
         await initializeDatabase();
-
-        // 3) 저장된 팔로잉 아티스트 중 stale한 것들 백그라운드로 동기화
-        //    (동의 상태와 무관하게 트리거하되, 첫 실행에서는 어차피 데이터가 없음)
         syncStaleArtists(12).catch(e => console.warn('[sync] stale failed', e));
-
-        setIsReady(true);
       } catch (err) {
-        console.error('[boot] failed:', err);
+        console.error('[boot] db init failed:', err);
+      } finally {
         setIsReady(true);
-        if (consented === null) setConsented(false);
       }
     })();
   }, []);
 
-  const bootDone = isReady && fontsLoaded && consented !== null;
+  const bootDone = isReady && fontsLoaded;
 
   useEffect(() => {
     if (bootDone) SplashScreen.hideAsync().catch(() => {});
   }, [bootDone]);
-
-  useEffect(() => {
-    if (bootDone && consented === false) {
-      router.replace('/(onboarding)');
-    }
-  }, [bootDone, consented, router]);
 
   if (!bootDone) {
     return (
@@ -81,6 +63,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.bg } }}>
+          <Stack.Screen name="index" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="search/index"       options={{ presentation: 'modal' }} />
