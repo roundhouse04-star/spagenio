@@ -2,14 +2,16 @@
 // 원본 spagenio public/js/lotto.js 의 generateOneGame / getNumberScore 로직을 React Native 환경으로 포팅
 
 export const DEFAULT_ALGOS = [
-  { id: 'freq',    name: '빈도 분석',     weight: 20, desc: '역대 많이 출현한 번호 비중 반영' },
-  { id: 'hot',     name: '핫넘버',        weight: 20, desc: '최근 출현 빈도가 높은 번호 반영' },
-  { id: 'cold',    name: '미출현 주기',   weight: 10, desc: '오랫동안 안 나온 번호 반영' },
-  { id: 'balance', name: '홀짝 균형',     weight: 15, desc: '홀짝 균형 유지' },
-  { id: 'zone',    name: '구간 분포',     weight: 10, desc: '1~15 / 16~30 / 31~45 분산 반영' },
-  { id: 'ac',      name: 'AC값 최적화',   weight: 10, desc: '조합 다양성 반영' },
-  { id: 'prime',   name: '소수 패턴',     weight: 5,  desc: '소수 비중 반영' },
-  { id: 'delta',   name: '델타 시퀀스',   weight: 10, desc: '간격 패턴 반영' },
+  { id: 'freq',       name: '빈도 분석',       weight: 20, desc: '역대 많이 출현한 번호 비중 반영' },
+  { id: 'hot',        name: '핫넘버',          weight: 20, desc: '최근 출현 빈도가 높은 번호 반영' },
+  { id: 'cold',       name: '미출현 주기',     weight: 10, desc: '오랫동안 안 나온 번호 반영' },
+  { id: 'balance',    name: '홀짝 균형',       weight: 15, desc: '홀짝 균형 유지' },
+  { id: 'zone',       name: '구간 분포',       weight: 10, desc: '1~15 / 16~30 / 31~45 분산 반영' },
+  { id: 'ac',         name: 'AC값 최적화',     weight: 10, desc: '조합 다양성 반영' },
+  { id: 'prime',      name: '소수 패턴',       weight: 5,  desc: '소수 비중 반영' },
+  { id: 'delta',      name: '델타 시퀀스',     weight: 10, desc: '간격 패턴 반영' },
+  // 신규: 1221회 데이터 분석 결과 "직전 5회 중 3+ 출현" 번호의 다음 회차 출현률 +9.7% 신호
+  { id: 'recent5Hot', name: '단기 핫넘버',     weight: 5,  desc: '직전 5회 중 3번 이상 나온 번호 (실데이터 +10%)' },
 ];
 
 const PRIME_SET = new Set([2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]);
@@ -45,14 +47,16 @@ export function buildStreakCache(history) {
       }
     }
   }
+  // 실제 1221회 분석 결과: 1회 연속 출현 시 다음회 추가 출현 +3.6% 신호
+  // 기존 +30% (1.0 + cs*0.3) 부스트는 과대 → 데이터 기반으로 +5%/streak (최대 +15%)로 보수화
   const mul = {};
   for (let x = 1; x <= 45; x++) {
     const cs = curStreak[x] || 0;
     const ms = maxStreak[x] || 0;
     if (cs === 0) mul[x] = 1.0;
-    else if (ms > 0 && cs >= ms) mul[x] = 0.3;
-    else if (ms > 0 && cs >= ms * 0.7) mul[x] = 0.6;
-    else mul[x] = 1.0 + cs * 0.3;
+    else if (ms > 0 && cs >= ms) mul[x] = 0.5;          // 역대 최대치 도달 → 약간 보수 (was 0.3)
+    else if (ms > 0 && cs >= ms * 0.7) mul[x] = 0.8;    // 70% 이상 → 살짝 보수 (was 0.6)
+    else mul[x] = 1.0 + Math.min(cs * 0.05, 0.15);      // 모멘텀 +5%/streak, max +15% (was cs*0.3)
   }
   return mul;
 }
@@ -73,17 +77,25 @@ export function buildDbWeights(history) {
 }
 
 function makeFrequencyContext(history) {
-  const recent = history.slice(-10);
-  const recentFlat = [].concat(...recent);
+  // 직전 10회 (hot 알고리즘 — 기존)
+  const recent10 = history.slice(-10);
+  const recent10Flat = [].concat(...recent10);
   const recentFreq = {};
-  recentFlat.forEach((n) => { recentFreq[n] = (recentFreq[n] || 0) + 1; });
+  recent10Flat.forEach((n) => { recentFreq[n] = (recentFreq[n] || 0) + 1; });
 
+  // 직전 5회 (recent5Hot 신규 — 1221회 분석 결과 3+ 출현 시 +9.7% 신호)
+  const recent5 = history.slice(-5);
+  const recent5Flat = [].concat(...recent5);
+  const recent5Freq = {};
+  recent5Flat.forEach((n) => { recent5Freq[n] = (recent5Freq[n] || 0) + 1; });
+
+  // 전체 누적
   const allFlat = [].concat(...history);
   const totalFreq = {};
   allFlat.forEach((n) => { totalFreq[n] = (totalFreq[n] || 0) + 1; });
   const avgFreq = (allFlat.length / 45) || 1;
 
-  return { recentFreq, totalFreq, avgFreq };
+  return { recentFreq, recent5Freq, totalFreq, avgFreq };
 }
 
 function getNumberScore(n, ctx) {
@@ -92,10 +104,11 @@ function getNumberScore(n, ctx) {
   const streakMul = streakCache ? (streakCache[n] || 1.0) : 1.0;
   let score = dbW * streakMul;
 
-  const { recentFreq, totalFreq, avgFreq } = freqCtx;
+  const { recentFreq, recent5Freq, totalFreq, avgFreq } = freqCtx;
   const isHot = (recentFreq[n] || 0) >= 2;
   const isCold = (recentFreq[n] || 0) === 0;
   const freqRatio = (totalFreq[n] || 0) / avgFreq;
+  const recent5Count = recent5Freq?.[n] || 0;
 
   for (const algo of algos) {
     if (algo.weight <= 0) continue;
@@ -123,6 +136,11 @@ function getNumberScore(n, ctx) {
         break;
       case 'delta':
         score += algo.weight * ((46 - n) % 6) * 0.005;
+        break;
+      case 'recent5Hot':
+        // 직전 5회 중 3+ 출현 → +9.7% 실데이터 신호
+        // 출현 횟수에 비례해 더 많이 부스트 (3→0.07, 4→0.14, 5→0.21)
+        if (recent5Count >= 3) score += algo.weight * 0.07 * (recent5Count - 2);
         break;
     }
   }
