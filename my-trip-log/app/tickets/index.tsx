@@ -196,19 +196,64 @@ export default function TicketsListScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : tickets.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>🎫</Text>
-          <Text style={styles.emptyTitle}>아직 티켓이 없어요</Text>
-          <Text style={styles.emptyDesc}>
-            비행기 보딩패스, 입장권, 공연 티켓을{'\n'}사진으로 모아보세요
-          </Text>
-          <Pressable
-            style={styles.emptyButton}
-            onPress={() => { haptic.medium(); router.push('/tickets/new'); }}
-          >
-            <Text style={styles.emptyButtonText}>+ 첫 티켓 추가</Text>
-          </Pressable>
-        </View>
+        (() => {
+          const hasFilter = category !== 'all' || tripFilter !== 'all' || search.trim().length > 0;
+          if (!hasFilter) {
+            // 진짜 비어있음
+            return (
+              <View style={styles.empty}>
+                <Text style={styles.emptyIcon}>🎫</Text>
+                <Text style={styles.emptyTitle}>아직 티켓이 없어요</Text>
+                <Text style={styles.emptyDesc}>
+                  비행기 보딩패스, 입장권, 공연 티켓을{'\n'}사진으로 모아보세요
+                </Text>
+                <Pressable
+                  style={styles.emptyButton}
+                  onPress={() => { haptic.medium(); router.push('/tickets/new'); }}
+                >
+                  <Text style={styles.emptyButtonText}>+ 첫 티켓 추가</Text>
+                </Pressable>
+              </View>
+            );
+          }
+          // 필터 적용 중인데 결과가 없음
+          const catInfo = TICKET_CATEGORIES.find((c) => c.key === category);
+          const filterDesc = (() => {
+            if (search.trim()) return `“${search.trim()}” 검색 결과`;
+            if (catInfo) return `${catInfo.icon} ${catInfo.label} 카테고리`;
+            if (tripFilter === 'none') return '여행 미연결 티켓';
+            const t = trips.find((x) => x.id === tripFilter);
+            return t ? `“${t.title}” 여행` : '선택한 조건';
+          })();
+          return (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyTitle}>{filterDesc}에{'\n'}맞는 티켓이 없어요</Text>
+              <Text style={styles.emptyDesc}>
+                필터를 초기화하거나{'\n'}새 티켓을 추가해보세요
+              </Text>
+              <View style={styles.emptyActions}>
+                <Pressable
+                  style={[styles.emptyButton, styles.emptyButtonSecondary]}
+                  onPress={() => {
+                    haptic.tap();
+                    setCategory('all');
+                    setTripFilter('all');
+                    setSearch('');
+                  }}
+                >
+                  <Text style={[styles.emptyButtonText, styles.emptyButtonTextSecondary]}>필터 초기화</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.emptyButton}
+                  onPress={() => { haptic.medium(); router.push('/tickets/new'); }}
+                >
+                  <Text style={styles.emptyButtonText}>+ 추가</Text>
+                </Pressable>
+              </View>
+            </View>
+          );
+        })()
       ) : (
         <ScrollView contentContainerStyle={styles.grid}>
           {tickets.map((t) => (
@@ -450,6 +495,8 @@ function createStyles(c: ColorPalette) {
       fontWeight: '700',
       color: c.textPrimary,
       marginBottom: Spacing.xs,
+      textAlign: 'center',
+      lineHeight: Typography.titleMedium * 1.4,
     },
     emptyDesc: {
       fontSize: Typography.bodySmall,
@@ -468,6 +515,19 @@ function createStyles(c: ColorPalette) {
       color: c.textOnPrimary,
       fontWeight: '700',
       fontSize: Typography.bodyMedium,
+    },
+    emptyActions: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      alignItems: 'center',
+    },
+    emptyButtonSecondary: {
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    emptyButtonTextSecondary: {
+      color: c.textPrimary,
     },
   });
 }
