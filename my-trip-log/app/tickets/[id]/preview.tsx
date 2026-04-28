@@ -1,13 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Dimensions, ActivityIndicator,
-  StatusBar as RNStatusBar, Alert,
+  View, Text, StyleSheet, Pressable, Image, Dimensions, ActivityIndicator,
+  StatusBar as RNStatusBar, Alert, ScrollView,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS,
-} from 'react-native-reanimated';
 import * as Sharing from 'expo-sharing';
 import { Typography, Spacing } from '@/theme/theme';
 import { haptic } from '@/utils/haptics';
@@ -15,10 +11,17 @@ import { getAllTickets, getTicket } from '@/db/tickets';
 import { Ticket } from '@/types';
 
 const { width: WIN_W, height: WIN_H } = Dimensions.get('window');
-const SWIPE_THRESHOLD = WIN_W * 0.25;
-const MAX_SCALE = 5;
-const MIN_SCALE = 1;
 
+/**
+ * 풀스크린 티켓 뷰어
+ *
+ * 의도적으로 Reanimated worklet을 사용하지 않음.
+ * Expo Go SDK 54 + New Architecture 환경에서 worklet 초기화가 불안정해
+ * "Exception in HostFunction" 으로 모듈 로딩이 실패하는 사례 회피.
+ *
+ * 줌은 iOS의 ScrollView maximumZoomScale 네이티브 기능 사용 (Android는 미지원).
+ * 인접 티켓 이동은 좌우 화살표 버튼으로 제공 (스와이프 대신).
+ */
 export default function TicketPreviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const initialId = Number(id);
@@ -27,37 +30,17 @@ export default function TicketPreviewScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // 핀치/팬 제스처 값
-  const scale = useSharedValue(1);
-  const savedScale = useSharedValue(1);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const savedTranslateX = useSharedValue(0);
-  const savedTranslateY = useSharedValue(0);
-
-  // 페이지 전환 애니메이션
-  const pageX = useSharedValue(0);
-
-  const resetTransform = useCallback(() => {
-    scale.value = withSpring(1);
-    savedScale.value = 1;
-    translateX.value = withSpring(0);
-    translateY.value = withSpring(0);
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
-  }, [scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY]);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        // 우선 현재 티켓 정보로 화면을 빠르게 표시
         const cur = await getTicket(initialId);
         if (cur) {
           setTickets([cur]);
           setCurrentIndex(0);
           setLoading(false);
         }
-        // 동시에 인접 티켓 (좌우 스와이프용) 로드
         const all = await getAllTickets({ sort: 'newest' });
         setTickets(all);
         const idx = all.findIndex((t) => t.id === initialId);
@@ -70,17 +53,19 @@ export default function TicketPreviewScreen() {
     })();
   }, [initialId]);
 
-  const goToIndex = useCallback((newIndex: number) => {
-    if (newIndex < 0 || newIndex >= tickets.length) {
-      // 경계: 원위치
-      pageX.value = withSpring(0);
-      return;
-    }
-    setCurrentIndex(newIndex);
-    pageX.value = 0;
-    resetTransform();
-    haptic.select();
-  }, [tickets.length, pageX, resetTransform]);
+  const goPrev = useCallback(() => {
+    if (currentIndex <= 0) return;
+    haptic.tap();
+    setCurrentIndex((i) => i - 1);
+    scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+  }, [currentIndex]);
+
+  const goNext = useCallback(() => {
+    if (currentIndex >= tickets.length - 1) return;
+    haptic.tap();
+    setCurrentIndex((i) => i + 1);
+    scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+  }, [currentIndex, tickets.length]);
 
   const handleShare = async () => {
     haptic.tap();
@@ -98,88 +83,6 @@ export default function TicketPreviewScreen() {
     }
   };
 
-  // ===== 제스처 =====
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate((e) => {
-      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, savedScale.value * e.scale));
-      scale.value = next;
-    })
-    .onEnd(() => {
-      savedScale.value = scale.value;
-      // 스케일이 1로 돌아가면 위치도 리셋
-      if (scale.value < 1.05) {
-        scale.value = withSpring(1);
-        savedScale.value = 1;
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
-      }
-    });
-
-  const panGesture = Gesture.Pan()
-    .onUpdate((e) => {
-      // 확대 상태에서는 이미지 내부 팬
-      if (savedScale.value > 1) {
-        translateX.value = savedTranslateX.value + e.translationX;
-        translateY.value = savedTranslateY.value + e.translationY;
-      } else {
-        // 축소 상태에서는 페이지 전환 (좌우만)
-        if (Math.abs(e.translationX) > Math.abs(e.translationY)) {
-          pageX.value = e.translationX;
-        }
-      }
-    })
-    .onEnd((e) => {
-      if (savedScale.value > 1) {
-        savedTranslateX.value = translateX.value;
-        savedTranslateY.value = translateY.value;
-      } else if (Math.abs(e.translationX) > SWIPE_THRESHOLD) {
-        // 페이지 전환 결정
-        const dir = e.translationX > 0 ? -1 : 1; // 우→좌 swipe = next
-        const newIndex = currentIndex + dir;
-        if (newIndex < 0 || newIndex >= tickets.length) {
-          pageX.value = withSpring(0);
-        } else {
-          pageX.value = withTiming(dir > 0 ? -WIN_W : WIN_W, { duration: 220 }, () => {
-            runOnJS(goToIndex)(newIndex);
-          });
-        }
-      } else {
-        pageX.value = withSpring(0);
-      }
-    });
-
-  const doubleTapGesture = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => {
-      // 더블탭 = 줌 토글
-      if (savedScale.value > 1) {
-        scale.value = withSpring(1);
-        savedScale.value = 1;
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
-      } else {
-        scale.value = withSpring(2.5);
-        savedScale.value = 2.5;
-      }
-    });
-
-  const composedGesture = Gesture.Simultaneous(
-    panGesture,
-    Gesture.Exclusive(doubleTapGesture, pinchGesture),
-  );
-
-  const imageStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value + pageX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-  }));
-
   const counter = useMemo(() => {
     return tickets.length > 0 ? `${currentIndex + 1} / ${tickets.length}` : '';
   }, [currentIndex, tickets.length]);
@@ -193,23 +96,32 @@ export default function TicketPreviewScreen() {
   }
 
   const t = tickets[currentIndex];
+  const canPrev = currentIndex > 0;
+  const canNext = currentIndex < tickets.length - 1;
 
   return (
-    <GestureHandlerRootView style={styles.fullscreen}>
+    <View style={styles.fullscreen}>
       <RNStatusBar barStyle="light-content" />
 
-      <GestureDetector gesture={composedGesture}>
-        <View style={styles.imageContainer}>
-          <Animated.Image
-            source={{ uri: t.imageUri }}
-            style={[styles.image, imageStyle]}
-            resizeMode="contain"
-          />
-        </View>
-      </GestureDetector>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scrollContent}
+        maximumZoomScale={5}
+        minimumZoomScale={1}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        centerContent
+        bouncesZoom
+      >
+        <Image
+          source={{ uri: t.imageUri }}
+          style={styles.image}
+          resizeMode="contain"
+        />
+      </ScrollView>
 
       {/* 상단 바 */}
-      <View style={styles.topBar} pointerEvents="box-none">
+      <View style={styles.topBar}>
         <Pressable onPress={() => { haptic.tap(); router.back(); }} hitSlop={12} style={styles.iconBtn}>
           <Text style={styles.iconBtnText}>✕</Text>
         </Pressable>
@@ -219,12 +131,32 @@ export default function TicketPreviewScreen() {
         </Pressable>
       </View>
 
-      {/* 하단 안내 */}
+      {/* 좌우 이동 버튼 */}
+      {canPrev && (
+        <Pressable
+          onPress={goPrev}
+          hitSlop={20}
+          style={[styles.navBtn, styles.navBtnLeft]}
+        >
+          <Text style={styles.navBtnText}>‹</Text>
+        </Pressable>
+      )}
+      {canNext && (
+        <Pressable
+          onPress={goNext}
+          hitSlop={20}
+          style={[styles.navBtn, styles.navBtnRight]}
+        >
+          <Text style={styles.navBtnText}>›</Text>
+        </Pressable>
+      )}
+
+      {/* 하단 정보 */}
       <View style={styles.bottomBar} pointerEvents="none">
         <Text style={styles.bottomText} numberOfLines={1}>{t.title}</Text>
-        <Text style={styles.bottomHint}>핀치 줌 · 더블탭 · 좌우 스와이프</Text>
+        <Text style={styles.bottomHint}>핀치 줌 (iOS) · 화살표 버튼으로 이동</Text>
       </View>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
@@ -232,12 +164,9 @@ const styles = StyleSheet.create({
   fullscreen: {
     flex: 1,
     backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  imageContainer: {
-    flex: 1,
-    width: WIN_W,
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -263,6 +192,19 @@ const styles = StyleSheet.create({
   },
   iconBtnText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
   counter: { color: '#FFF', fontSize: Typography.bodyMedium, fontWeight: '600' },
+  navBtn: {
+    position: 'absolute',
+    top: '45%',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#000A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navBtnLeft: { left: Spacing.md },
+  navBtnRight: { right: Spacing.md },
+  navBtnText: { color: '#FFF', fontSize: 28, fontWeight: '700', marginTop: -4 },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
