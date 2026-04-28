@@ -49,23 +49,27 @@ export default function TermsScreen() {
         </Section>
 
         <Section title="제 5조 (외부 서비스 이용)" styles={styles}>
-          {`본 앱은 다음 외부 서비스를 사용하며, 해당 서비스 이용 시 각 서비스의 약관이 함께 적용됩니다:
+          {`본 앱은 다음 외부 서비스를 제한적으로 사용합니다:
 
-• 환율 API (frankfurter.dev): 실시간 환율 조회
-• OpenAI API: AI 일정 생성 기능 사용 시
-• OCR.space API: 영수증 텍스트 인식 시
-• Google AdMob: 광고 배너 표시 (향후 도입)
-• Google Fonts: 앱 글꼴 로딩
+• 환율 API (frankfurter.dev): 실시간 환율 조회 (무료 공개 API)
+• 장소 검색 (OpenStreetMap Nominatim): 일정 장소 자동완성 (무료 공개 API)
+• Google Fonts: 앱 글꼴 로딩 (무료 CDN)
 • iCloud / Google Drive: OS 기본 백업 (사용자 설정에 따름)
+
+본 앱은 OpenAI / Anthropic / Google AI 등 AI 서버에 직접 데이터를 전송하지 않습니다.
+"AI에 질문하기" 기능은 사용자의 기기에 설치된 ChatGPT / Gemini / Claude 앱을 외부에서 열어주는 역할만 합니다.
+
+영수증·티켓 OCR은 기기 내부 ML Kit 라이브러리만 사용하며, 이미지가 외부로 전송되지 않습니다.
+향후 유료 버전에서 외부 OCR 서비스 또는 광고 서비스가 도입될 수 있으며,
+도입 시 약관 갱신 후 사용자 재동의를 받습니다.
 
 자세한 내용은 [개인정보처리방침]을 참고해 주십시오.`}
         </Section>
 
         <Section title="제 6조 (광고)" styles={styles}>
-          {`• 본 앱은 Google AdMob을 통해 광고 배너를 표시할 수 있습니다.
-• 광고를 통해 개발자는 앱 운영 비용을 충당합니다.
-• 사용자는 광고 추적을 기기 설정에서 거부할 수 있습니다.
-• 향후 유료 PRO 버전을 통해 광고 없는 사용 옵션이 제공될 수 있습니다.`}
+          {`• 본 앱은 현재 광고를 표시하지 않으며, 외부 광고 SDK를 호출하지도 않습니다.
+• 향후 무료 버전에 Google AdMob 등 광고가 도입될 수 있으며, 도입 시 약관 갱신 후 사용자 재동의를 받습니다.
+• 유료 버전이 출시될 경우 광고 없는 사용 옵션이 제공됩니다.`}
         </Section>
 
         <Section title="제 7조 (사용자의 의무)" styles={styles}>

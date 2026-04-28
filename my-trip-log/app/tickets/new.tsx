@@ -13,7 +13,7 @@ import { TICKET_CATEGORIES } from '@/db/schema';
 import { createTicket } from '@/db/tickets';
 import { getAllTrips } from '@/db/trips';
 import { saveTicketImage, deleteTicketImage } from '@/utils/ticketStorage';
-import { recognizeWithOcrSpace, guessOcrLanguage } from '@/utils/ocrSpace';
+import { recognizeRawText } from '@/utils/ocr';
 import { parseTicketText } from '@/utils/ticketParser';
 import { Trip, TicketCategory } from '@/types';
 
@@ -106,11 +106,13 @@ export default function NewTicketScreen() {
     haptic.tap();
     setOcrLoading(true);
     try {
-      const lang = guessOcrLanguage();
-      const result = await recognizeWithOcrSpace(imageUri, lang);
-      if (!result.success || !result.text) {
+      const result = await recognizeRawText(imageUri);
+      if (result.engine === 'none' || !result.text) {
         haptic.warning();
-        Alert.alert('OCR 실패', result.errorMessage ?? '텍스트를 추출하지 못했어요');
+        Alert.alert(
+          'OCR 사용 불가',
+          'OCR 자동 채우기는 정식 빌드(EAS)에서만 동작합니다.\n수동으로 입력해주세요.',
+        );
         return;
       }
       setOcrText(result.text);

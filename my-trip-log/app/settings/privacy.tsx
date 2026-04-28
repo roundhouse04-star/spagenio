@@ -59,25 +59,27 @@ export default function PrivacyScreen() {
         </Section>
 
         <Section title="3. 외부 서비스" styles={styles}>
-          {`본 앱은 다음 외부 서비스를 이용합니다:
+          {`본 앱은 다음 외부 서비스를 제한적으로 이용합니다:
 
 [환율 정보]
 • frankfurter.dev: 실시간 환율 조회 (개인정보 전송 없음)
 
-[AI 일정 생성]
-• 사용자가 AI 일정 생성 기능을 사용할 때, 입력한 여행 조건(도시, 기간, 취향 등)이 OpenAI API로 전송됩니다.
-• 전송 정보에 개인 식별 정보는 포함되지 않습니다.
-• OpenAI의 데이터 처리 정책: https://openai.com/policies/privacy-policy
+[장소 검색]
+• OpenStreetMap Nominatim: 일정에 추가할 장소명 자동완성 (사용자 입력 텍스트만 전송, 개인 식별 정보 없음)
 
-[영수증 OCR]
-• 사용자가 영수증 스캔 기능을 사용할 때, 해당 이미지가 OCR.space API로 전송되어 텍스트 인식 후 즉시 파기됩니다.
-• OCR.space 정책: https://ocr.space/privacy
+[AI 일정 생성 — 외부 앱 딥링크]
+• 본 앱은 AI 서버에 직접 데이터를 전송하지 않습니다.
+• "AI에 질문하기" 버튼은 사용자의 기기에 설치된 ChatGPT / Gemini / Claude 앱을 외부에서 열어주는 역할만 합니다.
+• 외부 AI 앱에서 발생하는 데이터 처리는 해당 앱의 정책을 따르며, 본 앱은 그 과정에 관여하지 않습니다.
 
-[광고 (향후 도입 예정)]
-• Google AdMob: 배너 광고 제공
-• AdMob은 광고 식별자를 사용하여 맞춤 광고를 제공합니다.
-• 사용자는 iOS 설정 또는 Android 설정에서 광고 추적을 거부할 수 있습니다.
-• Google 개인정보 처리방침: https://policies.google.com/privacy
+[영수증·티켓 OCR — 온디바이스]
+• 영수증/티켓 텍스트 인식은 기기 내부의 ML Kit 라이브러리만 사용합니다.
+• 이미지가 외부 서버로 전송되지 않습니다.
+• 향후 유료 버전에서 인식률 보강을 위해 외부 OCR 서비스가 도입될 수 있으며, 도입 시 본 방침이 갱신되고 사용자 재동의를 받습니다.
+
+[광고]
+• 본 앱은 현재 광고를 표시하지 않습니다.
+• 향후 광고 도입 시 본 방침이 갱신되며 사용자 재동의를 받습니다.
 
 [글꼴]
 • Google Fonts (CDN): 글꼴 로딩 시 IP 주소가 Google에 전송될 수 있습니다.`}
@@ -102,8 +104,8 @@ export default function PrivacyScreen() {
         <Section title="6. 데이터 보관 기간" styles={styles}>
           {`• 로컬 데이터: 사용자가 삭제하거나 앱을 제거할 때까지
 • 서버 익명 통계: 사용자 요청 시 즉시 삭제 (익명 UUID 필요)
-• 영수증 OCR: 텍스트 추출 후 이미지 즉시 파기 (서버 미보관)
-• AI 일정 생성 요청: OpenAI 정책에 따라 처리 (Spagenio는 별도 보관 안 함)`}
+• 영수증·티켓 OCR: 기기 내부 처리만 수행 (외부 전송 없음)
+• AI 일정 생성: 외부 AI 앱(ChatGPT 등) 딥링크 방식이라 본 앱은 데이터를 보관하지 않으며, 외부 앱 측 데이터는 해당 앱 정책을 따름`}
         </Section>
 
         <Section title="7. 만 14세 미만 이용자" styles={styles}>

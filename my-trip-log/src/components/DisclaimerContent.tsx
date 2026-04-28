@@ -27,12 +27,12 @@ export function DisclaimerContent() {
       </Section>
 
       <Section title="2. 외부 정보의 정확성" styles={styles}>
-        {`본 앱이 표시하는 다음 정보는 외부 소스에서 가져온 참고용 데이터이며, 실제와 다를 수 있습니다:
+        {`본 앱이 표시하는 다음 정보는 참고용이며, 실제와 다를 수 있습니다:
 
 • 환율 정보 (frankfurter.dev) — 거래에 사용되는 실시간 시세가 아닙니다
 • 교통 정보 (지하철 노선도/경로) — 실제 운행 시간·요금과 차이가 있을 수 있습니다
-• AI가 생성한 여행 일정 — 추천일 뿐 실제 운영·예약 정보가 아닙니다
-• OCR로 인식된 영수증 텍스트 — 인식 오류가 있을 수 있습니다
+• 외부 AI 앱(ChatGPT 등)에서 받아온 여행 일정 — 추천일 뿐 실제 운영·예약 정보가 아닙니다
+• OCR로 인식된 영수증·티켓 텍스트 — 인식 오류가 있을 수 있습니다 (기기 내 ML Kit로 처리)
 
 위 정보를 기반으로 한 의사결정은 사용자가 직접 검증한 후 진행해 주십시오.`}
       </Section>
@@ -52,14 +52,15 @@ export function DisclaimerContent() {
       </Section>
 
       <Section title="5. 외부 서비스 장애" styles={styles}>
-        {`본 앱은 다음 외부 서비스를 이용하며, 이들의 장애·정책 변경·종료로 일부 기능이 작동하지 않을 수 있습니다. 외부 서비스 장애에 대해 개발자는 책임지지 않습니다.
+        {`본 앱은 다음 외부 서비스를 제한적으로 이용하며, 이들의 장애·정책 변경·종료로 일부 기능이 작동하지 않을 수 있습니다. 외부 서비스 장애에 대해 개발자는 책임지지 않습니다.
 
-• OpenAI API (AI 일정 생성)
-• OCR.space API (영수증 텍스트 인식)
-• frankfurter.dev (환율)
-• Google Fonts (글꼴)
-• Google AdMob (광고, 향후 도입)
-• Apple iCloud / Google Drive (OS 백업)`}
+• frankfurter.dev (환율 — 무료 공개 API)
+• OpenStreetMap Nominatim (장소 검색 — 무료 공개 API)
+• Google Fonts (글꼴 — 무료 CDN)
+• Apple iCloud / Google Drive (OS 백업)
+• 사용자 기기에 설치된 외부 AI 앱 (ChatGPT / Gemini / Claude 등 — 본 앱은 딥링크로 열기만 함)
+
+영수증·티켓 OCR은 기기 내부 ML Kit 라이브러리만 사용하며 외부 서버에 의존하지 않습니다.`}
       </Section>
 
       <Section title="6. 손해배상의 한계" styles={styles}>
