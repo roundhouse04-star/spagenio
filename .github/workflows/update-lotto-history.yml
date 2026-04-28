@@ -28,15 +28,7 @@ jobs:
 
       - name: 누락 회차 가져오기
         working-directory: lotto-app
-        run: |
-          echo "현재 보유 회차:"
-          node -e "const d=require('./assets/lotto-history.json');const k=Object.keys(d).map(Number).sort((a,b)=>a-b);console.log(\`  ${k.length}회 (${k[0]} ~ ${k[k.length-1]})\`)"
-          echo ""
-          echo "fetch-history.mjs 실행..."
-          node scripts/fetch-history.mjs
-          echo ""
-          echo "갱신 후 회차:"
-          node -e "const d=require('./assets/lotto-history.json');const k=Object.keys(d).map(Number).sort((a,b)=>a-b);console.log(\`  ${k.length}회 (${k[0]} ~ ${k[k.length-1]})\`)"
+        run: node scripts/fetch-history.mjs
 
       - name: 변경분 자동 커밋 + 푸시
         uses: stefanzweifel/git-auto-commit-action@v5
