@@ -362,12 +362,26 @@ function createStyles(c: ColorPalette) {
     rankCount: { fontSize: Typography.labelSmall, color: c.textSecondary, fontWeight: '600' },
 
     barChart: {
-      flexDirection: 'row', alignItems: 'flex-end',
-      gap: Spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-around',  // 항목 1개=가운데, 여러개=균등
       height: 120,
+      paddingHorizontal: Spacing.xs,
     },
-    barItem: { flex: 1, alignItems: 'center', gap: 2, height: '100%', justifyContent: 'flex-end' },
-    barFill: { width: '70%', backgroundColor: c.primary, borderRadius: 4, minHeight: 4 },
+    barItem: {
+      // flex 제거 — 항목 1개일 때 가로 100% 차지하던 문제 해결
+      width: 44,
+      alignItems: 'center',
+      gap: 2,
+      height: '100%',
+      justifyContent: 'flex-end',
+    },
+    barFill: {
+      width: 22,                         // 고정 너비 (이전엔 70%라 단일 막대가 거대했음)
+      backgroundColor: c.primary,
+      borderRadius: 4,
+      minHeight: 4,
+    },
     barValue: { fontSize: 10, color: c.textTertiary, fontWeight: '600', marginTop: 2 },
     barLabel: { fontSize: 10, color: c.textTertiary },
   });
