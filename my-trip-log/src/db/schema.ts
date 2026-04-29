@@ -4,7 +4,7 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS trips (
   country TEXT,
   country_code TEXT,
   city TEXT,
+  city_id TEXT,
   start_date TEXT,
   end_date TEXT,
   budget REAL DEFAULT 0,
@@ -237,6 +238,12 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
       );
       CREATE INDEX IF NOT EXISTS idx_tickets_trip ON tickets(trip_id);
       CREATE INDEX IF NOT EXISTS idx_tickets_use_date ON tickets(use_date);
+    `,
+  },
+  {
+    version: 6,
+    sql: `
+      ALTER TABLE trips ADD COLUMN city_id TEXT;
     `,
   },
 ];

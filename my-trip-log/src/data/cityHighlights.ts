@@ -129,10 +129,17 @@ export function findCityIdByName(input: string | null | undefined): string | nul
 }
 
 /**
- * Trip 객체의 city + country 모두 시도해서 cityId 찾기.
- * 우선순위: city > country
+ * Trip 객체로부터 cityId 추출.
+ * 우선순위: trip.cityId(명시 저장) > trip.city(includes 매칭) > trip.country(fallback)
  */
-export function findCityIdFromTrip(trip: { city?: string | null; country?: string | null }): string | null {
+export function findCityIdFromTrip(trip: {
+  cityId?: string | null;
+  city?: string | null;
+  country?: string | null;
+}): string | null {
+  // 1. 명시 저장된 cityId가 alias 테이블에 존재하면 그대로 사용 (가장 신뢰)
+  if (trip.cityId && CITY_ALIASES[trip.cityId]) return trip.cityId;
+  // 2. 자유 입력 city/country 텍스트로 fuzzy 매칭
   return findCityIdByName(trip.city) ?? findCityIdByName(trip.country);
 }
 

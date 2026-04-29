@@ -37,6 +37,7 @@ export default function TripDetailScreen() {
         country: t.country,
         countryCode: t.country_code,
         city: t.city,
+        cityId: t.city_id ?? null,
         startDate: t.start_date,
         endDate: t.end_date,
         budget: t.budget,

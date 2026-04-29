@@ -134,6 +134,7 @@ function rowToTrip(r: any): Trip {
     country: r.country,
     countryCode: r.country_code,
     city: r.city,
+    cityId: r.city_id ?? null,
     startDate: r.start_date,
     endDate: r.end_date,
     budget: r.budget,

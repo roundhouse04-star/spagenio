@@ -11,6 +11,8 @@ import { Typography, Spacing } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import DatePickerModal from '@/components/DatePickerModal';
+import { CityAutocomplete } from '@/components/CityAutocomplete';
+import { findCityIdByName } from '@/data/cityHighlights';
 
 export default function TripFormScreen() {
   const { colors } = useTheme();
@@ -24,6 +26,7 @@ export default function TripFormScreen() {
   const [title, setTitle] = useState('');
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
+  const [cityId, setCityId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [budget, setBudget] = useState('');
@@ -58,6 +61,7 @@ export default function TripFormScreen() {
         setTitle(t.title ?? '');
         setCountry(t.country ?? '');
         setCity(t.city ?? '');
+        setCityId(t.city_id ?? findCityIdByName(t.city) ?? findCityIdByName(t.country) ?? null);
         setStartDate(t.start_date ?? '');
         setEndDate(t.end_date ?? '');
         setBudget(t.budget ? String(t.budget) : '');
@@ -84,11 +88,14 @@ export default function TripFormScreen() {
       const db = await getDB();
       const now = new Date().toISOString();
 
+      // 사용자가 자동완성에서 선택 안 했어도 입력 텍스트로 fuzzy 매칭 시도 (저장 시점)
+      const finalCityId = cityId ?? findCityIdByName(city) ?? findCityIdByName(country) ?? null;
+
       if (isEdit && tripId) {
         // 수정
         await db.runAsync(
           `UPDATE trips SET
-            title = ?, country = ?, city = ?,
+            title = ?, country = ?, city = ?, city_id = ?,
             start_date = ?, end_date = ?,
             budget = ?, currency = ?, status = ?,
             updated_at = ?
@@ -97,6 +104,7 @@ export default function TripFormScreen() {
             title.trim(),
             country.trim() || null,
             city.trim() || null,
+            finalCityId,
             startDate || null,
             endDate || null,
             parseFloat(budget) || 0,
@@ -111,12 +119,13 @@ export default function TripFormScreen() {
         // 신규 생성
         const result = await db.runAsync(
           `INSERT INTO trips
-            (title, country, city, start_date, end_date, budget, currency, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (title, country, city, city_id, start_date, end_date, budget, currency, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             title.trim(),
             country.trim() || null,
             city.trim() || null,
+            finalCityId,
             startDate || null,
             endDate || null,
             parseFloat(budget) || 0,
@@ -134,7 +143,7 @@ export default function TripFormScreen() {
       Alert.alert('오류', '저장에 실패했습니다');
       setSaving(false);
     }
-  }, [canSave, saving, isEdit, tripId, title, country, city, startDate, endDate, budget, currency, status]);
+  }, [canSave, saving, isEdit, tripId, title, country, city, cityId, startDate, endDate, budget, currency, status]);
 
   const formatDisplay = (v: string) => {
     if (!v) return '';
@@ -221,14 +230,19 @@ export default function TripFormScreen() {
                 placeholderTextColor={colors.textTertiary}
               />
             </View>
-            <View style={[styles.field, { flex: 1 }]}>
-              <Text style={styles.label}>도시</Text>
-              <TextInput
-                style={styles.input}
+            <View style={[styles.field, { flex: 1, zIndex: 10 }]}>
+              <Text style={styles.label}>
+                도시 {cityId && <Text style={{ color: colors.accent, fontSize: 11 }}>✓ 추천 가능</Text>}
+              </Text>
+              <CityAutocomplete
                 value={city}
                 onChangeText={setCity}
-                placeholder="도쿄"
-                placeholderTextColor={colors.textTertiary}
+                onSelect={(info) => {
+                  setCity(info.name);
+                  setCityId(info.cityId);
+                }}
+                onClear={() => setCityId(null)}
+                placeholder="도쿄 / Tokyo / 東京"
               />
             </View>
           </View>

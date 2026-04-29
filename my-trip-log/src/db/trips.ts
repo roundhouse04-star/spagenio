@@ -11,6 +11,7 @@ function rowToTrip(r: any): Trip {
     country: r.country,
     countryCode: r.country_code,
     city: r.city,
+    cityId: r.city_id ?? null,
     startDate: r.start_date,
     endDate: r.end_date,
     budget: r.budget,
@@ -45,14 +46,15 @@ export async function createTrip(data: Partial<Trip>): Promise<number> {
   const now = new Date().toISOString();
   const result = await db.runAsync(
     `INSERT INTO trips
-      (title, country, country_code, city, start_date, end_date,
+      (title, country, country_code, city, city_id, start_date, end_date,
        budget, currency, status, cover_image, memo, is_favorite, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.title ?? '',
       data.country ?? null,
       data.countryCode ?? null,
       data.city ?? null,
+      data.cityId ?? null,
       data.startDate ?? null,
       data.endDate ?? null,
       data.budget ?? 0,
@@ -79,6 +81,7 @@ export async function updateTrip(id: number, data: Partial<Trip>): Promise<void>
     country: 'country',
     countryCode: 'country_code',
     city: 'city',
+    cityId: 'city_id',
     startDate: 'start_date',
     endDate: 'end_date',
     budget: 'budget',

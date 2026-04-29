@@ -23,6 +23,7 @@ export interface Trip {
   country: string | null;
   countryCode: string | null;
   city: string | null;
+  cityId: string | null;
   startDate: string | null;
   endDate: string | null;
   budget: number;
