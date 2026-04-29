@@ -1,11 +1,15 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getDB } from '@/db/database';
 import { User, Trip } from '@/types';
+import { getSuggestions, type CitySuggestion } from '@/utils/tripSuggestions';
+import { getCityDisplayName, getCityFlag, getHighlightsByCity } from '@/data/cityHighlights';
+import { getCityImageUrl } from '@/utils/cityImages';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -15,6 +19,8 @@ export default function HomeScreen() {
   const [ongoingTrip, setOngoingTrip] = useState<Trip | null>(null);
   const [planningTrips, setPlanningTrips] = useState<Trip[]>([]);
   const [stats, setStats] = useState({ total: 0, completed: 0, planning: 0 });
+  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [suggestionImages, setSuggestionImages] = useState<Record<string, string | null>>({});
 
   const loadData = useCallback(async () => {
     const db = await getDB();
@@ -65,6 +71,16 @@ export default function HomeScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
+  // 다음 여행 추천 (가본 곳 기반) — 별도 effect로 1회만 (focus마다 갱신 부담)
+  useEffect(() => {
+    getSuggestions(5).then(async (sug) => {
+      setSuggestions(sug);
+      const imgs: Record<string, string | null> = {};
+      await Promise.all(sug.map(async (s) => { imgs[s.cityId] = await getCityImageUrl(s.cityId); }));
+      setSuggestionImages(imgs);
+    }).catch(() => undefined);
+  }, [stats.total]);
 
   const greeting = getGreeting();
   const hasAnyPlan = ongoingTrip || planningTrips.length > 0;
@@ -164,6 +180,40 @@ export default function HomeScreen() {
           <QuickButton icon="📊" label="여행 통계" onPress={() => router.push('/stats')} styles={styles} />
           <QuickButton icon="❤️" label="위시리스트" onPress={() => router.push('/wishlist')} styles={styles} />
         </View>
+
+        {/* 다음 여행 추천 (가본 곳 기반) */}
+        {suggestions.length > 0 && (
+          <>
+            <Text style={styles.sectionTitleSmall}>✨ 다음 여행 어디?</Text>
+            <Text style={styles.sectionSubSmall}>가본 도시 취향 기반 추천</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestRow}>
+              {suggestions.map((s) => {
+                const img = suggestionImages[s.cityId];
+                return (
+                  <Pressable
+                    key={s.cityId}
+                    style={styles.suggestCard}
+                    onPress={() => {
+                      router.push('/(tabs)/discover');
+                    }}
+                  >
+                    {img ? (
+                      <Image source={{ uri: img }} style={styles.suggestImage} contentFit="cover" />
+                    ) : (
+                      <View style={[styles.suggestImage, { backgroundColor: colors.primary }]} />
+                    )}
+                    <View style={styles.suggestBody}>
+                      <Text style={styles.suggestFlag}>{getCityFlag(s.cityId)}</Text>
+                      <Text style={styles.suggestName}>{getCityDisplayName(s.cityId)}</Text>
+                      <Text style={styles.suggestReason} numberOfLines={2}>{s.reason}</Text>
+                      <Text style={styles.suggestCount}>{getHighlightsByCity(s.cityId).length}곳 추천</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -378,6 +428,47 @@ function createStyles(c: ColorPalette) {
     lineHeight: 22,
     paddingHorizontal: 6,
     overflow: 'hidden',
+  },
+  sectionSubSmall: {
+    fontSize: Typography.labelSmall,
+    color: c.textTertiary,
+    paddingHorizontal: Spacing.lg,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  suggestRow: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  suggestCard: {
+    width: 180,
+    backgroundColor: c.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: c.border,
+    overflow: 'hidden',
+    ...Shadows.soft,
+  },
+  suggestImage: { width: '100%', height: 100 },
+  suggestBody: { padding: Spacing.md, gap: 2 },
+  suggestFlag: { fontSize: 20 },
+  suggestName: {
+    fontSize: Typography.bodyMedium,
+    color: c.textPrimary,
+    fontWeight: '700',
+  },
+  suggestReason: {
+    fontSize: 11,
+    color: c.textSecondary,
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  suggestCount: {
+    fontSize: 10,
+    color: c.accent,
+    fontWeight: '700',
+    marginTop: 2,
   },
   sectionTitleSmall: {
     fontSize: Typography.headlineSmall,

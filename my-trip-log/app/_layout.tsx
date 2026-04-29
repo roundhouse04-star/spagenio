@@ -28,6 +28,7 @@ import { initializeDatabase, isUserRegistered, hasFullConsent } from '@/db/datab
 import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { setupGlobalFont } from '@/utils/globalFont';
 import { incrementLaunchCount, maybePromptReview } from '@/utils/storeReview';
+import { checkRateAlerts } from '@/utils/rateAlerts';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -72,6 +73,8 @@ export default function RootLayout() {
             // 약간 지연시켜 다른 UI 안정화 후 표시
             setTimeout(() => { maybePromptReview().catch(() => undefined); }, 3000);
           }).catch(() => undefined);
+          // 환율 목표가 알림 체크 (백그라운드, 도달 시 로컬 알림)
+          setTimeout(() => { checkRateAlerts().catch(() => undefined); }, 2000);
         }
       } catch (err) {
         console.error('App init error:', err);

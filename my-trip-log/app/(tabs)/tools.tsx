@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  ActivityIndicator,
+  ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -9,6 +9,7 @@ import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getRates, refreshRates, getLastUpdated } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
+import { getAlerts, addAlert, removeAlert, type RateAlert } from '@/utils/rateAlerts';
 
 type Currency = { code: string; name: string; flag: string };
 
@@ -67,6 +68,53 @@ export default function ToolsScreen() {
   useEffect(() => {
     loadRates(from);
   }, [from, loadRates]);
+
+  // ── 환율 알림 ──
+  const [alerts, setAlerts] = useState<RateAlert[]>([]);
+  const refreshAlerts = useCallback(async () => {
+    setAlerts(await getAlerts());
+  }, []);
+  useEffect(() => { refreshAlerts(); }, [refreshAlerts]);
+
+  const addAlertHandler = useCallback(async () => {
+    const num = parseFloat(amount) || 0;
+    const rate = rates[to];
+    if (!rate) {
+      Alert.alert('알림', '환율을 먼저 불러와주세요.');
+      return;
+    }
+    const targetRate = rate;
+    Alert.prompt?.(
+      '환율 알림 등록',
+      `현재 1 ${from} = ${rate.toFixed(4)} ${to}\n도달 시 알림 받을 환율 입력`,
+      async (input) => {
+        const target = parseFloat(input || '');
+        if (!target || isNaN(target)) return;
+        const direction = target < targetRate ? 'below' : 'above';
+        await addAlert({ fromCurrency: from, toCurrency: to, targetRate: target, direction });
+        haptic.success();
+        refreshAlerts();
+      },
+      'plain-text',
+      String(targetRate.toFixed(4)),
+      'numeric',
+    );
+    void num;
+  }, [amount, rates, from, to, refreshAlerts]);
+
+  const removeAlertHandler = async (id: string) => {
+    Alert.alert('알림 삭제', '이 환율 알림을 삭제할까요?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제', style: 'destructive',
+        onPress: async () => {
+          await removeAlert(id);
+          haptic.success();
+          refreshAlerts();
+        },
+      },
+    ]);
+  };
 
   const convertAmount = (amt: string, toCurr: string): string => {
     const num = parseFloat(amt) || 0;
@@ -181,6 +229,27 @@ export default function ToolsScreen() {
                   ✅ frankfurter.dev 실시간 환율
                   {lastUpdated && ` · ${fmtUpdated(lastUpdated)}`}
                 </Text>
+              )}
+
+              {/* 환율 알림 (목표가 도달 시 푸시) */}
+              <Pressable style={styles.alertAdd} onPress={addAlertHandler}>
+                <Text style={styles.alertAddText}>🔔 환율 목표가 알림 등록</Text>
+              </Pressable>
+              {alerts.length > 0 && (
+                <View style={styles.alertList}>
+                  {alerts.map((a) => (
+                    <Pressable
+                      key={a.id}
+                      style={styles.alertRow}
+                      onPress={() => removeAlertHandler(a.id)}
+                    >
+                      <Text style={styles.alertText}>
+                        🔔 1 {a.fromCurrency} {a.direction === 'below' ? '≤' : '≥'} {a.targetRate} {a.toCurrency}
+                      </Text>
+                      <Text style={styles.alertX}>✕</Text>
+                    </Pressable>
+                  ))}
+                </View>
               )}
 
               {/* 인기 환율 빠른 보기 */}
@@ -526,6 +595,30 @@ function createStyles(c: ColorPalette) {
     color: c.error,
     textAlign: 'center',
   },
+  alertAdd: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.primary + '40',
+    backgroundColor: c.primary + '08',
+    alignItems: 'center',
+  },
+  alertAddText: {
+    fontSize: Typography.labelMedium,
+    color: c.primary,
+    fontWeight: '700',
+  },
+  alertList: { marginTop: Spacing.sm, gap: 4 },
+  alertRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm,
+    backgroundColor: c.surfaceAlt,
+    borderRadius: 8,
+  },
+  alertText: { flex: 1, fontSize: Typography.labelSmall, color: c.textPrimary },
+  alertX: { fontSize: Typography.labelMedium, color: c.textTertiary, paddingHorizontal: Spacing.xs },
   quickRates: {
     marginTop: Spacing.lg,
     paddingTop: Spacing.md,
