@@ -29,6 +29,7 @@ import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { setupGlobalFont } from '@/utils/globalFont';
 import { incrementLaunchCount, maybePromptReview } from '@/utils/storeReview';
 import { checkRateAlerts } from '@/utils/rateAlerts';
+import { initializeAdMob } from '@/utils/admobInit';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -75,6 +76,8 @@ export default function RootLayout() {
           }).catch(() => undefined);
           // 환율 목표가 알림 체크 (백그라운드, 도달 시 로컬 알림)
           setTimeout(() => { checkRateAlerts().catch(() => undefined); }, 2000);
+          // AdMob 초기화 + iOS ATT 다이얼로그 (광고 활성 상태일 때만 동작)
+          setTimeout(() => { initializeAdMob().catch(() => undefined); }, 1500);
         }
       } catch (err) {
         console.error('App init error:', err);

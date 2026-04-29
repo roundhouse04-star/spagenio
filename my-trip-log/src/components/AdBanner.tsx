@@ -18,11 +18,12 @@
  *
  * ※ Expo Go 에서는 광고 작동 안 함. 반드시 EAS 빌드 또는 dev-client 필요.
  */
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Typography } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ADS_ENABLED, AD_UNIT_IDS } from '@/config/ads';
+import { isProActive } from '@/utils/proStatus';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
 let BannerAd: any = null;
@@ -49,6 +50,14 @@ type Props = {
 export function AdBanner({ onPress }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [pro, setPro] = useState(false);
+
+  useEffect(() => {
+    isProActive().then(setPro).catch(() => setPro(false));
+  }, []);
+
+  // PRO 사용자는 광고/플레이스홀더 모두 숨김
+  if (pro) return null;
 
   // 실광고 모드 (ADS_ENABLED + 패키지 설치됨)
   if (ADS_ENABLED && BannerAd && BannerAdSize && TestIds) {

@@ -67,9 +67,11 @@ export default function TermsScreen() {
         </Section>
 
         <Section title="제 6조 (광고)" styles={styles}>
-          {`• 본 앱은 현재 광고를 표시하지 않으며, 외부 광고 SDK를 호출하지도 않습니다.
-• 향후 무료 버전에 Google AdMob 등 광고가 도입될 수 있으며, 도입 시 약관 갱신 후 사용자 재동의를 받습니다.
-• 유료 버전이 출시될 경우 광고 없는 사용 옵션이 제공됩니다.`}
+          {`• 본 앱은 무료 사용자에게 Google AdMob 배너 광고를 표시합니다.
+• 광고 수익은 앱 운영·서버 비용 충당에 사용됩니다.
+• iOS 14.5 이상 사용자는 추적 권한 동의 시 맞춤 광고가 표시되며, 거부 시 일반 광고가 표시됩니다 (앱 사용에 제한 없음).
+• 광고 추적은 iOS 설정 > 개인정보 보호 > 추적, Android 설정 > Google > 광고에서 언제든 변경 가능합니다.
+• 향후 출시 예정인 Spagenio PRO 결제 시 광고 없이 사용 가능합니다.`}
         </Section>
 
         <Section title="제 7조 (사용자의 의무)" styles={styles}>

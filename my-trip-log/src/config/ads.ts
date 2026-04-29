@@ -1,33 +1,38 @@
 /**
  * AdMob 광고 설정 (Spagenio)
  *
- * 실제 출시 전에 아래 AD_UNIT_IDS 를 AdMob 콘솔에서 받은 값으로 교체하세요.
+ * ## 출시 단계 — 현재 ⚠️ 테스트 ID 사용 중
  *
- * ### 설정 방법
- * 1. https://admob.google.com 에서 앱 등록 (Spagenio)
- * 2. 광고 단위 생성 (배너 타입)
- * 3. 받은 광고 단위 ID를 아래에 입력
- * 4. app.json의 plugins 에 react-native-google-mobile-ads 도 등록
+ * 실제 출시 전에 아래 4가지 ID를 AdMob 콘솔(https://admob.google.com)에서
+ * 받은 실제 값으로 교체하세요.
  *
- * ### 플레이스홀더 ↔ 실광고 전환
- * `ADS_ENABLED = false` 로 두면 플레이스홀더(PRO 홍보 배너)
- * `ADS_ENABLED = true` 로 바꾸면 실제 AdMob 광고 표시
+ * ### 출시 체크리스트
  *
- * 개발 중에는 false 로 두는 것을 권장 (AdMob 정책 위반 방지)
- * 빌드 시 __DEV__ 에서는 TestIds 가 자동 사용됨
+ * - [ ] AdMob 가입 및 결제 정보 입력
+ * - [ ] 앱 등록 (iOS / Android 따로) → AdMob App ID 발급
+ * - [ ] 광고 단위 생성 (배너 타입) → Ad Unit ID 발급
+ * - [ ] 아래 ADMOB_APP_IDS / AD_UNIT_IDS 실제 값 교체
+ * - [ ] app.json 의 androidAppId / iosAppId 도 실제 값 교체
+ * - [ ] 약관·개인정보처리방침 갱신 안내 (이미 광고 표시 명시됨)
+ * - [ ] App Store Connect / Play Console 의 Privacy/Data Safety 폼 광고 추적 활성
+ *
+ * ### __DEV__ 자동 처리
+ * - 개발 빌드(__DEV__=true) 에서는 AdBanner 가 자동으로 TestIds 사용
+ * - EAS production 빌드에서만 실광고 노출 (코드에 이미 처리됨)
  */
 
-// 광고 표시 여부 (출시 전에 true 로 변경)
-export const ADS_ENABLED = false;
+// ⚠️ 출시 전 false → true 였음. 광고 활성화됨.
+export const ADS_ENABLED = true;
 
-// 광고 단위 ID (AdMob 콘솔에서 받은 값으로 교체)
+// 실광고 단위 ID — AdMob 콘솔에서 발급받은 값으로 교체
+// 현재 값은 Google 공식 테스트 ID (실광고 미노출)
 export const AD_UNIT_IDS = {
-  bannerIOS: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-  bannerAndroid: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+  bannerIOS: 'ca-app-pub-3940256099942544/2934735716',     // ⚠️ 테스트 ID — 실 ID로 교체
+  bannerAndroid: 'ca-app-pub-3940256099942544/6300978111', // ⚠️ 테스트 ID — 실 ID로 교체
 };
 
-// AdMob 앱 ID (app.json 에도 같은 값 입력)
+// AdMob 앱 ID (app.json 의 plugin 설정과 같은 값을 유지)
 export const ADMOB_APP_IDS = {
-  ios: 'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
-  android: 'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
+  ios: 'ca-app-pub-3940256099942544~1458002511',           // ⚠️ 테스트 ID
+  android: 'ca-app-pub-3940256099942544~3347511713',       // ⚠️ 테스트 ID
 };

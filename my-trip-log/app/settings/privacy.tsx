@@ -77,9 +77,15 @@ export default function PrivacyScreen() {
 • 이미지가 외부 서버로 전송되지 않습니다.
 • 향후 유료 버전에서 인식률 보강을 위해 외부 OCR 서비스가 도입될 수 있으며, 도입 시 본 방침이 갱신되고 사용자 재동의를 받습니다.
 
-[광고]
-• 본 앱은 현재 광고를 표시하지 않습니다.
-• 향후 광고 도입 시 본 방침이 갱신되며 사용자 재동의를 받습니다.
+[광고 — Google AdMob]
+• 무료 사용자에게는 Google AdMob 배너 광고가 표시됩니다.
+• AdMob은 광고 식별자(IDFA / Android Advertising ID)를 사용하여 광고를 제공합니다.
+• iOS 14.5 이상: 앱 시작 시 추적 권한 다이얼로그가 표시됩니다. 거부해도 앱 사용에 제한이 없으며, 비개인화된 일반 광고가 표시됩니다.
+• 광고 추적 거부 방법:
+  - iOS: 설정 > 개인정보 보호 > 추적
+  - Android: 설정 > Google > 광고 > 광고 ID 재설정 / 맞춤 광고 사용 안 함
+• Google 개인정보 처리방침: https://policies.google.com/privacy
+• Spagenio PRO 결제 시 광고가 표시되지 않습니다 (출시 예정).
 
 [도시 이미지]
 • 탐색 화면의 도시 대표 사진은 Wikipedia REST API를 통해 위키미디어 커먼즈에서 제공받습니다.
@@ -115,7 +121,8 @@ export default function PrivacyScreen() {
           {`• 로컬 데이터: 사용자가 삭제하거나 앱을 제거할 때까지
 • 서버 익명 통계: 사용자 요청 시 즉시 삭제 (익명 UUID 필요)
 • 영수증·티켓 OCR: 기기 내부 처리만 수행 (외부 전송 없음)
-• AI 일정 생성: 외부 AI 앱(ChatGPT 등) 딥링크 방식이라 본 앱은 데이터를 보관하지 않으며, 외부 앱 측 데이터는 해당 앱 정책을 따름`}
+• AI 일정 생성: 외부 AI 앱(ChatGPT 등) 딥링크 방식이라 본 앱은 데이터를 보관하지 않으며, 외부 앱 측 데이터는 해당 앱 정책을 따름
+• 광고 식별자: Google AdMob 정책에 따라 처리 (https://policies.google.com/privacy)`}
         </Section>
 
         <Section title="7. 만 14세 미만 이용자" styles={styles}>

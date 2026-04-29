@@ -10,6 +10,17 @@
 import { parseReceipt, ParsedReceipt } from './receiptParser';
 import { recognizeWithOcrSpace, guessOcrLanguage } from './ocrSpace';
 import { NETWORK_OCR_ENABLED } from '@/config/ocr';
+import { isProActive } from './proStatus';
+
+/**
+ * OCR.space 네트워크 폴백 사용 가능 여부.
+ * - 무료 사용자: NETWORK_OCR_ENABLED 플래그(=false)
+ * - PRO 사용자: 자동으로 true (인식률 향상 혜택)
+ */
+async function isNetworkOcrAllowed(): Promise<boolean> {
+  if (NETWORK_OCR_ENABLED) return true;
+  return await isProActive();
+}
 
 export interface OcrResult extends ParsedReceipt {
   engine: 'mlkit' | 'ocrspace' | 'none';
@@ -55,8 +66,9 @@ export async function recognizeReceiptDual(
     }
   }
 
-  // 2차: OCR.space — 무료 배포에서는 비활성화 (NETWORK_OCR_ENABLED=false)
-  if (NETWORK_OCR_ENABLED) {
+  // 2차: OCR.space — 무료 배포에서는 비활성, PRO 사용자에게는 자동 활성
+  const networkAllowed = await isNetworkOcrAllowed();
+  if (networkAllowed) {
     try {
       const serverResult = await recognizeWithOcrSpace(imageUri, lang, ocrSpaceApiKey);
       if (serverResult.success && serverResult.text) {
@@ -98,8 +110,9 @@ export async function recognizeRawText(
     return { text: ml.rawText, engine: 'mlkit' };
   }
 
-  // 2차: OCR.space — 플래그 없으면 호출 안 함
-  if (!NETWORK_OCR_ENABLED) {
+  // 2차: OCR.space — 플래그 또는 PRO 사용자만 호출
+  const networkAllowed = await isNetworkOcrAllowed();
+  if (!networkAllowed) {
     return { text: '', engine: 'none' };
   }
   try {
