@@ -187,9 +187,15 @@ export default function MeScreen() {
           </Pressable>
         </View>
 
-        {/* 여행 통계 */}
-        <View style={styles.statsCard}>
-          <Text style={styles.cardTitle}>여행 통계</Text>
+        {/* 여행 통계 — 탭하면 풀 대시보드로 */}
+        <Pressable
+          style={styles.statsCard}
+          onPress={() => { haptic.tap(); router.push('/stats'); }}
+        >
+          <View style={styles.statsHeader}>
+            <Text style={styles.cardTitle}>📊 여행 통계</Text>
+            <Text style={styles.statsMore}>자세히 ›</Text>
+          </View>
           <View style={styles.statsGrid}>
             <Stat value={stats.totalTrips} label="총 여행" styles={styles} />
             <Divider styles={styles} />
@@ -202,7 +208,7 @@ export default function MeScreen() {
             <Divider styles={styles} />
             <Stat value={stats.totalExpenses} label="지출 기록" small styles={styles} />
           </View>
-        </View>
+        </Pressable>
 
         {/* 설정 섹션 */}
         <SectionTitle styles={styles}>설정</SectionTitle>
@@ -478,12 +484,22 @@ function createStyles(c: ColorPalette) {
     marginBottom: Spacing.lg,
     ...Shadows.sm,
   },
+  statsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  statsMore: {
+    fontSize: Typography.labelSmall,
+    color: c.primary,
+    fontWeight: '700',
+  },
   cardTitle: {
     fontSize: Typography.labelMedium,
     fontWeight: '700',
     color: c.accent,
     letterSpacing: 1,
-    marginBottom: Spacing.md,
     textTransform: 'uppercase',
   },
   statsGrid: {
