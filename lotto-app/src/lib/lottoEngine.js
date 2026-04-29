@@ -195,22 +195,219 @@ export function generateGames({ algos, history, count = 5, carryoverNumbers }) {
 }
 
 // ── 자동추천 모드 ──
-// carryover (40) + zone (30) + cooccur 동반출현 (30) 고정 프리셋 — 사용자 가중치 무시
-// carryoverNumbers는 generateGames가 history 마지막 회차에서 자동 보정
-export function generateAuto({ history, count = 5 }) {
-  const presetAlgos = [
-    { id: 'carryover', weight: 40 },
-    { id: 'zone',      weight: 30 },
-    { id: 'cooccur',   weight: 30 },
-  ];
+// 사용자가 설정한 strategy에 따라 다른 알고리즘 적용
+//   'anti-popular' → 비인기 번호 전략 (분배 시 실수령액 ↑)
+//   'statistical'  → 통계 자연 분포 매칭 (default)
+//   'mini-wheel'   → 간이 휠링 (작은 등수 보장)
+//   null/undefined → 순수 랜덤 (전체 OFF 시)
+
+const POPULARITY_FACTOR = {};
+for (let n = 1; n <= 45; n++) {
+  let w = 1.0;
+  // 32+ 비인기 번호 부스트 (사람들은 생일 1~31에 몰림)
+  if (n >= 32) w *= 1.4;
+  // 끝자리 7 인기 (대중적 락넘버) → 페널티
+  if (n % 10 === 7) w *= 0.7;
+  // 끝자리 0/8/9 비인기 → 부스트
+  if (n % 10 === 0 || n % 10 === 8 || n % 10 === 9) w *= 1.15;
+  // 1~12 (월) 인기 → 약한 페널티
+  if (n <= 12) w *= 0.85;
+  POPULARITY_FACTOR[n] = w;
+}
+
+function pickWithoutReplacement(weighted, k) {
+  const pool = weighted.map((it) => ({ ...it }));
+  const out = [];
+  for (let i = 0; i < k; i++) {
+    if (!pool.length) break;
+    const sel = pickWeighted(pool);
+    out.push(sel.number);
+    const idx = pool.findIndex((p) => p.number === sel.number);
+    if (idx >= 0) pool.splice(idx, 1);
+  }
+  return out.sort((a, b) => a - b);
+}
+
+function makeMeta(numbers) {
+  const odd = numbers.filter((n) => n % 2 === 1).length;
+  const low = numbers.filter((n) => n <= 22).length;
   return {
-    games: generateGames({ algos: presetAlgos, history, count }),
-    meta: { mode: 'auto-mix' },
+    oddEven: `${odd}:${6 - odd}`,
+    lowHigh: `${low}:${6 - low}`,
+    sum: numbers.reduce((a, b) => a + b, 0),
   };
+}
+
+// 인기 패턴 회피 검사 (3개 연속 / 같은 자릿수 3개 / 끝자리 같은 3개)
+function hasPopularPattern(nums) {
+  const sorted = [...nums].sort((a, b) => a - b);
+  // 3개 이상 연속 (예: 5, 6, 7)
+  for (let i = 0; i < sorted.length - 2; i++) {
+    if (sorted[i + 1] === sorted[i] + 1 && sorted[i + 2] === sorted[i] + 2) return true;
+  }
+  // 같은 자릿수 (1의 자리) 3개 이상
+  const tens = {};
+  sorted.forEach((n) => { const t = Math.floor(n / 10); tens[t] = (tens[t] || 0) + 1; });
+  if (Math.max(...Object.values(tens)) >= 4) return true;
+  return false;
+}
+
+// ① 비인기 번호 전략 — 분배 시 실수령액 ↑
+function generateAntiPopular(history, count) {
+  const games = [];
+  const seen = new Set();
+  let attempts = 0;
+  while (games.length < count && attempts < count * 50) {
+    attempts++;
+    const pool = [];
+    for (let n = 1; n <= 45; n++) pool.push({ number: n, weight: POPULARITY_FACTOR[n] });
+    const numbers = pickWithoutReplacement(pool, 6);
+    if (hasPopularPattern(numbers)) continue;
+    const key = numbers.join('-');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    games.push({ numbers, meta: makeMeta(numbers) });
+  }
+  return games;
+}
+
+// ② 통계 자연 분포 — 합/홀짝/저고/끝자리 4축 매칭
+function matchesNaturalDistribution(nums) {
+  const sum = nums.reduce((a, b) => a + b, 0);
+  if (sum < 110 || sum > 170) return false;
+  const odd = nums.filter((n) => n % 2 === 1).length;
+  if (odd < 2 || odd > 4) return false;          // 2:4 / 3:3 / 4:2
+  const low = nums.filter((n) => n <= 22).length;
+  if (low < 2 || low > 4) return false;
+  const lastDigits = new Set(nums.map((n) => n % 10));
+  if (lastDigits.size < 4) return false;          // 끝자리 4종 이상
+  return true;
+}
+
+function generateStatistical(history, count) {
+  const games = [];
+  const seen = new Set();
+  let attempts = 0;
+  while (games.length < count && attempts < 5000) {
+    attempts++;
+    const set = new Set();
+    while (set.size < 6) set.add(1 + Math.floor(Math.random() * 45));
+    const numbers = [...set].sort((a, b) => a - b);
+    if (!matchesNaturalDistribution(numbers)) continue;
+    const key = numbers.join('-');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    games.push({ numbers, meta: makeMeta(numbers) });
+  }
+  return games;
+}
+
+// ③ 간이 휠링 — 8개 핵심 번호 → 5게임 균등 커버리지 (작은 등수 보장 ↑)
+function generateMiniWheel(history, count) {
+  // 핵심 8개 번호 선정: 직전 회차 6개 + 누적 빈도 상위 2개
+  const recent = (history.length > 0 ? history[history.length - 1] : []).slice(0, 6);
+  const totalFreq = {};
+  for (const draw of history) for (const n of draw) totalFreq[n] = (totalFreq[n] || 0) + 1;
+  const candidates = [];
+  for (let n = 1; n <= 45; n++) {
+    if (recent.includes(n)) continue;
+    candidates.push({ n, f: totalFreq[n] || 0 });
+  }
+  candidates.sort((a, b) => b.f - a.f);
+  const extra = candidates.slice(0, 8 - recent.length).map((c) => c.n);
+  let core = [...recent, ...extra];
+  // 부족하면 랜덤 보충
+  while (core.length < 8) {
+    const r = 1 + Math.floor(Math.random() * 45);
+    if (!core.includes(r)) core.push(r);
+  }
+  core = core.slice(0, 8).sort((a, b) => a - b);
+
+  // 5게임에 8개 번호 균등 분배 (각 번호가 평균 3.75회 등장하게)
+  const games = [];
+  const seen = new Set();
+  const usage = new Array(8).fill(0);
+  let safety = 0;
+  while (games.length < count && safety < count * 30) {
+    safety++;
+    // 가장 적게 사용된 6개 인덱스 우선 선택
+    const indices = Array.from({ length: 8 }, (_, i) => i);
+    indices.sort((a, b) => usage[a] - usage[b] || Math.random() - 0.5);
+    const picked = indices.slice(0, 6);
+    const numbers = picked.map((i) => core[i]).sort((a, b) => a - b);
+    const key = numbers.join('-');
+    if (seen.has(key)) {
+      // 중복이면 무작위 셔플 후 재시도
+      indices.sort(() => Math.random() - 0.5);
+      const picked2 = indices.slice(0, 6);
+      const numbers2 = picked2.map((i) => core[i]).sort((a, b) => a - b);
+      const key2 = numbers2.join('-');
+      if (seen.has(key2)) continue;
+      seen.add(key2);
+      picked2.forEach((i) => usage[i]++);
+      games.push({ numbers: numbers2, meta: makeMeta(numbers2) });
+    } else {
+      seen.add(key);
+      picked.forEach((i) => usage[i]++);
+      games.push({ numbers, meta: makeMeta(numbers) });
+    }
+  }
+  return games;
+}
+
+// 순수 랜덤 (모든 strategy OFF)
+function generatePureRandom(count) {
+  const games = [];
+  const seen = new Set();
+  let safety = 0;
+  while (games.length < count && safety < count * 20) {
+    safety++;
+    const set = new Set();
+    while (set.size < 6) set.add(1 + Math.floor(Math.random() * 45));
+    const numbers = [...set].sort((a, b) => a - b);
+    const key = numbers.join('-');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    games.push({ numbers, meta: makeMeta(numbers) });
+  }
+  return games;
+}
+
+// 자동추천 dispatch — strategy 따라 다른 알고리즘
+export function generateAuto({ history = [], count = 5, strategy = 'statistical' } = {}) {
+  let games;
+  switch (strategy) {
+    case 'anti-popular': games = generateAntiPopular(history, count); break;
+    case 'mini-wheel':   games = generateMiniWheel(history, count); break;
+    case null:
+    case 'random':       games = generatePureRandom(count); break;
+    case 'statistical':
+    default:             games = generateStatistical(history, count); break;
+  }
+  return { games, meta: { mode: `auto-${strategy || 'random'}` } };
 }
 
 // 하위 호환 alias
 export const generateAutoCarryover = generateAuto;
+
+// 자동추천 strategy 메타 (UI 표시용)
+export const AUTO_STRATEGIES = [
+  {
+    id: 'anti-popular',
+    name: '비인기 번호 전략',
+    desc: '인기 패턴 회피 — 1등 시 분배자 ↓ 실수령액 ↑',
+  },
+  {
+    id: 'statistical',
+    name: '통계 자연 분포',
+    desc: '합·홀짝·저고·끝자리 4축이 자연스러운 분포 (default)',
+  },
+  {
+    id: 'mini-wheel',
+    name: '간이 휠링',
+    desc: '8개 핵심 번호로 5게임 균등 분배 — 작은 등수 보장 ↑',
+  },
+];
 
 // 가중치 합계 검증
 export function weightsSum(algos) {

@@ -178,7 +178,7 @@ export default function App() {
           <Stack.Screen name="QRScan" component={QRScanScreen} options={{ title: 'QR 당첨확인' }} />
           <Stack.Screen name="History" component={HistoryScreen} options={{ title: '회차 정보' }} />
           <Stack.Screen name="WinningStores" component={WinningStoresScreen} options={{ title: '당첨 판매점' }} />
-          <Stack.Screen name="Weights" component={WeightsScreen} options={{ title: '알고리즘 가중치' }} />
+          <Stack.Screen name="Weights" component={WeightsScreen} options={{ title: '번호 추천 방식' }} />
           <Stack.Screen name="MyPicks" component={MyPicksScreen} options={{ title: '추천번호 확인' }} />
           <Stack.Screen name="Legal" component={LegalScreen} options={{ title: '약관 및 면책조항' }} />
         </Stack.Navigator>

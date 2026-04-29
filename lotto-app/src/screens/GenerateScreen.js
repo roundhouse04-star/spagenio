@@ -11,7 +11,7 @@ import { loadWeights } from '../lib/storage';
 import { addPickEntry } from '../lib/storage';
 import { theme } from '../lib/theme';
 import { sendTelegramFromConfig, formatLottoMessage, loadTelegramConfig } from '../lib/telegram';
-import { loadAppSettings } from '../lib/appSettings';
+import { loadAppSettings, loadAutoStrategy } from '../lib/appSettings';
 import { sendLocalLottoNotification } from '../lib/notifications';
 
 const COUNT_OPTIONS = [1, 3, 5, 10];
@@ -101,11 +101,12 @@ export default function GenerateScreen({ route }) {
     }
   };
 
-  // [🎯 자동추천] — carryover 고정 프리셋 (사용자 가중치 무시)
+  // [🎯 자동추천] — 설정의 strategy 따라 동적 dispatch (anti-popular / statistical / mini-wheel / random)
   const onAutoRecommend = async () => {
     setGenerating(true);
     setTimeout(async () => {
-      const { games: result, meta } = generateAuto({ history, count });
+      const strategy = await loadAutoStrategy();
+      const { games: result } = generateAuto({ history, count, strategy });
       setGames(result);
       setGenerating(false);
       // 자동 저장

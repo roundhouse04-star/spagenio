@@ -16,7 +16,12 @@ const KEYS = {
   // 약관 동의
   TERMS_VERSION: 'terms_agreed_version',  // 동의한 약관 버전
   TERMS_AGREED_AT: 'terms_agreed_at',     // 동의 시각 ms
+  // 자동추천 전략 (anti-popular | statistical | mini-wheel | '' = random)
+  AUTO_STRATEGY: 'auto_strategy',
 };
+
+// 자동추천 strategy default — 통계 자연 분포
+export const DEFAULT_AUTO_STRATEGY = 'statistical';
 
 // 현재 약관 버전 — 약관 본문이 실질적으로 바뀔 때 ↑ 시 사용자 재동의 트리거
 export const CURRENT_TERMS_VERSION = '1.1';
@@ -110,4 +115,15 @@ export async function saveTermsAgreement() {
 export async function clearTermsAgreement() {
   await setSetting(KEYS.TERMS_VERSION, null);
   await setSetting(KEYS.TERMS_AGREED_AT, null);
+}
+
+// ── 자동추천 전략 ──
+// 빈 문자열/null → 순수 랜덤 (모든 strategy OFF)
+export async function loadAutoStrategy() {
+  const v = await getSetting(KEYS.AUTO_STRATEGY, DEFAULT_AUTO_STRATEGY);
+  return v || null;
+}
+
+export async function saveAutoStrategy(strategyId) {
+  await setSetting(KEYS.AUTO_STRATEGY, strategyId || '');
 }

@@ -278,9 +278,9 @@ export default function SettingsScreen({ navigation }) {
         style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
         onPress={() => navigation?.navigate('Weights')}
       >
-        <Text style={styles.navEmoji}>⚙️</Text>
+        <Text style={styles.navEmoji}>🎯</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.navTitle}>알고리즘 가중치</Text>
+          <Text style={styles.navTitle}>번호 추천 방식</Text>
         </View>
         <Text style={styles.navChevron}>›</Text>
       </Pressable>
