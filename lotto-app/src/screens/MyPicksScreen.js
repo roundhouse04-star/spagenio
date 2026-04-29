@@ -9,7 +9,6 @@ import { theme } from '../lib/theme';
 import { loadPicks, removePick, clearAllPicks } from '../lib/storage';
 import { fetchRound, detectLatestRound } from '../lib/lottoApi';
 import { evaluateRank } from '../lib/lottoEngine';
-import { sendTelegramFromConfig, formatLottoMessage, loadTelegramConfig } from '../lib/telegram';
 
 const RANK_LABEL = {
   1: { txt: '🏆 1등', color: '#dc2626' },
@@ -92,22 +91,6 @@ export default function MyPicksScreen({ navigation }) {
     ]);
   };
 
-  const onSendTelegram = async () => {
-    const visible = picks.filter((p) => filter === 'all' || p.source === filter);
-    if (!visible.length) return;
-    const cfg = await loadTelegramConfig();
-    if (!cfg.token || !cfg.chatId) {
-      Alert.alert('텔레그램 미설정', '설정 탭에서 봇 토큰과 Chat ID를 먼저 등록해주세요.');
-      return;
-    }
-    try {
-      const games = visible.map((p) => ({ numbers: p.numbers, meta: p.meta }));
-      const text = formatLottoMessage(games, { round: latestRound, kind: '저장' });
-      await sendTelegramFromConfig(text);
-      Alert.alert('전송 성공', `${visible.length}게임이 텔레그램으로 전송되었습니다.`);
-    } catch (e) { Alert.alert('전송 실패', e.message); }
-  };
-
   const onCheckAll = async () => {
     if (!picks.length) return;
     setChecking(true);
@@ -161,8 +144,8 @@ export default function MyPicksScreen({ navigation }) {
       ListHeaderComponent={
         <View>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>💾 알고리즘추천</Text>
-            <Text style={styles.headerSub}>가중치 기반 추천 모음 · 자동발송 + 직접저장 통합</Text>
+            <Text style={styles.headerTitle}>💾 추천번호 확인</Text>
+            <Text style={styles.headerSub}>저장된 추천 번호 모음 · 회차별</Text>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
@@ -174,24 +157,19 @@ export default function MyPicksScreen({ navigation }) {
           </ScrollView>
 
           {picks.length > 0 && (
-            <>
-              <View style={styles.btnRow}>
-                <Pressable
-                  style={[styles.btn, checking && { opacity: 0.6 }]}
-                  disabled={checking} onPress={onCheckAll}
-                >
-                  <Text style={styles.btnTxt}>
-                    {checking ? '확인 중...' : '🎯 전체 당첨 확인'}
-                  </Text>
-                </Pressable>
-                <Pressable style={styles.btnGhost} onPress={onClearAll}>
-                  <Text style={styles.btnGhostTxt}>전체 삭제</Text>
-                </Pressable>
-              </View>
-              <Pressable style={styles.btnAlt} onPress={onSendTelegram}>
-                <Text style={styles.btnAltTxt}>📲 텔레그램으로 전체 발송</Text>
+            <View style={styles.btnRow}>
+              <Pressable
+                style={[styles.btn, checking && { opacity: 0.6 }]}
+                disabled={checking} onPress={onCheckAll}
+              >
+                <Text style={styles.btnTxt}>
+                  {checking ? '확인 중...' : '🎯 전체 당첨 확인'}
+                </Text>
               </Pressable>
-            </>
+              <Pressable style={styles.btnGhost} onPress={onClearAll}>
+                <Text style={styles.btnGhostTxt}>전체 삭제</Text>
+              </Pressable>
+            </View>
           )}
         </View>
       }
@@ -200,8 +178,7 @@ export default function MyPicksScreen({ navigation }) {
           <Text style={styles.emptyEmoji}>💾</Text>
           <Text style={styles.emptyTxt}>저장된 번호가 없습니다</Text>
           <Text style={styles.emptySub}>
-            추천 탭에서 번호를 생성하고 저장하거나{'\n'}
-            텔레그램 자동발송을 활성화하세요
+            추천 탭에서 번호를 생성해보세요
           </Text>
         </View>
       }
@@ -291,11 +268,6 @@ const styles = StyleSheet.create({
     borderRadius: 10, alignItems: 'center',
   },
   btnGhostTxt: { color: theme.danger, fontWeight: '700' },
-  btnAlt: {
-    backgroundColor: '#eef2ff', borderWidth: 1, borderColor: theme.primary,
-    paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginBottom: 12,
-  },
-  btnAltTxt: { color: theme.primary, fontWeight: '800' },
 
   empty: { padding: 40, alignItems: 'center' },
   emptyEmoji: { fontSize: 48, marginBottom: 12 },
