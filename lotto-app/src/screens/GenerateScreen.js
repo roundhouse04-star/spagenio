@@ -59,6 +59,10 @@ export default function GenerateScreen({ route }) {
   // 설정 화면에서 토글 변경 후 돌아왔을 때 다시 읽기
   useFocusEffect(useCallback(() => { reloadToggles(); }, [reloadToggles]));
 
+  // 모드(자동/알고리즘)가 바뀌면 게임 결과 분리 — 둘이 state 공유되지 않도록 초기화
+  // (Bottom Tab은 인스턴스를 유지하기 때문에 mode 변경 시만 reset)
+  useEffect(() => { setGames([]); }, [mode]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try { await reload(); } finally { setRefreshing(false); }
