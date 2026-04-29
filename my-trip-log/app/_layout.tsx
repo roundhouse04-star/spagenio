@@ -27,6 +27,7 @@ import {
 import { initializeDatabase, isUserRegistered, hasFullConsent } from '@/db/database';
 import { syncStatsOnAppStart } from '@/utils/serverStats';
 import { setupGlobalFont } from '@/utils/globalFont';
+import { incrementLaunchCount, maybePromptReview } from '@/utils/storeReview';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -66,6 +67,11 @@ export default function RootLayout() {
           syncStatsOnAppStart().catch((err) => {
             console.warn('[stats sync] non-fatal background sync failed:', err);
           });
+          // 앱 진입 횟수 카운트 → 5번 이상 + 1년 경과 시 자연스러운 별점 요청
+          incrementLaunchCount().then(() => {
+            // 약간 지연시켜 다른 UI 안정화 후 표시
+            setTimeout(() => { maybePromptReview().catch(() => undefined); }, 3000);
+          }).catch(() => undefined);
         }
       } catch (err) {
         console.error('App init error:', err);

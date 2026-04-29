@@ -299,13 +299,12 @@ export default function MeScreen() {
           />
           <MenuRow
             icon="✉️"
-            label="문의하기"
+            label="피드백 보내기"
             onPress={() => {
               haptic.tap();
-              Alert.alert('문의하기', 'roundhouse04@gmail.com 으로 문의해주세요!');
+              import('@/utils/feedback').then((m) => m.openFeedbackMail());
             }}
             styles={styles}
-          
           />
         </View>
 

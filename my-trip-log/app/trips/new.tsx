@@ -13,6 +13,8 @@ import { getDB } from '@/db/database';
 import DatePickerModal from '@/components/DatePickerModal';
 import { CityAutocomplete } from '@/components/CityAutocomplete';
 import { findCityIdByName } from '@/data/cityHighlights';
+import { syncTripNotifications } from '@/utils/tripNotifications';
+import { getTripById } from '@/db/trips';
 
 export default function TripFormScreen() {
   const { colors } = useTheme();
@@ -114,6 +116,9 @@ export default function TripFormScreen() {
             tripId,
           ]
         );
+        // D-day 알림 갱신
+        const updated = await getTripById(tripId);
+        if (updated) syncTripNotifications(updated).catch(() => undefined);
         router.back();
       } else {
         // 신규 생성
@@ -136,6 +141,9 @@ export default function TripFormScreen() {
           ]
         );
         const newId = result.lastInsertRowId;
+        // D-day 알림 등록
+        const created = await getTripById(newId);
+        if (created) syncTripNotifications(created).catch(() => undefined);
         router.replace(`/trip/${newId}`);
       }
     } catch (err) {
