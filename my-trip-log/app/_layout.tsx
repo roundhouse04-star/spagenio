@@ -262,6 +262,7 @@ export default function RootLayout() {
           <Stack.Screen name="tools/timezone" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/emergency" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/visa" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="stats/index" options={{ animation: 'slide_from_right' }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
