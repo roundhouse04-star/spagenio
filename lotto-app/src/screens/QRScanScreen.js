@@ -276,7 +276,7 @@ export default function QRScanScreen({ navigation, route }) {
                   <Text style={styles.gameTitle}>{idx + 1}게임</Text>
                   <View style={[styles.rankPill, { backgroundColor: info.color + '15' }]}>
                     <Text style={[styles.rankTxt, { color: info.color }]}>
-                      {info.txt} ({r.matched}개{r.bonusMatch ? '+B' : ''})
+                      {info.txt} ({r.matched}개{r.bonusMatch ? '+보너스' : ''})
                     </Text>
                   </View>
                 </View>
