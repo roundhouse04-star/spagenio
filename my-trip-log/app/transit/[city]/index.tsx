@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator,
+  Linking, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -14,6 +15,7 @@ import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import transitData from '@/data/transit.json';
+import { getOfficialTransitInfo } from '@/data/transitOfficial';
 
 interface CityInfo {
   id: string;
@@ -303,6 +305,15 @@ export default function TransitCityScreen() {
     setToText('');
   };
 
+  const officialInfo = getOfficialTransitInfo(cityId);
+  const handleOpenOfficial = () => {
+    if (!officialInfo) return;
+    haptic.tap();
+    Linking.openURL(officialInfo.url).catch(() => {
+      Alert.alert('링크 열기 실패', '인터넷 연결을 확인해주세요.');
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -319,6 +330,25 @@ export default function TransitCityScreen() {
         </View>
         <View style={{ width: 36 }} />
       </View>
+
+      {/* 공식 노선도 링크 — 인앱 데이터가 부정확할 수 있으니 항상 공식 페이지 안내 */}
+      {officialInfo && (
+        <Pressable style={styles.officialBox} onPress={handleOpenOfficial}>
+          <View style={styles.officialIconWrap}>
+            <Text style={styles.officialIcon}>🌐</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.officialEyebrow}>OFFICIAL MAP</Text>
+            <Text style={styles.officialAgency} numberOfLines={1}>
+              {officialInfo.agency} 공식 노선도
+            </Text>
+            <Text style={styles.officialDesc}>
+              운행 시간·요금·역명 최신 정보
+            </Text>
+          </View>
+          <Text style={styles.officialArrow}>↗</Text>
+        </Pressable>
+      )}
 
       {/* 탭 */}
       <View style={styles.tabRow}>
@@ -658,6 +688,54 @@ function createStyles(c: ColorPalette) {
     fontSize: Typography.labelSmall,
     color: c.textTertiary,
     marginTop: 2,
+  },
+
+  // 공식 노선도 박스
+  officialBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: c.primary + '10',
+    borderWidth: 1,
+    borderColor: c.primary + '40',
+    borderRadius: 12,
+  },
+  officialIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: c.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  officialIcon: { fontSize: 20 },
+  officialEyebrow: {
+    fontSize: 10,
+    color: c.accent,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  officialAgency: {
+    fontSize: Typography.bodyMedium,
+    color: c.textPrimary,
+    fontWeight: '700',
+  },
+  officialDesc: {
+    fontSize: Typography.labelSmall,
+    color: c.textSecondary,
+    marginTop: 2,
+  },
+  officialArrow: {
+    fontSize: 20,
+    color: c.primary,
+    fontWeight: '700',
+    paddingHorizontal: Spacing.xs,
   },
 
   // 탭

@@ -1,59 +1,14 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Linking, Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getRates, refreshRates, getLastUpdated } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
-
-/**
- * 도시별 공식 지하철 노선도 URL.
- * 한국어 페이지 우선, 없으면 영어 공식 페이지.
- * 운영사 사이트 구조 변경 시 여기만 수정하면 됨.
- */
-const OFFICIAL_TRANSIT_URLS: Record<string, string> = {
-  // 한국 — 한국어
-  seoul: 'https://www.seoulmetro.co.kr/kr/cyberStation.do',
-  busan: 'https://www.humetro.busan.kr/homepage/default/page/sub01_03_01.do?menuCd=00065',
-  // 일본 — 한국어 페이지 제공
-  tokyo: 'https://www.tokyometro.jp/lang_kr/subwaymap/index.html',
-  osaka: 'https://subway.osakametro.co.jp/guide/file/route_map_kr.pdf',
-  kyoto: 'https://www2.city.kyoto.lg.jp/kotsu/cmsfiles/contents/0000027/27184/kor_subway_map.pdf',
-  fukuoka: 'https://subway.city.fukuoka.lg.jp/kor/',
-  // 대만 — 한국어
-  taipei: 'https://web.metro.taipei/c/routemap.aspx?lang=kr',
-  // 동남아·중화권 — 영어
-  bangkok: 'https://www.bts.co.th/eng/routemap.html',
-  singapore: 'https://www.smrt.com.sg/Trains/SystemMap',
-  hongkong: 'https://www.mtr.com.hk/en/customer/services/system_map.html',
-  shanghai: 'http://service.shmetro.com/en/index.htm',
-  beijing: 'https://www.bjsubway.com/en/',
-  // 미주·유럽 — 영어
-  newyork: 'https://new.mta.info/maps/subway-map',
-  london: 'https://tfl.gov.uk/maps/track/tube',
-  paris: 'https://www.ratp.fr/en/plans',
-  berlin: 'https://www.bvg.de/en/connections/route-network-and-map',
-  amsterdam: 'https://en.gvb.nl/lijnenkaart-rapide',
-  barcelona: 'https://www.tmb.cat/en/barcelona/maps/metro',
-  rome: 'https://www.atac.roma.it/page/maps/231/0',
-};
-
-async function openTransitMap(cityId: string): Promise<void> {
-  const url = OFFICIAL_TRANSIT_URLS[cityId];
-  if (!url) {
-    Alert.alert('알림', '이 도시는 아직 공식 노선도가 등록되지 않았어요.');
-    return;
-  }
-  try {
-    await Linking.openURL(url);
-  } catch (err) {
-    console.warn('[transit] 링크 열기 실패:', err);
-    Alert.alert('링크 열기 실패', '인터넷 연결을 확인해주세요.');
-  }
-}
 
 type Currency = { code: string; name: string; flag: string };
 
@@ -257,8 +212,8 @@ export default function ToolsScreen() {
         <View style={styles.disclaimerBox}>
           <Text style={styles.disclaimerIcon}>⚠️</Text>
           <Text style={styles.disclaimerText}>
-            <Text style={styles.disclaimerTitle}>각 도시 공식 운영사 페이지로 이동합니다.</Text>{' '}
-            운행 시간·요금·역명·환승 등은 공식 페이지에서 확인해주세요. 인터넷 연결이 필요해요.
+            <Text style={styles.disclaimerTitle}>참고용 노선 정보입니다.</Text>{' '}
+            운행 시간·요금·역명·환승은 변동될 수 있어요. 각 화면 상단의 공식 노선도 링크에서 최신 정보를 확인해주세요.
           </Text>
         </View>
 
@@ -283,27 +238,23 @@ export default function ToolsScreen() {
             { cityId: 'amsterdam', icon: '🇳🇱', label: '암스테르담 메트로', desc: 'Amsterdam Metro' },
             { cityId: 'barcelona', icon: '🇪🇸', label: '바르셀로나 메트로', desc: 'Barcelona Metro' },
             { cityId: 'rome', icon: '🇮🇹', label: '로마 메트로', desc: 'Roma Metro' },
-          ].map((m) => {
-            const hasUrl = !!OFFICIAL_TRANSIT_URLS[m.cityId];
-            return (
-              <Pressable
-                key={m.cityId}
-                style={[styles.linkCard, !hasUrl && { opacity: 0.5 }]}
-                onPress={() => {
-                  haptic.tap();
-                  openTransitMap(m.cityId);
-                }}
-                disabled={!hasUrl}
-              >
-                <Text style={styles.linkIcon}>{m.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.linkLabel}>{m.label}</Text>
-                  <Text style={styles.linkDesc}>{m.desc}</Text>
-                </View>
-                <Text style={styles.linkArrow}>↗</Text>
-              </Pressable>
-            );
-          })}
+          ].map((m) => (
+            <Pressable
+              key={m.cityId}
+              style={styles.linkCard}
+              onPress={() => {
+                haptic.tap();
+                router.push(`/transit/${m.cityId}`);
+              }}
+            >
+              <Text style={styles.linkIcon}>{m.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkLabel}>{m.label}</Text>
+                <Text style={styles.linkDesc}>{m.desc}</Text>
+              </View>
+              <Text style={styles.linkArrow}>›</Text>
+            </Pressable>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
