@@ -4,7 +4,7 @@
  * 일정 추가(item-new) 화면에서 "🌟 추천 장소에서 고르기" 버튼으로 호출.
  * 도시 ID에 해당하는 하이라이트를 카테고리별로 보여주고, 탭하면 onPick 콜백.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Modal, SafeAreaView,
 } from 'react-native';
@@ -19,6 +19,7 @@ import {
   type CityHighlight,
   type HighlightCategory,
 } from '@/data/cityHighlights';
+import { getAllFavorites, toggleFavorite } from '@/utils/highlightFavorites';
 
 type CategoryFilter = HighlightCategory | 'all';
 
@@ -33,16 +34,42 @@ export function HighlightPicker({ visible, cityId, onClose, onPick }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [filter, setFilter] = useState<CategoryFilter>('all');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   const highlights = useMemo(() => {
     if (!cityId) return [];
     return getHighlightsByCity(cityId);
   }, [cityId]);
 
+  // 모달 열릴 때마다 즐겨찾기 다시 로드 (다른 화면에서 변경됐을 수 있음)
+  useEffect(() => {
+    if (!visible) return;
+    getAllFavorites().then(setFavorites).catch(() => setFavorites(new Set()));
+  }, [visible]);
+
+  const isFav = (h: CityHighlight) => favorites.has(`${h.cityId}::${h.name}`);
+
+  const handleToggleFav = async (h: CityHighlight) => {
+    haptic.tap();
+    const newState = await toggleFavorite(h.cityId, h.name);
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      const k = `${h.cityId}::${h.name}`;
+      if (newState) next.add(k);
+      else next.delete(k);
+      return next;
+    });
+  };
+
+  // 카테고리 필터 적용 후, 즐겨찾기 우선 정렬
   const filtered = useMemo(() => {
-    if (filter === 'all') return highlights;
-    return highlights.filter((h) => h.category === filter);
-  }, [highlights, filter]);
+    const base = filter === 'all' ? highlights : highlights.filter((h) => h.category === filter);
+    return [...base].sort((a, b) => {
+      const af = favorites.has(`${a.cityId}::${a.name}`) ? 0 : 1;
+      const bf = favorites.has(`${b.cityId}::${b.name}`) ? 0 : 1;
+      return af - bf;
+    });
+  }, [highlights, filter, favorites]);
 
   if (!cityId) return null;
 
@@ -109,10 +136,11 @@ export function HighlightPicker({ visible, cityId, onClose, onPick }: Props) {
           <ScrollView contentContainerStyle={styles.list}>
             {filtered.map((h, idx) => {
               const cat = HIGHLIGHT_CATEGORIES.find((c) => c.key === h.category);
+              const fav = isFav(h);
               return (
                 <Pressable
                   key={`${h.cityId}-${h.category}-${idx}`}
-                  style={styles.card}
+                  style={[styles.card, fav && styles.cardFav]}
                   onPress={() => { haptic.medium(); onPick(h); }}
                 >
                   <View style={styles.cardLeft}>
@@ -135,8 +163,19 @@ export function HighlightPicker({ visible, cityId, onClose, onPick }: Props) {
                       </View>
                     )}
                   </View>
-                  <View style={styles.addBtn}>
-                    <Text style={styles.addBtnText}>+</Text>
+                  <View style={styles.cardActions}>
+                    <Pressable
+                      onPress={(e) => { e.stopPropagation?.(); handleToggleFav(h); }}
+                      hitSlop={8}
+                      style={styles.starBtn}
+                    >
+                      <Text style={[styles.starText, fav && styles.starActive]}>
+                        {fav ? '⭐' : '☆'}
+                      </Text>
+                    </Pressable>
+                    <View style={styles.addBtn}>
+                      <Text style={styles.addBtnText}>+</Text>
+                    </View>
                   </View>
                 </Pressable>
               );
@@ -254,6 +293,19 @@ function createStyles(c: ColorPalette) {
       color: c.accent,
       fontWeight: '600',
     },
+    cardFav: {
+      borderColor: c.accent,
+      backgroundColor: c.accent + '08',
+    },
+    cardActions: { alignItems: 'center', gap: Spacing.xs },
+    starBtn: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    starText: { fontSize: 22, color: c.textTertiary },
+    starActive: { color: c.accent },
     addBtn: {
       width: 36,
       height: 36,

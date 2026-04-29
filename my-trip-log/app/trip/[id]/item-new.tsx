@@ -28,6 +28,7 @@ import {
   highlightCategoryToTripItemCategory,
   type CityHighlight,
 } from '@/data/cityHighlights';
+import { geocode } from '@/utils/geocoding';
 
 interface NominatimResult {
   place_id: number;
@@ -93,11 +94,22 @@ export default function ItemNewScreen() {
     if (h.description && !memo) {
       setMemo(h.description);
     }
-    // 좌표는 비워두고 사용자가 검색 자동완성으로 추가하도록 (추천 데이터엔 좌표 없음)
     setLat(0);
     setLng(0);
     setPickerOpen(false);
-  }, [memo]);
+
+    // 백그라운드 좌표 조회 (Nominatim 무료) — 실패 시 사용자가 수동 검색 가능
+    const cityName = tripCityId ? getCityDisplayName(tripCityId) : '';
+    const query = [h.nameLocal ?? h.name, h.area, cityName].filter(Boolean).join(', ');
+    geocode(query)
+      .then((g) => {
+        if (g) {
+          setLat(g.lat);
+          setLng(g.lng);
+        }
+      })
+      .catch(() => {/* 무시 */});
+  }, [memo, tripCityId]);
 
   // 장소 자동완성 검색 (Nominatim - 무료, API 키 불필요)
   useEffect(() => {
