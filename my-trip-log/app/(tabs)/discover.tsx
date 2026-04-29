@@ -8,11 +8,13 @@
  * 4. 🎯 카테고리로 둘러보기 — 6 카테고리 큰 버튼 → 전체 도시 통합 모달
  * 5. 🌍 지역별 도시 그리드 (7 지역)
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal, SafeAreaView,
 } from 'react-native';
 import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
@@ -27,6 +29,21 @@ import {
   type CityHighlight,
   type HighlightCategory,
 } from '@/data/cityHighlights';
+import { getCityImageUrl } from '@/utils/cityImages';
+
+// 도시 이미지 URL React 훅 — 컴포넌트에서 useState 한 번에 처리
+function useCityImage(cityId: string | null): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!cityId) { setUrl(null); return; }
+    let cancelled = false;
+    getCityImageUrl(cityId).then((u) => {
+      if (!cancelled) setUrl(u);
+    });
+    return () => { cancelled = true; };
+  }, [cityId]);
+  return url;
+}
 
 // ─── 데이터 (정적) ──────────────────────────────
 
@@ -218,7 +235,6 @@ export default function DiscoverScreen() {
                   index={idx}
                   onPress={() => { haptic.tap(); setActiveCityId(cid); }}
                   styles={styles}
-                  colors={colors}
                 />
               ))}
             </ScrollView>
@@ -345,36 +361,55 @@ function SectionHeader({ label, count, styles }: {
   );
 }
 
-function FeaturedCard({ cityId, index, onPress, styles, colors }: {
+function FeaturedCard({ cityId, index, onPress, styles }: {
   cityId: string;
   index: number;
   onPress: () => void;
   styles: ReturnType<typeof createStyles>;
-  colors: ColorPalette;
 }) {
   const flag = getCityFlag(cityId);
   const name = getCityDisplayName(cityId);
   const all = getHighlightsByCity(cityId);
   const previewNames = all.slice(0, 2).map((h) => h.name).join(' · ');
   const tagline = FEATURED_TAGLINES[cityId] ?? '';
-
-  // 인덱스별 미세한 색상 변형
-  const accentTints = [colors.primary, colors.accent, colors.tripPlanning ?? colors.primary];
-  const accent = accentTints[index % accentTints.length];
+  const imageUrl = useCityImage(cityId);
 
   return (
-    <Pressable style={[styles.heroCard, { borderTopColor: accent }]} onPress={onPress}>
-      <View style={styles.heroBadgeRow}>
-        <Text style={styles.heroFlag}>{flag}</Text>
-        <Text style={[styles.heroRank, { color: accent }]}>{index + 1}</Text>
-      </View>
-      <Text style={styles.heroName}>{name}</Text>
-      <Text style={styles.heroNameEn}>{getCityNameEn(cityId)}</Text>
-      <View style={{ flex: 1 }} />
-      {tagline ? <Text style={styles.heroTagline}>{tagline}</Text> : null}
-      <View style={styles.heroFooter}>
-        <Text style={styles.heroCount}>📍 {all.length}곳</Text>
-        <Text style={styles.heroPreview} numberOfLines={1}>{previewNames}</Text>
+    <Pressable style={styles.heroCard} onPress={onPress}>
+      {/* 배경 이미지 */}
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="cover"
+          transition={300}
+          cachePolicy="memory-disk"
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFillObject, styles.heroFallback]} />
+      )}
+      {/* 어두운 그라디언트 (텍스트 가독성) */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
+      {/* 콘텐츠 */}
+      <View style={styles.heroContent}>
+        <View style={styles.heroBadgeRow}>
+          <Text style={styles.heroFlag}>{flag}</Text>
+          <View style={styles.heroRankBadge}>
+            <Text style={styles.heroRankText}>#{index + 1}</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1 }} />
+        <Text style={styles.heroName}>{name}</Text>
+        <Text style={styles.heroNameEn}>{getCityNameEn(cityId)}</Text>
+        {tagline ? <Text style={styles.heroTagline}>{tagline}</Text> : null}
+        <View style={styles.heroFooter}>
+          <Text style={styles.heroCount}>📍 {all.length}곳</Text>
+          <Text style={styles.heroPreview} numberOfLines={1}>{previewNames}</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -398,14 +433,37 @@ function TrendingCard({ h, onPress, styles }: {
   const cat = HIGHLIGHT_CATEGORIES.find((c) => c.key === h.category);
   const cityName = getCityDisplayName(h.cityId);
   const cityFlag = getCityFlag(h.cityId);
+  const imageUrl = useCityImage(h.cityId);
+
   return (
     <Pressable style={styles.trendCard} onPress={onPress}>
-      <View style={styles.trendIconWrap}>
-        <Text style={styles.trendIcon}>{cat?.icon}</Text>
+      {/* 상단 이미지 영역 */}
+      <View style={styles.trendImageWrap}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFillObject, styles.trendFallback]} />
+        )}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.45)']}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={styles.trendCatBadge}>
+          <Text style={styles.trendCatIcon}>{cat?.icon}</Text>
+        </View>
       </View>
-      <Text style={styles.trendCity}>{cityFlag} {cityName}</Text>
-      <Text style={styles.trendName} numberOfLines={2}>{h.name}</Text>
-      <Text style={styles.trendDesc} numberOfLines={2}>{h.description}</Text>
+      {/* 텍스트 영역 */}
+      <View style={styles.trendBody}>
+        <Text style={styles.trendCity}>{cityFlag} {cityName}</Text>
+        <Text style={styles.trendName} numberOfLines={2}>{h.name}</Text>
+        <Text style={styles.trendDesc} numberOfLines={2}>{h.description}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -419,12 +477,33 @@ function CityCard({ cityId, onPress, styles }: {
   const name = getCityDisplayName(cityId);
   const all = getHighlightsByCity(cityId);
   const sample = all[0]?.name;
+  const imageUrl = useCityImage(cityId);
+
   return (
     <Pressable style={styles.cityCard} onPress={onPress}>
-      <Text style={styles.cityCardFlag}>{flag}</Text>
-      <Text style={styles.cityCardName}>{name}</Text>
-      <Text style={styles.cityCardCount}>{all.length}곳</Text>
-      {sample && <Text style={styles.cityCardSample} numberOfLines={1}>{sample}</Text>}
+      {/* 배경 이미지 */}
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="cover"
+          transition={200}
+          cachePolicy="memory-disk"
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFillObject, styles.cityCardFallback]} />
+      )}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <View style={styles.cityCardContent}>
+        <Text style={styles.cityCardFlag}>{flag}</Text>
+        <View style={{ flex: 1 }} />
+        <Text style={styles.cityCardName}>{name}</Text>
+        <Text style={styles.cityCardCount}>{all.length}곳</Text>
+        {sample && <Text style={styles.cityCardSample} numberOfLines={1}>{sample}</Text>}
+      </View>
     </Pressable>
   );
 }
@@ -734,15 +813,18 @@ function createStyles(c: ColorPalette) {
       gap: Spacing.md,
     },
     heroCard: {
-      width: 240,
-      height: 200,
-      backgroundColor: c.surface,
+      width: 260,
+      height: 320,
+      backgroundColor: c.surfaceAlt,
       borderRadius: 18,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderTopWidth: 4,
-      padding: Spacing.lg,
+      overflow: 'hidden',
       ...Shadows.medium,
+    },
+    heroFallback: { backgroundColor: c.primary },
+    heroContent: {
+      flex: 1,
+      padding: Spacing.lg,
+      justifyContent: 'space-between',
     },
     heroBadgeRow: {
       flexDirection: 'row',
@@ -750,27 +832,38 @@ function createStyles(c: ColorPalette) {
       justifyContent: 'space-between',
     },
     heroFlag: { fontSize: 36 },
-    heroRank: {
+    heroRankBadge: {
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      backgroundColor: 'rgba(255,255,255,0.9)',
+    },
+    heroRankText: {
       fontFamily: Fonts.bodyEnBold,
-      fontSize: Typography.titleLarge,
-      letterSpacing: -1,
+      fontSize: 13,
+      color: c.textPrimary,
+      letterSpacing: 0.5,
     },
     heroName: {
       fontFamily: Fonts.bodyKrBold,
-      fontSize: Typography.titleLarge,
-      color: c.textPrimary,
-      marginTop: Spacing.sm,
+      fontSize: Typography.displaySmall,
+      color: '#FFFFFF',
+      lineHeight: Typography.displaySmall * 1.1,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowRadius: 4,
     },
     heroNameEn: {
       fontFamily: Fonts.bodyEnMedium,
       fontSize: Typography.labelSmall,
-      color: c.textTertiary,
-      letterSpacing: 1,
+      color: 'rgba(255,255,255,0.85)',
+      letterSpacing: 1.5,
+      marginTop: 2,
     },
     heroTagline: {
-      fontSize: Typography.labelSmall,
-      color: c.textSecondary,
+      fontSize: Typography.bodySmall,
+      color: 'rgba(255,255,255,0.95)',
       fontStyle: 'italic',
+      marginTop: Spacing.xs,
     },
     heroFooter: {
       marginTop: Spacing.sm,
@@ -778,12 +871,12 @@ function createStyles(c: ColorPalette) {
     },
     heroCount: {
       fontSize: Typography.labelSmall,
-      color: c.accent,
+      color: '#FFFFFF',
       fontWeight: '700',
     },
     heroPreview: {
       fontSize: 11,
-      color: c.textTertiary,
+      color: 'rgba(255,255,255,0.75)',
     },
 
     // 🔥 Trending cards
@@ -793,25 +886,36 @@ function createStyles(c: ColorPalette) {
       gap: Spacing.md,
     },
     trendCard: {
-      width: 160,
+      width: 180,
       backgroundColor: c.surface,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: c.border,
-      padding: Spacing.md,
-      gap: 4,
+      overflow: 'hidden',
       ...Shadows.soft,
     },
-    trendIconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: c.surfaceAlt,
+    trendImageWrap: {
+      width: '100%',
+      height: 110,
+      position: 'relative',
+    },
+    trendFallback: { backgroundColor: c.primary },
+    trendCatBadge: {
+      position: 'absolute',
+      bottom: Spacing.xs,
+      left: Spacing.xs,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.95)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: Spacing.xs,
     },
-    trendIcon: { fontSize: 24 },
+    trendCatIcon: { fontSize: 18 },
+    trendBody: {
+      padding: Spacing.md,
+      gap: 3,
+    },
     trendCity: {
       fontSize: 11,
       color: c.accent,
@@ -879,34 +983,40 @@ function createStyles(c: ColorPalette) {
     },
     cityCard: {
       width: '31%',
-      aspectRatio: 1.05,
-      backgroundColor: c.surface,
+      aspectRatio: 0.95,
       borderRadius: 14,
-      borderWidth: 1,
-      borderColor: c.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: Spacing.sm,
-      gap: 2,
+      overflow: 'hidden',
+      backgroundColor: c.surfaceAlt,
       ...Shadows.soft,
     },
-    cityCardFlag: { fontSize: 30 },
+    cityCardFallback: { backgroundColor: c.primary },
+    cityCardContent: {
+      flex: 1,
+      padding: Spacing.sm,
+      justifyContent: 'flex-end',
+    },
+    cityCardFlag: {
+      fontSize: 22,
+      position: 'absolute',
+      top: Spacing.sm,
+      left: Spacing.sm,
+    },
     cityCardName: {
-      fontFamily: Fonts.bodyKrMedium,
+      fontFamily: Fonts.bodyKrBold,
       fontSize: Typography.bodyMedium,
-      color: c.textPrimary,
+      color: '#FFFFFF',
       fontWeight: '700',
+      textShadowColor: 'rgba(0,0,0,0.6)',
+      textShadowRadius: 3,
     },
     cityCardCount: {
       fontSize: 10,
-      color: c.accent,
+      color: 'rgba(255,255,255,0.95)',
       fontWeight: '700',
     },
     cityCardSample: {
       fontSize: 10,
-      color: c.textTertiary,
-      maxWidth: '100%',
-      textAlign: 'center',
+      color: 'rgba(255,255,255,0.8)',
     },
 
     // 검색 결과
