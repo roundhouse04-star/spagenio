@@ -207,6 +207,44 @@ export default function ToolsScreen() {
           )}
         </View>
 
+        {/* 빠른 도구 3종 */}
+        <Text style={styles.sectionTitle}>🧰 빠른 도구</Text>
+        <View style={styles.linkCards}>
+          <Pressable
+            style={styles.linkCard}
+            onPress={() => { haptic.tap(); router.push('/tools/timezone'); }}
+          >
+            <Text style={styles.linkIcon}>🕐</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkLabel}>시차 계산기</Text>
+              <Text style={styles.linkDesc}>두 도시 시간차 비교</Text>
+            </View>
+            <Text style={styles.linkArrow}>›</Text>
+          </Pressable>
+          <Pressable
+            style={styles.linkCard}
+            onPress={() => { haptic.tap(); router.push('/tools/emergency'); }}
+          >
+            <Text style={styles.linkIcon}>🚨</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkLabel}>응급 연락처</Text>
+              <Text style={styles.linkDesc}>국가별 경찰·구급·대사관</Text>
+            </View>
+            <Text style={styles.linkArrow}>›</Text>
+          </Pressable>
+          <Pressable
+            style={styles.linkCard}
+            onPress={() => { haptic.tap(); router.push('/tools/visa'); }}
+          >
+            <Text style={styles.linkIcon}>📄</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkLabel}>무비자 정보</Text>
+              <Text style={styles.linkDesc}>한국 여권 기준 무비자/eVisa</Text>
+            </View>
+            <Text style={styles.linkArrow}>›</Text>
+          </Pressable>
+        </View>
+
         <Text style={styles.sectionTitle}>🚇 지하철 노선도</Text>
 
         <View style={styles.disclaimerBox}>
