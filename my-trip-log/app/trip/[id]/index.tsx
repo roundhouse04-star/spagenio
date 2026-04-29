@@ -132,6 +132,12 @@ export default function TripDetailScreen() {
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Pressable
+                onPress={() => router.push(`/trip/${trip.id}/recap`)}
+                hitSlop={6}
+              >
+                <Text style={{ fontSize: 18, paddingHorizontal: 12 }}>📔</Text>
+              </Pressable>
+              <Pressable
                 onPress={() => {
                   router.push({
                     pathname: '/trips/new',

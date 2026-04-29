@@ -4,6 +4,15 @@ import { router } from 'expo-router';
 import { Colors, Typography, Spacing, Fonts } from '@/theme/theme';
 import { haptic } from '@/utils/haptics';
 
+function Feature({ icon, label }: { icon: string; label: string }) {
+  return (
+    <View style={styles.featureRow}>
+      <Text style={styles.featureIcon}>{icon}</Text>
+      <Text style={styles.featureLabel}>{label}</Text>
+    </View>
+  );
+}
+
 export default function WelcomeScreen() {
   const handleStart = () => {
     haptic.medium();
@@ -24,6 +33,13 @@ export default function WelcomeScreen() {
           개인 여행 기록을{'\n'}
           품격 있게 보관하세요.
         </Text>
+
+        <View style={styles.features}>
+          <Feature icon="📔" label="기록·일정·체크리스트" />
+          <Feature icon="💰" label="비용·영수증 OCR" />
+          <Feature icon="🌍" label="46도시 추천 장소" />
+          <Feature icon="📊" label="여행 통계·회고" />
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -91,6 +107,24 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     textAlign: 'center',
     lineHeight: Typography.bodyMedium * 1.7,
+  },
+  features: {
+    marginTop: Spacing.xl,
+    gap: Spacing.sm,
+    alignSelf: 'stretch',
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+  },
+  featureIcon: { fontSize: 22 },
+  featureLabel: {
+    fontFamily: Fonts.bodyKr,
+    fontSize: Typography.bodyMedium,
+    color: Colors.textSecondary,
   },
   footer: {
     padding: Spacing.xxl,
