@@ -319,6 +319,11 @@ export default function DiscoverScreen() {
               </View>
             ))}
 
+            {/* 이미지 출처 표기 (Wikipedia CC BY-SA) */}
+            <Text style={styles.attribution}>
+              도시 사진 출처: Wikipedia · CC BY-SA
+            </Text>
+
             <View style={{ height: Spacing.huge }} />
           </>
         )}
@@ -661,6 +666,12 @@ function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityH
           >
             <Text style={styles.modalCtaText}>+ 여기로 여행 만들기</Text>
           </Pressable>
+
+          {/* 이미지 출처 표기 (Wikipedia CC BY-SA) */}
+          <Text style={styles.attribution}>
+            도시 사진 출처: Wikipedia · CC BY-SA
+          </Text>
+
           <View style={{ height: Spacing.huge }} />
         </ScrollView>
       </SafeAreaView>
@@ -728,6 +739,12 @@ function CategoryBrowseModal({ visible, category, onClose, onPickCity, styles, c
               <Text style={styles.modalRowArrow}>🗺</Text>
             </Pressable>
           ))}
+
+          {/* 이미지 출처 표기 (Wikipedia CC BY-SA) */}
+          <Text style={styles.attribution}>
+            도시 사진 출처: Wikipedia · CC BY-SA
+          </Text>
+
           <View style={{ height: Spacing.huge }} />
         </ScrollView>
       </SafeAreaView>
@@ -1201,6 +1218,14 @@ function createStyles(c: ColorPalette) {
       color: c.textOnPrimary,
       fontWeight: '700',
       fontSize: Typography.bodyMedium,
+    },
+
+    attribution: {
+      fontSize: 11,
+      color: c.textTertiary,
+      textAlign: 'center',
+      marginTop: Spacing.lg,
+      letterSpacing: 0.3,
     },
 
     // 카테고리 브라우즈 모달 — 행 스타일
