@@ -16,9 +16,18 @@ import WebView from 'react-native-webview';
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { createTripItem } from '@/db/items';
+import { getTripById } from '@/db/trips';
 import { TRIP_ITEM_CATEGORIES } from '@/db/schema';
 import { showMapOptions } from '@/utils/maps';
 import type { TripItemCategory } from '@/types';
+import { HighlightPicker } from '@/components/HighlightPicker';
+import {
+  findCityIdFromTrip,
+  getCityDisplayName,
+  getCityFlag,
+  highlightCategoryToTripItemCategory,
+  type CityHighlight,
+} from '@/data/cityHighlights';
 
 interface NominatimResult {
   place_id: number;
@@ -52,6 +61,43 @@ export default function ItemNewScreen() {
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // 추천 장소 (이 여행 도시의 하이라이트)
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [tripCityId, setTripCityId] = useState<string | null>(null);
+
+  // 여행 정보 로드 → city 매칭
+  useEffect(() => {
+    if (!tripId) return;
+    (async () => {
+      try {
+        const trip = await getTripById(tripId);
+        if (trip) {
+          setTripCityId(findCityIdFromTrip(trip));
+        }
+      } catch (err) {
+        console.warn('[item-new] trip 로드 실패:', err);
+      }
+    })();
+  }, [tripId]);
+
+  const handlePickHighlight = useCallback((h: CityHighlight) => {
+    // 자동 채움
+    setTitle(h.name);
+    if (h.area) {
+      setLocation(h.area + (h.nameLocal ? ` (${h.nameLocal})` : ''));
+    } else if (h.nameLocal) {
+      setLocation(h.nameLocal);
+    }
+    setCategory(highlightCategoryToTripItemCategory(h.category));
+    if (h.description && !memo) {
+      setMemo(h.description);
+    }
+    // 좌표는 비워두고 사용자가 검색 자동완성으로 추가하도록 (추천 데이터엔 좌표 없음)
+    setLat(0);
+    setLng(0);
+    setPickerOpen(false);
+  }, [memo]);
 
   // 장소 자동완성 검색 (Nominatim - 무료, API 키 불필요)
   useEffect(() => {
@@ -181,6 +227,25 @@ export default function ItemNewScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
+        {/* 추천 장소에서 고르기 (이 여행에 매칭되는 도시가 있을 때만 노출) */}
+        {tripCityId && (
+          <Pressable
+            style={styles.recommendButton}
+            onPress={() => { setPickerOpen(true); }}
+          >
+            <Text style={styles.recommendIcon}>🌟</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.recommendTitle}>
+                {getCityFlag(tripCityId)} {getCityDisplayName(tripCityId)} 추천 장소에서 고르기
+              </Text>
+              <Text style={styles.recommendSub}>
+                명소·음식·박물관 등 인기 장소가 자동으로 채워져요
+              </Text>
+            </View>
+            <Text style={styles.recommendArrow}>›</Text>
+          </Pressable>
+        )}
+
         {/* 일정 제목 */}
         <View style={styles.field}>
           <Text style={styles.label}>
@@ -350,12 +415,47 @@ export default function ItemNewScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* 추천 장소 피커 모달 */}
+      <HighlightPicker
+        visible={pickerOpen}
+        cityId={tripCityId}
+        onClose={() => setPickerOpen(false)}
+        onPick={handlePickHighlight}
+      />
     </KeyboardAvoidingView>
   );
 }
 
 function createStyles(c: ColorPalette) {
   return StyleSheet.create({
+  recommendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    backgroundColor: c.primary + '10',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: c.primary + '40',
+    marginBottom: Spacing.lg,
+  },
+  recommendIcon: { fontSize: 28 },
+  recommendTitle: {
+    fontSize: Typography.bodyMedium,
+    fontWeight: '700',
+    color: c.textPrimary,
+    marginBottom: 2,
+  },
+  recommendSub: {
+    fontSize: Typography.labelSmall,
+    color: c.textSecondary,
+  },
+  recommendArrow: {
+    fontSize: 24,
+    color: c.primary,
+    fontWeight: '700',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
