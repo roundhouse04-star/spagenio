@@ -15,12 +15,18 @@ export default function GameCard({ index, game, winning, bonus }) {
       </View>
       <View style={styles.balls}>
         {game.numbers.map((n) => (
-          <LottoBall key={n} n={n} size={42} hit={winSet.has(n)} />
+          <LottoBall
+            key={n} n={n} size={42}
+            outlined={winning ? !winSet.has(n) : false}
+          />
         ))}
         {bonus !== undefined && (
           <View style={styles.bonusWrap}>
             <Text style={styles.plus}>+</Text>
-            <LottoBall n={bonus} size={42} hit={game.numbers.includes(bonus)} />
+            <LottoBall
+              n={bonus} size={42}
+              outlined={!game.numbers.includes(bonus)}
+            />
           </View>
         )}
       </View>

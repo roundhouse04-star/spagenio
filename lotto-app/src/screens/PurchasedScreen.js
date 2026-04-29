@@ -187,7 +187,7 @@ export default function PurchasedScreen({ navigation }) {
                   <Text style={styles.gameLabel}>{idx + 1}</Text>
                   <View style={styles.balls}>
                     {nums.map((n) => (
-                      <LottoBall key={n} n={n} size={30} hit={winSet ? winSet.has(n) : false} />
+                      <LottoBall key={n} n={n} size={30} outlined={winSet ? !winSet.has(n) : false} />
                     ))}
                   </View>
                   {info && (

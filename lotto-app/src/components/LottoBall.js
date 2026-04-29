@@ -2,7 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ballColor } from '../lib/theme';
 
-export default function LottoBall({ n, size = 40, hit = false }) {
+// outlined=true → 흰 배경 + 색 테두리 + 색 텍스트 (매칭 안 된 번호 표시용)
+// outlined=false (default) → 색 채움 + 흰 텍스트
+// hit=true → 초록 테두리 (강조용, optional)
+export default function LottoBall({ n, size = 40, hit = false, outlined = false }) {
+  const color = ballColor(n);
   return (
     <View
       style={[
@@ -11,12 +15,19 @@ export default function LottoBall({ n, size = 40, hit = false }) {
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: ballColor(n),
+          backgroundColor: outlined ? '#fff' : color,
+          borderWidth: outlined ? 2 : (hit ? 3 : 0),
+          borderColor: outlined ? color : (hit ? '#22c55e' : 'transparent'),
         },
-        hit && styles.hit,
       ]}
     >
-      <Text style={[styles.text, { fontSize: size * 0.42 }]}>{n}</Text>
+      <Text style={[
+        styles.text,
+        {
+          fontSize: size * 0.42,
+          color: outlined ? color : '#fff',
+        },
+      ]}>{n}</Text>
     </View>
   );
 }
@@ -31,12 +42,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  hit: {
-    borderWidth: 3,
-    borderColor: '#22c55e',
-  },
   text: {
-    color: '#fff',
     fontWeight: '800',
   },
 });

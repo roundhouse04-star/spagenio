@@ -217,7 +217,7 @@ export default function MyPicksScreen({ navigation }) {
 
             <View style={styles.balls}>
               {item.numbers.map((n) => (
-                <LottoBall key={n} n={n} size={34} hit={winSet ? winSet.has(n) : false} />
+                <LottoBall key={n} n={n} size={34} outlined={winSet ? !winSet.has(n) : false} />
               ))}
             </View>
 

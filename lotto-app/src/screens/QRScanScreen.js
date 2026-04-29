@@ -282,7 +282,7 @@ export default function QRScanScreen({ navigation, route }) {
                 </View>
                 <View style={styles.balls}>
                   {r.numbers.map((n) => (
-                    <LottoBall key={n} n={n} size={36} hit={winSet.has(n)} />
+                    <LottoBall key={n} n={n} size={36} outlined={!winSet.has(n)} />
                   ))}
                 </View>
               </View>
