@@ -1,14 +1,16 @@
 import { Linking, Platform, Alert } from 'react-native';
 
 /**
- * 지도 딥링크 유틸 (구글지도 우선)
+ * 지도 딥링크 유틸 — **구글 지도 전용**
+ *
+ * 정책: 사용자 의도에 따라 모든 외부 지도는 구글지도로 통일.
+ * 애플지도 폴백 사용 안 함.
  *
  * 열기 순서:
- *   1. 구글지도 앱 (설치돼 있으면)
- *   2. 애플지도 (iOS, 구글지도 없을 때)
- *   3. 브라우저 (모두 실패 시)
+ *   iOS:     구글지도 앱 (comgooglemaps://) → 구글지도 웹 (https)
+ *   Android: 구글지도 앱 (geo: / google.navigation:) → 구글지도 웹 (https)
  *
- * 완전 무료, API 키 불필요!
+ * 완전 무료, API 키 불필요.
  */
 
 export interface MapLocation {
@@ -80,22 +82,20 @@ export const openInMaps = async (location: MapLocation): Promise<void> => {
 
   const encodedLabel = encodeURIComponent(label || '위치');
 
-  // 우선순위: 구글지도 앱 → 애플지도(iOS) → 브라우저
+  // 구글지도 전용: 앱 → 웹 폴백 (애플지도 사용 안 함)
   const urls =
     Platform.OS === 'ios'
       ? [
-          // 1. 구글지도 iOS 앱 (comgooglemaps://)
+          // 1. 구글지도 iOS 앱
           `comgooglemaps://?q=${encodedLabel}&center=${lat},${lng}&zoom=15`,
-          // 2. 애플지도
-          `maps://?ll=${lat},${lng}&q=${encodedLabel}`,
-          // 3. 브라우저 → 구글지도 웹
+          // 2. 구글지도 웹 (구글지도 앱 없을 때)
           `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
         ]
       : [
-          // Android: geo 인텐트 → 지도 앱 선택 다이얼로그
-          `geo:${lat},${lng}?q=${lat},${lng}(${encodedLabel})`,
-          // 안 되면 구글지도 웹
+          // Android: 구글지도 표준 URL — 구글지도 앱 설치 시 자동 가로챔
           `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+          // fallback: 좌표만으로 geo 인텐트 (다른 지도 앱이 default여도 좌표는 표시됨)
+          `geo:${lat},${lng}?q=${lat},${lng}(${encodedLabel})`,
         ];
 
   const ok = await tryOpenUrls(urls);
@@ -118,20 +118,19 @@ export const openDirections = async (location: MapLocation): Promise<void> => {
   // label은 길찾기에서 destination 좌표로만 라우팅하므로 사용하지 않음 (검색과 달리)
   void label;
 
+  // 구글지도 길찾기 전용
   const urls =
     Platform.OS === 'ios'
       ? [
           // 1. 구글지도 iOS 앱 길찾기
           `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`,
-          // 2. 애플지도 길찾기
-          `maps://?daddr=${lat},${lng}&dirflg=d`,
-          // 3. 브라우저
+          // 2. 구글지도 웹 길찾기
           `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
         ]
       : [
-          // Android: 구글지도 네비게이션 바로 시작
+          // Android: 구글 네비게이션 직진입
           `google.navigation:q=${lat},${lng}`,
-          // fallback
+          // fallback: 구글지도 웹 길찾기
           `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
         ];
 
@@ -149,19 +148,19 @@ export const searchInMaps = async (query: string): Promise<void> => {
 
   const encoded = encodeURIComponent(query.trim());
 
+  // 구글지도 검색 전용
   const urls =
     Platform.OS === 'ios'
       ? [
           // 1. 구글지도 앱
           `comgooglemaps://?q=${encoded}`,
-          // 2. 애플지도
-          `maps://?q=${encoded}`,
-          // 3. 브라우저
+          // 2. 구글지도 웹
           `https://www.google.com/maps/search/?api=1&query=${encoded}`,
         ]
       : [
-          `geo:0,0?q=${encoded}`,
+          // Android: 구글지도 웹 URL이 구글앱 자동 가로챔
           `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+          `geo:0,0?q=${encoded}`,
         ];
 
   const ok = await tryOpenUrls(urls);
