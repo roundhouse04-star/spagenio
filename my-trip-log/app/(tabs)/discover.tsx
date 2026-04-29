@@ -1,9 +1,12 @@
 /**
- * 탐색 탭 — 검색 중심 리뉴얼
+ * 탐색 탭 — 풍부한 시각 디자인 v2
  *
- * 460개 하이라이트 + 46개 도시 통합 검색.
- * 결과 탭 → 도시 정보 카드(아래 도시 모든 하이라이트 보기) 또는 하이라이트 상세.
- * 빈 검색 상태에서는 지역별 도시 그리드 + 인기 키워드 칩 노출.
+ * 구성:
+ * 1. 검색 바 + 인기 키워드
+ * 2. ✨ Today's Picks — 한국인 인기 톱 3 도시 (히어로 카드)
+ * 3. 🔥 지금 뜨는 장소 — trending 태그 하이라이트 12개 (가로 스크롤)
+ * 4. 🎯 카테고리로 둘러보기 — 6 카테고리 큰 버튼 → 전체 도시 통합 모달
+ * 5. 🌍 지역별 도시 그리드 (7 지역)
  */
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -11,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Typography, Spacing, Shadows } from '@/theme/theme';
+import { Typography, Spacing, Shadows, Fonts } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import {
@@ -25,10 +28,9 @@ import {
   type HighlightCategory,
 } from '@/data/cityHighlights';
 
-interface CityRegion {
-  label: string;
-  cityIds: string[];
-}
+// ─── 데이터 (정적) ──────────────────────────────
+
+interface CityRegion { label: string; cityIds: string[]; }
 
 const REGIONS: CityRegion[] = [
   { label: '🇰🇷 한국', cityIds: ['seoul'] },
@@ -40,7 +42,21 @@ const REGIONS: CityRegion[] = [
   { label: '🌍 중동·아프리카', cityIds: ['dubai', 'cairo', 'mecca'] },
 ];
 
+// 한국인 인기 톱 3 (히어로) — 도쿄 / 다낭 / 파리
+const FEATURED_CITY_IDS = ['tokyo', 'danang', 'paris'];
+
+const FEATURED_TAGLINES: Record<string, string> = {
+  tokyo: '미식·트렌드·24시간 매력',
+  danang: '신혼·가족 휴양 1순위',
+  paris: '미술·미식·로맨스',
+  bangkok: '음식·쇼핑·야시장 천국',
+  bali: '서퍼·노마드·휴양 성지',
+  newyork: '문화·재즈·끝없는 도시',
+};
+
 const POPULAR_KEYWORDS = ['미슐랭', '야경', '해변', '시장', '박물관', '카페', '신상', '한국인'];
+
+// ─── 본 화면 ──────────────────────────────────
 
 export default function DiscoverScreen() {
   const { colors } = useTheme();
@@ -48,24 +64,23 @@ export default function DiscoverScreen() {
 
   const [search, setSearch] = useState('');
   const [activeCityId, setActiveCityId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<HighlightCategory | null>(null);
 
   useFocusEffect(useCallback(() => {
-    // 화면 다시 진입 시 검색·모달 초기화
     return () => {
       setSearch('');
       setActiveCityId(null);
+      setActiveCategory(null);
     };
   }, []));
 
   const norm = search.trim().toLowerCase();
 
-  // 검색 결과: 도시 + 하이라이트 통합
+  // 검색 결과 — 도시 + 하이라이트 통합
   const cityMatches = useMemo(() => {
     if (!norm) return [];
     return Object.entries(CITY_ALIASES)
-      .filter(([, info]) =>
-        info.aliases.some((a) => a.toLowerCase().includes(norm)),
-      )
+      .filter(([, info]) => info.aliases.some((a) => a.toLowerCase().includes(norm)))
       .map(([id, info]) => ({ cityId: id, name: info.name, flag: info.flag }))
       .slice(0, 10);
   }, [norm]);
@@ -78,17 +93,22 @@ export default function DiscoverScreen() {
     }).slice(0, 50);
   }, [norm]);
 
+  // 트렌딩 하이라이트 (trending 태그 — 12개로 제한, 카테고리 다양성 위해 시드 셔플)
+  const trendingHighlights = useMemo(() => {
+    return CITY_HIGHLIGHTS.filter((h) => h.tags.includes('trending')).slice(0, 12);
+  }, []);
+
   const showResults = norm.length > 0;
   const hasResults = cityMatches.length > 0 || highlightMatches.length > 0;
 
-  const openCityHighlights = (cityId: string) => {
-    haptic.tap();
-    setActiveCityId(cityId);
-  };
-
   return (
     <RNSafeAreaView style={styles.container} edges={['top']}>
-      {/* 검색 바 */}
+      {/* ── 헤더: 타이틀 + 검색 ── */}
+      <View style={styles.headerWrap}>
+        <Text style={styles.brandEyebrow}>DISCOVER</Text>
+        <Text style={styles.brandTitle}>탐색</Text>
+      </View>
+
       <View style={styles.searchBar}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -107,7 +127,7 @@ export default function DiscoverScreen() {
         )}
       </View>
 
-      {/* 인기 키워드 (검색 없을 때) */}
+      {/* 인기 키워드 */}
       {!showResults && (
         <ScrollView
           horizontal
@@ -127,9 +147,13 @@ export default function DiscoverScreen() {
         </ScrollView>
       )}
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {showResults ? (
-          // ===== 검색 결과 =====
+          // ============ 검색 결과 ============
           <>
             {!hasResults && (
               <View style={styles.empty}>
@@ -144,13 +168,13 @@ export default function DiscoverScreen() {
 
             {cityMatches.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>도시 ({cityMatches.length})</Text>
+                <SectionHeader label="도시" count={cityMatches.length} styles={styles} />
                 <View style={styles.cityRow}>
                   {cityMatches.map((c) => (
                     <Pressable
                       key={c.cityId}
                       style={styles.cityChip}
-                      onPress={() => openCityHighlights(c.cityId)}
+                      onPress={() => { haptic.tap(); setActiveCityId(c.cityId); }}
                     >
                       <Text style={styles.cityChipFlag}>{c.flag}</Text>
                       <Text style={styles.cityChipName}>{c.name}</Text>
@@ -162,13 +186,13 @@ export default function DiscoverScreen() {
 
             {highlightMatches.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>장소 ({highlightMatches.length})</Text>
+                <SectionHeader label="장소" count={highlightMatches.length} styles={styles} />
                 <View style={{ gap: Spacing.sm }}>
                   {highlightMatches.map((h, idx) => (
                     <HighlightRow
                       key={`${h.cityId}-${h.category}-${idx}`}
                       h={h}
-                      onPress={() => openCityHighlights(h.cityId)}
+                      onPress={() => { haptic.tap(); setActiveCityId(h.cityId); }}
                       styles={styles}
                     />
                   ))}
@@ -177,33 +201,81 @@ export default function DiscoverScreen() {
             )}
           </>
         ) : (
-          // ===== 빈 상태: 지역별 도시 그리드 =====
+          // ============ 빈 상태 (메인 디스커버) ============
           <>
-            <Text style={styles.heroTitle}>어디로 떠나볼까요?</Text>
-            <Text style={styles.heroSub}>
-              46개 도시 · 460+ 인기 장소
-            </Text>
+            {/* ── ✨ Today's Picks ── */}
+            <SectionTitle eyebrow="TODAY'S PICKS" title="한국인 인기 도시" styles={styles} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.heroScroll}
+              decelerationRate="fast"
+            >
+              {FEATURED_CITY_IDS.map((cid, idx) => (
+                <FeaturedCard
+                  key={cid}
+                  cityId={cid}
+                  index={idx}
+                  onPress={() => { haptic.tap(); setActiveCityId(cid); }}
+                  styles={styles}
+                  colors={colors}
+                />
+              ))}
+            </ScrollView>
 
+            {/* ── 🔥 Trending ── */}
+            <SectionTitle eyebrow="TRENDING NOW" title="🔥 지금 뜨는 장소" styles={styles} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.trendScroll}
+            >
+              {trendingHighlights.map((h, idx) => (
+                <TrendingCard
+                  key={`${h.cityId}-${h.category}-${idx}`}
+                  h={h}
+                  onPress={() => { haptic.tap(); setActiveCityId(h.cityId); }}
+                  styles={styles}
+                />
+              ))}
+            </ScrollView>
+
+            {/* ── 🎯 카테고리로 둘러보기 ── */}
+            <SectionTitle eyebrow="BROWSE" title="🎯 카테고리로 보기" styles={styles} />
+            <View style={styles.catGrid}>
+              {HIGHLIGHT_CATEGORIES.map((c) => {
+                const count = CITY_HIGHLIGHTS.filter((h) => h.category === c.key).length;
+                return (
+                  <Pressable
+                    key={c.key}
+                    style={[styles.catBtn, { backgroundColor: catColor(c.key, colors) }]}
+                    onPress={() => { haptic.tap(); setActiveCategory(c.key); }}
+                  >
+                    <Text style={styles.catBtnIcon}>{c.icon}</Text>
+                    <Text style={styles.catBtnLabel}>{c.label}</Text>
+                    <Text style={styles.catBtnCount}>{count}곳</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* ── 🌍 지역별 ── */}
+            <SectionTitle eyebrow="REGIONS" title="🌍 지역별 도시" styles={styles} />
             {REGIONS.map((region) => (
-              <View key={region.label} style={{ marginTop: Spacing.xl }}>
-                <Text style={styles.regionTitle}>{region.label}</Text>
+              <View key={region.label} style={{ marginBottom: Spacing.xl }}>
+                <Text style={styles.regionTitle}>
+                  {region.label}{' '}
+                  <Text style={styles.regionCount}>({region.cityIds.length})</Text>
+                </Text>
                 <View style={styles.cityGrid}>
-                  {region.cityIds.map((cid) => {
-                    const flag = getCityFlag(cid);
-                    const name = getCityDisplayName(cid);
-                    const count = getHighlightsByCity(cid).length;
-                    return (
-                      <Pressable
-                        key={cid}
-                        style={styles.cityCard}
-                        onPress={() => openCityHighlights(cid)}
-                      >
-                        <Text style={styles.cityFlag}>{flag}</Text>
-                        <Text style={styles.cityName}>{name}</Text>
-                        <Text style={styles.cityCount}>{count}곳</Text>
-                      </Pressable>
-                    );
-                  })}
+                  {region.cityIds.map((cid) => (
+                    <CityCard
+                      key={cid}
+                      cityId={cid}
+                      onPress={() => { haptic.tap(); setActiveCityId(cid); }}
+                      styles={styles}
+                    />
+                  ))}
                 </View>
               </View>
             ))}
@@ -213,7 +285,7 @@ export default function DiscoverScreen() {
         )}
       </ScrollView>
 
-      {/* 도시 하이라이트 모달 */}
+      {/* ── 모달들 ── */}
       <CityHighlightsModal
         visible={!!activeCityId}
         cityId={activeCityId}
@@ -221,7 +293,139 @@ export default function DiscoverScreen() {
         styles={styles}
         colors={colors}
       />
+      <CategoryBrowseModal
+        visible={!!activeCategory}
+        category={activeCategory}
+        onClose={() => setActiveCategory(null)}
+        onPickCity={(cityId) => { setActiveCategory(null); setActiveCityId(cityId); }}
+        styles={styles}
+        colors={colors}
+      />
     </RNSafeAreaView>
+  );
+}
+
+// ─── 색상 유틸 ────────────────────────────────
+
+function catColor(key: HighlightCategory, c: ColorPalette): string {
+  // 카테고리별 살짝 톤 다른 surfaceAlt
+  const map: Record<HighlightCategory, string> = {
+    attraction: c.primary + '15',
+    food: '#F4A47615',           // 주황 톤
+    museum: '#9B7FBF15',         // 보라 톤
+    shopping: '#E68FB315',       // 핑크 톤
+    experience: '#7FB39B15',     // 청록 톤
+    nature: '#94B8631F',         // 연두 톤
+  };
+  return map[key];
+}
+
+// ─── 작은 컴포넌트들 ──────────────────────────
+
+function SectionTitle({ eyebrow, title, styles }: {
+  eyebrow: string;
+  title: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.sectionTitleWrap}>
+      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
+      <Text style={styles.sectionMainTitle}>{title}</Text>
+    </View>
+  );
+}
+
+function SectionHeader({ label, count, styles }: {
+  label: string;
+  count: number;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <Text style={styles.searchSectionTitle}>{label} <Text style={styles.searchSectionCount}>({count})</Text></Text>
+  );
+}
+
+function FeaturedCard({ cityId, index, onPress, styles, colors }: {
+  cityId: string;
+  index: number;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ColorPalette;
+}) {
+  const flag = getCityFlag(cityId);
+  const name = getCityDisplayName(cityId);
+  const all = getHighlightsByCity(cityId);
+  const previewNames = all.slice(0, 2).map((h) => h.name).join(' · ');
+  const tagline = FEATURED_TAGLINES[cityId] ?? '';
+
+  // 인덱스별 미세한 색상 변형
+  const accentTints = [colors.primary, colors.accent, colors.tripPlanning ?? colors.primary];
+  const accent = accentTints[index % accentTints.length];
+
+  return (
+    <Pressable style={[styles.heroCard, { borderTopColor: accent }]} onPress={onPress}>
+      <View style={styles.heroBadgeRow}>
+        <Text style={styles.heroFlag}>{flag}</Text>
+        <Text style={[styles.heroRank, { color: accent }]}>{index + 1}</Text>
+      </View>
+      <Text style={styles.heroName}>{name}</Text>
+      <Text style={styles.heroNameEn}>{getCityNameEn(cityId)}</Text>
+      <View style={{ flex: 1 }} />
+      {tagline ? <Text style={styles.heroTagline}>{tagline}</Text> : null}
+      <View style={styles.heroFooter}>
+        <Text style={styles.heroCount}>📍 {all.length}곳</Text>
+        <Text style={styles.heroPreview} numberOfLines={1}>{previewNames}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function getCityNameEn(cityId: string): string {
+  // CITY_ALIASES 의 alias 중 영문(Latin) 표기 우선 추출
+  const info = CITY_ALIASES[cityId];
+  if (!info) return '';
+  const en = info.aliases.find((a) => /^[a-z\s]+$/i.test(a) && a.length > 2);
+  return en
+    ? en.split(/\s+/).map((w) => w[0]?.toUpperCase() + w.slice(1)).join(' ')
+    : '';
+}
+
+function TrendingCard({ h, onPress, styles }: {
+  h: CityHighlight;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const cat = HIGHLIGHT_CATEGORIES.find((c) => c.key === h.category);
+  const cityName = getCityDisplayName(h.cityId);
+  const cityFlag = getCityFlag(h.cityId);
+  return (
+    <Pressable style={styles.trendCard} onPress={onPress}>
+      <View style={styles.trendIconWrap}>
+        <Text style={styles.trendIcon}>{cat?.icon}</Text>
+      </View>
+      <Text style={styles.trendCity}>{cityFlag} {cityName}</Text>
+      <Text style={styles.trendName} numberOfLines={2}>{h.name}</Text>
+      <Text style={styles.trendDesc} numberOfLines={2}>{h.description}</Text>
+    </Pressable>
+  );
+}
+
+function CityCard({ cityId, onPress, styles }: {
+  cityId: string;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const flag = getCityFlag(cityId);
+  const name = getCityDisplayName(cityId);
+  const all = getHighlightsByCity(cityId);
+  const sample = all[0]?.name;
+  return (
+    <Pressable style={styles.cityCard} onPress={onPress}>
+      <Text style={styles.cityCardFlag}>{flag}</Text>
+      <Text style={styles.cityCardName}>{name}</Text>
+      <Text style={styles.cityCardCount}>{all.length}곳</Text>
+      {sample && <Text style={styles.cityCardSample} numberOfLines={1}>{sample}</Text>}
+    </Pressable>
   );
 }
 
@@ -247,6 +451,8 @@ function HighlightRow({ h, onPress, styles }: {
     </Pressable>
   );
 }
+
+// ─── 모달들 ──────────────────────────────────
 
 interface CityHighlightsModalProps {
   visible: boolean;
@@ -353,15 +559,100 @@ function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityH
   );
 }
 
+interface CategoryBrowseModalProps {
+  visible: boolean;
+  category: HighlightCategory | null;
+  onClose: () => void;
+  onPickCity: (cityId: string) => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ColorPalette;
+}
+
+function CategoryBrowseModal({ visible, category, onClose, onPickCity, styles, colors }: CategoryBrowseModalProps) {
+  const list = useMemo(() => {
+    if (!category) return [];
+    return CITY_HIGHLIGHTS.filter((h) => h.category === category).slice(0, 100);
+  }, [category]);
+
+  if (!category) return null;
+  const catInfo = HIGHLIGHT_CATEGORIES.find((c) => c.key === category);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={styles.modalHeader}>
+          <Pressable onPress={() => { haptic.tap(); onClose(); }} hitSlop={10}>
+            <Text style={styles.modalClose}>✕</Text>
+          </Pressable>
+          <Text style={styles.modalTitle}>
+            {catInfo?.icon} {catInfo?.label} · 전체 도시
+          </Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}>
+          <Text style={styles.modalSub}>{list.length}개 장소 (최대 100)</Text>
+          {list.map((h, idx) => (
+            <Pressable
+              key={`${h.cityId}-${h.category}-${idx}`}
+              style={styles.modalRow}
+              onPress={() => { haptic.tap(); onPickCity(h.cityId); }}
+            >
+              <View style={styles.modalRowLeft}>
+                <Text style={styles.modalRowFlag}>{getCityFlag(h.cityId)}</Text>
+                <Text style={styles.modalRowCity}>{getCityDisplayName(h.cityId)}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalRowName} numberOfLines={1}>{h.name}</Text>
+                <Text style={styles.modalRowDesc} numberOfLines={1}>{h.description}</Text>
+              </View>
+              <Text style={styles.modalRowArrow}>›</Text>
+            </Pressable>
+          ))}
+          <View style={{ height: Spacing.huge }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ─── 스타일 ───────────────────────────────────
+
 function createStyles(c: ColorPalette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
+
+    // 헤더
+    headerWrap: {
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.md,
+      paddingBottom: Spacing.sm,
+    },
+    brandEyebrow: {
+      fontFamily: Fonts.bodyEnSemiBold,
+      fontSize: Typography.labelSmall,
+      color: c.accent,
+      letterSpacing: Typography.letterSpacingExtraWide,
+    },
+    brandTitle: {
+      fontFamily: Fonts.bodyKrBold,
+      fontSize: Typography.displayMedium,
+      color: c.textPrimary,
+      marginTop: 2,
+    },
+
+    // 검색
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.sm,
       marginHorizontal: Spacing.lg,
-      marginTop: Spacing.md,
+      marginTop: Spacing.sm,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.sm,
       backgroundColor: c.surface,
@@ -377,6 +668,7 @@ function createStyles(c: ColorPalette) {
       paddingVertical: 0,
     },
     clearText: { fontSize: 14, color: c.textTertiary, paddingHorizontal: Spacing.xs },
+
     keywordScroll: { flexGrow: 0, flexShrink: 0 },
     keywordRow: {
       paddingHorizontal: Spacing.lg,
@@ -398,61 +690,231 @@ function createStyles(c: ColorPalette) {
       color: c.textSecondary,
       fontWeight: '600',
     },
-    scroll: { padding: Spacing.lg },
-    heroTitle: {
-      fontSize: Typography.displaySmall,
-      fontWeight: '800',
+
+    scroll: { paddingTop: Spacing.lg, paddingBottom: 0 },
+
+    // 섹션 타이틀
+    sectionTitleWrap: {
+      paddingHorizontal: Spacing.lg,
+      marginTop: Spacing.xl,
+      marginBottom: Spacing.md,
+    },
+    sectionEyebrow: {
+      fontFamily: Fonts.bodyEnSemiBold,
+      fontSize: 11,
+      color: c.accent,
+      letterSpacing: 2,
+      marginBottom: 4,
+    },
+    sectionMainTitle: {
+      fontFamily: Fonts.bodyKrBold,
+      fontSize: Typography.titleMedium,
       color: c.textPrimary,
     },
-    heroSub: {
-      fontSize: Typography.bodyMedium,
-      color: c.textSecondary,
-      marginTop: 4,
-    },
-    regionTitle: {
+
+    // 검색 결과 헤더
+    searchSectionTitle: {
       fontSize: Typography.bodyLarge,
       fontWeight: '700',
       color: c.textPrimary,
+      paddingHorizontal: Spacing.lg,
+      marginTop: Spacing.lg,
       marginBottom: Spacing.md,
     },
-    cityGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+    searchSectionCount: {
+      fontSize: Typography.bodyMedium,
+      color: c.textTertiary,
+      fontWeight: '400',
+    },
+
+    // ✨ Hero featured cards
+    heroScroll: {
+      paddingLeft: Spacing.lg,
+      paddingRight: Spacing.md,
       gap: Spacing.md,
     },
-    cityCard: {
-      width: '30%',
-      aspectRatio: 1,
+    heroCard: {
+      width: 240,
+      height: 200,
       backgroundColor: c.surface,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderTopWidth: 4,
+      padding: Spacing.lg,
+      ...Shadows.medium,
+    },
+    heroBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    heroFlag: { fontSize: 36 },
+    heroRank: {
+      fontFamily: Fonts.bodyEnBold,
+      fontSize: Typography.titleLarge,
+      letterSpacing: -1,
+    },
+    heroName: {
+      fontFamily: Fonts.bodyKrBold,
+      fontSize: Typography.titleLarge,
+      color: c.textPrimary,
+      marginTop: Spacing.sm,
+    },
+    heroNameEn: {
+      fontFamily: Fonts.bodyEnMedium,
+      fontSize: Typography.labelSmall,
+      color: c.textTertiary,
+      letterSpacing: 1,
+    },
+    heroTagline: {
+      fontSize: Typography.labelSmall,
+      color: c.textSecondary,
+      fontStyle: 'italic',
+    },
+    heroFooter: {
+      marginTop: Spacing.sm,
+      gap: 2,
+    },
+    heroCount: {
+      fontSize: Typography.labelSmall,
+      color: c.accent,
+      fontWeight: '700',
+    },
+    heroPreview: {
+      fontSize: 11,
+      color: c.textTertiary,
+    },
+
+    // 🔥 Trending cards
+    trendScroll: {
+      paddingLeft: Spacing.lg,
+      paddingRight: Spacing.md,
+      gap: Spacing.md,
+    },
+    trendCard: {
+      width: 160,
+      backgroundColor: c.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: c.border,
+      padding: Spacing.md,
+      gap: 4,
+      ...Shadows.soft,
+    },
+    trendIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: c.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.xs,
+    },
+    trendIcon: { fontSize: 24 },
+    trendCity: {
+      fontSize: 11,
+      color: c.accent,
+      fontWeight: '700',
+    },
+    trendName: {
+      fontSize: Typography.bodyMedium,
+      fontWeight: '700',
+      color: c.textPrimary,
+      lineHeight: Typography.bodyMedium * 1.2,
+    },
+    trendDesc: {
+      fontSize: 11,
+      color: c.textSecondary,
+      lineHeight: 14,
+    },
+
+    // 🎯 카테고리 그리드
+    catGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+    },
+    catBtn: {
+      width: '31.5%',
+      aspectRatio: 1,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: c.border,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 4,
-      ...Shadows.soft,
     },
-    cityFlag: { fontSize: 32 },
-    cityName: {
+    catBtnIcon: { fontSize: 32 },
+    catBtnLabel: {
+      fontFamily: Fonts.bodyKrMedium,
       fontSize: Typography.bodyMedium,
       color: c.textPrimary,
       fontWeight: '700',
     },
-    cityCount: {
+    catBtnCount: {
       fontSize: 11,
       color: c.textTertiary,
     },
-    sectionTitle: {
+
+    // 지역
+    regionTitle: {
+      fontFamily: Fonts.bodyKrBold,
       fontSize: Typography.bodyLarge,
-      fontWeight: '700',
       color: c.textPrimary,
-      marginTop: Spacing.lg,
-      marginBottom: Spacing.md,
+      paddingHorizontal: Spacing.lg,
+      marginBottom: Spacing.sm,
     },
+    regionCount: {
+      fontSize: Typography.labelSmall,
+      color: c.textTertiary,
+      fontWeight: '400',
+    },
+    cityGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+    },
+    cityCard: {
+      width: '31%',
+      aspectRatio: 1.05,
+      backgroundColor: c.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: Spacing.sm,
+      gap: 2,
+      ...Shadows.soft,
+    },
+    cityCardFlag: { fontSize: 30 },
+    cityCardName: {
+      fontFamily: Fonts.bodyKrMedium,
+      fontSize: Typography.bodyMedium,
+      color: c.textPrimary,
+      fontWeight: '700',
+    },
+    cityCardCount: {
+      fontSize: 10,
+      color: c.accent,
+      fontWeight: '700',
+    },
+    cityCardSample: {
+      fontSize: 10,
+      color: c.textTertiary,
+      maxWidth: '100%',
+      textAlign: 'center',
+    },
+
+    // 검색 결과
     cityRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
     },
     cityChip: {
       flexDirection: 'row',
@@ -480,12 +942,15 @@ function createStyles(c: ColorPalette) {
       borderRadius: 12,
       borderWidth: 1,
       borderColor: c.border,
+      marginHorizontal: Spacing.lg,
     },
     hCatIcon: { fontSize: 24 },
     hCity: { fontSize: 11, color: c.accent, fontWeight: '700', marginBottom: 2 },
     hName: { fontSize: Typography.bodyMedium, color: c.textPrimary, fontWeight: '700' },
     hDesc: { fontSize: Typography.labelSmall, color: c.textSecondary, marginTop: 2 },
     hArrow: { fontSize: 20, color: c.textTertiary },
+
+    // empty
     empty: {
       alignItems: 'center',
       gap: Spacing.md,
@@ -499,6 +964,8 @@ function createStyles(c: ColorPalette) {
       textAlign: 'center',
       lineHeight: Typography.bodySmall * 1.6,
     },
+
+    // 모달 공통
     modalHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -515,6 +982,11 @@ function createStyles(c: ColorPalette) {
       color: c.textPrimary,
       flex: 1,
       textAlign: 'center',
+    },
+    modalSub: {
+      fontSize: Typography.labelSmall,
+      color: c.textTertiary,
+      marginBottom: Spacing.sm,
     },
     modalChipRow: {
       paddingHorizontal: Spacing.lg,
@@ -571,5 +1043,27 @@ function createStyles(c: ColorPalette) {
       fontWeight: '700',
       fontSize: Typography.bodyMedium,
     },
+
+    // 카테고리 브라우즈 모달 — 행 스타일
+    modalRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.md,
+      backgroundColor: c.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    modalRowLeft: {
+      width: 60,
+      alignItems: 'center',
+    },
+    modalRowFlag: { fontSize: 22 },
+    modalRowCity: { fontSize: 10, color: c.textTertiary, fontWeight: '600', marginTop: 2 },
+    modalRowName: { fontSize: Typography.bodyMedium, color: c.textPrimary, fontWeight: '700' },
+    modalRowDesc: { fontSize: Typography.labelSmall, color: c.textSecondary, marginTop: 2 },
+    modalRowArrow: { fontSize: 20, color: c.textTertiary },
   });
 }
