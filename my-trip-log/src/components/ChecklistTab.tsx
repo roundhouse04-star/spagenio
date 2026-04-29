@@ -8,9 +8,11 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ChecklistItem, ChecklistCategory, Trip } from '@/types';
 import {
   getChecklist, createChecklistItem, toggleChecklistItem,
-  deleteChecklistItem, addTemplateItems,
+  deleteChecklistItem, addTemplateItems, addScenarioItems,
 } from '@/db/checklists';
 import { CHECKLIST_CATEGORIES } from '@/db/schema';
+import { PACKING_SCENARIOS } from '@/data/packingScenarios';
+import { haptic } from '@/utils/haptics';
 
 // 'all' = 전체 보기, 그 외는 ChecklistCategory
 type FilterCategory = 'all' | ChecklistCategory;
@@ -145,6 +147,42 @@ export function ChecklistTab({ trip }: { trip: Trip }) {
           <Text style={styles.addBtnText}>+</Text>
         </Pressable>
       </View>
+
+      {/* 시나리오 패킹 템플릿 */}
+      {totalCount === 0 && (
+        <View style={styles.scenarioBox}>
+          <Text style={styles.scenarioTitle}>🎒 시나리오로 빠르게 채우기</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scenarioRow}>
+            {PACKING_SCENARIOS.map((s) => (
+              <Pressable
+                key={s.id}
+                style={styles.scenarioCard}
+                onPress={() => {
+                  haptic.tap();
+                  Alert.alert(
+                    `${s.icon} ${s.label} 템플릿`,
+                    `${s.items.length}개 항목을 한 번에 추가할까요?\n${s.description}`,
+                    [
+                      { text: '취소', style: 'cancel' },
+                      {
+                        text: '추가',
+                        onPress: async () => {
+                          await addScenarioItems(trip.id, s.items);
+                          load();
+                        },
+                      },
+                    ],
+                  );
+                }}
+              >
+                <Text style={styles.scenarioIcon}>{s.icon}</Text>
+                <Text style={styles.scenarioLabel}>{s.label}</Text>
+                <Text style={styles.scenarioCount}>{s.items.length}개</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* 카테고리 필터 탭 - "전체" 탭 추가 */}
       <ScrollView
@@ -343,6 +381,46 @@ function createStyles(c: ColorPalette) {
     flexDirection: 'row',
     gap: Spacing.sm,
     marginBottom: Spacing.md,
+  },
+  scenarioBox: {
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: c.primary + '08',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.primary + '30',
+  },
+  scenarioTitle: {
+    fontSize: Typography.labelMedium,
+    fontWeight: '700',
+    color: c.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  scenarioRow: {
+    gap: Spacing.sm,
+    paddingRight: Spacing.md,
+  },
+  scenarioCard: {
+    width: 100,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    backgroundColor: c.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.border,
+    alignItems: 'center',
+    gap: 4,
+  },
+  scenarioIcon: { fontSize: 28 },
+  scenarioLabel: {
+    fontSize: Typography.labelSmall,
+    fontWeight: '700',
+    color: c.textPrimary,
+  },
+  scenarioCount: {
+    fontSize: 10,
+    color: c.accent,
+    fontWeight: '700',
   },
   input: {
     flex: 1,

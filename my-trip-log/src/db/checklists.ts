@@ -118,3 +118,28 @@ export async function addTemplateItems(tripId: number, category: ChecklistCatego
     );
   }
 }
+
+/**
+ * 시나리오별 패킹 템플릿 일괄 추가
+ * (해변/겨울/도시/트레킹/출장 등 PACKING_SCENARIOS 활용)
+ */
+export async function addScenarioItems(
+  tripId: number,
+  items: { title: string; category: ChecklistCategory }[],
+): Promise<void> {
+  const db = await getDB();
+  const now = new Date().toISOString();
+  // 기존 sort_order 최대값 조회 → 뒤에 추가
+  const maxRow = await db.getFirstAsync<{ max_order: number | null }>(
+    `SELECT MAX(sort_order) as max_order FROM checklists WHERE trip_id = ?`,
+    [tripId],
+  );
+  let order = (maxRow?.max_order ?? -1) + 1;
+  for (const item of items) {
+    await db.runAsync(
+      `INSERT INTO checklists (trip_id, title, category, is_checked, sort_order, created_at)
+       VALUES (?, ?, ?, 0, ?, ?)`,
+      [tripId, item.title, item.category, order++, now],
+    );
+  }
+}

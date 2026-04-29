@@ -31,6 +31,7 @@ import {
 } from '@/data/cityHighlights';
 import { getCityImageUrl } from '@/utils/cityImages';
 import { openMapsBySearch } from '@/utils/maps';
+import { isInWishlist, toggleWishlist } from '@/utils/wishlist';
 
 /** 하이라이트 → 구글지도 검색어 만들기 */
 function buildHighlightMapQuery(h: CityHighlight): string {
@@ -571,8 +572,22 @@ interface CityHighlightsModalProps {
 
 function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityHighlightsModalProps) {
   const [filter, setFilter] = useState<HighlightCategory | 'all'>('all');
+  const [fav, setFav] = useState(false);
   const highlights = cityId ? getHighlightsByCity(cityId) : [];
   const filtered = filter === 'all' ? highlights : highlights.filter((h) => h.category === filter);
+
+  // 모달 열릴 때마다 위시리스트 상태 로드
+  useEffect(() => {
+    if (!visible || !cityId) return;
+    isInWishlist(cityId).then(setFav).catch(() => setFav(false));
+  }, [visible, cityId]);
+
+  const handleToggleFav = async () => {
+    if (!cityId) return;
+    haptic.medium();
+    const newState = await toggleWishlist(cityId);
+    setFav(newState);
+  };
 
   if (!cityId) return null;
 
@@ -591,9 +606,14 @@ function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityH
           <Text style={styles.modalTitle}>
             {getCityFlag(cityId)} {getCityDisplayName(cityId)}
           </Text>
-          <Pressable onPress={() => openCityOnMap(cityId)} hitSlop={10} style={styles.modalMapBtn}>
-            <Text style={styles.modalMapBtnText}>🗺</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
+            <Pressable onPress={handleToggleFav} hitSlop={10} style={styles.modalMapBtn}>
+              <Text style={styles.modalMapBtnText}>{fav ? '❤️' : '🤍'}</Text>
+            </Pressable>
+            <Pressable onPress={() => openCityOnMap(cityId)} hitSlop={10} style={styles.modalMapBtn}>
+              <Text style={styles.modalMapBtnText}>🗺</Text>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
