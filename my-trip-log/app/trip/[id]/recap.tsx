@@ -17,6 +17,7 @@ import { haptic } from '@/utils/haptics';
 import { getDB } from '@/db/database';
 import { EXPENSE_CATEGORIES } from '@/db/schema';
 import type { Trip } from '@/types';
+import { exportRecapAsPdf } from '@/utils/recapExport';
 
 interface RecapData {
   trip: Trip | null;
@@ -162,7 +163,35 @@ export default function TripRecapScreen() {
           <Text style={styles.backText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>📔 여행 회고</Text>
-        <View style={{ width: 36 }} />
+        <Pressable
+          onPress={() => {
+            haptic.medium();
+            const period = t.startDate && t.endDate
+              ? `${t.startDate.replace(/-/g, '.')} ~ ${t.endDate.replace(/-/g, '.')}`
+              : '';
+            const byCategoryWithPct = data.byCategory.map((c) => ({
+              ...c,
+              pct: data.totalSpent > 0 ? (c.total / data.totalSpent) * 100 : 0,
+            }));
+            exportRecapAsPdf({
+              title: t.title,
+              country: t.country,
+              city: t.city,
+              period,
+              days: data.days,
+              itemCount: data.itemCount,
+              logCount: data.logCount,
+              totalSpent: data.totalSpent,
+              currency: t.currency,
+              byCategory: byCategoryWithPct,
+              memo: t.memo,
+            });
+          }}
+          hitSlop={10}
+          style={styles.shareBtn}
+        >
+          <Text style={styles.shareText}>↗</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -263,6 +292,12 @@ function createStyles(c: ColorPalette) {
     backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     backText: { fontSize: 24, color: c.textPrimary },
     headerTitle: { fontSize: Typography.bodyLarge, fontWeight: '700', color: c.textPrimary },
+    shareBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: c.surfaceAlt,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    shareText: { fontSize: 18, color: c.primary, fontWeight: '700' },
 
     loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
