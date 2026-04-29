@@ -117,6 +117,14 @@ export default function ToolsScreen() {
           </Pressable>
         </View>
 
+        <View style={styles.disclaimerBox}>
+          <Text style={styles.disclaimerIcon}>⚠️</Text>
+          <Text style={styles.disclaimerText}>
+            <Text style={styles.disclaimerTitle}>참고용 환율입니다.</Text>{' '}
+            실제 거래 시 은행·카드사·환전소 시세와 차이가 있을 수 있어요. 큰 금액은 현지에서 다시 확인해주세요.
+          </Text>
+        </View>
+
         <View style={styles.card}>
           {loading ? (
             <View style={{ padding: Spacing.xxl, alignItems: 'center' }}>
@@ -200,6 +208,15 @@ export default function ToolsScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>🚇 지하철 노선도</Text>
+
+        <View style={styles.disclaimerBox}>
+          <Text style={styles.disclaimerIcon}>⚠️</Text>
+          <Text style={styles.disclaimerText}>
+            <Text style={styles.disclaimerTitle}>참고용 노선 정보입니다.</Text>{' '}
+            운행 시간·요금·역명·환승은 변동될 수 있어요. 실제 이용 전 현지 운영사 공식 정보를 확인해주세요.
+          </Text>
+        </View>
+
         <View style={styles.linkCards}>
           {[
             { cityId: 'seoul', icon: '🇰🇷', label: '서울 지하철', desc: '1~9호선, 공항철도' },
@@ -323,6 +340,33 @@ function createStyles(c: ColorPalette) {
     fontSize: Typography.labelMedium,
     color: c.accent,
     fontWeight: '600',
+  },
+  disclaimerBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: c.warning ? c.warning + '15' : '#FFB84D15',
+    borderLeftWidth: 3,
+    borderLeftColor: c.warning ?? '#FFB84D',
+    borderRadius: 8,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  disclaimerIcon: {
+    fontSize: 14,
+    marginTop: 1,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: Typography.labelSmall,
+    color: c.textSecondary,
+    lineHeight: Typography.labelSmall * 1.6,
+  },
+  disclaimerTitle: {
+    fontWeight: '700',
+    color: c.textPrimary,
   },
   card: {
     backgroundColor: c.surface,
