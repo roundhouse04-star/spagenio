@@ -473,6 +473,7 @@ function createStyles(c: ColorPalette) {
     fontSize: Typography.headlineSmall,
     color: c.textPrimary,
     fontWeight: '700',
+    marginTop: Spacing.xl,
     marginBottom: Spacing.md,
   },
 
