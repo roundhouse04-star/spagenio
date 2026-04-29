@@ -37,6 +37,37 @@ const tryOpenUrls = async (urls: string[]): Promise<boolean> => {
 };
 
 /**
+ * 검색어 기반 구글 지도 열기 (좌표 없이 동작)
+ *
+ * 사용 예: openMapsBySearch("센소지 아사쿠사 도쿄")
+ *   → iOS: 구글지도 앱 → 브라우저
+ *   → Android: 기본 지도 앱 → 브라우저
+ *
+ * 좌표가 없는 데이터(추천 장소 카드)에서 정확한 검색어로 바로 지도 열기 용도.
+ */
+export const openMapsBySearch = async (query: string): Promise<void> => {
+  const q = query.trim();
+  if (!q) {
+    Alert.alert('알림', '검색어가 없어요');
+    return;
+  }
+  const encoded = encodeURIComponent(q);
+  const urls = Platform.OS === 'ios'
+    ? [
+        `comgooglemaps://?q=${encoded}`,
+        `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+      ]
+    : [
+        `geo:0,0?q=${encoded}`,
+        `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+      ];
+  const ok = await tryOpenUrls(urls);
+  if (!ok) {
+    Alert.alert('지도 열기 실패', '인터넷 연결을 확인해주세요.');
+  }
+};
+
+/**
  * 지도에서 위치 보기
  */
 export const openInMaps = async (location: MapLocation): Promise<void> => {

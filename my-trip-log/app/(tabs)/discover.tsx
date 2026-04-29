@@ -30,6 +30,29 @@ import {
   type HighlightCategory,
 } from '@/data/cityHighlights';
 import { getCityImageUrl } from '@/utils/cityImages';
+import { openMapsBySearch } from '@/utils/maps';
+
+/** 하이라이트 → 구글지도 검색어 만들기 */
+function buildHighlightMapQuery(h: CityHighlight): string {
+  return [h.nameLocal ?? h.name, h.area, getCityDisplayName(h.cityId)]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** 도시 → 도시 자체를 지도에서 보기 */
+function openCityOnMap(cityId: string) {
+  haptic.tap();
+  const name = getCityDisplayName(cityId);
+  // 영문도 함께 검색하면 정확도 향상
+  const en = (CITY_ALIASES[cityId]?.aliases ?? []).find((a) => /^[a-z\s]+$/i.test(a));
+  openMapsBySearch([name, en].filter(Boolean).join(' '));
+}
+
+/** 하이라이트 → 지도에서 검색 */
+function openHighlightOnMap(h: CityHighlight) {
+  haptic.tap();
+  openMapsBySearch(buildHighlightMapQuery(h));
+}
 
 // 도시 이미지 URL React 훅 — 컴포넌트에서 useState 한 번에 처리
 function useCityImage(cityId: string | null): string | null {
@@ -209,7 +232,7 @@ export default function DiscoverScreen() {
                     <HighlightRow
                       key={`${h.cityId}-${h.category}-${idx}`}
                       h={h}
-                      onPress={() => { haptic.tap(); setActiveCityId(h.cityId); }}
+                      onPress={() => openHighlightOnMap(h)}
                       styles={styles}
                     />
                   ))}
@@ -250,7 +273,7 @@ export default function DiscoverScreen() {
                 <TrendingCard
                   key={`${h.cityId}-${h.category}-${idx}`}
                   h={h}
-                  onPress={() => { haptic.tap(); setActiveCityId(h.cityId); }}
+                  onPress={() => openHighlightOnMap(h)}
                   styles={styles}
                 />
               ))}
@@ -563,7 +586,9 @@ function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityH
           <Text style={styles.modalTitle}>
             {getCityFlag(cityId)} {getCityDisplayName(cityId)}
           </Text>
-          <View style={{ width: 24 }} />
+          <Pressable onPress={() => openCityOnMap(cityId)} hitSlop={10} style={styles.modalMapBtn}>
+            <Text style={styles.modalMapBtnText}>🗺</Text>
+          </Pressable>
         </View>
 
         <ScrollView
@@ -601,7 +626,11 @@ function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityH
           {filtered.map((h, idx) => {
             const cat = HIGHLIGHT_CATEGORIES.find((c) => c.key === h.category);
             return (
-              <View key={`${h.cityId}-${h.category}-${idx}`} style={styles.modalCard}>
+              <Pressable
+                key={`${h.cityId}-${h.category}-${idx}`}
+                style={styles.modalCard}
+                onPress={() => openHighlightOnMap(h)}
+              >
                 <View style={styles.modalCardLeft}>
                   <Text style={styles.modalCardIcon}>{cat?.icon}</Text>
                 </View>
@@ -617,7 +646,8 @@ function CityHighlightsModal({ visible, cityId, onClose, styles, colors }: CityH
                     </View>
                   )}
                 </View>
-              </View>
+                <Text style={styles.modalCardMap}>🗺</Text>
+              </Pressable>
             );
           })}
 
@@ -680,17 +710,22 @@ function CategoryBrowseModal({ visible, category, onClose, onPickCity, styles, c
             <Pressable
               key={`${h.cityId}-${h.category}-${idx}`}
               style={styles.modalRow}
-              onPress={() => { haptic.tap(); onPickCity(h.cityId); }}
+              onPress={() => openHighlightOnMap(h)}
             >
-              <View style={styles.modalRowLeft}>
+              {/* 좌측 도시 뱃지 — 탭 시 도시 모달로 (지도 X) */}
+              <Pressable
+                style={styles.modalRowLeft}
+                onPress={(e) => { e.stopPropagation?.(); haptic.tap(); onPickCity(h.cityId); }}
+                hitSlop={6}
+              >
                 <Text style={styles.modalRowFlag}>{getCityFlag(h.cityId)}</Text>
                 <Text style={styles.modalRowCity}>{getCityDisplayName(h.cityId)}</Text>
-              </View>
+              </Pressable>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalRowName} numberOfLines={1}>{h.name}</Text>
                 <Text style={styles.modalRowDesc} numberOfLines={1}>{h.description}</Text>
               </View>
-              <Text style={styles.modalRowArrow}>›</Text>
+              <Text style={styles.modalRowArrow}>🗺</Text>
             </Pressable>
           ))}
           <View style={{ height: Spacing.huge }} />
@@ -1086,6 +1121,20 @@ function createStyles(c: ColorPalette) {
       borderBottomColor: c.border,
     },
     modalClose: { fontSize: 20, color: c.textPrimary, width: 24 },
+    modalMapBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: c.surfaceAlt,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalMapBtnText: { fontSize: 16 },
+    modalCardMap: {
+      fontSize: 18,
+      color: c.textTertiary,
+      paddingHorizontal: Spacing.xs,
+    },
     modalTitle: {
       fontSize: Typography.bodyLarge,
       fontWeight: '700',
