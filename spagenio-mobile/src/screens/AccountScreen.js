@@ -14,6 +14,7 @@ export function AccountScreen() {
   const [balance, setBalance] = useState(null); // active account 잔고
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activatingId, setActivatingId] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -45,6 +46,32 @@ export function AccountScreen() {
   useEffect(() => { load(); }, [load]);
 
   const onRefresh = () => { setRefreshing(true); load(); };
+
+  function confirmActivate(broker) {
+    if (broker.is_active) return; // 이미 활성
+    Alert.alert(
+      '계좌 활성화',
+      `"${broker.account_name}" 을(를) 활성 계좌로 변경할까요?\n\n이후 모든 거래/포지션 조회가 이 계좌 기준으로 동작합니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '활성화', onPress: () => activateAccount(broker.id) },
+      ]
+    );
+  }
+
+  async function activateAccount(id) {
+    setActivatingId(id);
+    try {
+      const res = await api.post(`/api/user/broker-keys/${id}/activate`);
+      if (res?.status !== 'ok') throw new Error(res?.error || '활성화 실패');
+      await load();
+      Alert.alert('✅ 활성 계좌 변경됨', '거래/포지션이 이 계좌 기준으로 조회됩니다.');
+    } catch (e) {
+      Alert.alert('❌ 실패', e.message || '서버 오류');
+    } finally {
+      setActivatingId(null);
+    }
+  }
 
   function confirmLogout() {
     Alert.alert(
@@ -94,23 +121,51 @@ export function AccountScreen() {
           </View>
         )}
 
-        {/* 등록된 broker 계좌 목록 */}
+        {/* 등록된 broker 계좌 목록 — 탭하면 활성화 */}
         {brokers.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>등록된 계좌 ({brokers.length})</Text>
-            {brokers.map(b => (
-              <View key={b.id} style={styles.card}>
-                <View style={styles.rowTop}>
-                  <Text style={styles.brokerName}>{b.account_name}</Text>
-                  <View style={styles.badges}>
-                    {b.is_active && <Badge text="활성" color={theme.green} />}
-                    <Badge text={b.alpaca_paper ? 'Paper' : 'Live'} color={b.alpaca_paper ? theme.yellow : theme.red} />
+            <View style={styles.brokerHeader}>
+              <Text style={styles.sectionTitle}>등록된 계좌 ({brokers.length})</Text>
+              <Text style={styles.hint}>탭하여 활성 변경</Text>
+            </View>
+            {brokers.map(b => {
+              const isActivating = activatingId === b.id;
+              const cardStyle = [
+                styles.card,
+                b.is_active && styles.cardActive,
+              ];
+              return (
+                <TouchableOpacity
+                  key={b.id}
+                  style={cardStyle}
+                  onPress={() => confirmActivate(b)}
+                  disabled={b.is_active || isActivating}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.rowTop}>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                      {b.is_active && <Text style={styles.activeIcon}>✓</Text>}
+                      <Text style={styles.brokerName}>{b.account_name}</Text>
+                    </View>
+                    <View style={styles.badges}>
+                      {b.is_active && <Badge text="활성" color={theme.green} />}
+                      <Badge text={b.alpaca_paper ? 'Paper' : 'Live'} color={b.alpaca_paper ? theme.yellow : theme.red} />
+                    </View>
                   </View>
-                </View>
-                <Row label="유형" value={ACCOUNT_TYPE_LABEL[b.account_type] || '-'} />
-                <Row label="API Key" value={b.key_preview || '-'} mono last />
-              </View>
-            ))}
+                  <Row label="유형" value={ACCOUNT_TYPE_LABEL[b.account_type] || '-'} />
+                  <Row label="API Key" value={b.key_preview || '-'} mono last={!isActivating && b.is_active} />
+                  {!b.is_active && (
+                    <View style={styles.activateRow}>
+                      {isActivating ? (
+                        <ActivityIndicator color={theme.accent} size="small" />
+                      ) : (
+                        <Text style={styles.activateHint}>탭하여 이 계좌로 전환 →</Text>
+                      )}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </>
         )}
 
@@ -159,6 +214,12 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     marginBottom: 8,
   },
+  cardActive: { borderColor: theme.green, borderWidth: 1.5, backgroundColor: theme.green + '08' },
+  activeIcon: { color: theme.green, fontSize: 16, fontWeight: '900', marginRight: 8 },
+  activateRow: { paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border, alignItems: 'center' },
+  activateHint: { color: theme.accent, fontSize: 12, fontWeight: '600' },
+  brokerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  hint: { color: theme.muted, fontSize: 11, marginRight: 4, marginTop: 20 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 8 },
   rowLabel: { color: theme.subtext, fontSize: 13 },
