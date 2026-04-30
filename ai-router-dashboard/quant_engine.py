@@ -594,15 +594,103 @@ def calc_bollinger_bands(closes, period=20, std_dev=2):
 
 
 def calc_macd(closes, fast=12, slow=26, signal=9):
-    """MACD"""
+    """MACD (latest 값만). signal line 까지 계산하고 (macd, signal) 반환."""
     if len(closes) < slow + signal:
         return None, None
-    ema_fast = calc_ema(closes, fast)
-    ema_slow = calc_ema(closes, slow)
-    if ema_fast is None or ema_slow is None:
-        return None, None
-    macd_line = round(ema_fast - ema_slow, 4)
-    return macd_line, None
+    macd_arr, sig_arr, _ = calc_macd_series(closes, fast=fast, slow=slow, signal=signal)
+    macd_last = next((v for v in reversed(macd_arr) if v is not None), None)
+    sig_last  = next((v for v in reversed(sig_arr)  if v is not None), None)
+    return macd_last, sig_last
+
+
+# ─────────────────────────────────────────────────────────────
+# 시계열 버전 (차트 endpoint 용 — 길이 = len(closes), warmup 구간은 None)
+# ─────────────────────────────────────────────────────────────
+def calc_rsi_series(closes, period=14):
+    """Wilder smoothing RSI 시계열. 처음 period 개는 None."""
+    n = len(closes)
+    out = [None] * n
+    if n < period + 1:
+        return out
+    deltas = [closes[i] - closes[i - 1] for i in range(1, n)]
+    gains  = [d if d > 0 else 0 for d in deltas]
+    losses = [-d if d < 0 else 0 for d in deltas]
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    out[period] = 100.0 if avg_loss == 0 else round(100 - 100 / (1 + avg_gain / avg_loss), 2)
+    for i in range(period, len(gains)):
+        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+        out[i + 1] = 100.0 if avg_loss == 0 else round(100 - 100 / (1 + avg_gain / avg_loss), 2)
+    return out
+
+
+def calc_bollinger_series(closes, period=20, std_dev=2):
+    """볼린저 밴드 시계열 (upper, middle, lower). 길이 = len(closes)."""
+    n = len(closes)
+    upper  = [None] * n
+    middle = [None] * n
+    lower  = [None] * n
+    if n < period:
+        return upper, middle, lower
+    for i in range(period - 1, n):
+        window = closes[i - period + 1:i + 1]
+        sma = sum(window) / period
+        var = sum((x - sma) ** 2 for x in window) / period
+        std = math.sqrt(var)
+        upper[i]  = round(sma + std_dev * std, 4)
+        middle[i] = round(sma, 4)
+        lower[i]  = round(sma - std_dev * std, 4)
+    return upper, middle, lower
+
+
+def _ema_series(closes, period):
+    """EMA 시계열. 처음 period-1 개는 None, period 번째는 SMA seed."""
+    n = len(closes)
+    out = [None] * n
+    if n < period:
+        return out
+    k = 2 / (period + 1)
+    seed = sum(closes[:period]) / period
+    out[period - 1] = seed
+    ema = seed
+    for i in range(period, n):
+        ema = closes[i] * k + ema * (1 - k)
+        out[i] = ema
+    return out
+
+
+def calc_macd_series(closes, fast=12, slow=26, signal=9):
+    """MACD 시계열 (macd_line, signal_line, histogram). 표준 구현 (signal = MACD 의 9-EMA)."""
+    n = len(closes)
+    macd_line   = [None] * n
+    signal_line = [None] * n
+    histogram   = [None] * n
+    if n < slow + signal:
+        return macd_line, signal_line, histogram
+    ef = _ema_series(closes, fast)
+    es = _ema_series(closes, slow)
+    macd_vals = []
+    macd_idx  = []
+    for i in range(n):
+        if ef[i] is not None and es[i] is not None:
+            macd_line[i] = round(ef[i] - es[i], 4)
+            macd_vals.append(macd_line[i])
+            macd_idx.append(i)
+    if len(macd_vals) < signal:
+        return macd_line, signal_line, histogram
+    sig_seed = sum(macd_vals[:signal]) / signal
+    first_sig_idx = macd_idx[signal - 1]
+    signal_line[first_sig_idx] = round(sig_seed, 4)
+    histogram[first_sig_idx]   = round(macd_line[first_sig_idx] - sig_seed, 4)
+    k = 2 / (signal + 1)
+    sig_ema = sig_seed
+    for j in range(signal, len(macd_vals)):
+        sig_ema = macd_vals[j] * k + sig_ema * (1 - k)
+        idx = macd_idx[j]
+        signal_line[idx] = round(sig_ema, 4)
+        histogram[idx]   = round(macd_line[idx] - sig_ema, 4)
+    return macd_line, signal_line, histogram
 
 
 def get_stock_data(symbol, period_days=60):
@@ -729,28 +817,30 @@ def analyze_sma(symbol, short=5, long=20):
 
 
 def analyze_macd(symbol):
-    """MACD 전략"""
+    """MACD 전략 — 표준: MACD line vs signal line 크로스오버 (이전엔 raw MACD vs 0)."""
     data = get_stock_data(symbol)
     if not data:
         return {'signal': 'hold', 'value': None, 'reason': '데이터 없음'}
 
-    macd, signal_line = calc_macd(data['closes'])
-    if macd is None:
+    macd, sig = calc_macd(data['closes'])
+    if macd is None or sig is None:
         return {'signal': 'hold', 'value': None, 'reason': '데이터 부족'}
 
-    if macd > 0:
+    diff = round(macd - sig, 4)
+    if diff > 0:
         signal = 'buy'
-        reason = f'MACD {macd} > 0 (상승 모멘텀)'
-    elif macd < 0:
+        reason = f'MACD {macd} > signal {sig} (골든크로스, +{diff})'
+    elif diff < 0:
         signal = 'sell'
-        reason = f'MACD {macd} < 0 (하락 모멘텀)'
+        reason = f'MACD {macd} < signal {sig} (데드크로스, {diff})'
     else:
         signal = 'hold'
-        reason = 'MACD 중립'
+        reason = 'MACD = signal (전환점)'
 
     return {
         'signal': signal,
         'value': macd,
+        'signal_line': sig,
         'price': data['last_price'],
         'reason': reason
     }
@@ -1218,7 +1308,10 @@ def health():
 
 @app.route('/api/quant/chart', methods=['GET'])
 def get_chart_data():
-    """종목 차트 데이터 (주가 + 거래량 + RSI + BB + MACD)"""
+    """종목 차트 데이터 (주가 + 거래량 + RSI + BB + MACD).
+    이전 코드는 scalar 반환 함수 (calc_rsi/calc_bollinger/calc_macd) 를 시계열처럼
+    인덱싱해서 silent except → 모든 지표 None 으로 응답하던 버그가 있었음.
+    이제 calc_*_series 사용."""
     symbol = request.args.get('symbol', 'AAPL')
     period = request.args.get('period', '3mo')  # 1mo, 3mo, 6mo, 1y
     try:
@@ -1234,34 +1327,22 @@ def get_chart_data():
         lows   = df['Low'].values.tolist()
         vols   = df['Volume'].values.tolist()
         dates  = [str(d.date()) for d in df.index]
+        n = len(closes)
 
-        # RSI
-        try:
-            rsi_vals = calc_rsi(closes, 14)
-        except:
-            rsi_vals = [None] * len(closes)
+        # RSI / 볼린저 / MACD — 시계열 (길이 = n, warmup 구간은 None)
+        rsi_vals = calc_rsi_series(closes, 14)
+        bb_upper, bb_mid, bb_lower = calc_bollinger_series(closes, 20)
+        macd_line, signal_line, macd_hist = calc_macd_series(closes)
 
-        # 볼린저 밴드
-        try:
-            bb = calc_bollinger(closes, 20)
-            bb_upper = bb['upper']
-            bb_lower = bb['lower']
-            bb_mid   = bb['middle']
-        except:
-            bb_upper = bb_lower = bb_mid = [None] * len(closes)
-
-        # MACD
-        try:
-            macd_data = calc_macd(closes)
-            macd_line = macd_data['macd']
-            signal_line = macd_data['signal']
-            macd_hist  = macd_data['histogram']
-        except:
-            macd_line = signal_line = macd_hist = [None] * len(closes)
-
-        # SMA 20, 50
-        sma20 = [None]*(19) + [sum(closes[i-20:i])/20 for i in range(20, len(closes)+1)]
-        sma50 = [None]*(49) + [sum(closes[i-50:i])/50 for i in range(50, len(closes)+1)] if len(closes) >= 50 else [None]*len(closes)
+        # SMA 20, 50 시계열
+        def sma_series(period_):
+            s = [None] * n
+            if n >= period_:
+                for i in range(period_ - 1, n):
+                    s[i] = round(sum(closes[i - period_ + 1:i + 1]) / period_, 4)
+            return s
+        sma20 = sma_series(20)
+        sma50 = sma_series(50)
 
         return jsonify({
             'symbol': symbol,

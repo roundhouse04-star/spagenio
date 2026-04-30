@@ -486,7 +486,7 @@ def fetch_and_save_history(symbol, period='2y'):
             for r in rows:
                 try:
                     conn.execute('''
-                        INSERT OR IGNORE INTO stock_price_history (symbol, date, open, high, low, close, volume)
+                        INSERT OR REPLACE INTO stock_price_history (symbol, date, open, high, low, close, volume)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     ''', (symbol, r['date'], r['open'], r['high'], r['low'], r['close'], r['volume']))
                     saved += conn.execute('SELECT changes()').fetchone()[0]
@@ -509,7 +509,7 @@ def fetch_and_save_history(symbol, period='2y'):
             date_str = date.strftime('%Y-%m-%d')
             try:
                 conn.execute('''
-                    INSERT OR IGNORE INTO stock_price_history (symbol, date, open, high, low, close, volume)
+                    INSERT OR REPLACE INTO stock_price_history (symbol, date, open, high, low, close, volume)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (symbol, date_str, round(float(row['Open']), 4), round(float(row['High']), 4),
                       round(float(row['Low']), 4), round(float(row['Close']), 4), int(row['Volume'])))
