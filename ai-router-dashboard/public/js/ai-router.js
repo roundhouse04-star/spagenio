@@ -423,12 +423,6 @@ function switchTab(tab) {
     loadOrders();
   }
 
-  if (tab === 'lotto') {
-    if (typeof lottoInit === 'function') {
-      lottoInit();
-    }
-  }
-
   if (tab === 'ai') {
     if (typeof loadNews === 'function') loadNews();
     if (typeof loadMarketIndicators === 'function') loadMarketIndicators();

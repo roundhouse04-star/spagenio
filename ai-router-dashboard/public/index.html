@@ -1107,85 +1107,6 @@
       font-weight: 700;
     }
 
-    /* ===== 로또 탭 다크 ===== */
-    #tab-lotto {
-      --t-bg: #0D1117;
-      --t-card: #161B22;
-      --t-border: #2A2A2A;
-      --t-hover: #1E242C;
-      --t-text: #E5E7EB;
-      --t-sub: #9CA3AF;
-      background: var(--t-bg);
-      min-height: 100vh;
-    }
-
-    #tab-lotto .sp-page {
-      background: var(--t-bg);
-      min-height: calc(100vh - 52px);
-    }
-
-    #tab-lotto .sp-card {
-      background: var(--t-card);
-      border: 1px solid var(--t-border);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    #tab-lotto .sp-card-title {
-      color: var(--t-text);
-    }
-
-    #tab-lotto .sp-card-header {
-      border-bottom-color: var(--t-border);
-    }
-
-    #tab-lotto .sp-input,
-    #tab-lotto .sp-select {
-      background: var(--t-bg);
-      border-color: var(--t-border);
-      color: var(--t-text);
-    }
-
-    #tab-lotto .sp-input:focus,
-    #tab-lotto .sp-select:focus {
-      border-color: #4f8fff;
-      box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.2);
-    }
-
-    #tab-lotto .sp-input::placeholder {
-      color: #4B5563;
-    }
-
-    #tab-lotto .sp-label {
-      color: var(--t-sub);
-    }
-
-    #tab-lotto .sp-btn-outline {
-      border-color: var(--t-border);
-      color: var(--t-sub);
-      background: transparent;
-    }
-
-    #tab-lotto .sp-btn-outline:hover {
-      border-color: #4f8fff;
-      color: #4f8fff;
-    }
-
-    #tab-lotto .sp-empty {
-      color: #4B5563;
-    }
-
-    #tab-lotto .lotto-day-btn {
-      background: #1E242C;
-      border-color: #2A2A2A;
-      color: #9CA3AF;
-    }
-
-    #tab-lotto .lotto-day-btn.active {
-      background: rgba(79, 143, 255, 0.15);
-      border-color: #4f8fff;
-      color: #4f8fff;
-    }
-
     /* ===== 퀀트 탭 sp-page 다크 ===== */
     #tab-quant .sp-page {
       background: #0D1117;
@@ -3636,7 +3557,6 @@
       </div>
     </div>
 
-    <!-- ===== Lotto 탭 ===== -->
     <!-- 레이어 팝업 -->
     <!-- ===== 전역 팝업 (alert/confirm 공통) ===== -->
     <div id="sp-alert-layer"
@@ -3689,36 +3609,6 @@
           Tesla, NVDA · 티커: AAPL, 005930.KS</div>
         <div id="sp-stock-search-result" style="overflow-y:auto;flex:1;">
           <div style="text-align:center;color:#636366;padding:24px;font-size:0.88rem;">종목명을 입력하세요</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 로또 알림 팝업 -->
-    <div id="lotto-toast-layer"
-      style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;">
-      <div
-        style="background:#161B22;border:1px solid #2A2A2A;border-radius:12px;padding:28px 36px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-        <div id="lotto-toast-icon" style="font-size:2.5rem;margin-bottom:12px;">🍀</div>
-        <div id="lotto-toast-title" style="font-size:1.05rem;font-weight:800;color:#E5E7EB;margin-bottom:8px;"></div>
-        <div id="lotto-toast-msg" style="font-size:0.88rem;color:#9CA3AF;margin-bottom:20px;line-height:1.6;"></div>
-        <button onclick="lottoClearToast()"
-          style="background:#6366f1;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">확인</button>
-      </div>
-    </div>
-
-    <!-- 커스텀 confirm 팝업 -->
-    <div id="lotto-confirm-layer"
-      style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:10000;align-items:center;justify-content:center;">
-      <div
-        style="background:#161B22;border:1px solid #2A2A2A;border-radius:12px;padding:28px 36px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-        <div id="lotto-confirm-icon" style="font-size:2.5rem;margin-bottom:12px;">⚠️</div>
-        <div id="lotto-confirm-title" style="font-size:1.05rem;font-weight:800;color:#E5E7EB;margin-bottom:8px;"></div>
-        <div id="lotto-confirm-msg" style="font-size:0.88rem;color:#9CA3AF;margin-bottom:20px;line-height:1.6;"></div>
-        <div style="display:flex;gap:10px;justify-content:center;">
-          <button id="lotto-confirm-cancel"
-            style="background:#1E242C;color:#E5E7EB;border:none;padding:10px 28px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">취소</button>
-          <button id="lotto-confirm-ok"
-            style="background:#ef4444;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">확인</button>
         </div>
       </div>
     </div>
@@ -3817,8 +3707,8 @@
           </div>
         </div>
 
-        <!-- 자산 변화 차트 + 텔레그램 설정 -->
-        <div class="sp-grid-2" style="margin-bottom:16px;">
+        <!-- 자산 변화 차트 -->
+        <div style="margin-bottom:16px;">
           <div class="sp-card">
             <div class="sp-card-header">
               <div class="sp-card-title">📈 자산 변화 (최근 30일)</div>
@@ -3829,37 +3719,6 @@
               📊 스냅샷을 저장하면 차트가 표시돼요<br>
               <button onclick="savePerformanceSnapshot()" class="sp-btn sp-btn-indigo sp-btn-sm"
                 style="margin-top:12px;">📸 지금 저장</button>
-            </div>
-          </div>
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">📱 텔레그램 알림</div>
-            </div>
-            <div id="telegramSettingArea">
-              <div style="margin-bottom:12px;">
-                <label class="sp-label">Bot Token</label>
-                <input type="text" id="tgBotToken" placeholder="bot1234567890:ABC..." class="sp-input" />
-              </div>
-              <div style="margin-bottom:12px;">
-                <label class="sp-label">Chat ID</label>
-                <input type="text" id="tgChatId" placeholder="123456789" class="sp-input" />
-              </div>
-              <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <button onclick="saveTelegramSettings()" class="sp-btn sp-btn-indigo" style="flex:1;">💾 저장</button>
-                <button onclick="testTelegramAlert()" class="sp-btn sp-btn-outline">🔔 테스트</button>
-              </div>
-              <div id="tgSettingMsg" style="font-size:0.82rem;display:none;padding:8px 12px;border-radius:6px;"></div>
-              <div style="font-size:0.75rem;color:#4B5563;line-height:1.6;margin-top:8px;">
-                💡 <b style="color:#9CA3AF;">Bot Token 얻기:</b> @BotFather → /newbot<br>
-                💡 <b style="color:#9CA3AF;">Chat ID 얻기:</b> @userinfobot 에 메시지 전송
-              </div>
-            </div>
-            <!-- 알림 로그 -->
-            <div style="margin-top:14px;border-top:1px solid #2A2A2A;padding-top:12px;">
-              <div style="font-size:0.78rem;font-weight:700;color:#9CA3AF;margin-bottom:8px;">최근 알림 내역</div>
-              <div id="tgAlertLog" style="font-size:0.78rem;color:#4B5563;max-height:120px;overflow-y:auto;">
-                <div style="text-align:center;padding:12px;">알림 내역 없음</div>
-              </div>
             </div>
           </div>
         </div>
@@ -3884,208 +3743,6 @@
               <div class="sp-empty">저장된 결과 없음</div>
             </div>
           </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div id="tab-lotto" class="tab-content" style="display:none;">
-      <div class="sp-page">
-
-        <!-- 통계 -->
-        <div class="sp-grid-3" style="margin-bottom:20px;">
-          <div class="sp-card" style="text-align:center;padding:18px;">
-            <div style="font-size:1.6rem;font-weight:800;color:#6366f1;" id="stat-round">-</div>
-            <div style="font-size:0.82rem;color:#9CA3AF;margin-top:4px;">분석 회차</div>
-          </div>
-          <div class="sp-card" style="text-align:center;padding:18px;">
-            <div style="font-size:1.4rem;font-weight:800;color:#22c55e;" id="stat-hot">-</div>
-            <div style="font-size:0.82rem;color:#9CA3AF;margin-top:4px;">최근 핫넘버</div>
-          </div>
-          <div class="sp-card" style="text-align:center;padding:18px;">
-            <div style="font-size:1.6rem;font-weight:800;color:#f97316;" id="stat-cold">-</div>
-            <div style="font-size:0.82rem;color:#9CA3AF;margin-top:4px;">미출현 최장</div>
-          </div>
-        </div>
-
-        <!-- 알고리즘 비중 -->
-        <div class="sp-card" style="margin-bottom:20px;">
-          <div class="sp-card-header">
-            <div class="sp-card-title">⚙️ 알고리즘 비중</div>
-            <div style="display:flex;gap:8px;">
-              <button onclick="lottoResetWeights()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">초기화</button>
-              <button id="lotto-save-weights-btn" onclick="lottoSaveWeightsToServer()" class="sp-btn sp-btn-primary"
-                style="font-size:0.82rem;">💾 저장</button>
-            </div>
-          </div>
-          <div id="lotto-algo-grid"
-            style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
-        </div>
-
-        <!-- 번호 추천 -->
-        <div class="sp-card" style="margin-bottom:20px;">
-          <div class="sp-card-header">
-            <div class="sp-card-title">🎰 번호 추천</div>
-            <select id="lotto-game-count" class="sp-select" style="width:100px;">
-              <option value="1">1게임</option>
-              <option value="3">3게임</option>
-              <option value="5" selected>5게임</option>
-              <option value="10">10게임</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:16px;">
-            <button onclick="lottoGenerate()" class="sp-btn sp-btn-primary" style="flex:1;">🎯 번호 추천받기 (5게임)</button>
-            <button onclick="lottoSaveAndSend()" class="sp-btn"
-              style="background:#229ED9;color:#fff;border:none;white-space:nowrap;">💾 저장+전송</button>
-          </div>
-          <div id="lotto-results">
-            <div style="text-align:center;color:#9CA3AF;padding:32px;font-size:0.9rem;">번호 추천 버튼을 눌러주세요</div>
-          </div>
-        </div>
-
-        <div class="sp-grid-2" style="margin-bottom:20px;">
-          <!-- 텔레그램 설정 -->
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">📱 텔레그램 설정</div>
-              <span id="lotto-tg-status" style="font-size:0.78rem;color:#9CA3AF;"></span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <input id="lotto-tg-chatid" placeholder="Chat ID (@userinfobot 에서 확인)" class="sp-input">
-              <input id="lotto-tg-token" type="password" placeholder="Bot Token (@BotFather 에서 생성)" class="sp-input">
-              <div style="display:flex;gap:8px;">
-                <button onclick="lottoSaveTg()" class="sp-btn sp-btn-primary" style="flex:1;">저장</button>
-                <button onclick="lottoTestTg()" class="sp-btn sp-btn-ghost">테스트</button>
-              </div>
-            </div>
-            <div style="font-size:0.78rem;color:#636366;margin-top:8px;">Bot Token: @BotFather에서 생성 | Chat ID:
-              @userinfobot 에서 확인</div>
-          </div>
-
-          <!-- 자동 발송 스케줄 -->
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">⏰ 자동 발송 설정</div>
-              <div style="display:flex;gap:6px;">
-                <button onclick="lottoResetSchedule()" class="sp-btn sp-btn-ghost"
-                  style="font-size:0.82rem;">초기화</button>
-                <button onclick="lottoSaveSchedule()" class="sp-btn sp-btn-primary"
-                  style="font-size:0.82rem;">저장</button>
-              </div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div style="font-size:0.82rem;color:#9CA3AF;margin-bottom:6px;">요일 선택 (1개만 선택)</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="lotto-day-btn" data-day="1" onclick="lottoDayToggle(this)">월</button>
-                <button class="lotto-day-btn" data-day="2" onclick="lottoDayToggle(this)">화</button>
-                <button class="lotto-day-btn" data-day="3" onclick="lottoDayToggle(this)">수</button>
-                <button class="lotto-day-btn" data-day="4" onclick="lottoDayToggle(this)">목</button>
-                <button class="lotto-day-btn" data-day="5" onclick="lottoDayToggle(this)">금</button>
-                <button class="lotto-day-btn" data-day="6" onclick="lottoDayToggle(this)">토</button>
-              </div>
-            </div>
-            <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
-              <div style="flex:1;">
-                <div style="font-size:0.82rem;color:#9CA3AF;margin-bottom:4px;">발송 시각</div>
-                <select id="lotto-sch-hour" class="sp-select">
-                  <option value="" disabled selected>시각 선택</option>
-                  <option value="0">00시</option>
-                  <option value="1">01시</option>
-                  <option value="2">02시</option>
-                  <option value="3">03시</option>
-                  <option value="4">04시</option>
-                  <option value="5">05시</option>
-                  <option value="6">06시</option>
-                  <option value="7">07시</option>
-                  <option value="8">08시</option>
-                  <option value="9">09시</option>
-                  <option value="10">10시</option>
-                  <option value="11">11시</option>
-                  <option value="12">12시</option>
-                  <option value="13">13시</option>
-                  <option value="14">14시</option>
-                  <option value="15">15시</option>
-                  <option value="16">16시</option>
-                  <option value="17">17시</option>
-                  <option value="18">18시</option>
-                  <option value="19">19시</option>
-                  <option value="20">20시</option>
-                  <option value="21">21시</option>
-                  <option value="22">22시</option>
-                  <option value="23">23시</option>
-                </select>
-              </div>
-              <div style="flex:1;">
-                <div style="font-size:0.82rem;color:#9CA3AF;margin-bottom:4px;">게임 수</div>
-                <select id="lotto-sch-count" class="sp-select">
-                  <option value="" disabled selected>게임 선택</option>
-                  <option value="1">1게임</option>
-                  <option value="3">3게임</option>
-                  <option value="5">5게임</option>
-                  <option value="10">10게임</option>
-                </select>
-              </div>
-            </div>
-            <div style="font-size:0.78rem;color:#636366;" id="lotto-sch-last"></div>
-            <div style="font-size:0.78rem;color:#636366;" id="lotto-sch-next"></div>
-            <div style="font-size:0.78rem;color:#f97316;margin-top:6px;">⚠️ 토요일 20시 이후는 판매 마감으로 자동 발송되지 않습니다</div>
-            <div id="lotto-sch-current"
-              style="margin-top:10px;padding:10px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
-              <div style="font-size:0.78rem;font-weight:700;color:#6366f1;margin-bottom:4px;">📅 현재 등록된 스케줄</div>
-              <div id="lotto-sch-current-text" style="font-size:0.85rem;color:#E5E7EB;">스케줄 없음</div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- 추천 이력 -->
-        <div class="sp-card">
-          <div class="sp-card-header">
-            <div class="sp-card-title">📋 추천 이력</div>
-            <button onclick="lottoLoadHistory()" class="sp-btn sp-btn-ghost" style="font-size:0.82rem;">새로고침</button>
-          </div>
-          <div id="lotto-history-list">
-            <div style="text-align:center;color:#9CA3AF;padding:24px;">로딩 중...</div>
-          </div>
-        </div>
-
-        <!-- 자동발송 이력 + 스케줄 이력 -->
-        <div class="sp-grid-2" style="margin-bottom:20px;">
-          <!-- 자동발송 실행 이력 -->
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">🤖 자동발송 이력</div>
-              <button onclick="lottoLoadAutoHistory()" class="sp-btn sp-btn-ghost"
-                style="font-size:0.82rem;">새로고침</button>
-            </div>
-            <div id="lotto-auto-history-list">
-              <div style="text-align:center;color:#9CA3AF;padding:24px;">로딩 중...</div>
-            </div>
-          </div>
-          <!-- 스케줄 설정 변경 이력 -->
-          <div class="sp-card">
-            <div class="sp-card-header">
-              <div class="sp-card-title">📅 스케줄 이력</div>
-              <button onclick="lottoLoadScheduleLog()" class="sp-btn sp-btn-ghost"
-                style="font-size:0.82rem;">새로고침</button>
-            </div>
-            <div id="lotto-schedule-log-list">
-              <div style="text-align:center;color:#9CA3AF;padding:24px;">로딩 중...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 날짜별 상세 -->
-        <div class="sp-card" id="lotto-detail-card" style="display:none;">
-          <div class="sp-card-header">
-            <div class="sp-card-title" id="lotto-detail-title">📅 상세</div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input id="lotto-check-drwno" type="number" placeholder="회차 (예: 1162)" class="sp-input"
-                style="width:140px;">
-              <button onclick="lottoCheckResult()" class="sp-btn sp-btn-primary">당첨 확인</button>
-            </div>
-          </div>
-          <div id="lotto-detail-games"></div>
         </div>
 
       </div>
@@ -4238,96 +3895,6 @@
       </div>
     </div>
 
-    <style>
-      .lotto-day-btn {
-        padding: 5px 12px;
-        border-radius: 6px;
-        border: 1.5px solid #e5e7eb;
-        background: #fff;
-        color: #6b7280;
-        cursor: pointer;
-        font-size: 0.82rem;
-        font-weight: 600;
-        transition: all .15s;
-      }
-
-      .lotto-day-btn.active {
-        background: #eef2ff;
-        border-color: #6366f1;
-        color: #6366f1;
-      }
-
-      .lotto-ball {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        font-weight: 800;
-        font-size: 13px;
-        color: #fff;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
-      }
-
-      .lb1 {
-        background: linear-gradient(135deg, #f9c74f, #f4a261);
-      }
-
-      .lb2 {
-        background: linear-gradient(135deg, #43aa8b, #52b69a);
-      }
-
-      .lb3 {
-        background: linear-gradient(135deg, #4361ee, #4cc9f0);
-      }
-
-      .lb4 {
-        background: linear-gradient(135deg, #e63946, #f72585);
-      }
-
-      .lb5 {
-        background: linear-gradient(135deg, #7209b7, #a855f7);
-      }
-
-      .lotto-rank-badge {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 700;
-      }
-
-      .rank-1 {
-        background: #fef9c3;
-        color: #854d0e;
-      }
-
-      .rank-2 {
-        background: #dbeafe;
-        color: #1e40af;
-      }
-
-      .rank-3 {
-        background: #dcfce7;
-        color: #166534;
-      }
-
-      .rank-4 {
-        background: #f3e8ff;
-        color: #6b21a8;
-      }
-
-      .rank-5 {
-        background: #f1f5f9;
-        color: #475569;
-      }
-
-      .rank-0 {
-        background: #f1f5f9;
-        color: #9ca3af;
-      }
-    </style>
   </div>
 
   <!-- ===== 차트 팝업 ===== -->
@@ -4403,7 +3970,6 @@
   <script src="/js/common.js?v=20260402a"></script>
   <script src="/js/ai-router.js?v=20260331c"></script>
   <script src="/js/news.js?v=20260331c"></script>
-  <script src="/js/lotto.js?v=20260331c"></script>
 
 </body>
 

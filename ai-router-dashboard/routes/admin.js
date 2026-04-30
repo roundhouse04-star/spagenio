@@ -19,22 +19,13 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
   router.get('/api/admin/users', (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { search } = req.query;
-    let query = 'SELECT id, username, email, created_at, last_login, lotto_auto_send FROM users WHERE 1=1';
+    let query = 'SELECT id, username, email, created_at, last_login FROM users WHERE 1=1';
     const params = [];
     if (search) { query += ' AND username LIKE ?'; params.push('%' + search + '%'); }
     query += ' ORDER BY created_at DESC';
     const users = db.prepare(query).all(...params);
     const result = users.map(u => ({ ...u, email: u.email ? (decryptEmail(u.email) || '(복호화 실패)') : '-' }));
     return res.json({ users: result });
-  });
-
-  // ✅ 로또 자동발송 토글
-  router.post('/api/admin/users/:id/lotto-auto-send', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
-    const { enabled } = req.body;
-    const uid = parseInt(req.params.id);
-    db.prepare('UPDATE users SET lotto_auto_send=? WHERE id=?').run(enabled ? 1 : 0, uid);
-    res.json({ ok: true });
   });
 
   // ✅ 가입자 삭제 (스키마 드리프트 안전: 존재하는 테이블만 삭제)
@@ -50,11 +41,10 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     if (adminMirror) return res.status(400).json({ error: '관리자 계정은 삭제할 수 없습니다. 관리자 메뉴에서 처리하세요.' });
 
     const candidateTables = [
-      'lotto_picks', 'lotto_schedule', 'lotto_schedule_log', 'lotto_algorithm_weights',
-      'user_telegram', 'user_broker_keys', 'terms_agreements',
+      'user_broker_keys', 'terms_agreements',
       'auto_trade_settings', 'auto_trade_log', 'auto_strategy_settings',
       'trade_setting_type3', 'trade_setting_type4',
-      'portfolio_performance', 'backtest_results', 'telegram_alert_log', 'quant_analysis_log',
+      'portfolio_performance', 'backtest_results', 'quant_analysis_log',
     ];
     const existing = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name));
     const tablesToClear = candidateTables.filter(t => existing.has(t));

@@ -3055,8 +3055,6 @@ function activateMenu(tabKey, subKey, menuId) {
       if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
       if (typeof loadTradeHistory === 'function') loadTradeHistory();
       if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
-      if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
-      if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
     }, 300);
     return;
   }
@@ -3339,64 +3337,6 @@ async function deleteBacktestResult(id) {
   loadSavedBacktests();
 }
 window.deleteBacktestResult = deleteBacktestResult;
-
-// ============================================================
-// 텔레그램 JS
-// ============================================================
-async function saveTelegramSettings() {
-  const botToken = document.getElementById('tgBotToken')?.value?.trim();
-  const chatId = document.getElementById('tgChatId')?.value?.trim();
-  if (!botToken || !chatId) { showTgMsg('Bot Token과 Chat ID를 입력해주세요', false); return; }
-  try {
-    const res = await fetch('/api/user/telegram', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, bot_token: botToken })
-    });
-    const d = await res.json();
-    showTgMsg(d.ok ? '✅ 텔레그램 설정 저장 완료!' : '❌ 저장 실패: ' + (d.error || '오류'), !!d.ok);
-  } catch (e) { showTgMsg('❌ 오류: ' + e.message, false); }
-}
-window.saveTelegramSettings = saveTelegramSettings;
-
-function showTgMsg(msg, isOk) {
-  const el = document.getElementById('tgSettingMsg');
-  if (!el) return;
-  el.style.display = 'block';
-  el.style.background = isOk ? 'rgba(16,185,129,0.12)' : 'rgba(255,59,48,0.12)';
-  el.style.color = isOk ? '#10B981' : '#FF3B30';
-  el.textContent = msg;
-  setTimeout(() => { el.style.display = 'none'; }, 4000);
-}
-
-async function loadTelegramSettings() {
-  const botEl = document.getElementById('tgBotToken');
-  const chatEl = document.getElementById('tgChatId');
-  if (!botEl && !chatEl) return;
-  try {
-    const res = await fetch('/api/user/telegram');
-    const d = await res.json();
-    if (!d.ok) return;
-    if (botEl) botEl.value = d.bot_token || '';
-    if (chatEl) chatEl.value = d.chat_id || '';
-  } catch (e) { }
-}
-window.loadTelegramSettings = loadTelegramSettings;
-
-async function loadTelegramAlertLog() {
-  const el = document.getElementById('tgAlertLog');
-  if (!el) return;
-  try {
-    const res = await fetch('/api/telegram/alert/log');
-    const d = await res.json();
-    if (!d.ok || !d.logs?.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:#4B5563;">알림 내역 없음</div>'; return; }
-    el.innerHTML = d.logs.slice(0, 5).map(l => `
-      <div style="padding:6px 0;border-bottom:1px solid #2A2A2A;display:flex;justify-content:space-between;align-items:flex-start;">
-        <span style="color:#4f8fff;font-size:0.72rem;font-weight:700;">${l.alert_type}</span>
-        <span style="color:#4B5563;font-size:0.7rem;">${new Date(l.sent_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-      </div>`).join('');
-  } catch (e) { }
-}
-window.loadTelegramAlertLog = loadTelegramAlertLog;
 
 // ============================================================
 // 홈 포트폴리오 요약

@@ -76,16 +76,6 @@ db.exec(`
 `);
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS user_telegram (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, chat_id TEXT NOT NULL, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
-  CREATE TABLE IF NOT EXISTS lotto_picks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, pick_date TEXT NOT NULL, game_index INTEGER NOT NULL, numbers TEXT NOT NULL, algorithms TEXT, drw_no INTEGER, rank INTEGER, matched_count INTEGER, bonus_match INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
-  CREATE TABLE IF NOT EXISTS lotto_history (drw_no INTEGER PRIMARY KEY, numbers TEXT NOT NULL, bonus INTEGER, drw_date TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_telegram (chat_id TEXT PRIMARY KEY, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id TEXT NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_schedule (chat_id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_predictions (id INTEGER PRIMARY KEY AUTOINCREMENT, based_on_round INTEGER NOT NULL, predicted_for_round INTEGER, picks TEXT NOT NULL, hit_count INTEGER, result_checked INTEGER DEFAULT 0, telegram_sent INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_send_retry (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, chat_id TEXT NOT NULL, bot_token TEXT, message TEXT NOT NULL, prediction_ids TEXT, attempt_count INTEGER DEFAULT 0, max_attempts INTEGER DEFAULT 3, next_retry_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_error TEXT, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-  CREATE TABLE IF NOT EXISTS lotto_cooccurrence (num1 INTEGER NOT NULL, num2 INTEGER NOT NULL, cnt INTEGER DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (num1, num2));
-  CREATE TABLE IF NOT EXISTS lotto_algorithm_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE, weights TEXT NOT NULL DEFAULT '{}', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS trade_setting_type4 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, broker_key_id INTEGER DEFAULT NULL, enabled INTEGER DEFAULT 0, symbols TEXT DEFAULT 'QQQ,SPY,AAPL', candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD', max_positions INTEGER DEFAULT 3, balance_ratio REAL DEFAULT 0.1, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, signal_mode TEXT DEFAULT 'combined', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, broker_key_id), FOREIGN KEY (user_id) REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, key TEXT UNIQUE NOT NULL, enabled INTEGER DEFAULT 1, interval_sec INTEGER DEFAULT 60, description TEXT, last_run DATETIME, run_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
   CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
@@ -296,15 +286,6 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
-  -- 3. 텔레그램 알림 로그
-  CREATE TABLE IF NOT EXISTS telegram_alert_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    alert_type TEXT NOT NULL,              -- TRADE/RISK/SIGNAL/MARKET
-    message TEXT NOT NULL,
-    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
 `);
 
 // 퀀트 분석 이력 테이블
@@ -429,53 +410,6 @@ const comments = [
   ['access_logs', 'referer', '이전 페이지 URL'],
   ['access_logs', 'response_time', '응답 시간 (ms)'],
   ['access_logs', 'event_type', '이벤트 유형 (request/LOGIN_SUCCESS/LOGIN_FAILED 등)'],
-  // user_telegram
-  ['user_telegram', 'id', '자동 증가 PK'],
-  ['user_telegram', 'user_id', 'users.id 참조 (UNIQUE — 1유저 1계정)'],
-  ['user_telegram', 'chat_id', '텔레그램 Chat ID'],
-  ['user_telegram', 'bot_token', '텔레그램 Bot Token (미입력 시 env TG_BOT_TOKEN 사용)'],
-  ['user_telegram', 'created_at', '등록 시각'],
-  ['user_telegram', 'updated_at', '최종 수정 시각'],
-  // lotto_picks
-  ['lotto_picks', 'id', '자동 증가 PK'],
-  ['lotto_picks', 'user_id', 'users.id 참조'],
-  ['lotto_picks', 'pick_date', '번호 생성 날짜 (YYYY-MM-DD)'],
-  ['lotto_picks', 'game_index', '게임 순서 (0부터 시작)'],
-  ['lotto_picks', 'numbers', '추천 번호 JSON 배열 (예: [1,7,23,33,40,42])'],
-  ['lotto_picks', 'algorithms', '적용 알고리즘 정보'],
-  ['lotto_picks', 'drw_no', '대응 당첨 회차 번호'],
-  ['lotto_picks', 'rank', '당첨 등수 (NULL=미확인, 0=낙첨)'],
-  ['lotto_picks', 'matched_count', '일치 번호 개수'],
-  ['lotto_picks', 'bonus_match', '보너스 번호 일치 여부 (0/1)'],
-  ['lotto_picks', 'created_at', '생성 시각'],
-  // lotto_history
-  ['lotto_history', 'drw_no', '회차 번호 (PK)'],
-  ['lotto_history', 'numbers', '당첨 번호 JSON 배열'],
-  ['lotto_history', 'bonus', '보너스 번호'],
-  ['lotto_history', 'drw_date', '추첨 날짜'],
-  ['lotto_history', 'created_at', '저장 시각'],
-  // lotto_schedule
-  ['lotto_schedule', 'id', '자동 증가 PK'],
-  ['lotto_schedule', 'user_id', 'users.id 참조 (UNIQUE — 1유저 1스케줄)'],
-  ['lotto_schedule', 'enabled', '스케줄 활성 여부 (0/1)'],
-  ['lotto_schedule', 'days', '발송 요일 (0=일~6=토, 쉼표 구분)'],
-  ['lotto_schedule', 'hour', '발송 시각 (0~23)'],
-  ['lotto_schedule', 'game_count', '1회 발송 게임 수'],
-  ['lotto_schedule', 'last_sent_at', '마지막 발송 시각'],
-  ['lotto_schedule', 'updated_at', '최종 수정 시각'],
-  // lotto_schedule_log
-  ['lotto_schedule_log', 'id', '자동 증가 PK'],
-  ['lotto_schedule_log', 'user_id', 'users.id 참조'],
-  ['lotto_schedule_log', 'days', '발송된 요일'],
-  ['lotto_schedule_log', 'hour', '발송된 시각'],
-  ['lotto_schedule_log', 'game_count', '발송된 게임 수'],
-  ['lotto_schedule_log', 'action', '액션 유형 (update/send)'],
-  ['lotto_schedule_log', 'created_at', '로그 생성 시각'],
-  // lotto_algorithm_weights
-  ['lotto_algorithm_weights', 'id', '자동 증가 PK'],
-  ['lotto_algorithm_weights', 'user_id', 'users.id 참조 (UNIQUE)'],
-  ['lotto_algorithm_weights', 'weights', '알고리즘별 가중치 JSON (freq/hot/cold/balance/zone/ac/prime/delta)'],
-  ['lotto_algorithm_weights', 'updated_at', '최종 수정 시각'],
   // trade_setting_type4
   ['trade_setting_type4', 'id', '자동 증가 PK'],
   ['trade_setting_type4', 'user_id', 'users.id 참조 (UNIQUE)'],
@@ -522,51 +456,6 @@ if (!superAdminRole) {
 // admins 테이블에 기본 admin 계정 생성
 // created_by 컬럼 없으면 추가 (기존 DB 마이그레이션)
 try { db.prepare("ALTER TABLE users ADD COLUMN created_type INTEGER DEFAULT 2").run(); } catch (e) { }
-try { db.prepare("ALTER TABLE lotto_schedule_log ADD COLUMN drw_no INTEGER").run(); } catch (e) { }
-try { db.prepare("ALTER TABLE lotto_predictions ADD COLUMN telegram_sent INTEGER DEFAULT 0").run(); } catch (e) { }
-
-// ── 로또 chat_id 키값 마이그레이션 (user_id → chat_id) ──
-// 기존 user_id 기반 lotto_schedule / lotto_schedule_log를 chat_id 기반으로 재생성
-try {
-  const schCols = db.prepare("PRAGMA table_info(lotto_schedule)").all();
-  if (schCols.length > 0 && !schCols.some(c => c.name === 'chat_id')) {
-    const ts = Date.now();
-    db.exec(`ALTER TABLE lotto_schedule RENAME TO lotto_schedule_old_${ts}`);
-    db.exec(`CREATE TABLE lotto_schedule (chat_id TEXT PRIMARY KEY, enabled INTEGER DEFAULT 0, days TEXT DEFAULT '1,2,3,4,5,6', hour INTEGER DEFAULT 9, game_count INTEGER DEFAULT 5, last_sent_at DATETIME, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    // 기존 데이터 보존: user_telegram에서 chat_id 매핑 가능하면 옮기기
-    try {
-      db.exec(`
-        INSERT OR IGNORE INTO lotto_schedule (chat_id, enabled, days, hour, game_count, last_sent_at, updated_at)
-        SELECT ut.chat_id, ls.enabled, ls.days, ls.hour, ls.game_count, ls.last_sent_at, ls.updated_at
-        FROM lotto_schedule_old_${ts} ls
-        JOIN user_telegram ut ON ls.user_id = ut.user_id
-        WHERE ut.chat_id IS NOT NULL
-      `);
-    } catch (e) { console.log('[lotto_schedule migration] data copy skipped:', e.message); }
-    console.log(`[lotto_schedule] migrated to chat_id key (backup: lotto_schedule_old_${ts})`);
-  }
-} catch (e) { console.log('[lotto_schedule migration] error:', e.message); }
-
-try {
-  const logCols = db.prepare("PRAGMA table_info(lotto_schedule_log)").all();
-  if (logCols.length > 0 && !logCols.some(c => c.name === 'chat_id')) {
-    const ts = Date.now();
-    db.exec(`ALTER TABLE lotto_schedule_log RENAME TO lotto_schedule_log_old_${ts}`);
-    db.exec(`CREATE TABLE lotto_schedule_log (id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id TEXT NOT NULL, days TEXT, hour INTEGER, game_count INTEGER, drw_no INTEGER, action TEXT DEFAULT 'update', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    try {
-      db.exec(`
-        INSERT INTO lotto_schedule_log (chat_id, days, hour, game_count, drw_no, action, created_at)
-        SELECT ut.chat_id, sl.days, sl.hour, sl.game_count, sl.drw_no, sl.action, sl.created_at
-        FROM lotto_schedule_log_old_${ts} sl
-        JOIN user_telegram ut ON sl.user_id = ut.user_id
-        WHERE ut.chat_id IS NOT NULL
-      `);
-    } catch (e) { console.log('[lotto_schedule_log migration] data copy skipped:', e.message); }
-    console.log(`[lotto_schedule_log] migrated to chat_id key (backup: lotto_schedule_log_old_${ts})`);
-  }
-} catch (e) { console.log('[lotto_schedule_log migration] error:', e.message); }
-
-try { db.exec(`CREATE TABLE IF NOT EXISTS lotto_telegram (chat_id TEXT PRIMARY KEY, bot_token TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`); } catch (e) { }
 
 try { db.prepare("ALTER TABLE trade_setting_type4 ADD COLUMN candidate_symbols TEXT DEFAULT 'QQQ,SPY,AAPL,NVDA,MSFT,GOOGL,AMZN,TSLA,META,AMD'").run(); } catch (e) { }
 // ── broker_key_id 마이그레이션 ──
@@ -579,11 +468,9 @@ try { db.exec("CREATE TABLE IF NOT EXISTS schedulers (id INTEGER PRIMARY KEY AUT
 const schCount = db.prepare("SELECT COUNT(*) as cnt FROM schedulers").get();
 if (schCount.cnt === 0) {
   const ins = db.prepare("INSERT OR IGNORE INTO schedulers (name, key, enabled, interval_sec, description) VALUES (?,?,?,?,?)");
-  ins.run('로또 자동발송', 'lotto_send', 1, 3600, '유저 설정 기반 로또 번호 자동 텔레그램 발송 (매시 정각)');
   ins.run('미국 자동매매', 'auto_trade', 1, 60, 'MACD/RSI 기반 미국 주식 자동매매 (장시간 09:30~16:00 EST)');
   ins.run('단순 자동매매', 'simple_trade', 1, 60, 'TOP1 종목 당일 자동매매 (장시간, 15:55 강제청산)');
   ins.run('완전 자동매매', 'auto_strategy', 1, 60, '팩터 스크리닝 기반 완전자동매매 (장시간)');
-  ins.run('로또 당첨번호 수집', 'lotto_history', 1, 60, '토요일 KST 21:00 당첨번호 자동 수집');
 }
 
 try { db.exec("CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch (e) { }
@@ -904,7 +791,7 @@ app.use((req, res, next) => {
 });
 
 function authMiddleware(req, res, next) {
-  const publicApis = ['/api/auth/login', '/api/auth/admin-login', '/api/auth/verify', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/send-email-code', '/api/auth/verify-email-code', '/api/auth/check-username', '/api/auth/check-email', '/api/lotto/history-full', '/api/lotto/prediction/history', '/api/lotto/weights'];
+  const publicApis = ['/api/auth/login', '/api/auth/admin-login', '/api/auth/verify', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/send-email-code', '/api/auth/verify-email-code', '/api/auth/check-username', '/api/auth/check-email'];
   if (!req.path.startsWith('/api/')) return next();
   const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
   if (token) {
@@ -924,7 +811,7 @@ function authMiddleware(req, res, next) {
         // admins 테이블 조회
         const admin = db.prepare('SELECT a.id, a.username, a.email, r.role_name, 1 as is_admin FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.id=? AND a.is_active=1').get(decoded.id);
         if (admin) {
-          // users 테이블에도 같은 username이 있으면 그 id를 user_id로 사용 (lotto_picks 등 FK 호환)
+          // users 테이블에도 같은 username이 있으면 그 id를 user_id로 사용 (FK 호환)
           const userRow = db.prepare('SELECT id FROM users WHERE username=?').get(admin.username);
           req.user = { ...decoded, ...admin, user_id: userRow?.id || null };
         }
@@ -948,7 +835,7 @@ app.use((req, res, next) => { requestStats.total += 1; res.setHeader('Cache-Cont
 // 라우트 연결
 // ============================================================
 const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
-const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus, lottoBuildGames, sendTelegramWithRetry };
+const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus };
 
 app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
@@ -1023,139 +910,6 @@ cleanOldErrorLogs();
 }
 
 // ============================================================
-// 텔레그램 발송 공통 헬퍼 (재시도 큐 연동)
-// ============================================================
-// 영구 실패 판단 (재시도 불필요)
-function isPermanentTelegramError(description, errorCode) {
-  if (!description && !errorCode) return false;
-  const desc = String(description || '').toLowerCase();
-  const permanentKeywords = ['chat not found', 'bot was blocked', 'user is deactivated', 'unauthorized', 'chat_id is empty', 'bot was kicked'];
-  if (permanentKeywords.some(p => desc.includes(p))) return true;
-  if (errorCode === 401 || errorCode === 403) return true;
-  return false;
-}
-
-// 텔레그램 봇 토큰 형식 (digits:base62-with-_-). shell-injection 방지용 검증.
-const TELEGRAM_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
-
-async function telegramSendMessage(token, chatId, text, parseMode = 'Markdown', timeoutMs = 15000) {
-  if (!TELEGRAM_TOKEN_RE.test(String(token || ''))) {
-    return { ok: false, description: 'invalid bot token format', error_code: 0 };
-  }
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), timeoutMs);
-  try {
-    const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode }),
-      signal: ac.signal,
-    });
-    return await resp.json();
-  } catch (e) {
-    return { ok: false, description: e.message, error_code: 0 };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// 텔레그램 발송 시도 (native fetch) — 실패 시 재시도 큐에 등록
-// options: { type: 'auto'|'prediction'|'manual', prediction_ids: [1,2,3] }
-async function sendTelegramWithRetry({ chatId, token, message, parseMode = 'Markdown', type = 'manual', prediction_ids = null }) {
-  if (!token || !chatId) return { ok: false, error: 'no token or chat_id', permanent: true };
-  try {
-    const data = await telegramSendMessage(token, chatId, message, parseMode);
-    if (data.ok) {
-      // 성공 → prediction_ids 있으면 telegram_sent=1 업데이트
-      if (prediction_ids && prediction_ids.length > 0) {
-        const stmt = db.prepare('UPDATE lotto_predictions SET telegram_sent=1 WHERE id=?');
-        prediction_ids.forEach(id => stmt.run(id));
-      }
-      return { ok: true };
-    }
-    // 실패 — 영구 vs 일시적
-    const permanent = isPermanentTelegramError(data.description, data.error_code);
-    if (permanent) {
-      console.log(`[telegram PERMANENT FAIL] chat_id=${chatId} → ${data.description} (code: ${data.error_code})`);
-      return { ok: false, error: data.description, error_code: data.error_code, permanent: true };
-    }
-    // 일시적 — 재시도 큐에 INSERT
-    const pidsJson = prediction_ids ? JSON.stringify(prediction_ids) : null;
-    db.prepare(`INSERT INTO lotto_send_retry (type, chat_id, bot_token, message, prediction_ids, attempt_count, next_retry_at, last_error, status)
-                VALUES (?,?,?,?,?,?,datetime('now','+5 minutes','localtime'),?,'pending')`)
-      .run(type, chatId, token, message, pidsJson, 1, `${data.description || 'unknown'} (code: ${data.error_code || '?'})`);
-    console.log(`[telegram RETRY QUEUED] chat_id=${chatId} type=${type} → ${data.description}`);
-    return { ok: false, error: data.description, error_code: data.error_code, retrying: true };
-  } catch (e) {
-    // 네트워크 에러 등 — 재시도 큐에 INSERT
-    try {
-      const pidsJson = prediction_ids ? JSON.stringify(prediction_ids) : null;
-      db.prepare(`INSERT INTO lotto_send_retry (type, chat_id, bot_token, message, prediction_ids, attempt_count, next_retry_at, last_error, status)
-                  VALUES (?,?,?,?,?,?,datetime('now','+5 minutes','localtime'),?,'pending')`)
-        .run(type, chatId, token, message, pidsJson, 1, e.message);
-      console.log(`[telegram EXCEPTION QUEUED] chat_id=${chatId} type=${type} → ${e.message}`);
-    } catch (e2) { console.log('[telegram queue INSERT fail]', e2.message); }
-    return { ok: false, error: e.message, retrying: true };
-  }
-}
-
-// ============================================================
-// 텔레그램 재시도 스케줄러 (5분마다, 최대 3회)
-// ============================================================
-setInterval(async () => {
-  try {
-    const due = db.prepare(`SELECT * FROM lotto_send_retry WHERE status='pending' AND datetime(next_retry_at) <= datetime('now','localtime') LIMIT 20`).all();
-    if (!due.length) return;
-
-    for (const item of due) {
-      try {
-        const data = await telegramSendMessage(item.bot_token, item.chat_id, item.message, 'Markdown');
-        if (data.ok) {
-          // 성공
-          db.prepare(`UPDATE lotto_send_retry SET status='success', updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(item.id);
-          if (item.prediction_ids) {
-            try {
-              const pids = JSON.parse(item.prediction_ids);
-              const stmt = db.prepare('UPDATE lotto_predictions SET telegram_sent=1 WHERE id=?');
-              pids.forEach(pid => stmt.run(pid));
-            } catch (e) { }
-          }
-          console.log(`[retry SUCCESS] id=${item.id} chat_id=${item.chat_id} attempt=${item.attempt_count + 1}`);
-        } else {
-          // 실패 — 영구 체크
-          const permanent = isPermanentTelegramError(data.description, data.error_code);
-          if (permanent || (item.attempt_count + 1) >= (item.max_attempts || 3)) {
-            db.prepare(`UPDATE lotto_send_retry SET status='failed_permanent', attempt_count=?, last_error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-              .run(item.attempt_count + 1, `${data.description} (code: ${data.error_code})`, item.id);
-            console.log(`[retry GIVEUP] id=${item.id} chat_id=${item.chat_id} attempt=${item.attempt_count + 1} → ${data.description}`);
-          } else {
-            db.prepare(`UPDATE lotto_send_retry SET attempt_count=?, next_retry_at=datetime('now','+5 minutes','localtime'), last_error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-              .run(item.attempt_count + 1, `${data.description} (code: ${data.error_code})`, item.id);
-            console.log(`[retry FAIL] id=${item.id} chat_id=${item.chat_id} attempt=${item.attempt_count + 1}/${item.max_attempts} → ${data.description}`);
-          }
-        }
-      } catch (e) {
-        // 네트워크 에러
-        if ((item.attempt_count + 1) >= (item.max_attempts || 3)) {
-          db.prepare(`UPDATE lotto_send_retry SET status='failed_permanent', attempt_count=?, last_error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-            .run(item.attempt_count + 1, e.message, item.id);
-        } else {
-          db.prepare(`UPDATE lotto_send_retry SET attempt_count=?, next_retry_at=datetime('now','+5 minutes','localtime'), last_error=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-            .run(item.attempt_count + 1, e.message, item.id);
-        }
-      }
-    }
-  } catch (e) { console.log('[retry scheduler error]', e.message); }
-}, 5 * 60 * 1000); // 5분마다
-
-// ============================================================
-// 로또 자동 발송 스케줄러
-// ============================================================
-// ============================================================
-// 로또 자동발송 체크 & 발송 (서버 시작 시 + 매 1분마다 호출)
-// lotto_schedule_log의 오늘 'send' 기록으로 중복 방지 →
-// 서버가 죽어있던 시간대 미발송분도 재시작 후 자동 캐치업
-// ============================================================
 // 서버 TZ 와 무관하게 한국 표준시 (Asia/Seoul) 기준의 시각/요일/날짜 추출
 function getKstClock(d = new Date()) {
   const tz = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -1165,82 +919,6 @@ function getKstClock(d = new Date()) {
   return { hour: tz.getHours(), minute: tz.getMinutes(), day: tz.getDay(), date: `${yyyy}-${mm}-${dd}` };
 }
 
-async function lottoCheckAndSendSchedules() {
-  try {
-    if (!isSchedulerEnabled('lotto_send')) return;
-    updateSchedulerRun('lotto_send');
-    const kst = getKstClock();
-    const currentHour = kst.hour, currentDay = kst.day, today = kst.date;
-    if (currentDay === 6 && currentHour >= 20) return;  // 토요일 20시 이후 판매 마감 (KST)
-
-    // hour <= currentHour: 현재 시각까지의 모든 예정 스케줄 조회
-    // (이미 발송된 것은 log 체크에서 걸러짐)
-    const schedules = db.prepare('SELECT ls.chat_id, ls.days, ls.hour, ls.game_count, lt.bot_token FROM lotto_schedule ls JOIN lotto_telegram lt ON ls.chat_id=lt.chat_id WHERE ls.enabled=1 AND ls.hour<=?').all(currentHour);
-    for (const sch of schedules) {
-      const days = (sch.days || '').split(',').map(Number);
-      if (!days.includes(currentDay)) continue;
-
-      // ✅ 핵심: lotto_schedule_log 기반 중복 체크
-      // - created_at은 UTC 저장이므로 'localtime' 변환 후 비교 (시간대 일치 필수)
-      // - hour까지 체크: 같은 chat_id가 하루에 여러 시각 발송 가능하도록
-      const alreadySent = db.prepare(`
-        SELECT id FROM lotto_schedule_log
-        WHERE chat_id=? AND action='send' AND hour=?
-          AND DATE(created_at, 'localtime') = DATE('now', 'localtime')
-        LIMIT 1
-      `).get(sch.chat_id, sch.hour);
-      if (alreadySent) continue;
-
-      // 예측실행과 동일 로직 (이월확률 + 구간균형 + streak + bias_map + baseZoneSpecs)
-      const games = lottoBuildGames(sch.game_count);
-      if (!games.length) continue;
-      const token = sch.bot_token || process.env.TG_BOT_TOKEN;
-      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-      const lines = games.map((g, i) => `${String.fromCharCode(65 + i)}게임: ${g.map(n => `*${n}*`).join(' ')}`).join('\n');
-
-      // 캐치업 여부 판단 (예정 시각보다 현재 시각이 늦으면 catch-up)
-      const isCatchup = sch.hour < currentHour;
-      const catchupNote = isCatchup ? `\n⏰ (${sch.hour}시 예정이었으나 ${currentHour}시에 캐치업 발송)` : '';
-
-      // 예측 저장 먼저 (prediction_ids 추적용)
-      const predIds = [];
-      try {
-        const latestH = db.prepare('SELECT drw_no FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
-        if (latestH) {
-          const insert = db.prepare('INSERT INTO lotto_predictions (based_on_round, predicted_for_round, picks, telegram_sent) VALUES (?,?,?,0)');
-          games.forEach(picks => {
-            const info = insert.run(latestH.drw_no, latestH.drw_no + 1, JSON.stringify(picks));
-            predIds.push(info.lastInsertRowid);
-          });
-        }
-      } catch (e) { console.log('[auto-send lotto_predictions insert fail]', e.message); }
-
-      // 텔레그램 발송 (재시도 큐 연동)
-      if (token && sch.chat_id) {
-        const msg = `🍀 *로또 자동 추천* (${today})\n\n${lines}\n\n📊 이월확률 + 구간균형 + DB가중치 종합\n📅 ${dayNames[currentDay]}요일 ${sch.hour}시 자동발송${catchupNote}`;
-        await sendTelegramWithRetry({
-          chatId: sch.chat_id,
-          token,
-          message: msg,
-          type: 'auto',
-          prediction_ids: predIds
-        });
-      }
-
-      // 발송 이력 기록 (다음 중복 체크 기준점)
-      db.prepare('UPDATE lotto_schedule SET last_sent_at=CURRENT_TIMESTAMP WHERE chat_id=?').run(sch.chat_id);
-      db.prepare('INSERT INTO lotto_schedule_log (chat_id,days,hour,game_count,action) VALUES (?,?,?,?,?)')
-        .run(sch.chat_id, String(currentDay), sch.hour, sch.game_count, 'send');
-
-      if (isCatchup) console.log(`[로또] 캐치업 발송: chat_id=${sch.chat_id}, 예정=${sch.hour}시, 현재=${currentHour}시`);
-    }
-  } catch (e) { saveErrorLog({ event_type: 'LOTTO_SCHEDULE_SAVE_ERROR', error_message: e.message, stack_trace: e.stack }); }
-}
-
-// 매 1분마다 체크
-setInterval(() => lottoCheckAndSendSchedules(), 60 * 1000);
-
-// ============================================================
 // ============================================================
 // 나스닥100 TOP3 분석
 // ============================================================
@@ -1376,23 +1054,6 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
             setTimeout(() => runSimpleAutoTrade(userId, state.broker_key_id || null), 3000);
           }
 
-          // 텔레그램 알림
-          try {
-            const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id=?').get(userId);
-            if (tg?.chat_id && tg?.bot_token) {
-              const token = tg.bot_token.startsWith('bot') ? tg.bot_token.slice(3) : tg.bot_token;
-              const icon = plPct >= 0 ? '✅' : '🔴';
-              await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  chat_id: tg.chat_id, text: `${icon} <b>[단순매매] ${state.symbol} 매도</b>
-사유: ${reason}
-수익률: ${(plPct * 100).toFixed(2)}%
-수량: ${qty}주 @ $${currentPrice.toFixed(2)}`, parse_mode: 'HTML'
-                })
-              });
-            }
-          } catch (e) { }
           return;
         }
       } else {
@@ -1492,22 +1153,6 @@ async function runSimpleAutoTrade(userId, brokerKeyId = null) {
         db.prepare('UPDATE trade_setting_type2 SET status=?,symbol=?,qty=?,buy_price=?,order_id=?,updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND broker_key_id IS ?')
           .run('holding', top.symbol, finalQty, top.price, order.id, userId, state.broker_key_id || null);
 
-        // 텔레그램 알림
-        try {
-          const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id=?').get(userId);
-          if (tg?.chat_id && tg?.bot_token) {
-            const token = tg.bot_token.startsWith('bot') ? tg.bot_token.slice(3) : tg.bot_token;
-            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: tg.chat_id, text: `🟢 <b>[단순매매] ${top.symbol} 매수</b>
-수량: ${qty}주 @ $${top.price.toFixed(2)}
-투자금: $${(qty * top.price).toFixed(0)}
-점수: ${top.score}점`, parse_mode: 'HTML'
-              })
-            });
-          }
-        } catch (e) { }
       }
     }
   } catch (e) {
@@ -1690,25 +1335,6 @@ async function runAutoTradeForUser(userId, brokerKeyId = null) {
         });
       }
     } catch (e) { saveErrorLog({ event_type: 'AUTO_TRADE_MAIL_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId } }); }
-
-    // 텔레그램 알림 발송
-    try {
-      const tg = db.prepare('SELECT chat_id, bot_token FROM user_telegram WHERE user_id=?').get(userId);
-      if (tg?.chat_id && tg?.bot_token) {
-        const now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-        const lines = results.map(r => {
-          const icon = r.action === '매수' ? '🟢 매수' : r.action === '익절 매도' ? '✅ 익절' : '🔴 손절';
-          return `${icon} <b>${r.symbol}</b> ${r.qty ? r.qty + '주' : ''} ${r.profit ? r.profit : ''}`;
-        }).join('\n');
-        const msg = `🤖 <b>자동매매 체결 알림</b>\n📅 ${now}\n\n${lines}\n\n총 ${results.length}건 체결`;
-        const token = tg.bot_token.startsWith('bot') ? tg.bot_token.slice(3) : tg.bot_token;
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: tg.chat_id, text: msg, parse_mode: 'HTML' })
-        });
-        db.prepare('INSERT INTO telegram_alert_log (user_id, alert_type, message) VALUES (?,?,?)').run(userId, 'TRADE', msg);
-      }
-    } catch (e) { saveErrorLog({ event_type: 'TELEGRAM_ALERT_ERROR', error_message: e.message, stack_trace: e.stack, meta: { userId } }); }
   }
 
   return { ok: true, results, message: results.length ? `${results.length}건 실행` : '신호 없음' };
@@ -1974,23 +1600,6 @@ app.post('/api/mail/quant-result', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 로또 번호 수동 메일 발송
-app.post('/api/mail/lotto', async (req, res) => {
-  try {
-    const { games, date } = req.body;
-    const userRow = db.prepare('SELECT email FROM users WHERE id=?').get(req.user.id);
-    if (!userRow?.email) return res.status(400).json({ error: '이메일이 등록되지 않은 계정입니다.' });
-    const today = date || new Date().toISOString().split('T')[0];
-    const htmlLines = games.map((g, i) => `<tr><td style="padding:8px 14px;font-weight:700;color:#6366f1;">${String.fromCharCode(65 + i)}게임</td><td style="padding:8px 14px;">${g.map(n => `<span style="display:inline-block;width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;background:#6366f1;color:#fff;font-weight:700;margin:2px;font-size:0.85rem;">${n}</span>`).join('')}</td></tr>`).join('');
-    await sendMail({
-      to: userRow.email,
-      subject: `🍀 로또 추천번호 (${today})`,
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;"><div style="background:#6366f1;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;"><h2 style="margin:0;font-size:1.2rem;">🍀 로또 추천번호</h2><p style="margin:6px 0 0;opacity:0.85;font-size:0.88rem;">${today}</p></div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:0 0 12px 12px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;">${htmlLines}</table></div><p style="color:#9ca3af;font-size:0.78rem;text-align:center;margin-top:12px;">이 메일은 수동 발송됩니다.</p></div>`
-    });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ============================================================
 // 완전자동매매 스케줄러 (1분마다 + 월 1회 리밸런싱)
 // ============================================================
@@ -2208,25 +1817,14 @@ function initSchedulers() {
 
 function getSchedulerFn(id) {
   const fns = {
-    1: lottoAutoSendFn,
     2: autoTradeFn,
     3: simpleAutoTradeFn,
     4: autoStrategyFn,
-    5: lottoHistoryFn,
   };
   return fns[id] || (() => { });
 }
 
 // 각 스케줄러 함수 정의
-async function lottoAutoSendFn() {
-  const now = new Date();
-  if (now.getMinutes() !== 0) return;
-  const currentHour = now.getUTCHours() + 9; // KST
-  const kstHour = currentHour >= 24 ? currentHour - 24 : currentHour;
-  const schedules = db.prepare('SELECT ls.chat_id, ls.days, ls.hour, ls.game_count, ls.last_sent_at, lt.bot_token FROM lotto_schedule ls JOIN lotto_telegram lt ON ls.chat_id=lt.chat_id WHERE ls.enabled=1 AND ls.hour=?').all(kstHour);
-  // 기존 로또 발송 로직은 아래 setInterval에서 처리
-}
-
 async function autoTradeFn() {
   const now = new Date();
   const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
@@ -2254,418 +1852,6 @@ async function autoStrategyFn() {
   for (const u of users) await runAutoStrategy(u.user_id, u.broker_key_id);
 }
 
-async function lottoHistoryFn() {
-  const now = new Date();
-  const utcHour = now.getUTCHours(), utcMin = now.getUTCMinutes();
-  const utcDay = now.getUTCDay();
-  if (utcDay !== 6 || utcHour !== 12 || utcMin > 5) return;
-  const today = now.toISOString().split('T')[0];
-  const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
-  const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
-  if (existing) return;
-  const res = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
-    headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-    signal: AbortSignal.timeout(10000)
-  });
-  if (!res.ok) return;
-  const data = await res.json();
-  if (!data.drwtNo1) return;
-  const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
-  db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)').run(drw_no, JSON.stringify(winning), data.bnusNo, data.drwNoDate || today);
-  console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료`);
-}
-
-// ============================================================
-// 로또 당첨번호 캐치업 — 서버 시작 시 + 매시간 누락분 자동 수집
-// 토요일 21:05에 서버가 다운돼있었어도 다음 시작 시 누락분 보강
-// ============================================================
-async function lottoHistoryCatchup() {
-  try {
-    const maxRow = db.prepare('SELECT MAX(drw_no) AS m FROM lotto_history').get();
-    const startFrom = (maxRow?.m || 0) + 1;
-
-    // 오늘 기준 발표됐어야 할 회차 (토요일 21시 이후만 카운트)
-    const now = new Date();
-    const kstNow = new Date(now.getTime() + 9 * 3600 * 1000); // KST 변환
-    const baseDate = new Date('2002-12-07'); // 1회차 추첨일 (토)
-    let expectedDrw = Math.floor((kstNow - baseDate) / (7 * 86400 * 1000)) + 1;
-    // 아직 이번 주 토요일 21시가 안 지났으면 -1
-    const dayUTC = kstNow.getUTCDay(), hourUTC = kstNow.getUTCHours();
-    if (dayUTC === 6 && hourUTC < 21) expectedDrw -= 1;
-    if (dayUTC === 0 && hourUTC < 21) { /* 일요일 새벽 */ }
-
-    let added = 0;
-    for (let drw = startFrom; drw <= expectedDrw; drw++) {
-      try {
-        const res = await fetch(`https://lotto.oot.kr/api/lotto/${drw}`, {
-          headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(10000)
-        });
-        if (!res.ok) break;
-        const data = await res.json();
-        if (!data.drwtNo1) break; // 아직 추첨 전이면 종료
-        const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
-        db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
-          .run(drw, JSON.stringify(winning), data.bnusNo, data.drwNoDate || '');
-        console.log(`[로또 캐치업] ${drw}회 수집: ${winning.join(', ')} + ${data.bnusNo}`);
-        added++;
-      } catch (e) {
-        console.log(`[로또 캐치업] ${drw}회 실패:`, e.message);
-        break;
-      }
-    }
-    if (added > 0) {
-      console.log(`[로또 캐치업] ${added}회차 추가됨 → 동반출현 재계산`);
-      try { recomputeCooccurrence(); } catch (e) { }
-    }
-  } catch (e) { console.log('[로또 캐치업] 오류:', e.message); }
-}
-
-// 서버 시작 5초 후 1회 + 매 1시간마다 (토요일 21시 직후를 놓치지 않도록)
-setTimeout(() => lottoHistoryCatchup(), 5000);
-setInterval(() => lottoHistoryCatchup(), 60 * 60 * 1000);
-
-// ============================================================
-// 로또 당첨번호 자동 수집 스케줄러 (토요일 KST 21:00 = UTC 12:00)
-// ============================================================
-setInterval(async () => {
-  try {
-    const now = new Date();
-    const utcHour = now.getUTCHours();
-    const utcMin = now.getUTCMinutes();
-    const utcDay = now.getUTCDay(); // 0=일, 6=토
-
-    if (!isSchedulerEnabled('lotto_history')) return;
-    // 토요일 UTC 12:00 (KST 21:00)에만 실행
-    if (utcDay !== 6 || utcHour !== 12 || utcMin > 5) return;
-    updateSchedulerRun('lotto_history');
-
-    // 이번 주 회차 계산
-    const today = now.toISOString().split('T')[0];
-    const drw_no = Math.floor((new Date(today) - new Date('2002-12-07')) / (7 * 24 * 60 * 60 * 1000)) + 1;
-
-    // 이미 저장된 회차면 스킵
-    const existing = db.prepare('SELECT id FROM lotto_history WHERE drw_no=?').get(drw_no);
-    if (existing) return;
-
-    // lotto.oot.kr에서 당첨번호 조회
-    const res = await fetch(`https://lotto.oot.kr/api/lotto/${drw_no}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10000)
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    if (!data.drwtNo1) return;
-
-    const winning = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
-    db.prepare('INSERT OR IGNORE INTO lotto_history (drw_no, numbers, bonus, drw_date) VALUES (?,?,?,?)')
-      .run(drw_no, JSON.stringify(winning), data.bnusNo, data.drwNoDate || today);
-
-    console.log(`[로또] ${drw_no}회 당첨번호 자동 수집 완료: ${winning.join(', ')} + ${data.bnusNo}`);
-
-    // 새 회차 추가됐으니 동반출현 재계산
-    try { recomputeCooccurrence(); } catch (e) { }
-
-    // ── 당첨번호 수집 후 lotto_weights 자동 업데이트 ──────────
-    // 전체 이력 기반 반복출현 확률 + 연속 반복 패턴 재계산
-    try {
-      const allRows = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all();
-      const allHist = allRows.map(r => JSON.parse(r.numbers));
-
-      // 1. 반복출현 확률 계산
-      const repeatCount = {}, appearCount = {};
-      for (let n = 1; n <= 45; n++) { repeatCount[n] = 0; appearCount[n] = 0; }
-      for (let i = 1; i < allHist.length; i++) {
-        const prev = allHist[i - 1], curSet = new Set(allHist[i]);
-        prev.forEach(n => { appearCount[n]++; if (curSet.has(n)) repeatCount[n]++; });
-      }
-      const pcts = {};
-      for (let n = 1; n <= 45; n++) pcts[n] = appearCount[n] > 0 ? repeatCount[n] / appearCount[n] : 0;
-      const avgPct = Object.values(pcts).reduce((a, b) => a + b, 0) / 45;
-
-      // 2. 반복출현 확률 → weight 변환 (0.5 ~ 3.0)
-      const newWeights = {};
-      for (let n = 1; n <= 45; n++) {
-        const ratio = avgPct > 0 ? pcts[n] / avgPct : 1.0;
-        newWeights[n] = Math.round(Math.min(3.0, Math.max(0.5, ratio)) * 10000) / 10000;
-      }
-
-      // 3. 최근 3회차 부스트
-      const recent3 = allHist.slice(-3);
-      recent3.forEach((nums, i) => {
-        const boost = 0.5 * (i + 1);
-        nums.forEach(n => { newWeights[n] = Math.round(Math.min(5.0, newWeights[n] + boost) * 10000) / 10000; });
-      });
-
-      // 4. DB 업데이트
-      for (let n = 1; n <= 45; n++) {
-        db.prepare('UPDATE lotto_weights SET weight=?, appear_count=?, hit_count=? WHERE num=?')
-          .run(newWeights[n], appearCount[n], repeatCount[n], n);
-      }
-      console.log(`[로또] lotto_weights 자동 업데이트 완료 (${allHist.length}회 이력 기반)`);
-    } catch (e) {
-      console.log('[로또] lotto_weights 업데이트 오류:', e.message);
-    }
-
-  } catch (e) {
-    saveErrorLog({ event_type: 'LOTTO_HISTORY_SCHEDULER_ERROR', error_message: e.message, stack_trace: e.stack });
-  }
-}, 60 * 1000); // 1분마다 체크
-
-// ============================================================
-// 번호 동반출현(co-occurrence) 재계산
-// 전체 회차를 DELETE + INSERT로 다시 계산
-// ============================================================
-function recomputeCooccurrence() {
-  try {
-    const allHistory = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all();
-    if (!allHistory.length) return { ok: false, reason: 'no history' };
-
-    const counts = {}; // "num1,num2" → count
-    for (const row of allHistory) {
-      const nums = JSON.parse(row.numbers).sort((a, b) => a - b);
-      for (let i = 0; i < nums.length; i++) {
-        for (let j = i + 1; j < nums.length; j++) {
-          const key = `${nums[i]},${nums[j]}`;
-          counts[key] = (counts[key] || 0) + 1;
-        }
-      }
-    }
-
-    const tx = db.transaction(() => {
-      db.prepare('DELETE FROM lotto_cooccurrence').run();
-      const stmt = db.prepare('INSERT INTO lotto_cooccurrence (num1, num2, cnt) VALUES (?,?,?)');
-      for (const key in counts) {
-        const [n1, n2] = key.split(',').map(Number);
-        stmt.run(n1, n2, counts[key]);
-      }
-    });
-    tx();
-
-    const total = Object.keys(counts).length;
-    const maxCnt = Object.values(counts).length ? Math.max(...Object.values(counts)) : 0;
-    console.log(`[lotto] 동반출현 재계산 완료: ${total}쌍, 최대 ${maxCnt}회`);
-    return { ok: true, total, maxCnt };
-  } catch (e) {
-    console.log('[lotto] 동반출현 재계산 실패:', e.message);
-    return { ok: false, error: e.message };
-  }
-}
-
-// 서버 시작 시 1회 실행
-try { recomputeCooccurrence(); } catch (e) { console.log('[lotto] cooccurrence init 실패:', e.message); }
-
-// ============================================================
-// 로또 게임 생성 헬퍼 (③ 예측실행 로직 - 자동발송/예측발송 공통 사용)
-// ============================================================
-function lottoBuildGames(count) {
-  const latest = db.prepare('SELECT drw_no, numbers FROM lotto_history ORDER BY drw_no DESC LIMIT 1').get();
-  if (!latest) return [];
-  const latestNums = JSON.parse(latest.numbers);
-
-  const allHistory = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no ASC').all().map(r => JSON.parse(r.numbers));
-
-  // 이월 확률 분석
-  const numCarry = {};
-  for (let n = 1; n <= 45; n++) numCarry[n] = { appear: 0, carry: 0 };
-  for (let i = 1; i < allHistory.length; i++) {
-    const prev = allHistory[i - 1], cur = new Set(allHistory[i]);
-    prev.forEach(n => { numCarry[n].appear++; if (cur.has(n)) numCarry[n].carry++; });
-  }
-  const carryPct = {};
-  for (let n = 1; n <= 45; n++) carryPct[n] = numCarry[n].appear > 0 ? numCarry[n].carry / numCarry[n].appear : 0;
-
-  // 구간별 이월 분석
-  const getDec = n => n <= 9 ? 0 : n <= 19 ? 1 : n <= 29 ? 2 : n <= 39 ? 3 : 4;
-  const decCarry = Array(5).fill(null).map(() => ({ appear: 0, carry: 0 }));
-  for (let i = 1; i < allHistory.length; i++) {
-    const prev = allHistory[i - 1], curDecs = new Set(allHistory[i].map(getDec));
-    prev.forEach(n => { const d = getDec(n); decCarry[d].appear++; if (curDecs.has(d)) decCarry[d].carry++; });
-  }
-  const decPct = decCarry.map(d => d.appear > 0 ? d.carry / d.appear : 0);
-
-  // 최근 20회 가중치
-  const recent20 = db.prepare('SELECT numbers FROM lotto_history ORDER BY drw_no DESC LIMIT 20').all().map(r => JSON.parse(r.numbers));
-  const recentBonus = {};
-  for (let n = 1; n <= 45; n++) recentBonus[n] = 0;
-  recent20.forEach((nums, idx) => { const w = (20 - idx) / 20; nums.forEach(n => { recentBonus[n] += w * 0.5; }); });
-
-  // DB 가중치
-  const dbWeights = {};
-  try { db.prepare('SELECT num, weight FROM lotto_weights').all().forEach(r => { dbWeights[r.num] = r.weight; }); } catch (e) { }
-
-  // 연속 반복 패턴
-  const maxStreak = {}, curStreak = {};
-  for (let n = 1; n <= 45; n++) { maxStreak[n] = 0; curStreak[n] = 0; }
-  for (let i = 1; i < allHistory.length; i++) {
-    const prev = new Set(allHistory[i - 1]);
-    const cur = new Set(allHistory[i]);
-    for (let n = 1; n <= 45; n++) {
-      if (prev.has(n) && cur.has(n)) {
-        curStreak[n]++;
-        if (curStreak[n] > maxStreak[n]) maxStreak[n] = curStreak[n];
-      } else {
-        curStreak[n] = 0;
-      }
-    }
-  }
-  const streakMultiplier = {};
-  for (let n = 1; n <= 45; n++) {
-    const cur = curStreak[n];
-    const max = maxStreak[n];
-    if (cur === 0) streakMultiplier[n] = 1.0;
-    else if (max > 0 && cur >= max) streakMultiplier[n] = 0.3;
-    else if (max > 0 && cur >= max * 0.7) streakMultiplier[n] = 0.6;
-    else streakMultiplier[n] = 1.0 + (cur * 0.3);
-  }
-
-  // 종합 점수
-  const scores = {};
-  for (let n = 1; n <= 45; n++) {
-    let s = carryPct[n] * 100 + decPct[getDec(n)] * 30 + recentBonus[n] * 20;
-    if (latestNums.includes(n)) s += carryPct[n] * 50;
-    scores[n] = s * (dbWeights[n] || 1.0) * streakMultiplier[n];
-  }
-
-  // 동반출현(co-occurrence) 테이블 Map 로드 (쿼리 1회, predictOne 내부에서 재사용)
-  const cooccMap = {};
-  try {
-    const rows = db.prepare('SELECT num1, num2, cnt FROM lotto_cooccurrence').all();
-    for (const r of rows) cooccMap[`${r.num1},${r.num2}`] = r.cnt;
-  } catch (e) { /* 테이블 없어도 진행 */ }
-
-  // 이미 뽑힌 번호들과의 동반출현 기반 boost
-  // 기준 (평균 19.62): 30회+ ×1.25 / 27회+ ×1.12 / 26회 이하 보정 없음, 상한 1.6
-  function coOccBoost(n, alreadyPicked) {
-    if (!alreadyPicked.length) return 1.0;
-    let boost = 1.0;
-    for (const p of alreadyPicked) {
-      if (p === n) continue;
-      const [a, b] = n < p ? [n, p] : [p, n];
-      const cnt = cooccMap[`${a},${b}`] || 0;
-      if (cnt >= 30) boost *= 1.25;
-      else if (cnt >= 27) boost *= 1.12;
-    }
-    return Math.min(boost, 1.6);
-  }
-
-  // bias_map 로드
-  let carryBiasMap = {
-    '0': [0.18, 0.25, 0.22, 0.20, 0.15], '1': [0.19, 0.18, 0.23, 0.26, 0.14],
-    '2': [0.19, 0.24, 0.20, 0.25, 0.12], '3': [0.21, 0.23, 0.23, 0.21, 0.12],
-    '4': [0.23, 0.22, 0.22, 0.22, 0.12], '0+0': [0.18, 0.25, 0.21, 0.25, 0.11],
-    '0+1': [0.17, 0.24, 0.25, 0.18, 0.15], '0+2': [0.19, 0.22, 0.23, 0.22, 0.15],
-    '0+3': [0.22, 0.23, 0.14, 0.19, 0.22], '0+4': [0.17, 0.31, 0.19, 0.25, 0.08],
-    '1+1': [0.18, 0.20, 0.23, 0.25, 0.14], '1+2': [0.20, 0.25, 0.19, 0.19, 0.17],
-    '1+3': [0.25, 0.18, 0.26, 0.18, 0.12], '1+4': [0.23, 0.23, 0.18, 0.25, 0.11],
-    '2+2': [0.20, 0.10, 0.20, 0.35, 0.15], '2+3': [0.17, 0.23, 0.20, 0.23, 0.17],
-    '2+4': [0.19, 0.31, 0.22, 0.22, 0.06], '3+3': [0.21, 0.29, 0.18, 0.18, 0.14],
-    '3+4': [0.14, 0.38, 0.27, 0.08, 0.14],
-  };
-  try {
-    const bmRow = db.prepare('SELECT data FROM lotto_algorithm_config WHERE key=?').get('bias_map');
-    if (bmRow) carryBiasMap = JSON.parse(bmRow.data);
-  } catch (e) { }
-
-  const baseZoneSpecs = [
-    { range: [1, 9], dist: [0.16, 0.53, 0.25, 0.06, 0.00] },
-    { range: [10, 19], dist: [0.18, 0.49, 0.22, 0.11, 0.00] },
-    { range: [20, 29], dist: [0.13, 0.49, 0.29, 0.08, 0.01] },
-    { range: [30, 39], dist: [0.21, 0.40, 0.27, 0.11, 0.01] },
-    { range: [40, 45], dist: [0.41, 0.40, 0.18, 0.01, 0.00] },
-  ];
-  const getZoneIdx = n => { if (n <= 9) return 0; if (n <= 19) return 1; if (n <= 29) return 2; if (n <= 39) return 3; return 4; };
-
-  function sampleCount(baseDist, zoneIdx, biasWeights) {
-    let dist = [...baseDist];
-    if (biasWeights) {
-      const bt = Math.round(biasWeights[zoneIdx] * 6);
-      const bl = dist.map((v, i) => v * 0.6 + (i === bt ? 0.4 : 0));
-      const total = bl.reduce((a, b) => a + b, 0);
-      dist = bl.map(v => v / total);
-    }
-    let r = Math.random(), c = 0;
-    for (let i = 0; i < dist.length; i++) { c += dist[i]; if (r < c) return i; }
-    return 1;
-  }
-
-  function weightedSample(items, weights) {
-    const total = weights.reduce((a, b) => a + b, 0);
-    let r = Math.random() * total, c = 0;
-    for (let i = 0; i < items.length; i++) { c += weights[i]; if (c >= r) return items[i]; }
-    return items[items.length - 1];
-  }
-
-  function predictOne() {
-    // 이월 선택 — 최근 100회 통계 기반
-    // 0개: 47%, 1개: 40%, 2개: 12%, 3개+: 1%
-    // → 1개 이상 발생 확률: 53%, 2개 이상 / 1개 이상 = 12/52 = 23.1%
-    const sortedByCarry = [...latestNums].sort((a, b) => carryPct[b] - carryPct[a]);
-    const carryPicks = [];
-    const cw = sortedByCarry.map(n => Math.max(carryPct[n], 0.01));
-    if (Math.random() < 0.530) {
-      carryPicks.push(weightedSample(sortedByCarry, cw));
-      if (Math.random() < 0.231) {
-        const rem2 = sortedByCarry.filter(n => !carryPicks.includes(n));
-        const w2 = rem2.map(n => Math.max(carryPct[n], 0.01));
-        if (rem2.length) carryPicks.push(weightedSample(rem2, w2));
-      }
-    }
-    const picks = new Set(carryPicks);
-
-    // bias_map 결정
-    let biasWeights = null;
-    if (carryPicks.length === 1) biasWeights = carryBiasMap[String(getZoneIdx(carryPicks[0]))] || null;
-    else if (carryPicks.length === 2) {
-      const [z1, z2] = [getZoneIdx(carryPicks[0]), getZoneIdx(carryPicks[1])].sort((a, b) => a - b);
-      biasWeights = carryBiasMap[`${z1}+${z2}`] || null;
-    }
-
-    // 구간별 선택 (동반출현 boost 적용)
-    for (let zi = 0; zi < baseZoneSpecs.length; zi++) {
-      if (picks.size >= 6) break;
-      const { range: [lo, hi], dist } = baseZoneSpecs[zi];
-      const already = [...picks].filter(n => n >= lo && n <= hi).length;
-      const need = Math.max(0, sampleCount(dist, zi, biasWeights) - already);
-      const pickedArr = [...picks];
-      const candidates = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i)
-        .filter(n => !picks.has(n))
-        .map(n => ({ n, s: scores[n] * coOccBoost(n, pickedArr) }))
-        .sort((a, b) => b.s - a.s);
-      for (let k = 0; k < need && k < candidates.length && picks.size < 6; k++) picks.add(candidates[k].n);
-    }
-
-    // 상위 15위 랜덤으로 채우기 (동반출현 boost 적용)
-    const pickedArr2 = [...picks];
-    const rem = Array.from({ length: 45 }, (_, i) => i + 1)
-      .filter(n => !picks.has(n))
-      .map(n => ({ n, s: scores[n] * coOccBoost(n, pickedArr2) }))
-      .sort((a, b) => b.s - a.s);
-    const top15 = rem.slice(0, 15);
-    while (picks.size < 6 && top15.length) {
-      const idx = Math.floor(Math.random() * top15.length);
-      picks.add(top15.splice(idx, 1)[0].n);
-    }
-    return [...picks].sort((a, b) => a - b);
-  }
-
-  const games = [];
-  for (let g = 0; g < count; g++) {
-    let picks = null;
-    // 완전 동일한 조합 방지 (최대 10회 재시도)
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const candidate = predictOne();
-      const key = candidate.join(',');
-      const isDuplicate = games.some(g => g.join(',') === key);
-      if (!isDuplicate) { picks = candidate; break; }
-      picks = candidate; // 10회 재시도 후에도 모두 중복이면 마지막 후보 사용
-    }
-    games.push(picks);
-  }
-  return games;
-}
-
-
 // ============================================================
 // 서버 시작
 // ============================================================
@@ -2680,10 +1866,4 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`  ${C.cyan}포트${C.reset}     : ${C.white}${port}${C.reset}`);
   console.log(`  ${C.cyan}Claude${C.reset}   : ${CONFIG.hasKeys.anthropic ? C.green + '✅ 연결됨' : C.red + '❌ API 키 없음'}${C.reset}`);
   console.log('');
-
-  // 🍀 서버 시작 시 로또 자동발송 캐치업 (서버가 죽어있던 동안 놓친 발송 복구)
-  setTimeout(() => {
-    console.log(`  ${C.cyan}[로또]${C.reset}  자동발송 캐치업 체크 시작...`);
-    lottoCheckAndSendSchedules();
-  }, 3000);
 });

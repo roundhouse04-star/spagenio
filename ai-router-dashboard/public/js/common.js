@@ -663,8 +663,6 @@ function activateMenu(tabKey, subKey, menuId) {
       if (typeof loadPositionPieChart === 'function') loadPositionPieChart();
       if (typeof loadTradeHistory === 'function') loadTradeHistory();
       if (typeof loadSavedBacktests === 'function') loadSavedBacktests();
-      if (typeof loadTelegramSettings === 'function') loadTelegramSettings();
-      if (typeof loadTelegramAlertLog === 'function') loadTelegramAlertLog();
     }, 300);
     return;
   }

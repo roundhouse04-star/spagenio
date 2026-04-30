@@ -266,11 +266,10 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
 
     const uid = req.user.id;
     const candidateTables = [
-      'lotto_picks', 'lotto_schedule', 'lotto_schedule_log', 'lotto_algorithm_weights',
-      'user_telegram', 'user_broker_keys', 'terms_agreements',
+      'user_broker_keys', 'terms_agreements',
       'auto_trade_settings', 'auto_trade_log', 'auto_strategy_settings',
       'trade_setting_type3', 'trade_setting_type4',
-      'portfolio_performance', 'backtest_results', 'telegram_alert_log', 'quant_analysis_log',
+      'portfolio_performance', 'backtest_results', 'quant_analysis_log',
     ];
     const existing = new Set(
       db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name)
