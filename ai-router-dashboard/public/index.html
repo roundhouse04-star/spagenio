@@ -3986,7 +3986,18 @@
   </div><!-- /.sp-main -->
 
   <script src="/js/chart.js?v=20260331c"></script>
-  <script src="/js/stock.js?v=20260402a"></script>
+  <!-- stock.js 분할 (도메인별 11개 파일) — 로드 순서: helpers 가 먼저, 나머지는 알파벳순 (글로벌 scope 공유) -->
+  <script src="/js/stock/helpers.js?v=20260430a"></script>
+  <script src="/js/stock/account.js?v=20260430a"></script>
+  <script src="/js/stock/trade.js?v=20260430a"></script>
+  <script src="/js/stock/positions.js?v=20260430a"></script>
+  <script src="/js/stock/trade-log.js?v=20260430a"></script>
+  <script src="/js/stock/quant.js?v=20260430a"></script>
+  <script src="/js/stock/search.js?v=20260430a"></script>
+  <script src="/js/stock/multi-account.js?v=20260430a"></script>
+  <script src="/js/stock/screening.js?v=20260430a"></script>
+  <script src="/js/stock/auto-saved.js?v=20260430a"></script>
+  <script src="/js/stock/ui-misc.js?v=20260430a"></script>
   <script src="/js/common.js?v=20260402a"></script>
   <script src="/js/ai-router.js?v=20260331c"></script>
   <script src="/js/news.js?v=20260331c"></script>
