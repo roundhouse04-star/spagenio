@@ -7,6 +7,7 @@ import { theme } from '../theme';
 import { LoginScreen } from '../screens/LoginScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { StocksScreen } from '../screens/StocksScreen';
+import { TradeScreen } from '../screens/TradeScreen';
 import { PositionsScreen } from '../screens/PositionsScreen';
 import { NewsScreen } from '../screens/NewsScreen';
 import { AccountScreen } from '../screens/AccountScreen';
@@ -41,6 +42,7 @@ function MainTabs() {
     >
       <Tabs.Screen name="Dashboard" component={DashboardScreen} options={{ title: '시장' }} />
       <Tabs.Screen name="Stocks"    component={StocksScreen}    options={{ title: '종목' }} />
+      <Tabs.Screen name="Trade"     component={TradeScreen}     options={{ title: '거래' }} />
       <Tabs.Screen name="Positions" component={PositionsScreen} options={{ title: '포지션' }} />
       <Tabs.Screen name="News"      component={NewsScreen}      options={{ title: '뉴스' }} />
       <Tabs.Screen name="Account"   component={AccountScreen}   options={{ title: '내정보' }} />
