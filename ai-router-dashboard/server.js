@@ -727,6 +727,35 @@ function calcEMA(prices, period) { const k = 2 / (period + 1); let ema = prices.
 function calcMACD(closes) { if (closes.length < 35) return null; const macdLine = []; for (let i = 26; i <= closes.length; i++)macdLine.push(calcEMA(closes.slice(0, i), 12) - calcEMA(closes.slice(0, i), 26)); if (macdLine.length < 9) return null; const macd = macdLine[macdLine.length - 1], signal = calcEMA(macdLine, 9), prevMacd = macdLine[macdLine.length - 2], prevSignal = calcEMA(macdLine.slice(0, -1), 9); return { macd, signal, goldenCross: prevMacd < prevSignal && macd > signal, deadCross: prevMacd > prevSignal && macd < signal }; }
 function calcRSI(closes, period = 14) { if (closes.length < period + 1) return null; const changes = closes.slice(1).map((c, i) => c - closes[i]); const avgGain = changes.slice(-period).filter(c => c > 0).reduce((a, b) => a + b, 0) / period; const avgLoss = changes.slice(-period).filter(c => c < 0).reduce((a, b) => a - b, 0) / period; return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)); }
 
+// trade_log 저장 헬퍼 — frontDeps 로 export 되어 routes/front.js 에서도 사용
+function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status, broker_key_id }) {
+  order_id = order_id || '';
+  profit_pct = profit_pct || 0;
+  reason = reason || '';
+  status = status || 'active';
+  broker_key_id = broker_key_id || null;
+  const result = db.prepare(
+    'INSERT INTO trade_log (user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status,broker_key_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+  ).run(user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status, broker_key_id);
+  return result.lastInsertRowid;
+}
+
+// trade_log + 백업 테이블 status 동시 UPDATE (BUY 포지션 청산 시 active → closed)
+function updateTradeLogStatus(user_id, symbol, trade_type) {
+  const backupTableMap = { 1: 'trade_log_manual', 2: 'trade_log_simple', 3: 'trade_log_full', 4: 'trade_log_general' };
+  db.prepare(
+    "UPDATE trade_log SET status='closed' WHERE user_id=? AND symbol=? AND trade_type=? AND action='BUY' AND status='active'"
+  ).run(user_id, symbol, trade_type);
+  const backupTable = backupTableMap[trade_type];
+  if (backupTable) {
+    try {
+      db.prepare(
+        `UPDATE ${backupTable} SET status='closed' WHERE user_id=? AND symbol=? AND action='BUY' AND status='active'`
+      ).run(user_id, symbol);
+    } catch (e) { console.error('[updateTradeLogStatus] 백업 업데이트 실패:', backupTable, e.message); }
+  }
+}
+
 async function runAutoTradeForUser(userId, brokerKeyId = null) {
   const settings = brokerKeyId
     ? db.prepare('SELECT * FROM trade_setting_type4 WHERE user_id=? AND broker_key_id=? AND enabled=1').get(userId, brokerKeyId)
