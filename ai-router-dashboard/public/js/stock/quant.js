@@ -34,7 +34,7 @@ async function runQuantAnalysis() {
     let html = `
       <div style="background:#161B22;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:1rem;font-weight:800;color:#6366f1;cursor:pointer;text-decoration:underline;" onclick="openChart(${_jsAttr(data.symbol)})">${data.symbol} 📈</span>
+          <span style="font-size:1rem;font-weight:800;color:#6366f1;cursor:pointer;text-decoration:underline;" data-action="openChart" data-args="${_jsAttr([data.symbol])}">${data.symbol} 📈</span>
           <span style="font-size:0.95rem;font-weight:700;color:${sig.color};">${sig.label}</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
@@ -98,7 +98,7 @@ async function runBatchAnalysis() {
     const rows = (data.results || []).map(r => {
       const sig = signalStyle[r.signal] || signalStyle['hold'];
       return `<tr>
-        <td style="font-weight:700;color:#6366f1;cursor:pointer;" onclick="openChart(${_jsAttr(r.symbol)})">${r.symbol} 📈</td>
+        <td style="font-weight:700;color:#6366f1;cursor:pointer;" data-action="openChart" data-args="${_jsAttr([r.symbol])}">${r.symbol} 📈</td>
         <td style="color:${sig.color};font-weight:700;">${sig.label}</td>
         <td>$${r.price?.toFixed(2) || '-'}</td>
         <td>${r.value?.toFixed(2) || r.score?.toFixed(4) || '-'}</td>
@@ -128,7 +128,7 @@ async function loadKoreaAnalysis() {
     const res = await fetch(`${QUANT_API}/api/quant/korea`);
     const data = await res.json();
     if (data.error) { el.innerHTML = _safeHTML(`<p style="color:#ff8f8f;">Error: ${data.error}</p>`); return; }
-    const rows = (data.top10 || []).map((item, i) => `<tr style="cursor:pointer;" onclick="openChart(${_jsAttr(item.ticker.includes('.') ? item.ticker : item.ticker + '.KS')})" onmouseover="this.style.background='rgba(79,143,255,0.05)'" onmouseout="this.style.background=''">
+    const rows = (data.top10 || []).map((item, i) => `<tr style="cursor:pointer;" data-action="openChart" data-args="${_jsAttr([item.ticker.includes('.') ? item.ticker : item.ticker + '.KS'])}" onmouseover="this.style.background='rgba(79,143,255,0.05)'" onmouseout="this.style.background=''">
       <td style="font-weight:700;color:#4f8fff;">${i + 1}</td>
       <td><div style="font-weight:700;">${item.name}</div><div style="color:#8E8E93;font-size:0.78rem;">${item.ticker}</div></td>
       <td>${item.price?.toLocaleString()}원</td>
@@ -239,7 +239,7 @@ window.loadAutoPositions = async function () {
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-weight:700;color:${pl >= 0 ? '#065f46' : '#991b1b'};">${pl >= 0 ? '+' : ''}$${pl.toFixed(2)} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)</span>
-          <button onclick="cancelAutoTrade(${_jsAttr(p.symbol)})" class="sp-btn sp-btn-red sp-btn-sm" style="font-size:0.75rem;padding:4px 10px;">취소</button>
+          <button data-action="cancelAutoTrade" data-args="${_jsAttr([p.symbol])}" class="sp-btn sp-btn-red sp-btn-sm" style="font-size:0.75rem;padding:4px 10px;">취소</button>
         </div>
       </div>`;
     }).join('');

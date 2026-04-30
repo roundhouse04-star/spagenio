@@ -23,8 +23,28 @@
       const s = String(u || '').trim();
       return /^https?:\/\//i.test(s) ? s : '';
     };
-    // inline event handler 안에 JS 값 안전 삽입: onclick="fn(${_jsAttr(x)})"
+    // inline event handler 안에 JS 값 안전 삽입: data-action="fn" data-args="${_jsAttr([x])}" / data-args="${_jsAttr([x,y])}"
     window._jsAttr = function (v) { return window._esc(JSON.stringify(v == null ? null : v)); };
+    // 글로벌 이벤트 위임 (data-action 패턴)
+    if (!window.__spagenioActionDelegated) {
+      window.__spagenioActionDelegated = true;
+      document.addEventListener('click', function (e) {
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        const action = el.getAttribute('data-action');
+        if (!action) return;
+        let args = [];
+        const argsAttr = el.getAttribute('data-args');
+        if (argsAttr) {
+          try { args = JSON.parse(argsAttr); } catch (err) { return; }
+          if (!Array.isArray(args)) args = [args];
+        }
+        const fn = window[action];
+        if (typeof fn === 'function') {
+          try { fn.apply(null, args); } catch (err) { console.error('[data-action]', action, err); }
+        }
+      });
+    }
   </script>
   <style>
     :root {
@@ -2041,7 +2061,7 @@
                   <span style="font-size:0.78rem;color:var(--muted);">실행 주기:</span>
                   <input type="number" value="${s.interval_sec}" min="10" style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);font-size:0.82rem;" id="interval-${s.key}" />
                   <span style="font-size:0.78rem;color:var(--muted);">초 (현재: ${intervalMin})</span>
-                  <button onclick="updateInterval(${_jsAttr(s.key)})" class="btn secondary" style="font-size:0.75rem;padding:3px 10px;">저장</button>
+                  <button data-action="updateInterval" data-args="${_jsAttr([s.key])}" class="btn secondary" style="font-size:0.75rem;padding:3px 10px;">저장</button>
                 </div>
                 <div style="font-size:0.78rem;color:var(--muted);">
                   마지막 실행: <b>${lastRun}</b> · 총 ${s.run_count.toLocaleString()}회

@@ -40,7 +40,7 @@ async function dcSearch(query) {
       const exColor = isKR ? '#c2410c' : '#1d4ed8';
       const exBg = isKR ? '#fff7ed' : '#eff6ff';
       return `
-        <div onclick="dcSelectSymbol(${_jsAttr(r.symbol)}, ${_jsAttr(r.name)})"
+        <div data-action="dcSelectSymbol" data-args="${_jsAttr([r.symbol, r.name])}"
           style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer;"
           onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
           <div>
@@ -113,7 +113,7 @@ function dcRenderSelectedSymbols() {
     badge.innerHTML = _dcSelectedSymbols.map(s => {
       const isActive = s.symbol === _dcActiveSymbol;
       return `<span style="display:inline-flex;align-items:center;gap:4px;background:${isActive ? '#6366f1' : '#eef2ff'};color:${isActive ? '#fff' : '#6366f1'};font-weight:700;font-size:0.85rem;padding:4px 10px;border-radius:999px;margin:2px;cursor:pointer;transition:all 0.15s;"
-        onclick="dcSwitchSymbol(${_jsAttr(s.symbol)})">
+        data-action="dcSwitchSymbol" data-args="${_jsAttr([s.symbol])}">
         ${s.symbol}
         <button onclick="event.stopPropagation();dcRemoveSymbol(${_jsAttr(s.symbol)})"
           style="background:none;border:none;cursor:pointer;color:${isActive ? 'rgba(255,255,255,0.7)' : '#9ca3af'};font-size:0.9rem;padding:0;line-height:1;"

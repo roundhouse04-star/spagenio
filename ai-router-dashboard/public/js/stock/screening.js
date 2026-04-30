@@ -248,7 +248,7 @@ window.loadCombinedSignal = async function () {
             </div>
           </div>
           <div style="font-size:0.78rem;color:#4338ca;">${news?.latest_title || ''}</div>
-          <button onclick="quickRiskCalc(${_jsAttr(s.symbol)})" style="margin-top:8px;padding:4px 12px;font-size:0.75rem;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">🛡️ 리스크 계산</button>
+          <button data-action="quickRiskCalc" data-args="${_jsAttr([s.symbol])}" style="margin-top:8px;padding:4px 12px;font-size:0.75rem;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">🛡️ 리스크 계산</button>
         </div>`;
       }).join('');
     }

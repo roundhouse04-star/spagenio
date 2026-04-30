@@ -21,10 +21,10 @@ async function renderAutoSavedSymbols() {
       ${pool.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
           <div>
-            <span style="font-weight:700;font-size:0.9rem;color:#6366f1;cursor:pointer;" onclick="openChart(${_jsAttr(p.symbol)})">${p.symbol} 📈</span>
+            <span style="font-weight:700;font-size:0.9rem;color:#6366f1;cursor:pointer;" data-action="openChart" data-args="${_jsAttr([p.symbol])}">${p.symbol} 📈</span>
             <span style="font-size:0.72rem;color:#9CA3AF;margin-left:6px;">점수 ${p.factor_score}</span>
           </div>
-          <button onclick="deleteAutoSymbol(${_jsAttr(p.symbol)})"
+          <button data-action="deleteAutoSymbol" data-args="${_jsAttr([p.symbol])}"
             style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
             🗑️ 삭제
           </button>
@@ -175,7 +175,7 @@ window.runFactorScreen = async function (mode) {
           ? `<button onclick="event.stopPropagation();saveOneSymbol(${_jsAttr(item.symbol)})" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid rgba(255,59,48,0.3);background:rgba(255,59,48,0.08);color:#FF3B30;font-size:0.75rem;font-weight:700;cursor:pointer;">⚠️ ${item.symbol} AVOID — 그래도 저장</button>`
           : `<button onclick="event.stopPropagation();saveOneSymbol(${_jsAttr(item.symbol)})" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`)
         : '';
-      return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart(${_jsAttr(item.symbol)})">
+      return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" data-action="openChart" data-args="${_jsAttr([item.symbol])}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <div><span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${medals[i] || ''} ${item.symbol}</span>${badge}</div>
         <div style="text-align:right;"><div style="font-weight:700;color:#E5E7EB;">$${item.price?.toFixed(2) ?? '-'}</div><div style="font-size:0.7rem;color:#4f8fff;">점수 ${item.factor_score}</div></div>
@@ -250,7 +250,7 @@ window.saveOneSymbol = async function (symbol) {
       })
     });
     // 버튼 피드백
-    const btns = document.querySelectorAll(`button[onclick="saveOneSymbol(${_jsAttr(symbol)})"]`);
+    const btns = document.querySelectorAll(`button[data-action="saveOneSymbol" data-args="${_jsAttr([symbol])}"]`);
     btns.forEach(btn => {
       btn.textContent = `✅ ${symbol} 저장됨`;
       btn.style.background = '#dcfce7';
@@ -291,7 +291,7 @@ window.saveKrSymbol = async function (symbol) {
       body: JSON.stringify({ ...d, kr_candidate_symbols: existing.join(',') })
     });
     // 버튼 피드백
-    const btns = document.querySelectorAll(`button[onclick="saveKrSymbol(${_jsAttr(symbol)})"]`);
+    const btns = document.querySelectorAll(`button[data-action="saveKrSymbol" data-args="${_jsAttr([symbol])}"]`);
     btns.forEach(btn => { btn.textContent = `✅ ${symbol} 저장됨`; btn.style.background = '#dcfce7'; btn.style.color = '#166534'; btn.disabled = true; });
     await renderKrSavedSettings();
   } catch (e) {
@@ -314,7 +314,7 @@ async function renderKrSavedSettings() {
       ${symbols.map(sym => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
           <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;">${sym}</span>
-          <button onclick="deleteKrSymbol(${_jsAttr(sym)})"
+          <button data-action="deleteKrSymbol" data-args="${_jsAttr([sym])}"
             style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
             🗑️ 삭제
           </button>
@@ -379,7 +379,7 @@ async function renderAtSavedSettings() {
       symbols.forEach(sym => {
         html += `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
-        <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;cursor:pointer;text-decoration:none;" onclick="openChart(${_jsAttr(sym)})" title="📈 차트 보기">${sym} 📈</span>
+        <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;cursor:pointer;text-decoration:none;" data-action="openChart" data-args="${_jsAttr([sym])}" title="📈 차트 보기">${sym} 📈</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
             <span style="font-size:0.75rem;color:#9CA3AF;" id="at-toggle-label-${sym}">${enabled ? '활성' : '비활성'}</span>
@@ -389,7 +389,7 @@ async function renderAtSavedSettings() {
               <div style="width:18px;height:18px;border-radius:50%;background:#161B22;position:absolute;top:2px;left:${enabled ? '20px' : '2px'};transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);" id="at-toggle-knob-${sym}"></div>
             </div>
           </label>
-          <button onclick="deleteSymbol(${_jsAttr(sym)})" style="width:22px;height:22px;border-radius:50%;background:rgba(30,123,255,0.15);border:none;cursor:pointer;color:#ef4444;font-size:0.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="${sym} 삭제">✕</button>
+          <button data-action="deleteSymbol" data-args="${_jsAttr([sym])}" style="width:22px;height:22px;border-radius:50%;background:rgba(30,123,255,0.15);border:none;cursor:pointer;color:#ef4444;font-size:0.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="${sym} 삭제">✕</button>
         </div>
       </div>`;
       });

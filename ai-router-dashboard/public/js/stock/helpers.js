@@ -41,10 +41,34 @@ function _safeHttpUrl(u) {
   return /^https?:\/\//i.test(s) ? s : '';
 }
 // inline event handler 안에 JS 값 안전 삽입.
-// 사용: onclick="fn(${_jsAttr(x)})"
+// 사용: onclick="fn(${_jsAttr(x)})"  또는  data-args="${_jsAttr([x, y])}"
 // JSON.stringify → JS 안전 리터럴 (따옴표 포함) → _esc → HTML 속성 안전.
 // 결과: 외부 데이터에 ' " < > 들어와도 JS/HTML 둘 다 무해.
 function _jsAttr(v) { return _esc(JSON.stringify(v == null ? null : v)); }
+
+// ===== 글로벌 이벤트 위임 (data-action / data-args 패턴 처리) =====
+// inline onclick 대신 data-action="fnName" data-args="${_jsAttr([arg1, arg2])}" 사용 시
+// 이 핸들러가 자동으로 window[fnName](...args) 호출.
+// XSS 안전 (data-args 는 JSON.parse 만 거치고 함수 인자로 전달).
+if (!window.__spagenioActionDelegated) {
+  window.__spagenioActionDelegated = true;
+  document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.getAttribute('data-action');
+    if (!action) return;
+    let args = [];
+    const argsAttr = el.getAttribute('data-args');
+    if (argsAttr) {
+      try { args = JSON.parse(argsAttr); } catch (err) { return; }
+      if (!Array.isArray(args)) args = [args];
+    }
+    const fn = window[action];
+    if (typeof fn === 'function') {
+      try { fn.apply(null, args); } catch (err) { console.error('[data-action]', action, err); }
+    }
+  });
+}
 
 
 // 뒤로가기 금지는 login.html에서만 처리

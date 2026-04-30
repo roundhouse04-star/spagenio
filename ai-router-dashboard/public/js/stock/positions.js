@@ -54,7 +54,7 @@ async function loadPositions() {
       const plpc = parseFloat(p.unrealized_plpc) || 0;
       return `
             <tr>
-              <td><strong style="cursor:pointer;color:#6366f1;" onclick="showRealtimePrice(${_jsAttr(p.symbol)})">${p.symbol}</strong></td>
+              <td><strong style="cursor:pointer;color:#6366f1;" data-action="showRealtimePrice" data-args="${_jsAttr([p.symbol])}">${p.symbol}</strong></td>
               <td>${p.qty}주</td>
               <td>$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
               <td>$${parseFloat(p.current_price).toFixed(2)}</td>
@@ -63,7 +63,7 @@ async function loadPositions() {
                 ${pl >= 0 ? '+' : ''}$${pl.toFixed(2)}<br>
                 <small>(${plpc >= 0 ? '+' : ''}${(plpc * 100).toFixed(2)}%)</small>
               </td>
-              <td><button class="sp-btn sp-btn-outline sp-btn-sm" onclick="showRealtimePrice(${_jsAttr(p.symbol)})">📈 조회</button></td>
+              <td><button class="sp-btn sp-btn-outline sp-btn-sm" data-action="showRealtimePrice" data-args="${_jsAttr([p.symbol])}">📈 조회</button></td>
             </tr>`;
     }).join('')}
         </tbody>
@@ -132,7 +132,7 @@ window.showRealtimePrice = async function (symbol) {
         </div>
       </div>` : ''}
       <div style="margin-top:12px;text-align:right;">
-        <button onclick="showRealtimePrice(${_jsAttr(symbol)})" class="sp-btn sp-btn-outline sp-btn-sm" style="margin-right:8px;">🔄 새로고침</button>
+        <button data-action="showRealtimePrice" data-args="${_jsAttr([symbol])}" class="sp-btn sp-btn-outline sp-btn-sm" style="margin-right:8px;">🔄 새로고침</button>
         <button onclick="document.getElementById('realtimeModal').style.display='none'" class="sp-btn sp-btn-indigo sp-btn-sm">닫기</button>
       </div>`);
   } catch (e) {

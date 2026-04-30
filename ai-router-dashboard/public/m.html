@@ -25,6 +25,25 @@
       return /^https?:\/\//i.test(s) ? s : '';
     };
     window._jsAttr = function (v) { return window._esc(JSON.stringify(v == null ? null : v)); };
+    if (!window.__spagenioActionDelegated) {
+      window.__spagenioActionDelegated = true;
+      document.addEventListener('click', function (e) {
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        const action = el.getAttribute('data-action');
+        if (!action) return;
+        let args = [];
+        const argsAttr = el.getAttribute('data-args');
+        if (argsAttr) {
+          try { args = JSON.parse(argsAttr); } catch (err) { return; }
+          if (!Array.isArray(args)) args = [args];
+        }
+        const fn = window[action];
+        if (typeof fn === 'function') {
+          try { fn.apply(null, args); } catch (err) { console.error('[data-action]', action, err); }
+        }
+      });
+    }
   </script>
   <style>
     :root {

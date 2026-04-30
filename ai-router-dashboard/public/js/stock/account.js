@@ -93,7 +93,7 @@ async function loadPrices() {
       return;
     }
     priceCards.innerHTML = data.stocks.map(s => `
-      <div class="price-card" onclick="openChart(${_jsAttr(s.symbol)})" style="cursor:pointer;">
+      <div class="price-card" data-action="openChart" data-args="${_jsAttr([s.symbol])}" style="cursor:pointer;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <span class="symbol">${s.symbol}</span>
           <span style="font-size:0.7rem;color:#4B5563;">📈 차트</span>

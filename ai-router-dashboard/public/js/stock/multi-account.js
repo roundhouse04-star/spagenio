@@ -42,7 +42,7 @@ window.loadVolumeSurge = async function () {
             <div style="font-size:0.78rem;font-weight:700;padding:2px 8px;border-radius:999px;background:${changeBg};color:${changeColor};">
               ${s.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(s.change_pct)}%
             </div>
-            <button onclick="quickRiskCalc(${_jsAttr(s.symbol)})" style="margin-top:4px;padding:3px 8px;font-size:0.72rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
+            <button data-action="quickRiskCalc" data-args="${_jsAttr([s.symbol])}" style="margin-top:4px;padding:3px 8px;font-size:0.72rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
           </div>
         </div>`;
     }).join('');
@@ -192,7 +192,7 @@ window.loadTopPicks = async function () {
               <div style="font-size:0.78rem;font-weight:700;padding:2px 8px;border-radius:999px;background:${changeBg};color:${changeColor};">
                 ${p.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(p.change_pct)}%
               </div>
-              <button onclick="quickRiskCalc(${_jsAttr(p.symbol)})" style="margin-top:4px;padding:3px 8px;font-size:0.7rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
+              <button data-action="quickRiskCalc" data-args="${_jsAttr([p.symbol])}" style="margin-top:4px;padding:3px 8px;font-size:0.7rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
             </div>
           </div>`;
     }).join('')}`);
