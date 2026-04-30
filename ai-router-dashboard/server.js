@@ -632,12 +632,41 @@ if (!adminExists) {
 console.log('✅ SQLite DB 초기화 완료:', dbPath);
 
 // ============================================================
-// 공통 설정
+// 공통 설정 — secrets는 반드시 env 에서 로드. fallback 금지.
 // ============================================================
-const JWT_SECRET = process.env.JWT_SECRET || 'ai-router-secret-key-change-this';
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'ai-router-admin-secret-key-change-this';
+const _BANNED_DEFAULTS = new Set([
+  'ai-router-secret-key-change-this',
+  'ai-router-admin-secret-key-change-this',
+  'ai-router-encrypt-key-32chars!!',
+  'change-me', 'changeme', 'secret', 'password',
+]);
+
+function _requireSecret(name, { minLen = 32 } = {}) {
+  const v = process.env[name];
+  if (!v || v.length < minLen || _BANNED_DEFAULTS.has(v)) {
+    console.error(`\n❌ ${name} 환경변수가 누락되었거나 너무 짧습니다 (최소 ${minLen}자, 알려진 기본값 금지).`);
+    console.error(`   생성: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`);
+    console.error(`   .env 에 ${name}=<생성한 값> 추가 후 재시작하세요.\n`);
+    process.exit(1);
+  }
+  return v;
+}
+
+const JWT_SECRET = _requireSecret('JWT_SECRET');
+const ADMIN_JWT_SECRET = _requireSecret('ADMIN_JWT_SECRET');
+if (JWT_SECRET === ADMIN_JWT_SECRET) {
+  console.error('\n❌ JWT_SECRET 와 ADMIN_JWT_SECRET 는 서로 달라야 합니다.\n');
+  process.exit(1);
+}
 const JWT_EXPIRES = '24h';
-const ENCRYPT_KEY_BUF = Buffer.from((process.env.ENCRYPT_KEY || 'ai-router-encrypt-key-32chars!!').slice(0, 32).padEnd(32, '0'));
+
+const _ENCRYPT_KEY_RAW = _requireSecret('ENCRYPT_KEY');
+// AES-256: 정확히 32바이트 키. 사용자가 32자 이상이면 앞 32바이트 사용.
+const ENCRYPT_KEY_BUF = Buffer.from(_ENCRYPT_KEY_RAW.slice(0, 32));
+if (ENCRYPT_KEY_BUF.length < 32) {
+  console.error('\n❌ ENCRYPT_KEY 는 UTF-8 기준 32바이트 이상이어야 합니다.\n');
+  process.exit(1);
+}
 
 function encryptEmail(text) {
   const iv = crypto.randomBytes(16);
@@ -654,7 +683,6 @@ function decryptEmail(encrypted) {
 }
 
 const verifyCodeStore = new Map();
-const loginAttempts = new Map();
 
 // ============================================================
 // 에러 로그
@@ -812,15 +840,20 @@ function getUserAlpacaKeys(userId, accountId, accountType = null) {
 // 미들웨어
 // ============================================================
 app.disable('x-powered-by');
+// trust proxy 는 rate-limit 보다 먼저 등록해야 req.ip 가 X-Forwarded-For 를 반영함
+// (그래야 프록시 뒤에서 클라이언트별로 정확히 throttle 됨)
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 const globalLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, message: { error: '너무 많은 요청입니다.' }, handler: (req, res, next, options) => { const ip = req.ip; logger.warn('RATE_LIMIT_EXCEEDED', { ip, path: req.path }); saveAccessLog({ ip, method: req.method, path: req.path, statusCode: 429, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime: 0, eventType: 'rate_limit' }); res.status(429).json(options.message); } });
 const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: '로그인 시도가 너무 많습니다.' } });
+const passwordResetLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: '잠시 후 다시 시도해주세요.' } });
 
 app.use(globalLimit);
 app.use('/api/auth/login', authLimit);
 app.use('/api/auth/register', authLimit);
-app.set('trust proxy', 1);
+app.use('/api/auth/forgot-password', passwordResetLimit);
+app.use('/api/auth/send-email-code', passwordResetLimit);
 
 // m.spagenio.com → 모바일 페이지
 app.use((req, res, next) => {
@@ -891,7 +924,7 @@ app.use((req, res, next) => { requestStats.total += 1; res.setHeader('Cache-Cont
 // ============================================================
 // 라우트 연결
 // ============================================================
-const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
+const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
 const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus, lottoBuildGames, sendTelegramWithRetry };
 
 app.use('/api/auth', authRoutes(deps));
@@ -932,36 +965,39 @@ process.on('uncaughtException', (err) => {
   if (err.code === 'EPIPE' || err.message === 'write EPIPE') return;
   logger.error('UNCAUGHT_EXCEPTION', { error: err.message });
   saveErrorLog({ event_type: 'UNCAUGHT_EXCEPTION', error_message: err.message, stack_trace: err.stack });
+});
 
-  // ✅ 에러 로그 자동 정리 (매일 자정 — 30일 이상 된 .jsonl 삭제)
-  function cleanOldErrorLogs() {
-    try {
-      if (!fs.existsSync(errorLogDir)) return;
-      const files = fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl'));
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 30);
-      files.forEach(f => {
-        const dateStr = f.replace('.jsonl', '');
-        const fileDate = new Date(dateStr);
-        if (!isNaN(fileDate) && fileDate < cutoff) {
-          fs.unlinkSync(path.join(errorLogDir, f));
-          logger.info('ERROR_LOG_CLEANED', { file: f });
-        }
-      });
-    } catch (e) {
-      logger.error('ERROR_LOG_CLEAN_FAIL', { error: e.message });
-    }
+// ✅ 에러 로그 자동 정리 (매일 자정 — 30일 이상 된 .jsonl 삭제)
+// uncaughtException 안에 있던 코드를 밖으로 빼냄. 이전엔 크래시 후에만 실행됐음.
+function cleanOldErrorLogs() {
+  try {
+    if (!fs.existsSync(errorLogDir)) return;
+    const files = fs.readdirSync(errorLogDir).filter(f => f.endsWith('.jsonl'));
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    files.forEach(f => {
+      const dateStr = f.replace('.jsonl', '');
+      const fileDate = new Date(dateStr);
+      if (!isNaN(fileDate) && fileDate < cutoff) {
+        fs.unlinkSync(path.join(errorLogDir, f));
+        logger.info('ERROR_LOG_CLEANED', { file: f });
+      }
+    });
+  } catch (e) {
+    logger.error('ERROR_LOG_CLEAN_FAIL', { error: e.message });
   }
+}
 
-  // 서버 시작 시 1회 + 매일 자정 실행
-  cleanOldErrorLogs();
+// 서버 시작 시 1회 + 매일 자정 실행
+cleanOldErrorLogs();
+{
   const now = new Date();
   const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
   setTimeout(() => {
     cleanOldErrorLogs();
     setInterval(cleanOldErrorLogs, 24 * 60 * 60 * 1000);
   }, msUntilMidnight);
-});
+}
 
 // ============================================================
 // 텔레그램 발송 공통 헬퍼 (재시도 큐 연동)
@@ -976,16 +1012,36 @@ function isPermanentTelegramError(description, errorCode) {
   return false;
 }
 
-// 텔레그램 발송 시도 (curl 기반) — 실패 시 재시도 큐에 등록
+// 텔레그램 봇 토큰 형식 (digits:base62-with-_-). shell-injection 방지용 검증.
+const TELEGRAM_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
+
+async function telegramSendMessage(token, chatId, text, parseMode = 'Markdown', timeoutMs = 15000) {
+  if (!TELEGRAM_TOKEN_RE.test(String(token || ''))) {
+    return { ok: false, description: 'invalid bot token format', error_code: 0 };
+  }
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode }),
+      signal: ac.signal,
+    });
+    return await resp.json();
+  } catch (e) {
+    return { ok: false, description: e.message, error_code: 0 };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 텔레그램 발송 시도 (native fetch) — 실패 시 재시도 큐에 등록
 // options: { type: 'auto'|'prediction'|'manual', prediction_ids: [1,2,3] }
 async function sendTelegramWithRetry({ chatId, token, message, parseMode = 'Markdown', type = 'manual', prediction_ids = null }) {
   if (!token || !chatId) return { ok: false, error: 'no token or chat_id', permanent: true };
   try {
-    const { execSync } = await import('child_process');
-    const bodyStr = JSON.stringify({ chat_id: chatId, text: message, parse_mode: parseMode });
-    const curlCmd = `curl -s -X POST https://api.telegram.org/bot${token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
-    const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
-    const data = JSON.parse(result);
+    const data = await telegramSendMessage(token, chatId, message, parseMode);
     if (data.ok) {
       // 성공 → prediction_ids 있으면 telegram_sent=1 업데이트
       if (prediction_ids && prediction_ids.length > 0) {
@@ -1028,13 +1084,9 @@ setInterval(async () => {
     const due = db.prepare(`SELECT * FROM lotto_send_retry WHERE status='pending' AND datetime(next_retry_at) <= datetime('now','localtime') LIMIT 20`).all();
     if (!due.length) return;
 
-    const { execSync } = await import('child_process');
     for (const item of due) {
       try {
-        const bodyStr = JSON.stringify({ chat_id: item.chat_id, text: item.message, parse_mode: 'Markdown' });
-        const curlCmd = `curl -s -X POST https://api.telegram.org/bot${item.bot_token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
-        const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
-        const data = JSON.parse(result);
+        const data = await telegramSendMessage(item.bot_token, item.chat_id, item.message, 'Markdown');
         if (data.ok) {
           // 성공
           db.prepare(`UPDATE lotto_send_retry SET status='success', updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(item.id);
@@ -1081,13 +1133,22 @@ setInterval(async () => {
 // lotto_schedule_log의 오늘 'send' 기록으로 중복 방지 →
 // 서버가 죽어있던 시간대 미발송분도 재시작 후 자동 캐치업
 // ============================================================
+// 서버 TZ 와 무관하게 한국 표준시 (Asia/Seoul) 기준의 시각/요일/날짜 추출
+function getKstClock(d = new Date()) {
+  const tz = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const yyyy = tz.getFullYear();
+  const mm = String(tz.getMonth() + 1).padStart(2, '0');
+  const dd = String(tz.getDate()).padStart(2, '0');
+  return { hour: tz.getHours(), minute: tz.getMinutes(), day: tz.getDay(), date: `${yyyy}-${mm}-${dd}` };
+}
+
 async function lottoCheckAndSendSchedules() {
   try {
     if (!isSchedulerEnabled('lotto_send')) return;
-    const now = new Date();
     updateSchedulerRun('lotto_send');
-    const currentHour = now.getHours(), currentDay = now.getDay(), today = now.toISOString().split('T')[0];
-    if (currentDay === 6 && currentHour >= 20) return;  // 토요일 20시 이후 판매 마감
+    const kst = getKstClock();
+    const currentHour = kst.hour, currentDay = kst.day, today = kst.date;
+    if (currentDay === 6 && currentHour >= 20) return;  // 토요일 20시 이후 판매 마감 (KST)
 
     // hour <= currentHour: 현재 시각까지의 모든 예정 스케줄 조회
     // (이미 발송된 것은 log 체크에서 걸러짐)
@@ -1174,110 +1235,8 @@ const DOW30 = [
   'MSFT', 'NKE', 'PG', 'TRV', 'UNH', 'V', 'VZ', 'WBA', 'WMT', 'INTC'
 ];
 
-// ============================================================
-// 거래량 급등 감지 (평소 대비 2배 이상)
-// ============================================================
-async function detectVolumeSurge(symbols, alpacaKeys = null) {
-  const headers = alpacaKeys
-    ? { 'APCA-API-KEY-ID': alpacaKeys.api_key, 'APCA-API-SECRET-KEY': alpacaKeys.secret_key }
-    : {};
-  const results = [];
-  const end = new Date().toISOString().split('T')[0];
-  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-  await Promise.allSettled(symbols.map(async (symbol) => {
-    try {
-      const resp = await fetch(`https://data.alpaca.markets/v2/stocks/${symbol}/bars?timeframe=1Day&start=${start}&end=${end}&limit=30`, { headers });
-      const json = await resp.json();
-      const bars = json.bars || [];
-      if (bars.length < 10) return;
-      const volumes = bars.map(b => b.v);
-      const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
-      const todayVolume = volumes[volumes.length - 1];
-      const ratio = todayVolume / avgVolume;
-      const closes = bars.map(b => b.c);
-      const change_pct = ((closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2]) * 100;
-      if (ratio >= 1.5) {
-        results.push({
-          symbol,
-          today_volume: todayVolume,
-          avg_volume: Math.round(avgVolume),
-          volume_ratio: parseFloat(ratio.toFixed(2)),
-          price: closes[closes.length - 1],
-          change_pct: parseFloat(change_pct.toFixed(2)),
-          surge_level: ratio >= 3 ? 'extreme' : ratio >= 2 ? 'high' : 'moderate'
-        });
-      }
-    } catch (e) { }
-  }));
-
-  return results.sort((a, b) => b.volume_ratio - a.volume_ratio);
-}
-
-// ============================================================
-// 뉴스 촉매 탐지 (RSS 기반)
-// ============================================================
-async function detectNewsCatalyst(symbols) {
-  const catalysts = [];
-  try {
-    const rssRows = db.prepare("SELECT url FROM rss_sources WHERE enabled=1 LIMIT 5").all();
-    const newsItems = [];
-
-    await Promise.allSettled(rssRows.map(async (row) => {
-      try {
-        const resp = await fetch(row.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(5000)
-        });
-        const text = await resp.text();
-        const items = [...text.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
-        items.slice(0, 10).forEach(m => {
-          const title = (m[1].match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/i) || m[1].match(/<title>(.*?)<\/title>/i) || [])[1] || '';
-          const pub = (m[1].match(/<pubDate>(.*?)<\/pubDate>/i) || [])[1] || '';
-          const link = (m[1].match(/<link>(.*?)<\/link>/i) || [])[1] || '';
-          if (title) newsItems.push({ title, pub, link });
-        });
-      } catch (e) { }
-    }));
-
-    // 종목명이 뉴스 제목에 포함된 것만 필터
-    symbols.forEach(symbol => {
-      const matched = newsItems.filter(n =>
-        n.title.toUpperCase().includes(symbol.toUpperCase()) ||
-        n.title.includes(symbol)
-      );
-      if (matched.length > 0) {
-        catalysts.push({
-          symbol,
-          news_count: matched.length,
-          latest_title: matched[0].title,
-          latest_time: matched[0].pub,
-          link: matched[0].link
-        });
-      }
-    });
-  } catch (e) { }
-  return catalysts;
-}
-
-// ============================================================
-// 리스크 계산 (계좌 잔고의 1~2% 룰)
-// ============================================================
-function calcRiskPosition(accountBalance, price, stopLossPct = 0.05, riskRatio = 0.02) {
-  const riskAmount = accountBalance * riskRatio; // 계좌의 2%
-  const stopLossAmount = price * stopLossPct;    // 주당 손실금액
-  const qty = Math.floor(riskAmount / stopLossAmount);
-  const totalCost = qty * price;
-  const actualRiskPct = (qty * stopLossAmount / accountBalance) * 100;
-  return {
-    qty: Math.max(qty, 0),
-    total_cost: parseFloat(totalCost.toFixed(2)),
-    risk_amount: parseFloat((qty * stopLossAmount).toFixed(2)),
-    risk_pct: parseFloat(actualRiskPct.toFixed(2)),
-    stop_price: parseFloat((price * (1 - stopLossPct)).toFixed(2)),
-    take_profit_price: parseFloat((price * (1 + stopLossPct * 2)).toFixed(2)) // 2:1 RR
-  };
-}
+// 참고: detectVolumeSurge / detectNewsCatalyst / calcRiskPosition 은
+// routes/front.js 에 동일/개선 구현이 존재하여 중복본을 제거함.
 
 async function getNasdaqTop3(signalMode = 'combined', alpacaKeys = null, market = 'nasdaq') {
   const results = [];

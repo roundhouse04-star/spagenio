@@ -230,7 +230,29 @@ ALPACA_SECRET_KEY = os.environ.get('ALPACA_SECRET_KEY', '')
 DB_PATH = os.path.join(os.path.dirname(__file__), 'stock.db')
 
 app = Flask(__name__)
-CORS(app)
+
+# CORS: 대시보드(Express) origin만 허용. 환경변수로 override 가능.
+_cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGIN', 'http://localhost:3000').split(',') if o.strip()]
+CORS(app, origins=_cors_origins)
+
+# 내부 호출 토큰 (Node 대시보드 → Python 서비스). 비어있으면 mutating 엔드포인트 차단.
+INTERNAL_API_TOKEN = os.environ.get('INTERNAL_API_TOKEN', '')
+
+# 1회 주문 최대 수량 한도 (사고 방지).
+MAX_ORDER_QTY = int(os.environ.get('MAX_ORDER_QTY', '10'))
+
+
+def require_internal_token(f):
+    """mutating 엔드포인트 보호: X-Internal-Token 헤더 검증."""
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not INTERNAL_API_TOKEN:
+            return jsonify({'error': 'INTERNAL_API_TOKEN not configured on server'}), 503
+        if request.headers.get('X-Internal-Token') != INTERNAL_API_TOKEN:
+            return jsonify({'error': 'forbidden'}), 403
+        return f(*args, **kwargs)
+    return wrapper
 
 # ============================================================
 # 메모리 캐시 (30분 TTL — DB 저장 없음, 서버 재시작 시 초기화)
@@ -1101,16 +1123,22 @@ def kr_history():
 
 
 @app.route('/api/quant/trade', methods=['POST'])
+@require_internal_token
 def trade():
     """퀀트 신호 기반 매매 실행"""
-    data = request.json
-    symbol = data.get('symbol')
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get('symbol') or '').strip().upper()
     signal = data.get('signal')  # buy or sell
     strategy = data.get('strategy', 'manual')
-    qty = int(data.get('qty', 1))
+    try:
+        qty = int(data.get('qty', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'qty must be integer'}), 400
 
     if not symbol or signal not in ['buy', 'sell']:
         return jsonify({'error': '종목 또는 신호 오류'}), 400
+    if qty <= 0 or qty > MAX_ORDER_QTY:
+        return jsonify({'error': f'qty out of range (1..{MAX_ORDER_QTY})'}), 400
 
     # 자동 분석 후 매매
     analysis = analyze_combined(symbol)
@@ -1137,12 +1165,18 @@ def trade_log():
 
 
 @app.route('/api/quant/auto', methods=['POST'])
+@require_internal_token
 def auto_trade():
     """자동매매 - 분석 후 신호에 따라 자동 주문"""
-    data = request.json
-    symbol = data.get('symbol', 'QQQ')
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get('symbol') or 'QQQ').strip().upper()
     strategy = data.get('strategy', 'combined')
-    qty = int(data.get('qty', 1))
+    try:
+        qty = int(data.get('qty', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'qty must be integer'}), 400
+    if qty <= 0 or qty > MAX_ORDER_QTY:
+        return jsonify({'error': f'qty out of range (1..{MAX_ORDER_QTY})'}), 400
     threshold = float(data.get('threshold', 0.3))  # 최소 신호 강도
 
     # 분석
@@ -1780,5 +1814,9 @@ if __name__ == '__main__':
     print(f"   yfinance: {'✅' if YFINANCE_OK else '❌'}")
     print(f"   pykrx:    {'✅' if PYKRX_OK else '❌'}")
     print(f"   alpaca:   {'✅' if ALPACA_OK else '❌'}")
-    app.run(host='0.0.0.0', port=5002, debug=False)
+    # 외부 노출 금지: Node 대시보드(localhost)에서만 접근.
+    # 별도 호스트에 띄우려면 PYTHON_HOST=0.0.0.0 + 방화벽 + INTERNAL_API_TOKEN 필수.
+    _host = os.environ.get('PYTHON_HOST', '127.0.0.1')
+    _port = int(os.environ.get('QUANT_PORT', '5002'))
+    app.run(host=_host, port=_port, debug=False)
     

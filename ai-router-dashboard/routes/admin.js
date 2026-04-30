@@ -4,6 +4,13 @@ const router = express.Router();
 
 export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, logger, decryptEmail, saveErrorLog, errorLogDir, fs, logClients, __dirname }) {
 
+  // 슈퍼관리자 판정 — admin_roles seed 가 'superadmin' / 'manager' 두 종류
+  const isSuperadmin = (u) => !!u?.is_admin && u.role_name === 'superadmin';
+  const requireSuperadmin = (req, res, next) => {
+    if (!isSuperadmin(req.user)) return res.status(403).json({ error: '슈퍼관리자 권한이 필요합니다.' });
+    next();
+  };
+
   // ✅ 어드민 페이지
   router.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
   router.get('/admin-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-login.html')));
@@ -30,30 +37,33 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     res.json({ ok: true });
   });
 
-  // ✅ 가입자 삭제
+  // ✅ 가입자 삭제 (스키마 드리프트 안전: 존재하는 테이블만 삭제)
   router.delete('/api/admin/users/:id', (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
-    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(req.params.id);
+    const targetId = parseInt(req.params.id);
+    if (!Number.isFinite(targetId) || targetId <= 0) return res.status(400).json({ error: 'invalid id' });
+
+    const user = db.prepare('SELECT username FROM users WHERE id = ?').get(targetId);
     if (!user) return res.status(404).json({ error: '사용자 없음' });
-    if (user.is_admin) return res.status(400).json({ error: '관리자는 삭제할 수 없습니다.' });
-    const uid = parseInt(req.params.id);
-    // 연관 데이터 전체 삭제 (트랜잭션)
+    // users 테이블에는 is_admin 컬럼이 없음. admins 테이블 cross-check 로 보호.
+    const adminMirror = db.prepare('SELECT id FROM admins WHERE username=?').get(user.username);
+    if (adminMirror) return res.status(400).json({ error: '관리자 계정은 삭제할 수 없습니다. 관리자 메뉴에서 처리하세요.' });
+
+    const candidateTables = [
+      'lotto_picks', 'lotto_schedule', 'lotto_schedule_log', 'lotto_algorithm_weights',
+      'user_telegram', 'user_broker_keys', 'terms_agreements',
+      'auto_trade_settings', 'auto_trade_log', 'auto_strategy_settings',
+      'trade_setting_type3', 'trade_setting_type4',
+      'portfolio_performance', 'backtest_results', 'telegram_alert_log', 'quant_analysis_log',
+    ];
+    const existing = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name));
+    const tablesToClear = candidateTables.filter(t => existing.has(t));
+
     const deleteAll = db.transaction(() => {
-      db.prepare('DELETE FROM lotto_picks WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM lotto_schedule WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM lotto_schedule_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM lotto_algorithm_weights WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM user_telegram WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM user_broker_keys WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM terms_agreements WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM trade_setting_type4 WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM auto_trade_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM trade_setting_type3 WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM portfolio_performance WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM backtest_results WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM telegram_alert_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM quant_analysis_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM users WHERE id=?').run(uid);
+      for (const t of tablesToClear) {
+        db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(targetId);
+      }
+      db.prepare('DELETE FROM users WHERE id=?').run(targetId);
     });
     deleteAll();
     logger.warn('USER_DELETED', { adminId: req.user.id, deletedUsername: user.username });
@@ -93,33 +103,28 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json(stats);
   });
 
-  // ✅ 접속 로그 조회
+  // ✅ 접속 로그 조회 — limit/page 정수+범위 클램프 (NaN/거대값 방지)
   router.get('/api/admin/logs', (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
-    const { type, limit = 100, page = 1 } = req.query;
+    const { type } = req.query;
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 200);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
     const offset = (page - 1) * limit;
     let query = 'SELECT * FROM access_logs WHERE 1=1';
     const params = [];
     if (type && type !== 'all') { query += ' AND event_type = ?'; params.push(type); }
     query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-    params.push(Number(limit), Number(offset));
+    params.push(limit, offset);
     const logs = db.prepare(query).all(...params);
     const total = db.prepare('SELECT COUNT(*) as cnt FROM access_logs' + (type && type !== 'all' ? ' WHERE event_type = ?' : '')).get(...(type && type !== 'all' ? [type] : []));
-    return res.json({ logs, total: total.cnt, page: Number(page), limit: Number(limit) });
+    return res.json({ logs, total: total.cnt, page, limit });
   });
 
-  // ✅ 실시간 로그 SSE
+  // ✅ 실시간 로그 SSE — authMiddleware 가 cookie(auth_token)/Bearer 로 인증.
+  // 쿼리 토큰은 access_logs/브라우저 히스토리/프록시 로그에 누출되어 폐기.
+  // 클라이언트는 same-origin EventSource 로 호출 → httpOnly auth_token 쿠키 자동 송신.
   router.get('/api/admin/logs/stream', (req, res) => {
-    const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).end();
-    try {
-      // ADMIN_JWT_SECRET으로 먼저 검증, 실패 시 JWT_SECRET 시도
-      let decoded;
-      try { decoded = jwt.verify(token, ADMIN_JWT_SECRET); }
-      catch(e) { decoded = jwt.verify(token, JWT_SECRET); }
-      const streamUser = db.prepare('SELECT a.id, 1 as is_admin FROM admins a WHERE a.id=? AND a.is_active=1').get(decoded.id);
-      if (!streamUser?.is_admin) return res.status(403).end();
-    } catch (e) { return res.status(401).end(); }
+    if (!req.user?.is_admin) return res.status(403).end();
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -156,13 +161,15 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json({ requests: rows });
   });
 
-  // ✅ 임시 비밀번호 발급
-  router.post('/api/admin/reset-password', (req, res) => {
+  // ✅ 임시 비밀번호 발급 — crypto.randomBytes 사용 (Math.random 폐기)
+  router.post('/api/admin/reset-password', async (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const { request_id } = req.body;
     const request = db.prepare('SELECT * FROM password_reset_requests WHERE id = ?').get(request_id);
     if (!request) return res.status(404).json({ error: '요청을 찾을 수 없습니다.' });
-    const tempPassword = Math.random().toString(36).substring(2, 10) + '!A1';
+    const crypto = await import('crypto');
+    const raw = crypto.randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 10);
+    const tempPassword = raw + 'A1!';
     const hash = bcrypt.hashSync(tempPassword, 12);
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, request.user_id);
     db.prepare("UPDATE password_reset_requests SET status = 'done', temp_password = ? WHERE id = ?").run(tempPassword, request_id);
@@ -202,19 +209,56 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json({ status: 'ok' });
   });
 
+  // SSRF 가드: scheme 제한 + private/loopback/metadata 호스트 차단
+  // (cloud metadata 169.254.169.254, 10.x, 172.16-31.x, 192.168.x, 127.x, ::1, localhost 등)
+  function isSsrfBlocked(urlString) {
+    let u;
+    try { u = new URL(urlString); } catch { return '잘못된 URL'; }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'http(s) 만 허용';
+    const host = u.hostname.toLowerCase();
+    if (!host) return 'host 없음';
+    // 호스트네임 기반 차단
+    const blockedNames = ['localhost', 'localhost.localdomain', 'ip6-localhost', 'metadata.google.internal'];
+    if (blockedNames.includes(host)) return 'private/loopback host';
+    // IPv4 리터럴 검사
+    const m = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (m) {
+      const [a, b] = [parseInt(m[1]), parseInt(m[2])];
+      if (a === 10) return 'private network';
+      if (a === 127) return 'loopback';
+      if (a === 169 && b === 254) return 'link-local / metadata';
+      if (a === 172 && b >= 16 && b <= 31) return 'private network';
+      if (a === 192 && b === 168) return 'private network';
+      if (a === 0) return 'reserved';
+      if (a >= 224) return 'multicast/reserved';
+    }
+    // IPv6 리터럴 (간이): :: / fc / fd / fe80 prefix
+    if (host.includes(':')) {
+      const v6 = host.replace(/^\[|\]$/g, '').toLowerCase();
+      if (v6 === '::1' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80:') || v6.startsWith('::ffff:127.')) return 'IPv6 private/loopback';
+    }
+    return null;
+  }
+
   // ✅ RSS 수집 테스트
   router.get('/api/admin/rss/test', async (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
     const sources = db.prepare('SELECT * FROM rss_sources WHERE enabled = 1').all();
     const results = await Promise.allSettled(sources.map(async (s) => {
+      const blocked = isSsrfBlocked(s.url);
+      if (blocked) return { name: s.name, url: s.url, success: false, error: `차단된 호스트 (${blocked})` };
       try {
         const response = await fetch(s.url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/rss+xml, application/xml, text/xml, */*'
           },
+          redirect: 'manual', // 리다이렉트로 SSRF 우회 차단 (개별 검증 필요 시 추후 확장)
           signal: AbortSignal.timeout(12000)
         });
+        if (response.status >= 300 && response.status < 400) {
+          return { name: s.name, url: s.url, success: false, error: `redirect ${response.status} 차단` };
+        }
         const xml = await response.text();
         const count = (xml.match(/<item>/g) || []).length;
         if (count === 0) throw new Error('아이템 없음 (차단 또는 빈 피드)');
@@ -284,9 +328,8 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json({ admins });
   });
 
-  // 관리자 등록
-  router.post('/api/admin/admins', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+  // 관리자 등록 — superadmin 만
+  router.post('/api/admin/admins', requireSuperadmin, (req, res) => {
     const { username, password, email, role_id } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'username, password 필수' });
     const existing = db.prepare('SELECT id FROM admins WHERE username=?').get(username);
@@ -299,27 +342,72 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     const result = db.prepare('INSERT INTO admins (username, password_hash, email, role_id) VALUES (?,?,?,?)').run(username, hash, email || null, role_id || 1);
     // users 테이블에도 자동 등록 (created_type=1: 관리자생성, 일반 로그인 불가)
     const userResult = db.prepare('INSERT OR IGNORE INTO users (username, password_hash, email, created_type) VALUES (?,?,?,?)').run(username, hash, email || null, 1);
+    logger.warn('ADMIN_CREATED', { actorId: req.user.id, createdUsername: username });
     return res.json({ ok: true, id: result.lastInsertRowid, user_id: userResult.lastInsertRowid });
   });
 
-  // 관리자 수정
-  router.put('/api/admin/admins/:id', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
-    const { email, role_id, is_active, password } = req.body;
-    const admin = db.prepare('SELECT * FROM admins WHERE id=?').get(req.params.id);
+  // 관리자 수정 — superadmin 만 + 본인 비번 변경 시 current_password 검증.
+  // 다른 admin 의 password 직접 변경은 별도 superadmin-reset 엔드포인트로 분리.
+  router.put('/api/admin/admins/:id', requireSuperadmin, (req, res) => {
+    const { email, role_id, is_active, password, current_password } = req.body;
+    const targetId = parseInt(req.params.id);
+    if (!Number.isFinite(targetId)) return res.status(400).json({ error: 'invalid id' });
+    const admin = db.prepare('SELECT * FROM admins WHERE id=?').get(targetId);
     if (!admin) return res.status(404).json({ error: '관리자 없음' });
+
     if (password) {
-      db.prepare('UPDATE admins SET password_hash=? WHERE id=?').run(bcrypt.hashSync(password, 12), req.params.id);
+      // 본인 계정만 직접 비번 변경 허용. 그 외 superadmin 도 reset 엔드포인트 거쳐야 함 (감사 로그 남김).
+      if (targetId !== req.user.id) {
+        return res.status(403).json({ error: '다른 관리자의 비번은 reset 엔드포인트로 변경하세요.' });
+      }
+      // 본인 비번 변경: current_password 검증 필수
+      if (!current_password || !bcrypt.compareSync(current_password, admin.password_hash)) {
+        return res.status(401).json({ error: '현재 비밀번호가 올바르지 않습니다.' });
+      }
+      db.prepare('UPDATE admins SET password_hash=? WHERE id=?').run(bcrypt.hashSync(password, 12), targetId);
+      logger.warn('ADMIN_PASSWORD_CHANGED_SELF', { adminId: targetId });
     }
-    db.prepare('UPDATE admins SET email=?, role_id=?, is_active=? WHERE id=?').run(email ?? admin.email, role_id ?? admin.role_id, is_active ?? admin.is_active, req.params.id);
+
+    // role_id / is_active 변경: 본인이 본인을 강등하거나 비활성화하지 못하도록 차단
+    let nextRoleId = role_id ?? admin.role_id;
+    let nextActive = is_active ?? admin.is_active;
+    if (targetId === req.user.id && (Number(nextActive) === 0 || nextRoleId !== admin.role_id)) {
+      return res.status(400).json({ error: '본인의 role/활성 상태는 변경할 수 없습니다.' });
+    }
+
+    db.prepare('UPDATE admins SET email=?, role_id=?, is_active=? WHERE id=?')
+      .run(email ?? admin.email, nextRoleId, nextActive, targetId);
     return res.json({ ok: true });
   });
 
-  // 관리자 삭제
-  router.delete('/api/admin/admins/:id', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
-    if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ error: '본인 계정은 삭제할 수 없습니다.' });
-    db.prepare('DELETE FROM admins WHERE id=?').run(req.params.id);
+  // 다른 관리자의 비번 강제 리셋 — superadmin 전용 (감사 로그 + 임시비번 발급)
+  router.post('/api/admin/admins/:id/reset-password', requireSuperadmin, async (req, res) => {
+    const targetId = parseInt(req.params.id);
+    if (!Number.isFinite(targetId)) return res.status(400).json({ error: 'invalid id' });
+    if (targetId === req.user.id) return res.status(400).json({ error: '본인 비번은 일반 변경 절차로 변경하세요.' });
+    const admin = db.prepare('SELECT id, username FROM admins WHERE id=?').get(targetId);
+    if (!admin) return res.status(404).json({ error: '관리자 없음' });
+    const crypto = await import('crypto');
+    const raw = crypto.randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 10);
+    const tempPassword = raw + 'A1!';
+    db.prepare('UPDATE admins SET password_hash=? WHERE id=?').run(bcrypt.hashSync(tempPassword, 12), targetId);
+    logger.warn('ADMIN_PASSWORD_RESET_BY_SUPER', { actorId: req.user.id, targetId, targetUsername: admin.username });
+    return res.json({ ok: true, username: admin.username, temp_password: tempPassword });
+  });
+
+  // 관리자 삭제 — superadmin 만, 본인 계정 차단, 마지막 superadmin 보호
+  router.delete('/api/admin/admins/:id', requireSuperadmin, (req, res) => {
+    const targetId = parseInt(req.params.id);
+    if (!Number.isFinite(targetId)) return res.status(400).json({ error: 'invalid id' });
+    if (targetId === req.user.id) return res.status(400).json({ error: '본인 계정은 삭제할 수 없습니다.' });
+    const admin = db.prepare('SELECT a.id, a.username, r.role_name FROM admins a LEFT JOIN admin_roles r ON a.role_id=r.id WHERE a.id=?').get(targetId);
+    if (!admin) return res.status(404).json({ error: '관리자 없음' });
+    if (admin.role_name === 'superadmin') {
+      const remaining = db.prepare(`SELECT COUNT(*) AS c FROM admins a JOIN admin_roles r ON a.role_id=r.id WHERE r.role_name='superadmin' AND a.is_active=1`).get();
+      if (remaining.c <= 1) return res.status(400).json({ error: '마지막 슈퍼관리자는 삭제할 수 없습니다.' });
+    }
+    db.prepare('DELETE FROM admins WHERE id=?').run(targetId);
+    logger.warn('ADMIN_DELETED', { actorId: req.user.id, deletedId: targetId, deletedUsername: admin.username });
     return res.json({ ok: true });
   });
 
@@ -330,9 +418,8 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     return res.json({ roles });
   });
 
-  // 관리자 롤 추가
-  router.post('/api/admin/roles', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+  // 관리자 롤 추가 — superadmin 만
+  router.post('/api/admin/roles', requireSuperadmin, (req, res) => {
     const { role_name, description } = req.body;
     if (!role_name) return res.status(400).json({ error: 'role_name 필수' });
     try {
@@ -343,9 +430,11 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     }
   });
 
-  // 관리자 롤 삭제
-  router.delete('/api/admin/roles/:id', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
+  // 관리자 롤 삭제 — superadmin 만, 'superadmin' role 자체는 삭제 차단
+  router.delete('/api/admin/roles/:id', requireSuperadmin, (req, res) => {
+    const role = db.prepare('SELECT role_name FROM admin_roles WHERE id=?').get(req.params.id);
+    if (!role) return res.status(404).json({ error: '롤 없음' });
+    if (role.role_name === 'superadmin') return res.status(400).json({ error: '슈퍼관리자 롤은 삭제할 수 없습니다.' });
     const used = db.prepare('SELECT id FROM admins WHERE role_id=?').get(req.params.id);
     if (used) return res.status(400).json({ error: '사용 중인 롤은 삭제할 수 없습니다.' });
     db.prepare('DELETE FROM admin_roles WHERE id=?').run(req.params.id);
@@ -375,15 +464,6 @@ export default function adminRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SEC
     params.push(req.params.key);
     db.prepare(`UPDATE schedulers SET ${updates.join(',')} WHERE key=?`).run(...params);
     res.json({ ok: true });
-  });
-
-  // ===== 스케줄러 관리 API =====
-
-  // 스케줄러 목록 조회
-  router.get('/api/admin/schedulers', (req, res) => {
-    if (!req.user.is_admin) return res.status(403).json({ error: '권한 없음' });
-    const schedulers = db.prepare('SELECT * FROM schedulers ORDER BY id').all();
-    res.json({ ok: true, schedulers });
   });
 
   // 스케줄러 ON/OFF

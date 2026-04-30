@@ -87,15 +87,43 @@ except ImportError:
     ALPACA_AVAILABLE = False
 
 app = Flask(__name__)
-CORS(app)
 
-ALPACA_API_KEY = 'PKNSYVAVTRCTHC675277MT7WLU'
-ALPACA_SECRET_KEY = 'E4MZhS8ju6QdCrZBaBgsYw2xc7YrKvdQiTeKCC9vYE3C'
+# CORS: 대시보드(Express) origin만 허용. 환경변수로 override 가능.
+# 기본: http://localhost:3000  /  여러 개는 콤마로 분리
+_cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGIN', 'http://localhost:3000').split(',') if o.strip()]
+CORS(app, origins=_cors_origins)
+
+# Alpaca 자격증명: 반드시 환경변수에서만 로드. 하드코딩 금지.
+ALPACA_API_KEY    = os.environ.get('ALPACA_API_KEY', '')
+ALPACA_SECRET_KEY = os.environ.get('ALPACA_SECRET_KEY', '')
+ALPACA_PAPER      = os.environ.get('ALPACA_PAPER', 'true').lower() == 'true'
+
+# 내부 호출 토큰 (Node 대시보드 → Python 서비스). 비어있으면 mutating 엔드포인트 차단.
+INTERNAL_API_TOKEN = os.environ.get('INTERNAL_API_TOKEN', '')
+
+# 1회 주문 최대 수량 한도 (사고 방지). 환경변수로 조정.
+MAX_ORDER_QTY = int(os.environ.get('MAX_ORDER_QTY', '10'))
+
 
 def get_alpaca_client():
     if not ALPACA_AVAILABLE:
         return None
-    return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=True)
+    if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
+        return None
+    return TradingClient(ALPACA_API_KEY, ALPACA_SECRET_KEY, paper=ALPACA_PAPER)
+
+
+def require_internal_token(f):
+    """mutating 엔드포인트 보호: X-Internal-Token 헤더 검증."""
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not INTERNAL_API_TOKEN:
+            return jsonify({'error': 'INTERNAL_API_TOKEN not configured on server'}), 503
+        if request.headers.get('X-Internal-Token') != INTERNAL_API_TOKEN:
+            return jsonify({'error': 'forbidden'}), 403
+        return f(*args, **kwargs)
+    return wrapper
 
 
 import math as _math
@@ -239,12 +267,22 @@ def get_positions():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/alpaca/buy', methods=['POST'])
+@require_internal_token
 def buy_stock():
-    data = request.json
-    symbol = data.get('symbol')
-    qty = data.get('qty', 1)
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get('symbol') or '').strip().upper()
     try:
-        api = get_alpaca_client()
+        qty = int(data.get('qty', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'qty must be integer'}), 400
+    if not symbol:
+        return jsonify({'error': 'symbol required'}), 400
+    if qty <= 0 or qty > MAX_ORDER_QTY:
+        return jsonify({'error': f'qty out of range (1..{MAX_ORDER_QTY})'}), 400
+    api = get_alpaca_client()
+    if not api:
+        return jsonify({'error': 'Alpaca client not configured'}), 503
+    try:
         order_data = MarketOrderRequest(symbol=symbol, qty=qty, side=OrderSide.BUY, time_in_force=TimeInForce.GTC)
         order = api.submit_order(order_data)
         return jsonify({'status': 'success', 'order_id': str(order.id), 'symbol': symbol, 'qty': qty, 'side': 'buy'})
@@ -252,12 +290,22 @@ def buy_stock():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/alpaca/sell', methods=['POST'])
+@require_internal_token
 def sell_stock():
-    data = request.json
-    symbol = data.get('symbol')
-    qty = data.get('qty', 1)
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get('symbol') or '').strip().upper()
     try:
-        api = get_alpaca_client()
+        qty = int(data.get('qty', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'qty must be integer'}), 400
+    if not symbol:
+        return jsonify({'error': 'symbol required'}), 400
+    if qty <= 0 or qty > MAX_ORDER_QTY:
+        return jsonify({'error': f'qty out of range (1..{MAX_ORDER_QTY})'}), 400
+    api = get_alpaca_client()
+    if not api:
+        return jsonify({'error': 'Alpaca client not configured'}), 503
+    try:
         order_data = MarketOrderRequest(symbol=symbol, qty=qty, side=OrderSide.SELL, time_in_force=TimeInForce.GTC)
         order = api.submit_order(order_data)
         return jsonify({'status': 'success', 'order_id': str(order.id), 'symbol': symbol, 'qty': qty, 'side': 'sell'})
@@ -581,7 +629,11 @@ if __name__ == '__main__':
     init_stock_price_db()
     # 스케줄러 백그라운드 실행
     threading.Thread(target=run_scheduler, daemon=True).start()
-    print('🚀 주식 서버 시작: http://localhost:5001')
+    # 외부 노출 금지: Node 대시보드(localhost)에서만 접근.
+    # 별도 호스트에 띄우려면 PYTHON_HOST=0.0.0.0 + 방화벽 + INTERNAL_API_TOKEN 필수.
+    _host = os.environ.get('PYTHON_HOST', '127.0.0.1')
+    _port = int(os.environ.get('STOCK_PORT', '5001'))
+    print(f'🚀 주식 서버 시작: http://{_host}:{_port}')
     print('📅 매일 00:00 주가 자동 업데이트 예정')
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    app.run(host=_host, port=_port, debug=False)
 

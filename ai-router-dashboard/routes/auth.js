@@ -1,7 +1,29 @@
 import express from 'express';
 const router = express.Router();
 
-export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, loginAttempts, logger, saveAccessLog, saveErrorLog }) {
+export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, logger, saveAccessLog, saveErrorLog }) {
+
+  // 로그인 시도 영속화 — 재시작/cluster 에서 락아웃 우회 차단
+  db.exec(`CREATE TABLE IF NOT EXISTS login_attempts (
+    key TEXT PRIMARY KEY,
+    count INTEGER DEFAULT 0,
+    lock_until INTEGER DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  function readAttempts(key) {
+    const row = db.prepare('SELECT count, lock_until FROM login_attempts WHERE key=?').get(key);
+    return row ? { count: row.count, lockUntil: row.lock_until } : { count: 0, lockUntil: 0 };
+  }
+  function writeAttempts(key, attempts) {
+    db.prepare(`INSERT INTO login_attempts (key, count, lock_until, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET count=excluded.count, lock_until=excluded.lock_until, updated_at=CURRENT_TIMESTAMP`)
+      .run(key, attempts.count, attempts.lockUntil);
+  }
+  function clearAttempts(key) {
+    db.prepare('DELETE FROM login_attempts WHERE key=?').run(key);
+  }
 
   // ✅ 로그인
   router.post('/login', (req, res) => {
@@ -10,7 +32,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
     const key = `${ip}_${username}`;
     const now = Date.now();
 
-    const attempts = loginAttempts.get(key) || { count: 0, lockUntil: 0 };
+    const attempts = readAttempts(key);
     if (attempts.lockUntil > now) {
       const remaining = Math.ceil((attempts.lockUntil - now) / 1000);
       return res.status(429).json({ error: `너무 많은 시도. ${remaining}초 후 다시 시도하세요.` });
@@ -20,7 +42,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
       attempts.count++;
       if (attempts.count >= 5) { attempts.lockUntil = now + 30 * 1000; attempts.count = 0; }
-      loginAttempts.set(key, attempts);
+      writeAttempts(key, attempts);
       const failIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
       logger.warn('LOGIN_FAILED', { ip: failIp, username, attempts: attempts.count, userAgent: req.headers['user-agent'] });
       saveAccessLog({ ip: failIp, method: 'POST', path: '/api/auth/login', statusCode: 401, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime: 0, eventType: 'login_failed' });
@@ -32,7 +54,7 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
       return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
 
-    loginAttempts.delete(key);
+    clearAttempts(key);
     db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(new Date().toISOString(), user.id);
 
     const loginIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
@@ -40,7 +62,13 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
     saveAccessLog({ ip: loginIp, method: 'POST', path: '/api/auth/login', statusCode: 200, userId: user.id, username: user.username, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime: 0, eventType: 'login_success' });
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-    res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // CSRF 1차 방어 (cross-site form submit 차단)
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
     return res.json({ status: 'ok', token, username: user.username });
   });
 
@@ -64,7 +92,13 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
     logger.info('ADMIN_LOGIN_SUCCESS', { ip, username: admin.username });
 
     const token = jwt.sign({ id: admin.id, username: admin.username, is_admin: true, role: admin.role_name }, ADMIN_JWT_SECRET, { expiresIn: JWT_EXPIRES });
-    res.cookie('auth_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // CSRF 1차 방어 (cross-site form submit 차단)
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
     return res.json({ status: 'ok', token, username: admin.username, role: admin.role_name, is_admin: true });
   });
 
@@ -75,21 +109,26 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
   });
 
   // ✅ 비밀번호 찾기
+  // 순서 보정: 메일 발송 성공 후에만 password_hash 를 덮어씀.
+  // (이전: hash 먼저 update → 메일 실패 시 사용자 락아웃.)
+  // 임시비번도 crypto.randomBytes 로 생성 (이전 Math.random() 은 예측 가능).
   router.post('/forgot-password', async (req, res) => {
     const { username } = req.body;
     const user = db.prepare('SELECT id, username, email FROM users WHERE username = ?').get(username);
-    if (!user || !user.email) return res.json({ status: 'ok', message: '등록된 이메일로 임시 비밀번호를 발송했습니다.' });
+    // user-enumeration 방지: 항상 동일 응답
+    const okResponse = { status: 'ok', message: '등록된 이메일로 임시 비밀번호를 발송했습니다.' };
+    if (!user || !user.email) return res.json(okResponse);
 
     const decryptedEmail = decryptEmail(user.email);
-    if (!decryptedEmail) return res.json({ status: 'ok', message: '등록된 이메일로 임시 비밀번호를 발송했습니다.' });
-    user.email = decryptedEmail;
+    if (!decryptedEmail) return res.json(okResponse);
 
-    const tempPassword = Math.random().toString(36).substring(2, 8).toUpperCase() + Math.random().toString(36).substring(2, 5) + '!1';
-    const hash = bcrypt.hashSync(tempPassword, 12);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user.id);
+    // 26+ chars, mixed case + digit + special
+    const crypto = await import('crypto');
+    const raw = crypto.randomBytes(12).toString('base64').replace(/[+/=]/g, '').slice(0, 10);
+    const tempPassword = raw + 'A1!';
 
     const mailSent = await sendMail({
-      to: user.email,
+      to: decryptedEmail,
       subject: '[spagenio] 임시 비밀번호 안내',
       html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#09111f;color:#eef2ff;border-radius:16px;">
         <h2 style="color:#76a5ff;">🔑 임시 비밀번호 안내</h2>
@@ -102,7 +141,15 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
       </div>`
     });
 
-    return res.json({ status: 'ok', message: mailSent ? '등록된 이메일로 임시 비밀번호를 발송했습니다.' : '메일 발송에 실패했습니다.' });
+    if (!mailSent) {
+      // 메일 실패 시 비번 변경 안 함 → 기존 비번 유지
+      logger.warn('FORGOT_PASSWORD_MAIL_FAIL', { user_id: user.id });
+      return res.status(500).json({ error: '메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    }
+
+    // 발송 성공 → 그제서야 비번 교체 commit
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(tempPassword, 12), user.id);
+    return res.json(okResponse);
   });
 
   // ✅ 아이디 중복 확인
@@ -208,6 +255,8 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
   });
 
   // ✅ 회원 탈퇴
+  // sqlite_master 에서 실제 존재하는 테이블만 골라 삭제 → 스키마 드리프트로 인한
+  // 트랜잭션 abort 방지 (이전 코드: auto_trade_settings 등 미존재 테이블 참조로 항상 throw).
   router.post('/withdraw', (req, res) => {
     const { password } = req.body;
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
@@ -216,22 +265,22 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
     if (req.user.is_admin) return res.status(400).json({ error: '관리자 계정은 탈퇴할 수 없습니다.' });
 
     const uid = req.user.id;
-    // 연관 데이터 전체 삭제 (트랜잭션)
+    const candidateTables = [
+      'lotto_picks', 'lotto_schedule', 'lotto_schedule_log', 'lotto_algorithm_weights',
+      'user_telegram', 'user_broker_keys', 'terms_agreements',
+      'auto_trade_settings', 'auto_trade_log', 'auto_strategy_settings',
+      'trade_setting_type3', 'trade_setting_type4',
+      'portfolio_performance', 'backtest_results', 'telegram_alert_log', 'quant_analysis_log',
+    ];
+    const existing = new Set(
+      db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name)
+    );
+    const tablesToClear = candidateTables.filter(t => existing.has(t));
+
     const deleteAll = db.transaction(() => {
-      db.prepare('DELETE FROM lotto_picks WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM lotto_schedule WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM lotto_schedule_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM lotto_algorithm_weights WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM user_telegram WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM user_broker_keys WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM terms_agreements WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM auto_trade_settings WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM auto_trade_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM auto_strategy_settings WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM portfolio_performance WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM backtest_results WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM telegram_alert_log WHERE user_id=?').run(uid);
-      db.prepare('DELETE FROM quant_analysis_log WHERE user_id=?').run(uid);
+      for (const t of tablesToClear) {
+        db.prepare(`DELETE FROM ${t} WHERE user_id=?`).run(uid);
+      }
       db.prepare('DELETE FROM users WHERE id=?').run(uid);
     });
     deleteAll();
@@ -293,9 +342,13 @@ export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECR
   });
 
   // ✅ 초대 코드 생성 (관리자)
-  router.post('/invite', (req, res) => {
+  router.post('/invite', async (req, res) => {
     if (!req.user.is_admin) return res.status(403).json({ error: '관리자만 초대 코드를 생성할 수 있습니다.' });
-    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const crypto = await import('crypto');
+    // 8자 base32-like (혼동 가능 문자 제외) — crypto.randomInt 기반 (예측 불가)
+    const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) code += ALPHA[crypto.randomInt(0, ALPHA.length)];
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     db.prepare('INSERT INTO invite_codes (code, created_by, expires_at) VALUES (?, ?, ?)').run(code, req.user.id, expiresAt);
     return res.json({ status: 'ok', code, expires_at: expiresAt });

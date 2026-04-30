@@ -1788,12 +1788,9 @@
 
     function startStream() {
       if (sseSource) sseSource.close();
-      const token = sessionStorage.getItem('auth_token');
-      if (!token) {
-        document.getElementById('sseStatusText').textContent = '토큰 없음 - 다시 로그인';
-        return;
-      }
-      sseSource = new EventSource(`/api/admin/logs/stream?token=${token}`);
+      // auth_token httpOnly cookie 가 same-origin EventSource 에 자동 송신됨.
+      // (이전엔 쿼리 토큰 → access_logs/히스토리 누출되어 폐기)
+      sseSource = new EventSource('/api/admin/logs/stream', { withCredentials: true });
 
       sseSource.onopen = () => {
         isStreaming = true;

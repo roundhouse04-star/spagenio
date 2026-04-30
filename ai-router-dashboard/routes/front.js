@@ -1,20 +1,33 @@
 import express from 'express';
 import path from 'path';
-import { execSync } from 'child_process';
 const router = express.Router();
 
 // ============================================================
-// 텔레그램 발송 헬퍼 (curl 기반 — Node fetch의 IPv6 이슈 회피)
+// 텔레그램 발송 헬퍼 — native fetch 기반.
+// (이전 버전은 execSync로 curl 호출 → bot_token 에 shell metachar 들어가면
+//  command injection. server.js:2 의 dns.setDefaultResultOrder('ipv4first') 로
+//  IPv6 이슈는 해결됨.)
 // ============================================================
-function sendTelegramViaCurl(token, chatId, text, parseMode = 'Markdown') {
+const TELEGRAM_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
+
+async function sendTelegramMessage(token, chatId, text, parseMode = 'Markdown', timeoutMs = 15000) {
+  if (!TELEGRAM_TOKEN_RE.test(String(token || ''))) {
+    return { ok: false, description: 'invalid bot token format', error_code: 0 };
+  }
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
-    const bodyStr = JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode });
-    const curlCmd = `curl -s -X POST https://api.telegram.org/bot${token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
-    const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
-    const data = JSON.parse(result);
-    return { ok: !!data.ok, description: data.description, error_code: data.error_code };
+    const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode }),
+      signal: ac.signal,
+    });
+    return await resp.json();
   } catch (e) {
-    return { ok: false, description: e.message };
+    return { ok: false, description: e.message, error_code: 0 };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -290,26 +303,100 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     return res.json({ status: 'ok', message: '활성 계좌가 변경됐습니다.' });
   });
 
-  // ✅ Alpaca 프록시
+  // ✅ Alpaca 프록시 — 경로/메서드 화이트리스트 + 주문 본문 검증
+  // 대시보드에서 실제로 호출하는 엔드포인트만 허용. 그 외(예: /v2/account/configurations PATCH)는 차단.
+  const ALPACA_PROXY_ALLOW = [
+    { method: 'GET',    re: /^\/v2\/account$/ },
+    { method: 'GET',    re: /^\/v2\/account\/portfolio\/history$/ },
+    { method: 'GET',    re: /^\/v2\/positions$/ },
+    { method: 'GET',    re: /^\/v2\/positions\/[A-Za-z0-9._-]+$/ },
+    { method: 'DELETE', re: /^\/v2\/positions\/[A-Za-z0-9._-]+$/ }, // close position
+    { method: 'GET',    re: /^\/v2\/orders$/ },
+    { method: 'GET',    re: /^\/v2\/orders\/[A-Za-z0-9-]+$/ },
+    { method: 'DELETE', re: /^\/v2\/orders\/[A-Za-z0-9-]+$/ }, // cancel order
+    { method: 'POST',   re: /^\/v2\/orders$/ }, // submit order (본문 검증 별도)
+    { method: 'GET',    re: /^\/v2\/clock$/ },
+    { method: 'GET',    re: /^\/v2\/calendar$/ },
+    { method: 'GET',    re: /^\/v2\/assets$/ },
+    { method: 'GET',    re: /^\/v2\/assets\/[A-Za-z0-9._-]+$/ },
+  ];
+  const ORDER_MAX_QTY = parseInt(process.env.MAX_ORDER_QTY || '10', 10);
+
+  function validateOrderBody(body) {
+    if (!body || typeof body !== 'object') return 'invalid body';
+    const { symbol, qty, side, type, time_in_force, limit_price } = body;
+    if (typeof symbol !== 'string' || !/^[A-Z0-9.]{1,10}$/i.test(symbol)) return 'invalid symbol';
+    const q = Number(qty);
+    if (!Number.isFinite(q) || q <= 0 || q > ORDER_MAX_QTY) return `qty out of range (1..${ORDER_MAX_QTY})`;
+    if (!['buy', 'sell'].includes(side)) return 'invalid side';
+    if (!['market', 'limit'].includes(type)) return 'invalid type';
+    if (!['day', 'gtc', 'ioc', 'fok'].includes(time_in_force)) return 'invalid time_in_force';
+    if (type === 'limit') {
+      const lp = Number(limit_price);
+      if (!Number.isFinite(lp) || lp <= 0) return 'invalid limit_price';
+    }
+    // 알 수 없는 필드는 모두 drop (mass-assignment 방지)
+    return null;
+  }
+
   router.all('/api/alpaca-user/*', async (req, res) => {
-    const accountId = req.headers['x-account-id'] || req.query.accountId;
+    // accountId는 정수만 허용 (DB row id)
+    const rawAccountId = req.headers['x-account-id'] || req.query.accountId;
+    const accountId = rawAccountId != null && /^\d+$/.test(String(rawAccountId)) ? parseInt(String(rawAccountId), 10) : null;
+    if (rawAccountId && accountId === null) {
+      return res.status(400).json({ error: 'invalid accountId' });
+    }
+
+    // 경로/메서드 검사
+    const alpacaPath = req.originalUrl.split('?')[0].replace('/api/alpaca-user', '');
+    const allowed = ALPACA_PROXY_ALLOW.find(r => r.method === req.method && r.re.test(alpacaPath));
+    if (!allowed) {
+      return res.status(403).json({ error: 'path/method not allowed', method: req.method, path: alpacaPath });
+    }
+
+    // POST /v2/orders 본문 검증
+    let outboundBody;
+    if (req.method === 'POST' && alpacaPath === '/v2/orders') {
+      const errMsg = validateOrderBody(req.body);
+      if (errMsg) return res.status(400).json({ error: errMsg });
+      const { symbol, qty, side, type, time_in_force, limit_price } = req.body;
+      const sanitized = { symbol: String(symbol).toUpperCase(), qty: Number(qty), side, type, time_in_force };
+      if (type === 'limit') sanitized.limit_price = Number(limit_price);
+      outboundBody = JSON.stringify(sanitized);
+    } else if (req.method !== 'GET') {
+      outboundBody = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : undefined;
+    }
+
     const keys = getUserAlpacaKeys(req.user.id, accountId);
     if (!keys) return res.status(200).json({ ok: false, no_account: true, error: 'Alpaca 계좌를 먼저 등록해주세요.', positions: [], orders: [] });
+
     try {
-      const alpacaPath = req.originalUrl.split('?')[0].replace('/api/alpaca-user', '');
       const baseUrl = keys.paper ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
-      const query = Object.keys(req.query).filter(k => k !== 'accountId').length ? '?' + new URLSearchParams(Object.fromEntries(Object.entries(req.query).filter(([k]) => k !== 'accountId'))).toString() : '';
-      const response = await fetch(`${baseUrl}${alpacaPath}${query}`, { method: req.method, headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
+      const filteredQuery = Object.fromEntries(Object.entries(req.query).filter(([k]) => k !== 'accountId'));
+      const query = Object.keys(filteredQuery).length ? '?' + new URLSearchParams(filteredQuery).toString() : '';
+      const response = await fetch(`${baseUrl}${alpacaPath}${query}`, {
+        method: req.method,
+        headers: { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key, 'Content-Type': 'application/json' },
+        body: outboundBody,
+      });
       return res.status(response.status).json(await response.json());
     } catch (e) { return res.status(500).json({ error: e.message }); }
   });
 
-  // ✅ 퀀트/주식 프록시
+  // ✅ 퀀트/주식 프록시 — Python 서비스의 mutating 엔드포인트 보호용 토큰 전달
+  const _internalHeaders = () => process.env.INTERNAL_API_TOKEN
+    ? { 'X-Internal-Token': process.env.INTERNAL_API_TOKEN }
+    : {};
+
   router.all('/proxy/quant/*', async (req, res) => {
     try {
       const quantPath = req.path.replace('/proxy/quant', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
-      const response = await fetch(`http://localhost:5002${quantPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
+      const response = await fetch(`http://localhost:5002${quantPath}${query}`, {
+        method: req.method,
+        headers: { 'Content-Type': 'application/json', ..._internalHeaders() },
+        body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
+      });
       const rawText = await response.text();
       res.json(safeJson(rawText));
     } catch (error) { res.status(500).json({ error: '퀀트 서버 연결 실패', detail: error.message }); }
@@ -319,7 +406,11 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     try {
       const stockPath = req.path.replace('/proxy/stock', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
-      const response = await fetch(`http://localhost:5001${stockPath}${query}`, { method: req.method, headers: { 'Content-Type': 'application/json' }, body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined });
+      const response = await fetch(`http://localhost:5001${stockPath}${query}`, {
+        method: req.method,
+        headers: { 'Content-Type': 'application/json', ..._internalHeaders() },
+        body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
+      });
       const rawText = await response.text();
       res.json(safeJson(rawText));
     } catch (error) { res.status(500).json({ error: '주식 서버 연결 실패', detail: error.message }); }
@@ -471,11 +562,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
     }
     if (!token) return res.status(400).json({ ok: false, error: 'Bot Token 없음' });
     try {
-      const { execSync } = await import('child_process');
-      const bodyStr = JSON.stringify({ chat_id: chatid, text, parse_mode: 'Markdown' });
-      const curlCmd = `curl -s -X POST https://api.telegram.org/bot${token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
-      const result = execSync(curlCmd, { input: bodyStr }).toString();
-      const data = JSON.parse(result);
+      const data = await sendTelegramMessage(token, chatid, text, 'Markdown');
       res.json(data.ok ? { ok: true } : { ok: false, error: data.description });
     } catch (e) { console.error('[telegram error]', e.message, e.stack); res.status(500).json({ ok: false, error: e.message }); }
   });
@@ -492,14 +579,15 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
         return res.json({ ok: false, error: '등록된 텔레그램 사용자가 없습니다.' });
       }
 
-      // 모든 chat_id에 발송 (curl 기반 — Node fetch IPv6 이슈 회피)
-      const results = recipients.map((r) => {
+      // 모든 chat_id에 순차 발송 (Telegram rate-limit 30/sec 보호)
+      const results = [];
+      for (const r of recipients) {
         const token = r.bot_token || process.env.TG_BOT_TOKEN;
-        if (!token) return { chat_id: r.chat_id, ok: false, error: 'no token' };
-        const out = sendTelegramViaCurl(token, r.chat_id, text, 'Markdown');
+        if (!token) { results.push({ chat_id: r.chat_id, ok: false, error: 'no token' }); continue; }
+        const out = await sendTelegramMessage(token, r.chat_id, text, 'Markdown');
         if (!out.ok) console.log('[lotto/telegram/broadcast FAIL]', r.chat_id, '→', out.description);
-        return { chat_id: r.chat_id, ok: out.ok, error: out.description };
-      });
+        results.push({ chat_id: r.chat_id, ok: !!out.ok, error: out.description });
+      }
 
       const sent = results.filter(r => r.ok).length;
       const failed = results.filter(r => !r.ok).length;
@@ -857,11 +945,7 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
       const item = db.prepare('SELECT * FROM lotto_send_retry WHERE id=?').get(id);
       if (!item) return res.json({ ok: false, error: '항목 없음' });
 
-      const { execSync } = await import('child_process');
-      const bodyStr = JSON.stringify({ chat_id: item.chat_id, text: item.message, parse_mode: 'Markdown' });
-      const curlCmd = `curl -s -X POST https://api.telegram.org/bot${item.bot_token}/sendMessage -H 'Content-Type: application/json' --data-binary @-`;
-      const result = execSync(curlCmd, { input: bodyStr, timeout: 15000 }).toString();
-      const data = JSON.parse(result);
+      const data = await sendTelegramMessage(item.bot_token, item.chat_id, item.message, 'Markdown');
 
       if (data.ok) {
         db.prepare(`UPDATE lotto_send_retry SET status='success', updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(id);
