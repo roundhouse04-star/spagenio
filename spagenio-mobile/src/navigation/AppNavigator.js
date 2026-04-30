@@ -41,10 +41,10 @@ function MainTabs() {
       }}
     >
       <Tabs.Screen name="Dashboard" component={DashboardScreen} options={{ title: '시장' }} />
-      <Tabs.Screen name="Stocks"    component={StocksScreen}    options={{ title: '종목' }} />
-      <Tabs.Screen name="Trade"     component={TradeScreen}     options={{ title: '거래' }} />
-      <Tabs.Screen name="Positions" component={PositionsScreen} options={{ title: '포지션' }} />
       <Tabs.Screen name="News"      component={NewsScreen}      options={{ title: '뉴스' }} />
+      <Tabs.Screen name="Stocks"    component={StocksScreen}    options={{ title: '종목' }} />
+      <Tabs.Screen name="Positions" component={PositionsScreen} options={{ title: '포지션' }} />
+      <Tabs.Screen name="Trade"     component={TradeScreen}     options={{ title: '거래' }} />
       <Tabs.Screen name="Account"   component={AccountScreen}   options={{ title: '내정보' }} />
     </Tabs.Navigator>
   );
