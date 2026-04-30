@@ -5,3 +5,4 @@ stock.db
 *.log
 .DS_Store
 *.bak
+news.db
