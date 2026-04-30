@@ -660,12 +660,23 @@ if (JWT_SECRET === ADMIN_JWT_SECRET) {
 }
 const JWT_EXPIRES = '24h';
 
+// AES-256 키 도출:
+// - 64-char hex 면 32바이트로 decode (권장: crypto.randomBytes(32).toString('hex'))
+// - 그 외엔 UTF-8 첫 32바이트 (부족하면 '0' padEnd) — 구버전 호환용
+function _deriveAesKey(raw) {
+  if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, 'hex');
+  return Buffer.from(raw.slice(0, 32).padEnd(32, '0'));
+}
+
 const _ENCRYPT_KEY_RAW = _requireSecret('ENCRYPT_KEY');
-// AES-256: 정확히 32바이트 키. 사용자가 32자 이상이면 앞 32바이트 사용.
-const ENCRYPT_KEY_BUF = Buffer.from(_ENCRYPT_KEY_RAW.slice(0, 32));
-if (ENCRYPT_KEY_BUF.length < 32) {
-  console.error('\n❌ ENCRYPT_KEY 는 UTF-8 기준 32바이트 이상이어야 합니다.\n');
-  process.exit(1);
+const ENCRYPT_KEY_BUF = _deriveAesKey(_ENCRYPT_KEY_RAW);
+
+// 선택: 구버전에서 암호화한 데이터 복호화용. 신규 암호화에는 사용 안 함.
+// 마이그레이션 후 삭제 권장.
+const _LEGACY_RAW = process.env.ENCRYPT_KEY_LEGACY;
+const ENCRYPT_KEY_LEGACY_BUF = _LEGACY_RAW ? _deriveAesKey(_LEGACY_RAW) : null;
+if (ENCRYPT_KEY_LEGACY_BUF) {
+  console.log('ℹ️  ENCRYPT_KEY_LEGACY 활성: 기존 데이터는 legacy 키로 폴백 복호화');
 }
 
 function encryptEmail(text) {
@@ -675,11 +686,23 @@ function encryptEmail(text) {
 }
 
 function decryptEmail(encrypted) {
+  if (!encrypted || typeof encrypted !== 'string') return null;
+  const [ivHex, dataHex] = encrypted.split(':');
+  if (!ivHex || !dataHex) return null;
+  let iv, data;
+  try { iv = Buffer.from(ivHex, 'hex'); data = Buffer.from(dataHex, 'hex'); } catch { return null; }
+  // 1차: 새 키
   try {
-    const [ivHex, dataHex] = encrypted.split(':');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPT_KEY_BUF, Buffer.from(ivHex, 'hex'));
-    return Buffer.concat([decipher.update(Buffer.from(dataHex, 'hex')), decipher.final()]).toString('utf8');
-  } catch (e) { return null; }
+    const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPT_KEY_BUF, iv);
+    return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
+  } catch (e) {
+    // 2차: legacy 키 (있을 때만)
+    if (!ENCRYPT_KEY_LEGACY_BUF) return null;
+    try {
+      const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPT_KEY_LEGACY_BUF, iv);
+      return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
+    } catch (e2) { return null; }
+  }
 }
 
 const verifyCodeStore = new Map();
