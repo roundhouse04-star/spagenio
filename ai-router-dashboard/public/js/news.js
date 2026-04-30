@@ -247,7 +247,7 @@ function renderMarketBar(indicators) {
     const color = i.type === 'vix' ? (i.change_pct > 0 ? '#ef4444' : '#10b981') : (up ? '#10b981' : '#ef4444');
     const arrow = up ? '▲' : '▼';
     return `
-      <div onclick="showMarketChart('${i.symbol}','${i.label}',${i.price},${i.change_pct})"
+      <div onclick="showMarketChart(${_jsAttr(i.symbol)},${_jsAttr(i.label)},${i.price},${i.change_pct})"
         style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:80px;cursor:pointer;padding:6px 8px;border-radius:8px;transition:background .15s;"
         onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
         <span style="font-size:0.72rem;color:#6b7280;font-weight:600;">${i.label}</span>

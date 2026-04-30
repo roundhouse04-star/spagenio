@@ -34,6 +34,11 @@ function _safeHttpUrl(u) {
   const s = String(u || '').trim();
   return /^https?:\/\//i.test(s) ? s : '';
 }
+// inline event handler 안에 JS 값 안전 삽입.
+// 사용: onclick="fn(${_jsAttr(x)})"
+// JSON.stringify → JS 안전 리터럴 (따옴표 포함) → _esc → HTML 속성 안전.
+// 결과: 외부 데이터에 ' " < > 들어와도 JS/HTML 둘 다 무해.
+function _jsAttr(v) { return _esc(JSON.stringify(v == null ? null : v)); }
 
 
 // 뒤로가기 금지는 login.html에서만 처리
@@ -148,7 +153,7 @@ async function loadPrices() {
       return;
     }
     priceCards.innerHTML = data.stocks.map(s => `
-      <div class="price-card" onclick="openChart('${s.symbol}')" style="cursor:pointer;">
+      <div class="price-card" onclick="openChart(${_jsAttr(s.symbol)})" style="cursor:pointer;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <span class="symbol">${s.symbol}</span>
           <span style="font-size:0.7rem;color:#4B5563;">📈 차트</span>
@@ -463,7 +468,7 @@ async function loadPositions() {
       const plpc = parseFloat(p.unrealized_plpc) || 0;
       return `
             <tr>
-              <td><strong style="cursor:pointer;color:#6366f1;" onclick="showRealtimePrice('${p.symbol}')">${p.symbol}</strong></td>
+              <td><strong style="cursor:pointer;color:#6366f1;" onclick="showRealtimePrice(${_jsAttr(p.symbol)})">${p.symbol}</strong></td>
               <td>${p.qty}주</td>
               <td>$${parseFloat(p.avg_entry_price).toFixed(2)}</td>
               <td>$${parseFloat(p.current_price).toFixed(2)}</td>
@@ -472,7 +477,7 @@ async function loadPositions() {
                 ${pl >= 0 ? '+' : ''}$${pl.toFixed(2)}<br>
                 <small>(${plpc >= 0 ? '+' : ''}${(plpc * 100).toFixed(2)}%)</small>
               </td>
-              <td><button class="sp-btn sp-btn-outline sp-btn-sm" onclick="showRealtimePrice('${p.symbol}')">📈 조회</button></td>
+              <td><button class="sp-btn sp-btn-outline sp-btn-sm" onclick="showRealtimePrice(${_jsAttr(p.symbol)})">📈 조회</button></td>
             </tr>`;
     }).join('')}
         </tbody>
@@ -541,7 +546,7 @@ window.showRealtimePrice = async function (symbol) {
         </div>
       </div>` : ''}
       <div style="margin-top:12px;text-align:right;">
-        <button onclick="showRealtimePrice('${symbol}')" class="sp-btn sp-btn-outline sp-btn-sm" style="margin-right:8px;">🔄 새로고침</button>
+        <button onclick="showRealtimePrice(${_jsAttr(symbol)})" class="sp-btn sp-btn-outline sp-btn-sm" style="margin-right:8px;">🔄 새로고침</button>
         <button onclick="document.getElementById('realtimeModal').style.display='none'" class="sp-btn sp-btn-indigo sp-btn-sm">닫기</button>
       </div>`);
   } catch (e) {
@@ -806,7 +811,7 @@ async function loadTradeLog() {
       const tc = typeConfig[parseInt(ft.key)];
       const activeColor = tc ? tc.color : '#E5E7EB';
       return `<button onclick="(function(){
-        document.getElementById('quantTradeLog')._filterType='${ft.key}';
+        document.getElementById('quantTradeLog')._filterType=${_jsAttr(ft.key)};
         loadTradeLog();
       })()" style="
         padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:700;cursor:pointer;border:none;
@@ -914,7 +919,7 @@ async function runQuantAnalysis() {
     let html = `
       <div style="background:#161B22;border:1px solid #2A2A2A;border-radius:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:1rem;font-weight:800;color:#6366f1;cursor:pointer;text-decoration:underline;" onclick="openChart('${data.symbol}')">${data.symbol} 📈</span>
+          <span style="font-size:1rem;font-weight:800;color:#6366f1;cursor:pointer;text-decoration:underline;" onclick="openChart(${_jsAttr(data.symbol)})">${data.symbol} 📈</span>
           <span style="font-size:0.95rem;font-weight:700;color:${sig.color};">${sig.label}</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
@@ -978,7 +983,7 @@ async function runBatchAnalysis() {
     const rows = (data.results || []).map(r => {
       const sig = signalStyle[r.signal] || signalStyle['hold'];
       return `<tr>
-        <td style="font-weight:700;color:#6366f1;cursor:pointer;" onclick="openChart('${r.symbol}')">${r.symbol} 📈</td>
+        <td style="font-weight:700;color:#6366f1;cursor:pointer;" onclick="openChart(${_jsAttr(r.symbol)})">${r.symbol} 📈</td>
         <td style="color:${sig.color};font-weight:700;">${sig.label}</td>
         <td>$${r.price?.toFixed(2) || '-'}</td>
         <td>${r.value?.toFixed(2) || r.score?.toFixed(4) || '-'}</td>
@@ -1008,7 +1013,7 @@ async function loadKoreaAnalysis() {
     const res = await fetch(`${QUANT_API}/api/quant/korea`);
     const data = await res.json();
     if (data.error) { el.innerHTML = _safeHTML(`<p style="color:#ff8f8f;">Error: ${data.error}</p>`); return; }
-    const rows = (data.top10 || []).map((item, i) => `<tr style="cursor:pointer;" onclick="openChart('${item.ticker.includes('.') ? item.ticker : item.ticker + '.KS'}')" onmouseover="this.style.background='rgba(79,143,255,0.05)'" onmouseout="this.style.background=''">
+    const rows = (data.top10 || []).map((item, i) => `<tr style="cursor:pointer;" onclick="openChart(${_jsAttr(item.ticker.includes('.') ? item.ticker : item.ticker + '.KS')})" onmouseover="this.style.background='rgba(79,143,255,0.05)'" onmouseout="this.style.background=''">
       <td style="font-weight:700;color:#4f8fff;">${i + 1}</td>
       <td><div style="font-weight:700;">${item.name}</div><div style="color:#8E8E93;font-size:0.78rem;">${item.ticker}</div></td>
       <td>${item.price?.toLocaleString()}원</td>
@@ -1119,7 +1124,7 @@ window.loadAutoPositions = async function () {
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-weight:700;color:${pl >= 0 ? '#065f46' : '#991b1b'};">${pl >= 0 ? '+' : ''}$${pl.toFixed(2)} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)</span>
-          <button onclick="cancelAutoTrade('${p.symbol}')" class="sp-btn sp-btn-red sp-btn-sm" style="font-size:0.75rem;padding:4px 10px;">취소</button>
+          <button onclick="cancelAutoTrade(${_jsAttr(p.symbol)})" class="sp-btn sp-btn-red sp-btn-sm" style="font-size:0.75rem;padding:4px 10px;">취소</button>
         </div>
       </div>`;
     }).join('');
@@ -1262,7 +1267,7 @@ async function dcSearch(query) {
       const exColor = isKR ? '#c2410c' : '#1d4ed8';
       const exBg = isKR ? '#fff7ed' : '#eff6ff';
       return `
-        <div onclick="dcSelectSymbol('${r.symbol}', '${r.name}')"
+        <div onclick="dcSelectSymbol(${_jsAttr(r.symbol)}, ${_jsAttr(r.name)})"
           style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer;"
           onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
           <div>
@@ -1335,9 +1340,9 @@ function dcRenderSelectedSymbols() {
     badge.innerHTML = _dcSelectedSymbols.map(s => {
       const isActive = s.symbol === _dcActiveSymbol;
       return `<span style="display:inline-flex;align-items:center;gap:4px;background:${isActive ? '#6366f1' : '#eef2ff'};color:${isActive ? '#fff' : '#6366f1'};font-weight:700;font-size:0.85rem;padding:4px 10px;border-radius:999px;margin:2px;cursor:pointer;transition:all 0.15s;"
-        onclick="dcSwitchSymbol('${s.symbol}')">
+        onclick="dcSwitchSymbol(${_jsAttr(s.symbol)})">
         ${s.symbol}
-        <button onclick="event.stopPropagation();dcRemoveSymbol('${s.symbol}')"
+        <button onclick="event.stopPropagation();dcRemoveSymbol(${_jsAttr(s.symbol)})"
           style="background:none;border:none;cursor:pointer;color:${isActive ? 'rgba(255,255,255,0.7)' : '#9ca3af'};font-size:0.9rem;padding:0;line-height:1;"
           title="제거">✕</button>
       </span>`;
@@ -1461,7 +1466,7 @@ function stockRenderSymbolBadge() {
     const span = document.createElement('span');
     span.className = 'stock-badge-item';
     span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#6366f1;font-weight:700;font-size:0.82rem;padding:3px 8px;border-radius:999px;';
-    span.innerHTML = _safeHTML(`${sym} <button onclick="event.stopPropagation();stockRemoveSymbol('${sym}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`);
+    span.innerHTML = _safeHTML(`${sym} <button onclick="event.stopPropagation();stockRemoveSymbol(${_jsAttr(sym)})" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`);
     badge.appendChild(span);
   });
 }
@@ -1485,7 +1490,7 @@ function atRenderSymbolBadge() {
     const span = document.createElement('span');
     span.className = 'at-badge-item';
     span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#6366f1;font-weight:700;font-size:0.82rem;padding:3px 8px;border-radius:999px;';
-    span.innerHTML = _safeHTML(`${sym} <button onclick="event.stopPropagation();atRemoveSymbol('${sym}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`);
+    span.innerHTML = _safeHTML(`${sym} <button onclick="event.stopPropagation();atRemoveSymbol(${_jsAttr(sym)})" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`);
     badge.appendChild(span);
   });
 }
@@ -1684,7 +1689,7 @@ window.loadVolumeSurge = async function () {
             <div style="font-size:0.78rem;font-weight:700;padding:2px 8px;border-radius:999px;background:${changeBg};color:${changeColor};">
               ${s.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(s.change_pct)}%
             </div>
-            <button onclick="quickRiskCalc('${s.symbol}')" style="margin-top:4px;padding:3px 8px;font-size:0.72rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
+            <button onclick="quickRiskCalc(${_jsAttr(s.symbol)})" style="margin-top:4px;padding:3px 8px;font-size:0.72rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
           </div>
         </div>`;
     }).join('');
@@ -1834,7 +1839,7 @@ window.loadTopPicks = async function () {
               <div style="font-size:0.78rem;font-weight:700;padding:2px 8px;border-radius:999px;background:${changeBg};color:${changeColor};">
                 ${p.change_pct >= 0 ? '▲' : '▼'} ${Math.abs(p.change_pct)}%
               </div>
-              <button onclick="quickRiskCalc('${p.symbol}')" style="margin-top:4px;padding:3px 8px;font-size:0.7rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
+              <button onclick="quickRiskCalc(${_jsAttr(p.symbol)})" style="margin-top:4px;padding:3px 8px;font-size:0.7rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
             </div>
           </div>`;
     }).join('')}`);
@@ -2220,7 +2225,7 @@ window.loadCombinedSignal = async function () {
             </div>
           </div>
           <div style="font-size:0.78rem;color:#4338ca;">${news?.latest_title || ''}</div>
-          <button onclick="quickRiskCalc('${s.symbol}')" style="margin-top:8px;padding:4px 12px;font-size:0.75rem;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">🛡️ 리스크 계산</button>
+          <button onclick="quickRiskCalc(${_jsAttr(s.symbol)})" style="margin-top:8px;padding:4px 12px;font-size:0.75rem;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">🛡️ 리스크 계산</button>
         </div>`;
       }).join('');
     }
@@ -2494,7 +2499,7 @@ window.runAutoStrategyScreen = async function () {
         ${item.news_label && item.news_label !== '뉴스없음' ? `<span style="padding:1px 6px;border-radius:999px;background:${item.news_score > 0.3 ? '#dcfce7' : item.news_score < -0.3 ? '#fee2e2' : '#f1f5f9'};color:${item.news_score > 0.3 ? '#166534' : item.news_score < -0.3 ? '#991b1b' : '#6b7280'};">${item.news_label} ${item.news_count}건</span>` : ''}
         ${item.macro_risk < -1 ? `<span style="padding:1px 6px;border-radius:999px;background:rgba(30,123,255,0.15);color:#991b1b;font-weight:700;">⚠️ 거시악재</span>` : ''}
       </div>
-      <button onclick="saveAutoSymbol('${item.symbol}', ${item.score || 0})" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
+      <button onclick="saveAutoSymbol(${_jsAttr(item.symbol)}, ${item.score || 0})" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>
     </div>`).join('');
     const marketNames = { 'nasdaq': '나스닥100', 'dow': '다우존스30', 'sp500': 'S&P500', 'russell1000': 'Russell1000' };
     const marketLabel = marketNames[_autoMarket] || _autoMarket;
@@ -2520,10 +2525,10 @@ async function renderAutoSavedSymbols() {
       ${pool.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
           <div>
-            <span style="font-weight:700;font-size:0.9rem;color:#6366f1;cursor:pointer;" onclick="openChart('${p.symbol}')">${p.symbol} 📈</span>
+            <span style="font-weight:700;font-size:0.9rem;color:#6366f1;cursor:pointer;" onclick="openChart(${_jsAttr(p.symbol)})">${p.symbol} 📈</span>
             <span style="font-size:0.72rem;color:#9CA3AF;margin-left:6px;">점수 ${p.factor_score}</span>
           </div>
-          <button onclick="deleteAutoSymbol('${p.symbol}')"
+          <button onclick="deleteAutoSymbol(${_jsAttr(p.symbol)})"
             style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
             🗑️ 삭제
           </button>
@@ -2671,10 +2676,10 @@ window.runFactorScreen = async function (mode) {
       const techRow = !isKr ? `<div style="margin-bottom:4px;"><span style="font-size:0.7rem;color:#9CA3AF;font-weight:600;">타이밍: </span>${(item.tech_reasons || []).filter(Boolean).map(r => `<span style="font-size:0.7rem;padding:1px 6px;background:rgba(255,59,48,0.12);color:#FF3B30;border-radius:4px;margin-right:2px;">${r}</span>`).join('')}</div>` : '';
       const saveBtn = !isKr
         ? (timing === 'AVOID'
-          ? `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid rgba(255,59,48,0.3);background:rgba(255,59,48,0.08);color:#FF3B30;font-size:0.75rem;font-weight:700;cursor:pointer;">⚠️ ${item.symbol} AVOID — 그래도 저장</button>`
-          : `<button onclick="event.stopPropagation();saveOneSymbol('${item.symbol}')" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`)
+          ? `<button onclick="event.stopPropagation();saveOneSymbol(${_jsAttr(item.symbol)})" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid rgba(255,59,48,0.3);background:rgba(255,59,48,0.08);color:#FF3B30;font-size:0.75rem;font-weight:700;cursor:pointer;">⚠️ ${item.symbol} AVOID — 그래도 저장</button>`
+          : `<button onclick="event.stopPropagation();saveOneSymbol(${_jsAttr(item.symbol)})" style="margin-top:8px;width:100%;padding:5px;border-radius:6px;border:1px solid #2A2A2A;background:rgba(79,143,255,0.1);color:#4f8fff;font-size:0.75rem;font-weight:700;cursor:pointer;">💾 ${item.symbol} 저장</button>`)
         : '';
-      return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart('${item.symbol}')">
+      return `<div style="padding:12px 14px;background:${bg};border-radius:8px;border:1px solid ${bor};margin-bottom:8px;cursor:pointer;" onclick="openChart(${_jsAttr(item.symbol)})">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <div><span style="font-weight:800;font-size:1rem;color:#E5E7EB;">${medals[i] || ''} ${item.symbol}</span>${badge}</div>
         <div style="text-align:right;"><div style="font-weight:700;color:#E5E7EB;">$${item.price?.toFixed(2) ?? '-'}</div><div style="font-size:0.7rem;color:#4f8fff;">점수 ${item.factor_score}</div></div>
@@ -2749,7 +2754,7 @@ window.saveOneSymbol = async function (symbol) {
       })
     });
     // 버튼 피드백
-    const btns = document.querySelectorAll(`button[onclick="saveOneSymbol('${symbol}')"]`);
+    const btns = document.querySelectorAll(`button[onclick="saveOneSymbol(${_jsAttr(symbol)})"]`);
     btns.forEach(btn => {
       btn.textContent = `✅ ${symbol} 저장됨`;
       btn.style.background = '#dcfce7';
@@ -2790,7 +2795,7 @@ window.saveKrSymbol = async function (symbol) {
       body: JSON.stringify({ ...d, kr_candidate_symbols: existing.join(',') })
     });
     // 버튼 피드백
-    const btns = document.querySelectorAll(`button[onclick="saveKrSymbol('${symbol}')"]`);
+    const btns = document.querySelectorAll(`button[onclick="saveKrSymbol(${_jsAttr(symbol)})"]`);
     btns.forEach(btn => { btn.textContent = `✅ ${symbol} 저장됨`; btn.style.background = '#dcfce7'; btn.style.color = '#166534'; btn.disabled = true; });
     await renderKrSavedSettings();
   } catch (e) {
@@ -2813,7 +2818,7 @@ async function renderKrSavedSettings() {
       ${symbols.map(sym => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
           <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;">${sym}</span>
-          <button onclick="deleteKrSymbol('${sym}')"
+          <button onclick="deleteKrSymbol(${_jsAttr(sym)})"
             style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
             🗑️ 삭제
           </button>
@@ -2878,17 +2883,17 @@ async function renderAtSavedSettings() {
       symbols.forEach(sym => {
         html += `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;">
-        <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;cursor:pointer;text-decoration:none;" onclick="openChart('${sym}')" title="📈 차트 보기">${sym} 📈</span>
+        <span style="font-weight:700;font-size:0.9rem;color:#4f8fff;cursor:pointer;text-decoration:none;" onclick="openChart(${_jsAttr(sym)})" title="📈 차트 보기">${sym} 📈</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
             <span style="font-size:0.75rem;color:#9CA3AF;" id="at-toggle-label-${sym}">${enabled ? '활성' : '비활성'}</span>
-            <div onclick="toggleSymbolActive('${sym}', this)" 
+            <div onclick="toggleSymbolActive(${_jsAttr(sym)}, this)" 
               style="width:40px;height:22px;border-radius:999px;background:${enabled ? '#10b981' : '#d1d5db'};position:relative;cursor:pointer;transition:background 0.2s;" 
               data-active="${enabled ? '1' : '0'}" id="at-toggle-${sym}">
               <div style="width:18px;height:18px;border-radius:50%;background:#161B22;position:absolute;top:2px;left:${enabled ? '20px' : '2px'};transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);" id="at-toggle-knob-${sym}"></div>
             </div>
           </label>
-          <button onclick="deleteSymbol('${sym}')" style="width:22px;height:22px;border-radius:50%;background:rgba(30,123,255,0.15);border:none;cursor:pointer;color:#ef4444;font-size:0.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="${sym} 삭제">✕</button>
+          <button onclick="deleteSymbol(${_jsAttr(sym)})" style="width:22px;height:22px;border-radius:50%;background:rgba(30,123,255,0.15);border:none;cursor:pointer;color:#ef4444;font-size:0.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="${sym} 삭제">✕</button>
         </div>
       </div>`;
       });
@@ -2997,14 +3002,14 @@ function renderSidebar(menus) {
       // 부모 메뉴 (서브메뉴 있음)
       html += `
         <button class="tab-btn sp-parent-btn" id="tab-btn-${menu.tab_key}" data-tab="${menu.tab_key}" data-id="${menu.id}"
-          onclick="toggleSubMenu(${menu.id}, '${menu.tab_key}')">
+          onclick="toggleSubMenu(${menu.id}, ${_jsAttr(menu.tab_key)})">
           <span class="nav-icon">${menu.icon}</span> ${menu.name}
           <span class="sp-parent-arrow">▶</span>
         </button>
         <div class="sp-sub-menu" id="sub-menu-${menu.id}">
           ${menu.children.map(child => `
             <button class="sp-sub-btn" id="sub-btn-${child.id}" data-tab="${child.tab_key}" data-sub="${child.sub_key}" data-id="${child.id}"
-              onclick="activateMenu('${child.tab_key}', '${child.sub_key}', ${child.id})">
+              onclick="activateMenu(${_jsAttr(child.tab_key)}, ${_jsAttr(child.sub_key)}, ${child.id})">
               <span>${child.icon}</span> ${child.name}
             </button>`).join('')}
         </div>`;
@@ -3012,7 +3017,7 @@ function renderSidebar(menus) {
       // 일반 메뉴
       html += `
         <button class="tab-btn" id="tab-btn-${menu.tab_key}-${menu.id}" data-tab="${menu.tab_key}" data-id="${menu.id}"
-          onclick="activateMenu('${menu.tab_key}', null, ${menu.id})">
+          onclick="activateMenu(${_jsAttr(menu.tab_key)}, null, ${menu.id})">
           <span class="nav-icon">${menu.icon}</span> ${menu.name}
         </button>`;
     }

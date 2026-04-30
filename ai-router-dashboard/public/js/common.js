@@ -588,7 +588,7 @@ function renderSidebar(menus) {
         const childName = child.name || child.menu_name || child.sub_key || '서브메뉴';
         return `
               <button class="sp-sub-btn" id="sub-btn-${child.id}" data-tab="${child.tab_key}" data-sub="${child.sub_key || ''}" data-id="${child.id}"
-                onclick="activateMenu('${child.tab_key}', '${child.sub_key || ''}', ${child.id})">
+                onclick="activateMenu(${_jsAttr(child.tab_key)}, ${_jsAttr(child.sub_key || '')}, ${child.id})">
                 <span>${childIcon}</span> ${childName}
               </button>`;
       }).join('')}
@@ -596,7 +596,7 @@ function renderSidebar(menus) {
     } else {
       html += `
         <button class="tab-btn" id="tab-btn-${menu.tab_key}-${menu.id}" data-tab="${menu.tab_key}" data-id="${menu.id}"
-          onclick="activateMenu('${menu.tab_key}', ${menu.sub_key ? `'${menu.sub_key}'` : 'null'}, ${menu.id || 0})">
+          onclick="activateMenu(${_jsAttr(menu.tab_key)}, ${menu.sub_key ? `${_jsAttr(menu.sub_key)}` : 'null'}, ${menu.id || 0})">
           <span class="nav-icon">${icon}</span> ${name}
         </button>`;
     }

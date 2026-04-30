@@ -23,6 +23,8 @@
       const s = String(u || '').trim();
       return /^https?:\/\//i.test(s) ? s : '';
     };
+    // inline event handler 안에 JS 값 안전 삽입: onclick="fn(${_jsAttr(x)})"
+    window._jsAttr = function (v) { return window._esc(JSON.stringify(v == null ? null : v)); };
   </script>
   <style>
     :root {
@@ -1361,7 +1363,7 @@
             <td class="tag">${u.email || '-'}</td>
             <td class="tag">${u.created_at?.slice(0, 16) || '-'}</td>
             <td class="tag">${u.last_login?.slice(0, 16) || '미접속'}</td>
-          <td>${u.username !== 'admin' ? `<button class="btn danger" style="padding:5px 12px;font-size:0.8rem;" onclick="deleteUser(${u.id}, '${u.username}')">삭제</button>` : '-'}</td>
+          <td>${u.username !== 'admin' ? `<button class="btn danger" style="padding:5px 12px;font-size:0.8rem;" onclick="deleteUser(${u.id}, ${_jsAttr(u.username)})">삭제</button>` : '-'}</td>
           </tr>
         `).join('') || '<tr><td colspan="6" class="empty">가입자 없음</td></tr>';
       } catch (e) { console.error(e); }
@@ -1938,8 +1940,8 @@
             </label></td>
             <td style="font-size:0.82rem;color:var(--muted);">${a.last_login ? a.last_login.slice(0, 16) : '-'}</td>
             <td style="display:flex;gap:6px;">
-              <button onclick="resetAdminPassword(${a.id},'${a.username}')" class="btn secondary" style="font-size:0.78rem;padding:4px 10px;">🔑 PW</button>
-              <button onclick="deleteAdmin(${a.id},'${a.username}')" class="btn danger" style="font-size:0.78rem;padding:4px 10px;">삭제</button>
+              <button onclick="resetAdminPassword(${a.id},${_jsAttr(a.username)})" class="btn secondary" style="font-size:0.78rem;padding:4px 10px;">🔑 PW</button>
+              <button onclick="deleteAdmin(${a.id},${_jsAttr(a.username)})" class="btn danger" style="font-size:0.78rem;padding:4px 10px;">삭제</button>
             </td>
           </tr>`).join('');
       } catch (e) { tbody.innerHTML = '<tr><td colspan="7" class="empty" style="color:#ef4444;">로드 실패</td></tr>'; }
@@ -2027,7 +2029,7 @@
                   <span style="font-size:0.75rem;padding:3px 10px;border-radius:999px;font-weight:700;background:${s.enabled ? '#dcfce7' : '#f1f5f9'};color:${s.enabled ? '#065f46' : '#6b7280'};">
                     ${s.enabled ? '🟢 활성' : '⭕ 정지'}
                   </span>
-                  <button onclick="toggleScheduler('${s.key}', ${s.enabled ? 0 : 1})"
+                  <button onclick="toggleScheduler(${_jsAttr(s.key)}, ${s.enabled ? 0 : 1})"
                     class="btn ${s.enabled ? 'danger' : ''}" style="font-size:0.78rem;padding:4px 12px;">
                     ${s.enabled ? '⏹ 정지' : '▶ 시작'}
                   </button>
@@ -2039,7 +2041,7 @@
                   <span style="font-size:0.78rem;color:var(--muted);">실행 주기:</span>
                   <input type="number" value="${s.interval_sec}" min="10" style="width:80px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);font-size:0.82rem;" id="interval-${s.key}" />
                   <span style="font-size:0.78rem;color:var(--muted);">초 (현재: ${intervalMin})</span>
-                  <button onclick="updateInterval('${s.key}')" class="btn secondary" style="font-size:0.75rem;padding:3px 10px;">저장</button>
+                  <button onclick="updateInterval(${_jsAttr(s.key)})" class="btn secondary" style="font-size:0.75rem;padding:3px 10px;">저장</button>
                 </div>
                 <div style="font-size:0.78rem;color:var(--muted);">
                   마지막 실행: <b>${lastRun}</b> · 총 ${s.run_count.toLocaleString()}회
@@ -2108,7 +2110,7 @@
                     <span style="font-size:0.8rem;color:${s.enabled ? 'var(--success)' : 'var(--muted)'};">${s.enabled ? '🟢 실행중' : '⏸️ 정지'}</span>
                     <div style="position:relative;width:44px;height:24px;">
                       <input type="checkbox" ${s.enabled ? 'checked' : ''} 
-                        onchange="toggleScheduler('${s.key}', this.checked)"
+                        onchange="toggleScheduler(${_jsAttr(s.key)}, this.checked)"
                         style="opacity:0;width:0;height:0;position:absolute;">
                       <span onclick="this.previousElementSibling.click()" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${s.enabled ? '#6366f1' : '#374151'};border-radius:24px;transition:.3s;">
                         <span style="position:absolute;height:18px;width:18px;left:${s.enabled ? '23px' : '3px'};bottom:3px;background:white;border-radius:50%;transition:.3s;"></span>
@@ -2119,7 +2121,7 @@
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                   <div style="display:flex;align-items:center;gap:6px;">
                     <span style="font-size:0.78rem;color:var(--muted);">주기:</span>
-                    <select onchange="updateInterval('${s.key}', this.value)" 
+                    <select onchange="updateInterval(${_jsAttr(s.key)}, this.value)" 
                       style="padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:0.8rem;">
                       <option value="10" ${s.interval_sec==10?'selected':''}>10초</option>
                       <option value="30" ${s.interval_sec==30?'selected':''}>30초</option>

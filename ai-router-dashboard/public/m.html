@@ -24,6 +24,7 @@
       const s = String(u || '').trim();
       return /^https?:\/\//i.test(s) ? s : '';
     };
+    window._jsAttr = function (v) { return window._esc(JSON.stringify(v == null ? null : v)); };
   </script>
   <style>
     :root {
@@ -1124,10 +1125,10 @@
         const catLabel = { global: '🌍', korea: '🇰🇷', it: '💻', economy: '💰' };
         el.innerHTML = news.slice(0, 20).map(n => {
           const time = n.publishedAt ? new Date(n.publishedAt).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-          return `<div class="m-news-item" onclick="window.open('${(n.url || '').replace(/'/g, "'")}','_blank')">
-        <div class="m-news-cat">${catLabel[n.category] || '📰'} ${n.source}</div>
-        <div class="m-news-title">${n.title || ''}</div>
-        <div class="m-news-time">${time}</div>
+          return `<div class="m-news-item" onclick="window.open(${_jsAttr(_safeHttpUrl(n.url))},'_blank','noopener,noreferrer')">
+        <div class="m-news-cat">${_esc(catLabel[n.category] || '📰')} ${_esc(n.source || '')}</div>
+        <div class="m-news-title">${_esc(n.title || '')}</div>
+        <div class="m-news-time">${_esc(time)}</div>
       </div>`;
         }).join('');
       } catch (e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
@@ -1214,7 +1215,7 @@
           const up = s.change >= 0;
           const color = up ? 'var(--success)' : 'var(--danger)';
           return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;cursor:pointer;"
-        onclick="document.getElementById('m-trade-symbol').value='${s.symbol}';document.getElementById('m-trade-result').textContent='${s.symbol} 선택됨';">
+        onclick="document.getElementById('m-trade-symbol').value=${_jsAttr(s.symbol)};document.getElementById('m-trade-result').textContent=${_jsAttr((s.symbol || '') + ' 선택됨')};">
         <div>
           <span style="font-weight:700;">${s.symbol}</span>
           <span style="font-size:0.72rem;color:var(--muted);margin-left:6px;">탭하면 매매창에 입력</span>
@@ -1672,7 +1673,7 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="m-badge ${isOn ? 'm-badge-green' : 'm-badge-red'}">${isOn ? '실행중' : '정지'}</span>
             <button class="m-btn m-btn-secondary" style="padding:5px 10px;font-size:0.72rem;"
-              onclick="mToggleScheduler('${j.id}',${isOn})">${isOn ? '정지' : '시작'}</button>
+              onclick="mToggleScheduler(${_jsAttr(j.id)},${isOn})">${isOn ? '정지' : '시작'}</button>
           </div>
         </div>`;
           }).join('');
