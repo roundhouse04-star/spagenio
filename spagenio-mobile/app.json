@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "spagenio",
+    "slug": "spagenio-mobile",
+    "scheme": "spagenio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09111f"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.spagenio.mobile"
+    },
+    "android": {
+      "package": "com.spagenio.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09111f"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
