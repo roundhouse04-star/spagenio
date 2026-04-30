@@ -1,22 +1,25 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { theme } from '../theme';
+import { ChartModal } from '../components/ChartModal';
 
-// 백엔드: GET /proxy/stock/api/market/indicators → stock_server.py 의 시장 지표
-// (S&P 500, Dow, Nasdaq, VIX, Gold, BTC, USD Index 등 — 30분 캐시)
+// /proxy/stock/api/market/indicators → 시장 지표 (S&P, Nasdaq, VIX, Gold, BTC 등)
 export function DashboardScreen() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
+  const [chartVisible, setChartVisible] = useState(false);
+  const [chartSymbol, setChartSymbol] = useState(null);
+  const [chartLabel, setChartLabel] = useState('');
+
   const load = useCallback(async () => {
     try {
       setError(null);
       const data = await api.get('/proxy/stock/api/market/indicators');
-      // 응답 구조 추정: 배열 또는 { indicators: [...] }
       const list = Array.isArray(data) ? data : (data?.indicators || []);
       setItems(list);
     } catch (e) {
@@ -31,10 +34,16 @@ export function DashboardScreen() {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
+  function openChart(it) {
+    setChartSymbol(it.symbol);
+    setChartLabel(it.label || it.name || '');
+    setChartVisible(true);
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ActivityIndicator color={theme.accent} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={theme.accent} style={{ marginTop: 60 }} size="large" />
       </SafeAreaView>
     );
   }
@@ -42,36 +51,60 @@ export function DashboardScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />}
       >
-        <Text style={styles.title}>시장 지표</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>시장</Text>
+          <Text style={styles.subtitle}>실시간 지표 (당겨서 새로고침)</Text>
+        </View>
 
         {error && <Text style={styles.error}>⚠️ {error}</Text>}
 
         {items.length === 0 && !error && (
-          <Text style={styles.empty}>표시할 데이터가 없습니다. 당겨서 새로고침.</Text>
+          <Text style={styles.empty}>표시할 데이터가 없습니다.</Text>
         )}
 
-        {items.map((it, idx) => {
-          const change = Number(it.change_pct ?? it.change ?? 0);
-          const changeColor = change > 0 ? theme.green : change < 0 ? theme.red : theme.subtext;
-          return (
-            <View key={it.symbol || idx} style={styles.card}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>{it.label || it.symbol}</Text>
-                <Text style={styles.symbol}>{it.symbol}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.price}>{formatPrice(it.price)}</Text>
-                <Text style={[styles.change, { color: changeColor }]}>
-                  {change > 0 ? '+' : ''}{change.toFixed(2)}%
-                </Text>
-              </View>
-            </View>
-          );
-        })}
+        <View style={styles.grid}>
+          {items.map((it, idx) => {
+            const change = Number(it.change_pct ?? 0);
+            const isVix = it.type === 'vix' || it.symbol === '^VIX';
+            // VIX는 상승=리스크↑(빨강), 일반은 상승=초록
+            const up = change >= 0;
+            const changeColor = isVix
+              ? (up ? theme.red : theme.green)
+              : (up ? theme.green : theme.red);
+            return (
+              <TouchableOpacity
+                key={`${idx}-${it.symbol}`}
+                style={styles.card}
+                onPress={() => openChart(it)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.cardLabel} numberOfLines={1}>{it.label || it.symbol}</Text>
+                  <Text style={styles.cardSymbol} numberOfLines={1}>{it.symbol}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.cardPrice}>{formatPrice(it.price)}</Text>
+                  <View style={[styles.changePill, { backgroundColor: changeColor + '22' }]}>
+                    <Text style={[styles.changeText, { color: changeColor }]}>
+                      {up ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </ScrollView>
+
+      <ChartModal
+        visible={chartVisible}
+        symbol={chartSymbol}
+        label={chartLabel}
+        onClose={() => setChartVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -85,21 +118,31 @@ function formatPrice(p) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
-  title: { color: theme.text, fontSize: 22, fontWeight: '700', marginBottom: 16 },
-  error: { color: theme.red, marginBottom: 12 },
-  empty: { color: theme.subtext, textAlign: 'center', marginTop: 40 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
+  title: { color: theme.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  subtitle: { color: theme.subtext, fontSize: 13, marginTop: 4 },
+  error: { color: theme.red, marginHorizontal: 20, marginBottom: 12 },
+  empty: { color: theme.subtext, textAlign: 'center', marginTop: 60 },
+  grid: { paddingHorizontal: 12 },
   card: {
     flexDirection: 'row',
     backgroundColor: theme.card,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 10,
+    marginBottom: 8,
+    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: theme.border,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  label: { color: theme.text, fontSize: 16, fontWeight: '600' },
-  symbol: { color: theme.subtext, fontSize: 12, marginTop: 2 },
-  price: { color: theme.text, fontSize: 18, fontWeight: '700' },
-  change: { fontSize: 14, marginTop: 2, fontWeight: '600' },
+  cardLabel: { color: theme.text, fontSize: 16, fontWeight: '700' },
+  cardSymbol: { color: theme.subtext, fontSize: 11, marginTop: 2, fontFamily: 'Menlo' },
+  cardPrice: { color: theme.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
+  changePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 4 },
+  changeText: { fontSize: 12, fontWeight: '700' },
 });
