@@ -55,8 +55,9 @@ export function NewsScreen() {
 
         {items.map((it, idx) => {
           const url = it.url || it.link;
+          // idx 포함 — 같은 URL 이 여러 RSS 소스에서 중복으로 와도 key 고유성 보장
           return (
-            <TouchableOpacity key={url || idx} style={styles.card} onPress={() => openLink(url)}>
+            <TouchableOpacity key={`${idx}-${url || ''}`} style={styles.card} onPress={() => openLink(url)}>
               <Text style={styles.headline} numberOfLines={3}>{it.title || '(제목 없음)'}</Text>
               <View style={styles.meta}>
                 {it.source && <Text style={styles.source}>{it.source}</Text>}
