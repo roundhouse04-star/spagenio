@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Modal, View, Text, ActivityIndicator, TouchableOpacity, Dimensions, StyleSheet, ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { api } from '../api/client';
 import { theme } from '../theme';
@@ -19,6 +19,7 @@ export function ChartModal({ visible, symbol, label, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!visible || !symbol) return;
@@ -70,15 +71,21 @@ export function ChartModal({ visible, symbol, label, onClose }) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        {/* 드래그 인디케이터 (모달임을 시각화) */}
+        <View style={styles.dragHandle} />
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.symbol}>{symbol}</Text>
             <Text style={styles.label} numberOfLines={1}>{label || ''}</Text>
           </View>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.close}>✕</Text>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onClose}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+          >
+            <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
         </View>
 
@@ -162,7 +169,7 @@ export function ChartModal({ visible, symbol, label, onClose }) {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -188,10 +195,12 @@ function IndCell({ label, value, suffix }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
+  dragHandle: { alignSelf: 'center', width: 40, height: 4, backgroundColor: theme.borderLight, borderRadius: 2, marginTop: 8, marginBottom: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
   symbol: { color: theme.text, fontSize: 18, fontWeight: '700' },
   label: { color: theme.subtext, fontSize: 12, marginTop: 2 },
-  close: { color: theme.subtext, fontSize: 24, paddingHorizontal: 4 },
+  closeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: theme.border },
+  closeText: { color: theme.text, fontSize: 18, fontWeight: '600', lineHeight: 20 },
   priceSection: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6 },
   priceMain: { color: theme.text, fontSize: 36, fontWeight: '800', letterSpacing: -0.5 },
   changeRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 4 },
