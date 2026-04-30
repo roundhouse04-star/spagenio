@@ -5,6 +5,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>관리자 - AI Router Dashboard</title>
+  <!-- DOMPurify - Apache-2.0/MPL-2.0, 무료 오픈소스 (XSS 방지용) -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script>
+    // XSS 방지 헬퍼 — 모든 inline script 시작 전에 정의
+    window._safeHTML = function (html) {
+      if (typeof DOMPurify !== 'undefined' && DOMPurify && typeof DOMPurify.sanitize === 'function') {
+        return DOMPurify.sanitize(String(html == null ? '' : html));
+      }
+      return String(html == null ? '' : html).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    };
+    window._esc = function (s) {
+      if (s == null) return '';
+      return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+    };
+    window._safeHttpUrl = function (u) {
+      const s = String(u || '').trim();
+      return /^https?:\/\//i.test(s) ? s : '';
+    };
+  </script>
   <style>
     :root {
       --bg: #f1f3f5;
@@ -1154,9 +1173,9 @@
         document.getElementById('spModalIcon').textContent = icon;
         document.getElementById('spModalTitle').textContent = title;
         document.getElementById('spModalMsg').textContent = msg;
-        document.getElementById('spModalBtns').innerHTML = `
+        document.getElementById('spModalBtns').innerHTML = _safeHTML(`
           <button class="sp-modal-btn cancel" onclick="_spModalReject()">취소</button>
-          <button class="sp-modal-btn ${confirmClass}" onclick="document.getElementById('spModalOverlay').style.display='none';_spModalResolve&&(_spModalResolve(true),_spModalResolve=null)">${confirmText}</button>`;
+          <button class="sp-modal-btn ${confirmClass}" onclick="document.getElementById('spModalOverlay').style.display='none';_spModalResolve&&(_spModalResolve(true),_spModalResolve=null)">${confirmText}</button>`);
         document.getElementById('spModalOverlay').style.display = 'flex';
       });
     }
@@ -1166,8 +1185,8 @@
         document.getElementById('spModalIcon').textContent = icon;
         document.getElementById('spModalTitle').textContent = title;
         document.getElementById('spModalMsg').textContent = msg;
-        document.getElementById('spModalBtns').innerHTML = `
-          <button class="sp-modal-btn confirm" onclick="document.getElementById('spModalOverlay').style.display='none';_spModalResolve&&(_spModalResolve(true),_spModalResolve=null)">확인</button>`;
+        document.getElementById('spModalBtns').innerHTML = _safeHTML(`
+          <button class="sp-modal-btn confirm" onclick="document.getElementById('spModalOverlay').style.display='none';_spModalResolve&&(_spModalResolve(true),_spModalResolve=null)">확인</button>`);
         document.getElementById('spModalOverlay').style.display = 'flex';
       });
     }
@@ -1248,14 +1267,14 @@
         document.getElementById('ov-users').textContent = (usersData.users?.length || 0).toLocaleString();
 
         // 보안 통계
-        document.getElementById('secStats').innerHTML = `
+        document.getElementById('secStats').innerHTML = _safeHTML(`
           <div class="stat-box accent"><div class="stat-num">${d.total_requests.toLocaleString()}</div><div class="stat-label">전체 요청</div></div>
           <div class="stat-box success"><div class="stat-num">${d.login_success}</div><div class="stat-label">로그인 성공</div></div>
           <div class="stat-box danger"><div class="stat-num">${d.login_failed}</div><div class="stat-label">로그인 실패</div></div>
           <div class="stat-box warn"><div class="stat-num">${d.suspicious}</div><div class="stat-label">의심 접근</div></div>
           <div class="stat-box warn"><div class="stat-num">${d.rate_limited}</div><div class="stat-label">요청 초과</div></div>
           <div class="stat-box accent"><div class="stat-num">${d.unique_ips}</div><div class="stat-label">고유 IP</div></div>
-        `;
+        `);
 
         // IP TOP10 차트
         const maxCnt = Math.max(...(d.top_ips?.map(i => i.cnt) || [1]));
@@ -1518,7 +1537,7 @@
 
       const line = document.createElement('div');
       line.style.cssText = 'padding:2px 0;border-bottom:1px solid var(--line);';
-      line.innerHTML = `<span style="color:#9ca3af;">${log.time}</span> ${hist}<span style="color:${color};font-weight:700;">${icon} ${log.eventType || log.level}</span> <span style="color:#6b7280;">${log.ip || ''}</span> <span style="color:var(--text);">${log.message}</span>${log.username && log.username !== '-' ? ` <span style="color:#6366f1;">👤${log.username}</span>` : ''}<span style="color:#9ca3af;"> ${log.status || ''} ${log.responseTime || ''}</span>`;
+      line.innerHTML = _safeHTML(`<span style="color:#9ca3af;">${log.time}</span> ${hist}<span style="color:${color};font-weight:700;">${icon} ${log.eventType || log.level}</span> <span style="color:#6b7280;">${log.ip || ''}</span> <span style="color:var(--text);">${log.message}</span>${log.username && log.username !== '-' ? ` <span style="color:#6366f1;">👤${log.username}</span>` : ''}<span style="color:#9ca3af;"> ${log.status || ''} ${log.responseTime || ''}</span>`);
 
       const container = document.getElementById('logStream');
       container.appendChild(line);
@@ -1738,7 +1757,7 @@
             </td>
           </tr>`).join('');
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--danger);">로드 실패: ${e.message}</td></tr>`;
+        tbody.innerHTML = _safeHTML(`<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--danger);">로드 실패: ${e.message}</td></tr>`);
       }
     }
 
@@ -1799,13 +1818,13 @@
           </div>`;
         }).join('');
 
-        result.innerHTML = `
+        result.innerHTML = _safeHTML(`
           <div style="margin-bottom:10px;font-weight:700;color:var(--text);">
             총 ${data.results.filter(r => r.success).length}/${data.results.length}개 소스 성공
           </div>
-          ${rows}`;
+          ${rows}`);
       } catch (e) {
-        result.innerHTML = `<span style="color:#dc2626;">오류: ${e.message}</span>`;
+        result.innerHTML = _safeHTML(`<span style="color:#dc2626;">오류: ${e.message}</span>`);
       } finally {
         btn.disabled = false;
         btn.textContent = '▶ 전체 수집 테스트';
@@ -2028,7 +2047,7 @@
               </div>
             </div>`;
         }).join('');
-      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+      } catch(e) { el.innerHTML = _safeHTML(`<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`); }
     }
 
     async function toggleScheduler(key, enabled) {
@@ -2120,7 +2139,7 @@
                 </div>
               </div>`;
           }).join('') + '</div>';
-      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+      } catch(e) { el.innerHTML = _safeHTML(`<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`); }
     }
 
     async function toggleScheduler(key, enabled) {
@@ -2200,7 +2219,7 @@
               </div>` : ''}
             </div>`;
         }).join('');
-      } catch(e) { el.innerHTML = `<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`; }
+      } catch(e) { el.innerHTML = _safeHTML(`<p class="empty" style="color:#ef4444;">로드 실패: ${e.message}</p>`); }
     }
 
     function showAddMenuForm() {

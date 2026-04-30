@@ -7,6 +7,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>spagenio</title>
+  <!-- DOMPurify - Apache-2.0/MPL-2.0, 무료 오픈소스 (XSS 방지용) -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script>
+    window._safeHTML = function (html) {
+      if (typeof DOMPurify !== 'undefined' && DOMPurify && typeof DOMPurify.sanitize === 'function') {
+        return DOMPurify.sanitize(String(html == null ? '' : html));
+      }
+      return String(html == null ? '' : html).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    };
+    window._esc = function (s) {
+      if (s == null) return '';
+      return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+    };
+    window._safeHttpUrl = function (u) {
+      const s = String(u || '').trim();
+      return /^https?:\/\//i.test(s) ? s : '';
+    };
+  </script>
   <style>
     :root {
       --bg: #0a0f1a;
@@ -1144,12 +1162,12 @@
         const d = await res.json();
         if (d.no_account) { el.innerHTML = '<div class="m-empty">🔑 Alpaca 계좌를 등록해주세요</div>'; return; }
         if (!d.equity) { el.innerHTML = '<div class="m-empty">계좌 정보 없음</div>'; return; }
-        el.innerHTML = `<div class="m-stat-grid">
+        el.innerHTML = _safeHTML(`<div class="m-stat-grid">
       <div class="m-stat-item"><div class="m-stat-label">현금</div><div class="m-stat-value">$${parseFloat(d.cash).toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
       <div class="m-stat-item"><div class="m-stat-label">포트폴리오</div><div class="m-stat-value">$${parseFloat(d.portfolio_value).toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
       <div class="m-stat-item"><div class="m-stat-label">매수 가능</div><div class="m-stat-value">$${parseFloat(d.buying_power).toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
       <div class="m-stat-item"><div class="m-stat-label">총 자산</div><div class="m-stat-value">$${parseFloat(d.equity).toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
-    </div>`;
+    </div>`);
       } catch (e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
     }
 
@@ -1341,9 +1359,9 @@
 
         if (el) {
           if (!state?.enabled) {
-            el.innerHTML = `<div class="m-empty">자동매매 비활성 상태</div>`;
+            el.innerHTML = _safeHTML(`<div class="m-empty">자동매매 비활성 상태</div>`);
           } else if (state.status === 'holding' && state.symbol) {
-            el.innerHTML = `<div>
+            el.innerHTML = _safeHTML(`<div>
           <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px;">보유 중</div>
           <div style="font-size:1.4rem;font-weight:800;color:var(--accent);">${state.symbol}</div>
           <div style="font-size:0.82rem;color:var(--muted);">${state.qty}주 · 매수가 $${parseFloat(state.buy_price).toFixed(2)}</div>
@@ -1352,9 +1370,9 @@
             <span class="m-badge m-badge-red">손절 -${Math.round((state.stop_loss || 0.05) * 100)}%</span>
             <span class="m-badge m-badge-blue">15:55 강제청산</span>
           </div>
-        </div>`;
+        </div>`);
           } else {
-            el.innerHTML = `<div class="m-empty">🔍 매수 기회 탐색 중...</div>`;
+            el.innerHTML = _safeHTML(`<div class="m-empty">🔍 매수 기회 탐색 중...</div>`);
           }
 
           if (state) {
@@ -1416,7 +1434,7 @@
         const d = await res.json();
         const positions = d.positions || [];
         if (!positions.length) { el.innerHTML = '<div class="m-empty">보유 중인 자동매매 종목 없음</div>'; return; }
-        el.innerHTML = `<div class="m-card-title">📊 자동매매 보유 (${positions.length}종목)</div>` +
+        el.innerHTML = _safeHTML(`<div class="m-card-title">📊 자동매매 보유 (${positions.length}종목)</div>`) +
           positions.map(p => {
             const pl = parseFloat(p.unrealized_pl) || 0;
             const plPct = (parseFloat(p.unrealized_plpc) || 0) * 100;
@@ -1528,7 +1546,7 @@
         </div>`).join('');
           el.innerHTML = html;
           _mPicksCacheKr = html; _mPicksCacheTimeKr = Date.now();
-        } catch (e) { el.innerHTML = `<div class="m-empty" style="color:var(--danger);">오류: ${e.message}</div>`; }
+        } catch (e) { el.innerHTML = _safeHTML(`<div class="m-empty" style="color:var(--danger);">오류: ${e.message}</div>`); }
       }
     }
 
@@ -1575,12 +1593,12 @@
         const change = total - prev;
         const changePct = prev ? (change / prev * 100).toFixed(2) : '0.00';
         const color = change >= 0 ? 'var(--success)' : 'var(--danger)';
-        el.innerHTML = `<div class="m-stat-grid">
+        el.innerHTML = _safeHTML(`<div class="m-stat-grid">
       <div class="m-stat-item"><div class="m-stat-label">총 자산</div><div class="m-stat-value">$${total.toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
       <div class="m-stat-item"><div class="m-stat-label">변동</div><div class="m-stat-value" style="color:${color};">${change >= 0 ? '+' : ''}$${Math.abs(change).toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
       <div class="m-stat-item"><div class="m-stat-label">현금</div><div class="m-stat-value">$${parseFloat(l.cash || 0).toLocaleString('en', { maximumFractionDigits: 0 })}</div></div>
       <div class="m-stat-item"><div class="m-stat-label">수익률</div><div class="m-stat-value" style="color:${color};">${change >= 0 ? '+' : ''}${changePct}%</div></div>
-    </div>`;
+    </div>`);
       } catch (e) { el.innerHTML = '<div class="m-empty">로드 실패</div>'; }
 
       // 자동매매 이력
@@ -1619,10 +1637,10 @@
           body: JSON.stringify({ symbol, start_date: start, end_date: end, take_profit, stop_loss, strategy: 'macd' })
         });
         const d = await res.json();
-        if (!d.ok) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">${d.error || '실패'}</div></div>`; return; }
+        if (!d.ok) { el.innerHTML = _safeHTML(`<div class="m-card"><div style="color:var(--danger);">${d.error || '실패'}</div></div>`); return; }
         const r = d.result;
         const color = r.total_return >= 0 ? 'var(--success)' : 'var(--danger)';
-        el.innerHTML = `<div class="m-section-label">백테스트 결과</div>
+        el.innerHTML = _safeHTML(`<div class="m-section-label">백테스트 결과</div>
       <div class="m-card">
         <div class="m-stat-grid">
           <div class="m-stat-item"><div class="m-stat-label">총 수익률</div><div class="m-stat-value" style="color:${color};">${r.total_return >= 0 ? '+' : ''}${(r.total_return * 100).toFixed(2)}%</div></div>
@@ -1630,8 +1648,8 @@
           <div class="m-stat-item"><div class="m-stat-label">승률</div><div class="m-stat-value">${(r.win_rate * 100).toFixed(1)}%</div></div>
           <div class="m-stat-item"><div class="m-stat-label">최대 낙폭</div><div class="m-stat-value" style="color:var(--danger);">${(r.max_drawdown * 100).toFixed(2)}%</div></div>
         </div>
-      </div>`;
-      } catch (e) { el.innerHTML = `<div class="m-card"><div style="color:var(--danger);">오류: ${e.message}</div></div>`; }
+      </div>`);
+      } catch (e) { el.innerHTML = _safeHTML(`<div class="m-card"><div style="color:var(--danger);">오류: ${e.message}</div></div>`); }
     }
 
     // ── 관리: 스케줄러 ──
@@ -1643,7 +1661,7 @@
         const d = await res.json();
         const jobs = d.jobs || [];
         if (!jobs.length) { el.innerHTML = '<div class="m-empty">등록된 스케줄러 없음</div>'; return; }
-        el.innerHTML = `<div class="m-card-title">⏰ 스케줄러 목록</div>` +
+        el.innerHTML = _safeHTML(`<div class="m-card-title">⏰ 스케줄러 목록</div>`) +
           jobs.map(j => {
             const isOn = j.enabled || j.running;
             return `<div class="m-stock-row">

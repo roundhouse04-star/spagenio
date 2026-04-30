@@ -46,7 +46,7 @@ async function loadChartData(symbol, period) {
       // alert 대신 모달 내 오류 표시
       ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = `<div style="padding:16px;background:rgba(255,59,48,0.12);border-radius:8px;color:#FF3B30;font-size:0.85rem;">⚠️ ${data.error}</div>`;
+        if (el) el.innerHTML = _safeHTML(`<div style="padding:16px;background:rgba(255,59,48,0.12);border-radius:8px;color:#FF3B30;font-size:0.85rem;">⚠️ ${data.error}</div>`);
       });
       return;
     }
@@ -54,7 +54,7 @@ async function loadChartData(symbol, period) {
   } catch (e) {
     ['priceChartEl', 'volumeChartEl', 'rsiChartEl', 'macdChartEl'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<div style="padding:16px;background:rgba(255,59,48,0.12);border-radius:8px;color:#FF3B30;font-size:0.85rem;">⚠️ Server connection failed (port 5002)</div>`;
+      if (el) el.innerHTML = _safeHTML(`<div style="padding:16px;background:rgba(255,59,48,0.12);border-radius:8px;color:#FF3B30;font-size:0.85rem;">⚠️ Server connection failed (port 5002)</div>`);
     });
   }
 }
@@ -281,7 +281,7 @@ async function loadAssetPieChart() {
         cutout: '65%'
       }
     });
-    legendEl.innerHTML = `
+    legendEl.innerHTML = _safeHTML(`
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:10px;height:10px;border-radius:2px;background:#4f8fff;flex-shrink:0;"></div>
@@ -295,7 +295,7 @@ async function loadAssetPieChart() {
           <div style="color:#9CA3AF;font-size:0.72rem;">총 자산</div>
           <div style="color:#E5E7EB;font-weight:800;font-size:1rem;">$${total.toLocaleString()}</div>
         </div>
-      </div>`;
+      </div>`);
   } catch (e) { document.getElementById('assetPieLegend').innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">로드 실패</div>'; }
 }
 
@@ -327,7 +327,7 @@ async function loadPositionPieChart() {
         cutout: '65%'
       }
     });
-    legendEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;">
+    legendEl.innerHTML = _safeHTML(`<div style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;">
       ${positions.map((p, i) => {
       const val = parseFloat(p.market_value) || 0;
       const pct = (val / total * 100).toFixed(1);
@@ -346,7 +346,7 @@ async function loadPositionPieChart() {
           </div>
         </div>`;
     }).join('')}
-    </div>`;
+    </div>`);
   } catch (e) { legendEl.innerHTML = '<div style="color:#4B5563;font-size:0.8rem;">Alpaca 연결 필요</div>'; }
 }
 

@@ -30,13 +30,13 @@
     warnPopup = document.createElement('div');
     warnPopup.id = 'sessionWarnPopup';
     warnPopup.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#fff;border:1.5px solid #fde68a;border-radius:12px;padding:16px 20px;box-shadow:0 8px 30px rgba(0,0,0,0.12);z-index:9998;max-width:300px;';
-    warnPopup.innerHTML = `
+    warnPopup.innerHTML = _safeHTML(`
       <div style="font-weight:700;color:#92400e;margin-bottom:6px;">⚠️ Session Expiring</div>
       <div style="font-size:0.85rem;color:#78350f;margin-bottom:12px;">You will be logged out in 1 minute.</div>
       <button onclick="document.getElementById('sessionWarnPopup').remove(); document.dispatchEvent(new Event('userActivity'));"
         style="width:100%;padding:8px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.88rem;">
         Stay Logged In
-      </button>`;
+      </button>`);
     document.body.appendChild(warnPopup);
   }
 
@@ -169,11 +169,11 @@ async function loadAlpacaKeyStatus() {
     }
 
     if (!data.registered || !data.accounts?.length) {
-      listEl.innerHTML = `
+      listEl.innerHTML = _safeHTML(`
         <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 18px;">
           <div style="font-weight:700;color:#92400e;margin-bottom:4px;">🔑 등록된 계좌가 없습니다</div>
           <div style="color:#78350f;font-size:0.87rem;">"+ 계좌 추가" 버튼을 눌러 Alpaca 계좌를 등록해주세요.</div>
-        </div>`;
+        </div>`);
       activeAccountId = null;
       return;
     }
@@ -281,14 +281,14 @@ async function changeAccountType(id, currentType) {
   const confirmed = await new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-    overlay.innerHTML = `
+    overlay.innerHTML = _safeHTML(`
       <div style="background:#fff;border-radius:16px;padding:24px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
         ${html}
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
           <button id="cancelTypeBtn" style="padding:8px 16px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-weight:600;">취소</button>
           <button id="confirmTypeBtn" style="padding:8px 16px;border-radius:8px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:700;">변경</button>
         </div>
-      </div>`;
+      </div>`);
     document.body.appendChild(overlay);
     overlay.querySelector('#cancelTypeBtn').onclick = () => { document.body.removeChild(overlay); resolve(null); };
     overlay.querySelector('#confirmTypeBtn').onclick = () => {
@@ -408,12 +408,12 @@ function showAlpacaPopup(type, msg) {
   }
   const colors = { loading: '#6366f1', success: '#10b981', error: '#ef4444' };
   const bgColors = { loading: '#eef2ff', success: '#f0fdf4', error: '#fff0f0' };
-  popup.innerHTML = `
+  popup.innerHTML = _safeHTML(`
     <div style="background:#fff;border-radius:16px;padding:36px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);min-width:280px;">
       <div style="font-size:2.5rem;margin-bottom:14px;">${type === 'loading' ? '🔄' : type === 'success' ? '✅' : '❌'}</div>
       <div style="font-size:1.05rem;font-weight:700;color:${colors[type] || '#111'};">${msg}</div>
       ${type === 'loading' ? '<div style="margin-top:12px;color:#9ca3af;font-size:0.85rem;">잠시 기다려주세요...</div>' : ''}
-    </div>`;
+    </div>`);
   popup.style.display = 'flex';
 }
 
@@ -710,7 +710,7 @@ function renderDefaultSidebar() {
   const nav = document.getElementById('sidebarNav') || document.getElementById('sidebarMenus');
   if (!nav) return;
 
-  nav.innerHTML = `
+  nav.innerHTML = _safeHTML(`
     <div class="sp-nav-label">메인</div>
     <button class="tab-btn active" id="tab-btn-ai-0" onclick="activateMenu('ai', null, 0)"><span class="nav-icon">📰</span> 뉴스</button>
     <div class="sp-nav-label" style="margin-top:8px;">트레이딩</div>
@@ -719,7 +719,7 @@ function renderDefaultSidebar() {
     <button class="tab-btn" id="tab-btn-quant-0" onclick="activateMenu('quant', null, 0)"><span class="nav-icon">🤖</span> 자동매매</button>
     <button class="tab-btn" id="tab-btn-backtest-0" onclick="activateMenu('backtest', null, 0)"><span class="nav-icon">🔬</span> 백테스팅</button>
     <div class="sp-nav-label" style="margin-top:8px;">분석</div>
-    <button class="tab-btn" id="tab-btn-performance-0" onclick="activateMenu('performance', null, 0)"><span class="nav-icon">💹</span> 성과 대시보드</button>`;
+    <button class="tab-btn" id="tab-btn-performance-0" onclick="activateMenu('performance', null, 0)"><span class="nav-icon">💹</span> 성과 대시보드</button>`);
 }
 
 

@@ -1,6 +1,40 @@
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const STOCK_API = isLocal ? 'http://localhost:5001' : '/proxy/stock';
 
+// ===== XSS 방지 헬퍼 =====
+// DOMPurify 가 <script>, <iframe>, javascript: URL, <object>, <embed> 등은 차단하면서
+// 우리 코드의 inline onclick 등은 ADD_ATTR 로 허용 → 기능 유지.
+// (완전 방어 아님 — 외부 데이터를 onclick="...${var}..." 안에 보간하는 패턴은 여전히 취약.
+//  장기적으로 addEventListener + data-attr 패턴으로 마이그레이션 필요.)
+const _SAFE_HTML_CONFIG = {
+  ADD_ATTR: ['onclick', 'onchange', 'onkeydown', 'onkeyup', 'oninput', 'onmouseover', 'onmouseout', 'onsubmit', 'onload'],
+};
+function _safeHTML(html) {
+  if (typeof DOMPurify !== 'undefined' && DOMPurify && typeof DOMPurify.sanitize === 'function') {
+    return DOMPurify.sanitize(String(html == null ? '' : html), _SAFE_HTML_CONFIG);
+  }
+  // Fallback: DOMPurify 미로드 시 텍스트로 무력화 (안전 default)
+  return String(html == null ? '' : html)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+// 단순 텍스트 이스케이프 (template literal 안에서 ${_esc(x)} 형태로 사용)
+function _esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+// http(s) URL만 허용 (javascript: 등 차단)
+function _safeHttpUrl(u) {
+  const s = String(u || '').trim();
+  return /^https?:\/\//i.test(s) ? s : '';
+}
+
 
 // 뒤로가기 금지는 login.html에서만 처리
 
@@ -42,7 +76,7 @@ async function loadAccount() {
     const { ok, data: keyData } = await safeJson(keyRes);
 
     if (!ok || !keyData.registered) {
-      el.innerHTML = `
+      el.innerHTML = _safeHTML(`
         <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 20px;width:100%;">
           <div style="font-weight:700;color:#92400e;margin-bottom:6px;">🔑 Alpaca Not Connected</div>
           <div style="color:#78350f;font-size:0.88rem;margin-bottom:12px;">Register your Alpaca API key above to view account info.</div>
@@ -50,7 +84,7 @@ async function loadAccount() {
             style="background:#6366f1;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:0.85rem;">
             + Connect Now
           </button>
-        </div>`;
+        </div>`);
       return;
     }
 
@@ -64,7 +98,7 @@ async function loadAccount() {
 
       // 403/401 = 키 만료 또는 계좌 없음
       if (alpacaStatus === 403 || alpacaStatus === 401) {
-        el.innerHTML = `
+        el.innerHTML = _safeHTML(`
           <div style="background:#fff0f0;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;width:100%;">
             <div style="font-weight:700;color:#dc2626;margin-bottom:6px;">❌ Alpaca Connection Failed</div>
             <div style="color:#991b1b;font-size:0.88rem;margin-bottom:12px;">
@@ -75,25 +109,25 @@ async function loadAccount() {
               style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:0.85rem;">
               🗑️ Remove Key
             </button>
-          </div>`;
+          </div>`);
         return;
       }
 
-      el.innerHTML = `<div style="background:#fff0f0;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;color:#dc2626;font-size:0.88rem;">⚠️ ${msg}</div>`;
+      el.innerHTML = _safeHTML(`<div style="background:#fff0f0;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;color:#dc2626;font-size:0.88rem;">⚠️ ${msg}</div>`);
       return;
     }
 
     // 3. 정상 계좌 표시
     const activeAcc = keyData.accounts?.find(a => a.is_active) || keyData.accounts?.[0];
     const mode = activeAcc?.alpaca_paper ? '🧪 Paper' : '💰 Live';
-    el.innerHTML = `
+    el.innerHTML = _safeHTML(`
       <div class="account-metric"><div class="lbl">Cash</div><div class="val" style="color:#4f8fff;">$${parseFloat(data.cash).toLocaleString()}</div></div>
       <div class="account-metric"><div class="lbl">Portfolio</div><div class="val" style="color:#10b981;">$${parseFloat(data.portfolio_value).toLocaleString()}</div></div>
       <div class="account-metric"><div class="lbl">Buying Power</div><div class="val" style="color:#f59e0b;">$${parseFloat(data.buying_power).toLocaleString()}</div></div>
       <div class="account-metric"><div class="lbl">Equity</div><div class="val" style="color:#a78bfa;">$${parseFloat(data.equity).toLocaleString()}</div></div>
-    `;
+    `);
   } catch (e) {
-    el.innerHTML = `<div class="mini-card" style="color:#ef4444;">서버 연결 Error: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div class="mini-card" style="color:#ef4444;">서버 연결 Error: ${e.message}</div>`);
   }
 }
 
@@ -420,7 +454,7 @@ async function loadPositions() {
       document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">보유 종목이 없습니다</p>';
       return;
     }
-    document.getElementById('positionsTable').innerHTML = `
+    document.getElementById('positionsTable').innerHTML = _safeHTML(`
       <table class="stock-table">
         <thead><tr><th>종목</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>실시간</th></tr></thead>
         <tbody>
@@ -442,7 +476,7 @@ async function loadPositions() {
             </tr>`;
     }).join('')}
         </tbody>
-      </table>`;
+      </table>`);
   } catch (e) {
     document.getElementById('positionsTable').innerHTML = '<p style="color:var(--muted)">Stock server connection failed</p>';
   }
@@ -471,7 +505,7 @@ window.showRealtimePrice = async function (symbol) {
     const pl = parseFloat(posData?.unrealized_pl) || 0;
     const plpc = (parseFloat(posData?.unrealized_plpc) || 0) * 100;
 
-    body.innerHTML = `
+    body.innerHTML = _safeHTML(`
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
         <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center;">
           <div style="font-size:0.78rem;color:#6b7280;margin-bottom:4px;">현재가</div>
@@ -509,9 +543,9 @@ window.showRealtimePrice = async function (symbol) {
       <div style="margin-top:12px;text-align:right;">
         <button onclick="showRealtimePrice('${symbol}')" class="sp-btn sp-btn-outline sp-btn-sm" style="margin-right:8px;">🔄 새로고침</button>
         <button onclick="document.getElementById('realtimeModal').style.display='none'" class="sp-btn sp-btn-indigo sp-btn-sm">닫기</button>
-      </div>`;
+      </div>`);
   } catch (e) {
-    body.innerHTML = `<div style="color:#ef4444;padding:16px;">로드 실패: ${e.message}</div>`;
+    body.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:16px;">로드 실패: ${e.message}</div>`);
   }
 };
 
@@ -531,7 +565,7 @@ async function loadOrders() {
       return;
     }
     const statusMap = { filled: '체결', partially_filled: '부분체결', canceled: '취소', pending_new: '대기', new: '접수', expired: '만료' };
-    document.getElementById('ordersTable').innerHTML = `
+    document.getElementById('ordersTable').innerHTML = _safeHTML(`
       <div style="font-size:0.82rem;color:#6b7280;margin-bottom:8px;">최근 ${orders.length}건</div>
       <table class="stock-table">
         <thead><tr><th>종목</th><th>구분</th><th>수량</th><th>주문유형</th><th>상태</th><th>체결가</th><th>체결금액</th><th>날짜</th></tr></thead>
@@ -556,7 +590,7 @@ async function loadOrders() {
             </tr>`;
     }).join('')}
         </tbody>
-      </table>`;
+      </table>`);
   } catch (e) {
     document.getElementById('ordersTable').innerHTML = '<p style="color:var(--muted)">Stock server connection failed</p>';
   }
@@ -615,7 +649,7 @@ async function loadOrderBook() {
 
     // ── 현재가 카드 ──
     if (priceEl) {
-      priceEl.innerHTML = `
+      priceEl.innerHTML = _safeHTML(`
         <div style="margin-bottom:12px;">
           <div style="font-size:1.6rem;font-weight:800;color:${priceColor};">
             $${latestPrice.toFixed(2)}
@@ -644,7 +678,7 @@ async function loadOrderBook() {
         </div>
         <div style="margin-top:10px;font-size:0.75rem;color:#6B7280;border-top:1px solid #f3f4f6;padding-top:8px;">
           거래량: ${volume ? Number(volume).toLocaleString() : '-'}
-        </div>`;
+        </div>`);
     }
 
     // ── 호가창 ──
@@ -655,7 +689,7 @@ async function loadOrderBook() {
       const askBarW = Math.round(askSize / maxSize * 100);
       const bidBarW = Math.round(bidSize / maxSize * 100);
 
-      tableEl.innerHTML = `
+      tableEl.innerHTML = _safeHTML(`
         <div style="font-size:0.75rem;color:#6B7280;margin-bottom:6px;font-weight:700;">매도 호가</div>
         <div style="background:#fff0f0;border-radius:8px;padding:10px 12px;margin-bottom:4px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -696,7 +730,7 @@ async function loadOrderBook() {
 
         <div style="margin-top:10px;font-size:0.72rem;color:#9CA3AF;text-align:center;">
           Alpaca 최우선 호가 (Free Plan)
-        </div>`;
+        </div>`);
     }
 
     if (statusEl) {
@@ -709,7 +743,7 @@ async function loadOrderBook() {
     _obRefreshTimer = setTimeout(() => loadOrderBook(), 30000);
 
   } catch (e) {
-    if (priceEl) priceEl.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:12px;">조회 실패: ${e.message}</div>`;
+    if (priceEl) priceEl.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;padding:12px;">조회 실패: ${e.message}</div>`);
     if (statusEl) statusEl.textContent = '오류';
   }
 }
@@ -819,7 +853,7 @@ async function loadTradeLog() {
       </tr>`;
     }).join('');
 
-    el.innerHTML = `
+    el.innerHTML = _safeHTML(`
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
         ${tabsHtml}
         <span style="margin-left:auto;font-size:0.75rem;color:#636366;">${filtered.length}건</span>
@@ -840,9 +874,9 @@ async function loadTradeLog() {
           </thead>
           <tbody>${rowsHtml}</tbody>
         </table>
-      </div>`;
+      </div>`);
   } catch (e) {
-    el.innerHTML = `<p style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</p>`;
+    el.innerHTML = _safeHTML(`<p style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</p>`);
   }
 }
 
@@ -916,7 +950,7 @@ async function runQuantAnalysis() {
     // 히스토리 자동 조회
     loadHistoryData();
   } catch (e) {
-    el.innerHTML = `<p style="color:var(--accent-danger, #ff8f8f)">Quant server connection failed (port 5002)</p>`;
+    el.innerHTML = _safeHTML(`<p style="color:var(--accent-danger, #ff8f8f)">Quant server connection failed (port 5002)</p>`);
   }
 }
 
@@ -951,7 +985,7 @@ async function runBatchAnalysis() {
         <td style="font-size:0.8rem;color:var(--muted);">${r.reason || r.error || '-'}</td>
       </tr>`;
     }).join('');
-    el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+    el.innerHTML = _safeHTML(`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="color:var(--muted);font-size:0.82rem;">
         <th style="padding:8px;text-align:left;">Symbol</th>
         <th style="padding:8px;text-align:left;">신호</th>
@@ -960,10 +994,10 @@ async function runBatchAnalysis() {
         <th style="padding:8px;text-align:left;">분석 내용</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-    </table></div>`;
+    </table></div>`);
   } catch (e) {
     if (typeof renderBatchChart === 'function' && data.results) renderBatchChart(data.results);
-    el.innerHTML = `<p style="color:var(--accent-danger, #ff8f8f)">Quant server connection failed (port 5002)</p>`;
+    el.innerHTML = _safeHTML(`<p style="color:var(--accent-danger, #ff8f8f)">Quant server connection failed (port 5002)</p>`);
   }
 }
 
@@ -973,7 +1007,7 @@ async function loadKoreaAnalysis() {
   try {
     const res = await fetch(`${QUANT_API}/api/quant/korea`);
     const data = await res.json();
-    if (data.error) { el.innerHTML = `<p style="color:#ff8f8f;">Error: ${data.error}</p>`; return; }
+    if (data.error) { el.innerHTML = _safeHTML(`<p style="color:#ff8f8f;">Error: ${data.error}</p>`); return; }
     const rows = (data.top10 || []).map((item, i) => `<tr style="cursor:pointer;" onclick="openChart('${item.ticker.includes('.') ? item.ticker : item.ticker + '.KS'}')" onmouseover="this.style.background='rgba(79,143,255,0.05)'" onmouseout="this.style.background=''">
       <td style="font-weight:700;color:#4f8fff;">${i + 1}</td>
       <td><div style="font-weight:700;">${item.name}</div><div style="color:#8E8E93;font-size:0.78rem;">${item.ticker}</div></td>
@@ -982,7 +1016,7 @@ async function loadKoreaAnalysis() {
       <td>${item.short_ratio?.toFixed(2)}%</td>
       <td style="font-weight:700;color:#4f8fff;">${item.score?.toFixed(1)}</td>
     </tr>`).join('');
-    el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+    el.innerHTML = _safeHTML(`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="color:var(--muted);font-size:0.82rem;">
         <th style="padding:8px;">순위</th><th style="padding:8px;text-align:left;">Symbol</th>
         <th style="padding:8px;">Current</th><th style="padding:8px;">Volume</th>
@@ -990,9 +1024,9 @@ async function loadKoreaAnalysis() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
-    <p style="color:#9CA3AF;font-size:0.78rem;margin-top:8px;">업데이트: ${data.updated_at?.slice(0, 19) || '-'}</p>`;
+    <p style="color:#9CA3AF;font-size:0.78rem;margin-top:8px;">업데이트: ${data.updated_at?.slice(0, 19) || '-'}</p>`);
   } catch (e) {
-    el.innerHTML = `<p style="color:#ff8f8f;">퀀트 서버 연결 실패</p>`;
+    el.innerHTML = _safeHTML(`<p style="color:#ff8f8f;">퀀트 서버 연결 실패</p>`);
   }
 }
 
@@ -1018,9 +1052,9 @@ async function saveAutoTradeSettings(enabled) {
 window.toggleAutoTrade = async function (enable) {
   await saveAutoTradeSettings(enable);
   const el = document.getElementById('autoTradeResult');
-  if (el) el.innerHTML = `<div style="padding:10px 14px;border-radius:8px;background:${enable ? '#dcfce7' : '#fee2e2'};color:${enable ? '#065f46' : '#991b1b'};font-weight:700;font-size:0.88rem;margin-top:8px;">
+  if (el) el.innerHTML = _safeHTML(`<div style="padding:10px 14px;border-radius:8px;background:${enable ? '#dcfce7' : '#fee2e2'};color:${enable ? '#065f46' : '#991b1b'};font-weight:700;font-size:0.88rem;margin-top:8px;">
     ${enable ? '✅ 자동매매 활성화됨 — 1분마다 신호 체크' : '⏹ 자동매매 비활성화됨'}
-  </div>`;
+  </div>`);
 };
 
 window.runAutoTradeNow = async function () {
@@ -1034,13 +1068,13 @@ window.runAutoTradeNow = async function () {
           <strong>${r.symbol}</strong> — ${r.action} ${r.qty ? r.qty + '주' : ''} ${r.profit || ''} ${r.reason ? '(' + r.reason + ')' : ''}
         </div>`).join('')
       : '<div style="color:#6b7280;">신호 없음 — 매매 조건 미충족</div>';
-    el.innerHTML = `<div style="padding:12px 14px;border-radius:8px;background:#f8fafc;border:1px solid #e5e7eb;margin-top:8px;">
+    el.innerHTML = _safeHTML(`<div style="padding:12px 14px;border-radius:8px;background:#f8fafc;border:1px solid #e5e7eb;margin-top:8px;">
       <div style="font-weight:700;margin-bottom:8px;">📊 분석 결과: ${d.message}</div>
       ${resultHtml}
-    </div>`;
+    </div>`);
     loadAutoTradeLog();
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:10px;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:10px;">오류: ${e.message}</div>`);
   }
 };
 
@@ -1134,7 +1168,7 @@ window.loadAutoTradeLog = async function () {
     const d = await res.json();
     if (!d.logs?.length) { el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">자동매매 이력이 없습니다</div>'; return; }
     const actionMap = { BUY: '매수', SELL_PROFIT: '익절 매도', SELL_LOSS: '손절 매도' };
-    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+    el.innerHTML = _safeHTML(`<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
       <thead><tr style="border-bottom:2px solid #f3f4f6;color:#6b7280;font-weight:700;">
         <th style="padding:8px;text-align:left;">일시</th>
         <th style="padding:8px;text-align:center;">종목</th>
@@ -1160,7 +1194,7 @@ window.loadAutoTradeLog = async function () {
           <td style="padding:8px;font-size:0.78rem;color:#6b7280;">${l.reason || ''}</td>
         </tr>`;
     }).join('')}
-      </tbody></table>`;
+      </tbody></table>`);
   } catch (e) { el.innerHTML = '<div style="color:#ef4444;padding:16px;">로드 실패</div>'; }
 };
 
@@ -1181,14 +1215,14 @@ async function loadQuantTradeLog() {
       <td style="color:#9CA3AF;font-size:0.8rem;">${log.strategy}</td>
       <td style="color:#9CA3AF;font-size:0.78rem;">${log.created_at?.slice(0, 16) || '-'}</td>
     </tr>`).join('');
-    el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+    el.innerHTML = _safeHTML(`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr style="color:var(--muted);font-size:0.82rem;">
         <th style="padding:8px;text-align:left;">Symbol</th><th style="padding:8px;">방향</th>
         <th style="padding:8px;">Qty</th><th style="padding:8px;">가격</th>
         <th style="padding:8px;">전략</th><th style="padding:8px;">시간</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-    </table></div>`;
+    </table></div>`);
   } catch (e) { }
 }
 
@@ -1241,7 +1275,7 @@ async function dcSearch(query) {
     }).join('');
 
   } catch (e) {
-    resultEl.innerHTML = `<div style="padding:14px;color:#ef4444;font-size:0.88rem;">오류: ${e.message}</div>`;
+    resultEl.innerHTML = _safeHTML(`<div style="padding:14px;color:#ef4444;font-size:0.88rem;">오류: ${e.message}</div>`);
   }
 }
 
@@ -1427,7 +1461,7 @@ function stockRenderSymbolBadge() {
     const span = document.createElement('span');
     span.className = 'stock-badge-item';
     span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#6366f1;font-weight:700;font-size:0.82rem;padding:3px 8px;border-radius:999px;';
-    span.innerHTML = `${sym} <button onclick="event.stopPropagation();stockRemoveSymbol('${sym}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`;
+    span.innerHTML = _safeHTML(`${sym} <button onclick="event.stopPropagation();stockRemoveSymbol('${sym}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`);
     badge.appendChild(span);
   });
 }
@@ -1451,7 +1485,7 @@ function atRenderSymbolBadge() {
     const span = document.createElement('span');
     span.className = 'at-badge-item';
     span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#6366f1;font-weight:700;font-size:0.82rem;padding:3px 8px;border-radius:999px;';
-    span.innerHTML = `${sym} <button onclick="event.stopPropagation();atRemoveSymbol('${sym}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`;
+    span.innerHTML = _safeHTML(`${sym} <button onclick="event.stopPropagation();atRemoveSymbol('${sym}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:0.85rem;padding:0;line-height:1;">✕</button>`);
     badge.appendChild(span);
   });
 }
@@ -1505,7 +1539,7 @@ async function searchStock(query) {
         </div>`;
     }).join('');
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:16px;font-size:0.88rem;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:16px;font-size:0.88rem;">오류: ${e.message}</div>`);
   }
 }
 
@@ -1534,10 +1568,10 @@ async function initHistoryData() {
     if (data.ok) {
       btn.textContent = '✅ 수집 시작됨!';
       const el = document.getElementById('dc-history-result');
-      if (el) el.innerHTML = `<div style="padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#065f46;font-size:0.88rem;">
+      if (el) el.innerHTML = _safeHTML(`<div style="padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#065f46;font-size:0.88rem;">
         ✅ ${data.message}<br>
         <span style="color:#6b7280;font-size:0.8rem;">백그라운드에서 수집 중입니다. 1~2분 후 조회해주세요.</span>
-      </div>`;
+      </div>`);
     } else {
       btn.textContent = '❌ 실패';
     }
@@ -1569,7 +1603,7 @@ async function loadHistoryData() {
     const data = await res.json();
 
     if (data.error) {
-      el.innerHTML = `<div style="color:#ef4444;padding:8px;">❌ ${symbol}: ${data.error}</div>`;
+      el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:8px;">❌ ${symbol}: ${data.error}</div>`);
       return;
     }
 
@@ -1583,7 +1617,7 @@ async function loadHistoryData() {
         <td style="padding:8px 12px;text-align:right;color:#6b7280;font-size:0.82rem;">${r.volume?.toLocaleString() || '-'}</td>
       </tr>`).join('');
 
-    el.innerHTML = `
+    el.innerHTML = _safeHTML(`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:1rem;font-weight:800;color:#6366f1;">${symbol}</span>
@@ -1605,10 +1639,10 @@ async function loadHistoryData() {
           </thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>`;
+      </div>`);
 
   } catch (e) {
-    el.innerHTML = `<p style="color:#ef4444;">오류: ${e.message}</p>`;
+    el.innerHTML = _safeHTML(`<p style="color:#ef4444;">오류: ${e.message}</p>`);
   }
 }
 
@@ -1655,7 +1689,7 @@ window.loadVolumeSurge = async function () {
         </div>`;
     }).join('');
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:12px;font-size:0.85rem;">조회 실패: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;font-size:0.85rem;">조회 실패: ${e.message}</div>`);
   }
 };
 
@@ -1683,7 +1717,7 @@ window.loadNewsCatalyst = async function () {
         ${c.link ? `<a href="${c.link}" target="_blank" style="font-size:0.75rem;color:#6366f1;">↗ 원문 보기</a>` : ''}
       </div>`).join('');
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:12px;font-size:0.85rem;">조회 실패: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;font-size:0.85rem;">조회 실패: ${e.message}</div>`);
   }
 };
 
@@ -1711,8 +1745,8 @@ window.calcRisk = async function () {
       body: JSON.stringify({ symbol, stop_loss_pct: stopLossPct, risk_ratio: riskRatio })
     });
     const d = await res.json();
-    if (!d.ok) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">${d.error}</div>`; return; }
-    el.innerHTML = `
+    if (!d.ok) { el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;">${d.error}</div>`); return; }
+    el.innerHTML = _safeHTML(`
       <div style="background:#f8fafc;border-radius:10px;padding:14px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
           <div style="background:#fff;border-radius:8px;padding:10px;text-align:center;">
@@ -1746,9 +1780,9 @@ window.calcRisk = async function () {
             <div style="font-weight:700;color:#6366f1;">$${d.total_cost?.toLocaleString('en', { maximumFractionDigits: 0 })}</div>
           </div>
         </div>
-      </div>`;
+      </div>`);
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`);
   }
 };
 
@@ -1764,13 +1798,13 @@ window.loadTopPicks = async function () {
     const market = window._topPicksMarket || 'nasdaq';
     const res = await fetch(`/api/trade4/top_picks?market=${market}`);
     const d = await res.json();
-    if (!d.ok) { el.innerHTML = `<div style="color:#ef4444;padding:12px;">${d.error}</div>`; return; }
+    if (!d.ok) { el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;">${d.error}</div>`); return; }
     if (!d.picks?.length) {
       el.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">현재 조건에 맞는 추천 종목이 없습니다</div>';
       return;
     }
 
-    el.innerHTML = `
+    el.innerHTML = _safeHTML(`
       <div style="font-size:0.75rem;color:#9ca3af;margin-bottom:12px;">총 ${d.total_analyzed}개 종목 분석 완료 · ${new Date().toLocaleTimeString('ko-KR')}</div>
       ${d.picks.map((p, i) => {
       const rankColors = ['#f59e0b', '#6b7280', '#cd7c32', '#6366f1', '#6366f1'];
@@ -1803,9 +1837,9 @@ window.loadTopPicks = async function () {
               <button onclick="quickRiskCalc('${p.symbol}')" style="margin-top:4px;padding:3px 8px;font-size:0.7rem;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;">리스크 계산</button>
             </div>
           </div>`;
-    }).join('')}`;
+    }).join('')}`);
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`);
   }
 };
 
@@ -1875,7 +1909,7 @@ window.loadSimpleTradeState = async function () {
       if (!state || !state.enabled) {
         stateEl.innerHTML = '<div style="text-align:center;color:#6b7280;font-size:0.85rem;">자동매매 비활성 상태입니다</div>';
       } else if (state.status === 'holding' && state.symbol) {
-        stateEl.innerHTML = `
+        stateEl.innerHTML = _safeHTML(`
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-size:0.75rem;color:#6b7280;margin-bottom:2px;">보유 중</div>
@@ -1890,7 +1924,7 @@ window.loadSimpleTradeState = async function () {
               <div style="font-size:0.72rem;color:#6b7280;">강제청산</div>
               <div style="font-size:0.88rem;font-weight:700;color:#ef4444;">15:55 EST</div>
             </div>
-          </div>`;
+          </div>`);
       } else if (state.status === 'analyzing') {
         stateEl.innerHTML = '<div style="text-align:center;color:#6366f1;font-size:0.85rem;">⏳ 종목 분석 중...</div>';
       } else {
@@ -2033,7 +2067,7 @@ function renderProfileCard(p) {
   if (!card) return;
   const meta = PROFILE_META[p.profile_type] || PROFILE_META.balanced;
   card.style.display = 'block';
-  card.innerHTML = `
+  card.innerHTML = _safeHTML(`
   <div style="background:${meta.bg};border:1.5px solid ${meta.border};border-radius:12px;padding:14px 18px;">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -2060,7 +2094,7 @@ function renderProfileCard(p) {
         </button>
       </div>
     </div>
-  </div>`;
+  </div>`);
 }
 window.submitInvestorProfile = async function () {
   const q_period = parseInt(document.querySelector('input[name="q_period"]:checked')?.value || 2);
@@ -2202,7 +2236,7 @@ window.loadCombinedSignal = async function () {
     }
     el.innerHTML = html;
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;padding:12px;">오류: ${e.message}</div>`);
   }
 };
 // ===== 완전자동매매 시장 선택 =====
@@ -2282,7 +2316,7 @@ window.loadVolumeSurge = async function () {
         </div>
       </div>`).join('');
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`);
   }
 };
 const _origLoadNewsCatalyst = typeof window.loadNewsCatalyst === 'function' ? window.loadNewsCatalyst : null;
@@ -2307,7 +2341,7 @@ window.loadNewsCatalyst = async function () {
         <div style="font-size:0.75rem;color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title || ''}</div>
       </div>`).join('');
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;padding:8px;">오류: ${e.message}</div>`);
   }
 };
 // ===== 완전자동매매 설정 로드/저장 =====
@@ -2464,10 +2498,10 @@ window.runAutoStrategyScreen = async function () {
     </div>`).join('');
     const marketNames = { 'nasdaq': '나스닥100', 'dow': '다우존스30', 'sp500': 'S&P500', 'russell1000': 'Russell1000' };
     const marketLabel = marketNames[_autoMarket] || _autoMarket;
-    el.innerHTML = `<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">${marketLabel} · ${d.screened}개 → TOP${asFinalN} (${asScore === 'combined' ? '복합점수' : asScore === 'factor' ? '팩터점수' : '기술점수'} · ${asSignal === 'buy' ? 'BUY만' : 'BUY+WATCH'})</div>${rows}`;
+    el.innerHTML = _safeHTML(`<div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">${marketLabel} · ${d.screened}개 → TOP${asFinalN} (${asScore === 'combined' ? '복합점수' : asScore === 'factor' ? '팩터점수' : '기술점수'} · ${asSignal === 'buy' ? 'BUY만' : 'BUY+WATCH'})</div>${rows}`);
     // 스크리닝 후 저장된 종목 새로고침
     setTimeout(() => { if (typeof renderAutoSavedSymbols === 'function') renderAutoSavedSymbols(); }, 300);
-  } catch (e) { el.innerHTML = `<div style="color:#ef4444;font-size:0.85rem;">오류: ${e.message}</div>`; }
+  } catch (e) { el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.85rem;">오류: ${e.message}</div>`); }
 };
 // ===== 완전자동매매 저장된 종목 관리 =====
 async function renderAutoSavedSymbols() {
@@ -2481,7 +2515,7 @@ async function renderAutoSavedSymbols() {
       el.innerHTML = '<div style="text-align:center;color:#636366;padding:16px;font-size:0.85rem;">저장된 종목 없음</div>';
       return;
     }
-    el.innerHTML = `
+    el.innerHTML = _safeHTML(`
       <div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">저장 ${pool.length}개</div>
       ${pool.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
@@ -2493,9 +2527,9 @@ async function renderAutoSavedSymbols() {
             style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
             🗑️ 삭제
           </button>
-        </div>`).join('')}`;
+        </div>`).join('')}`);
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`);
   }
 }
 window.saveAutoSymbol = async function (symbol, factor_score) {
@@ -2544,7 +2578,7 @@ window.loadAutoStrategyPositions = async function () {
       <div style="text-align:right;"><div style="font-weight:700;color:#E5E7EB;">$${parseFloat(p.current_price).toFixed(2)}</div><div style="font-size:0.72rem;font-weight:700;color:${color};">${pl >= 0 ? '+' : ''}${pl.toFixed(2)}%</div></div>
     </div>`;
     }).join('');
-  } catch (e) { el.innerHTML = `<div style="color:#636366;font-size:0.82rem;padding:12px;">포지션 정보를 불러올 수 없어요</div>`; }
+  } catch (e) { el.innerHTML = _safeHTML(`<div style="color:#636366;font-size:0.82rem;padding:12px;">포지션 정보를 불러올 수 없어요</div>`); }
 };
 window.loadAutoStrategyLog = async function () {
   const el = document.getElementById('asTradeLog');
@@ -2563,7 +2597,7 @@ window.loadAutoStrategyLog = async function () {
       <div style="text-align:right;font-size:0.78rem;"><div style="color:#E5E7EB;">$${parseFloat(l.price || 0).toFixed(2)}</div><div style="color:#9CA3AF;">${l.qty}주</div></div>
     </div>`;
     }).join('');
-  } catch (e) { el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">로드 실패: ${e.message}</div>`; }
+  } catch (e) { el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;">로드 실패: ${e.message}</div>`); }
 };
 // ===== 한국 시장 선택 =====
 window.setKrMarket = function (market) {
@@ -2582,12 +2616,12 @@ window.runFactorScreen = async function (mode) {
   const marketLabel = isKr
     ? (market === 'kosdaq' ? '코스닥150' : '코스피200')
     : (market === 'dow' ? '다우존스30' : market === 'sp500' ? 'S&P500' : market === 'russell1000' ? 'Russell1000' : '나스닥100');
-  el.innerHTML = `<div style="padding:12px;background:rgba(30,123,255,0.08);border-radius:8px;border:1px solid #bae6fd;">
+  el.innerHTML = _safeHTML(`<div style="padding:12px;background:rgba(30,123,255,0.08);border-radius:8px;border:1px solid #bae6fd;">
   <div style="font-weight:700;color:#0369a1;margin-bottom:6px;">🔍 ${isKr ? '한국 종목' : '통합'} 스크리닝 중...</div>
   <div style="font-size:0.8rem;color:#9CA3AF;line-height:1.6;">
     📊 1단계: ${marketLabel} 팩터 분석 (PER/PBR/ROE)<br>
     ${isKr ? '📋 분석 전용 (매매 미지원)' : '⏱ 2단계: MACD/RSI 타이밍 체크'}<br>약 1~2분 소요
-  </div></div>`;
+  </div></div>`);
   try {
     const apiPath = isKr ? '/proxy/quant/api/quant/factor-screen' : '/proxy/quant/api/quant/integrated-screen';
     // 성향 가중치 포함 (있으면)
@@ -2679,8 +2713,8 @@ window.runFactorScreen = async function (mode) {
     }
     const scoreModeLabel = scoreMode === 'factor' ? '팩터점수' : scoreMode === 'technical' ? '기술점수' : '복합점수';
     const sigLabel = sigFilter === 'buy' ? 'BUY만' : 'BUY+WATCH';
-    el.innerHTML = `<div style="margin-top:4px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📊 ${marketLabel} · ${d.strategy_label}<br>${d.screened}개 스크리닝 → TOP${isKr ? items.length : finalN}${isKr ? ' (분석 전용)' : ` (${scoreModeLabel} · ${sigLabel})`}</div>${rows}${isKr ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid rgba(255,214,10,0.25);font-size:0.78rem;color:#FFD60A;font-weight:600;">⚠️ 자동매매는 키움증권 API 연동 후 활성화됩니다</div>' : ''}</div>`;
-  } catch (e) { el.innerHTML = `<div style="color:#ef4444;font-size:0.85rem;">오류: ${e.message}</div>`; }
+    el.innerHTML = _safeHTML(`<div style="margin-top:4px;"><div style="font-size:0.78rem;color:#9CA3AF;margin-bottom:8px;">📊 ${marketLabel} · ${d.strategy_label}<br>${d.screened}개 스크리닝 → TOP${isKr ? items.length : finalN}${isKr ? ' (분석 전용)' : ` (${scoreModeLabel} · ${sigLabel})`}</div>${rows}${isKr ? '<div style="margin-top:10px;padding:8px 12px;background:rgba(255,214,10,0.08);border-radius:8px;border:1px solid rgba(255,214,10,0.25);font-size:0.78rem;color:#FFD60A;font-weight:600;">⚠️ 자동매매는 키움증권 API 연동 후 활성화됩니다</div>' : ''}</div>`);
+  } catch (e) { el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.85rem;">오류: ${e.message}</div>`); }
 };
 window.searchNasdaqTop3 = () => window.runFactorScreen('us');
 // ===== 종목 개별 저장 =====
@@ -2774,7 +2808,7 @@ async function renderKrSavedSettings() {
       el.innerHTML = '<div style="text-align:center;color:#636366;padding:24px;font-size:0.85rem;">저장된 종목 없음</div>';
       return;
     }
-    el.innerHTML = `
+    el.innerHTML = _safeHTML(`
       <div style="font-size:0.75rem;color:#9CA3AF;margin-bottom:8px;">저장 ${symbols.length}개</div>
       ${symbols.map(sym => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1E242C;border-radius:8px;border:1px solid #2A2A2A;margin-bottom:6px;">
@@ -2783,9 +2817,9 @@ async function renderKrSavedSettings() {
             style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,0.12);border:1px solid #ef444440;color:#ef4444;font-size:0.75rem;font-weight:700;cursor:pointer;">
             🗑️ 삭제
           </button>
-        </div>`).join('')}`;
+        </div>`).join('')}`);
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;">오류: ${e.message}</div>`);
   }
 }
 window.deleteKrSymbol = async function (symbol) {
@@ -2876,7 +2910,7 @@ async function renderAtSavedSettings() {
     </div>`;
     el.innerHTML = html;
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;font-size:0.85rem;">설정 로드 실패: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.85rem;">설정 로드 실패: ${e.message}</div>`);
   }
 }
 window.deleteSymbol = async function (symbol) {
@@ -3074,7 +3108,7 @@ function activateMenu(tabKey, subKey, menuId) {
 function renderDefaultSidebar() {
   const nav = document.getElementById('sidebarNav');
   if (!nav) return;
-  nav.innerHTML = `
+  nav.innerHTML = _safeHTML(`
     <div class="sp-nav-label">메인</div>
     <button class="tab-btn active" id="tab-btn-ai-0" onclick="activateMenu('ai',null,0)"><span class="nav-icon">📰</span> 뉴스</button>
     <div class="sp-nav-label" style="margin-top:8px;">트레이딩</div>
@@ -3083,7 +3117,7 @@ function renderDefaultSidebar() {
     <button class="tab-btn" id="tab-btn-quant-0" onclick="activateMenu('quant',null,0)"><span class="nav-icon">🤖</span> 자동매매</button>
     <button class="tab-btn" id="tab-btn-backtest-0" onclick="activateMenu('backtest',null,0)"><span class="nav-icon">🔬</span> 백테스팅</button>
     <div class="sp-nav-label" style="margin-top:8px;">분석</div>
-    <button class="tab-btn" id="tab-btn-performance-0" onclick="activateMenu('performance',null,0)"><span class="nav-icon">💹</span> 성과 대시보드</button>`;
+    <button class="tab-btn" id="tab-btn-performance-0" onclick="activateMenu('performance',null,0)"><span class="nav-icon">💹</span> 성과 대시보드</button>`);
 }
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(renderAtSavedSettings, 800);
@@ -3170,7 +3204,7 @@ async function loadUnifiedTradeLog() {
       active: { label: '보유중', color: '#f59e0b', bg: 'rgba(245,158,11,0.13)' },
       closed: { label: '종료', color: '#6b7280', bg: 'rgba(107,114,128,0.13)' },
     };
-    el.innerHTML = `<div style="overflow-x:auto;">
+    el.innerHTML = _safeHTML(`<div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
         <thead>
           <tr style="border-bottom:1px solid #2A2A2A;">
@@ -3209,9 +3243,9 @@ async function loadUnifiedTradeLog() {
     }).join('')}
         </tbody>
       </table>
-    </div>`;
+    </div>`);
   } catch (e) {
-    el.innerHTML = `<div style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</div>`;
+    el.innerHTML = _safeHTML(`<div style="color:#ef4444;font-size:0.82rem;padding:12px;">로드 실패: ${e.message}</div>`);
   }
 }
 // ===== 데이터 수집 탭 서브탭 전환 =====
@@ -3274,7 +3308,7 @@ async function loadTradeHistory() {
     const d = await res.json();
     if (!d.logs?.length) { el.innerHTML = '<div class="sp-empty">매매 이력 없음</div>'; return; }
     const actionMap = { BUY: '매수', SELL_PROFIT: '익절', SELL_PROFIT1: '1차익절', SELL_PROFIT2: '2차익절', SELL_LOSS: '손절', SELL_STOP: '손절', SELL_FACTOR: '팩터매도' };
-    el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+    el.innerHTML = _safeHTML(`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
       <thead><tr>
         <th style="padding:7px 10px;text-align:left;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">일시</th>
         <th style="padding:7px 10px;font-size:0.72rem;color:#9CA3AF;font-weight:700;text-transform:uppercase;border-bottom:1px solid #2A2A2A;">종목</th>
@@ -3295,7 +3329,7 @@ async function loadTradeHistory() {
           <td style="padding:7px 10px;border-bottom:1px solid #2A2A2A;font-weight:700;color:${isProfit ? '#FF3B30' : (l.action || '').includes('LOSS') || (l.action || '').includes('STOP') ? '#007AFF' : '#9CA3AF'};">${pnl}</td>
         </tr>`;
     }).join('')}
-      </tbody></table></div>`;
+      </tbody></table></div>`);
   } catch (e) { el.innerHTML = '<div class="sp-empty">로드 실패</div>'; }
 }
 window.loadTradeHistory = loadTradeHistory;
@@ -3372,7 +3406,7 @@ window._baseSelectStock = function (symbol, name) {
   // dc-symbol-badge 업데이트
   if (_stockSearchTarget === 'dc-search-input-target') {
     const badge = document.getElementById('dc-symbol-badge');
-    if (badge) badge.innerHTML = `<span style="padding:3px 10px;background:rgba(99,102,241,0.15);border-radius:999px;color:#a5b4fc;font-size:0.85rem;font-weight:700;">${symbol}</span>`;
+    if (badge) badge.innerHTML = _safeHTML(`<span style="padding:3px 10px;background:rgba(99,102,241,0.15);border-radius:999px;color:#a5b4fc;font-size:0.85rem;font-weight:700;">${symbol}</span>`);
     const symEl = document.getElementById('quantSymbol');
     if (symEl) symEl.value = symbol;
     const dcSymEl = document.getElementById('dc-symbols');
@@ -3381,13 +3415,13 @@ window._baseSelectStock = function (symbol, name) {
   // analysis 종목 배지 업데이트
   if (_stockSearchTarget === 'analysisSymbolInput') {
     const badge = document.getElementById('analysisSymbolBadge');
-    if (badge) badge.innerHTML = `<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:6px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`;
+    if (badge) badge.innerHTML = _safeHTML(`<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:6px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`);
     if (badge) badge.style.color = '#E5E7EB';
   }
   // bt-symbol 백테스팅 심볼
   if (_stockSearchTarget === 'bt-symbol') {
     const display = document.getElementById('bt-symbol-display');
-    if (display) display.innerHTML = `<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:6px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`;
+    if (display) display.innerHTML = _safeHTML(`<span style="font-weight:700;color:#E5E7EB;">${symbol}</span><span style="margin-left:6px;font-size:0.78rem;color:#9CA3AF;">${name}</span>`);
   }
   closeStockSearch();
 };
