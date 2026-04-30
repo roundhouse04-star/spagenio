@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../api/client';
 import { theme } from '../theme';
 
-// 백엔드: GET /api/news → RSS 통합 뉴스 (routes/front.js 의 RSS 수집 라우트)
-// 응답 형식이 미정이라 일단 array / { items: [] } 둘 다 대응.
+// 백엔드: GET /api/news/fetch?category=all → { news: [{title, url, source, category, publishedAt}] }
 export function NewsScreen() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,9 +14,8 @@ export function NewsScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const data = await api.get('/api/news');
-      const list = Array.isArray(data) ? data : (data?.items || data?.news || []);
-      setItems(list);
+      const data = await api.get('/api/news/fetch?category=all');
+      setItems(Array.isArray(data?.news) ? data.news : []);
     } catch (e) {
       setError(e.message || '불러오기 실패');
     } finally {
@@ -55,15 +53,18 @@ export function NewsScreen() {
           <Text style={styles.empty}>표시할 뉴스가 없습니다.</Text>
         )}
 
-        {items.map((it, idx) => (
-          <TouchableOpacity key={it.link || idx} style={styles.card} onPress={() => openLink(it.link)}>
-            <Text style={styles.headline} numberOfLines={3}>{it.title || '(제목 없음)'}</Text>
-            <View style={styles.meta}>
-              {it.source && <Text style={styles.source}>{it.source}</Text>}
-              {it.publishedAt && <Text style={styles.time}>{formatTime(it.publishedAt)}</Text>}
-            </View>
-          </TouchableOpacity>
-        ))}
+        {items.map((it, idx) => {
+          const url = it.url || it.link;
+          return (
+            <TouchableOpacity key={url || idx} style={styles.card} onPress={() => openLink(url)}>
+              <Text style={styles.headline} numberOfLines={3}>{it.title || '(제목 없음)'}</Text>
+              <View style={styles.meta}>
+                {it.source && <Text style={styles.source}>{it.source}</Text>}
+                {it.publishedAt && <Text style={styles.time}>{formatTime(it.publishedAt)}</Text>}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
