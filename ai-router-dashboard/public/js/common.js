@@ -67,38 +67,44 @@ function sendClientError({ event_type, error_message, stack_trace = '', extra = 
   } catch (e) { }
 }
 
-window.fetch = function (url, options = {}) {
-  const token = sessionStorage.getItem('auth_token');
-  if (token && !url.includes('/api/auth/')) {
-    options.headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
-    };
-  }
-  return originalFetch(url, options).then(res => {
-    // 메인 API 401만 로그인으로 (외부 포트 API 제외)
-    if (res.status === 401 && typeof url === 'string' && url.includes('/api/') && !url.match(/localhost:\d+/)) {
-      sessionStorage.removeItem('auth_token');
-      window.location.href = '/login';
+// originalFetch 캡처 + idempotent 가드 (common.js 가 다중 로드/HMR 돼도 wrapper 누적 방지)
+// 이전 코드는 originalFetch 가 정의 안 돼있어 wrapper 가 사실상 throw → checkAuth catch 에서
+// 무조건 'return true' 로 인증 체크가 silent pass 되던 버그.
+if (!window.__spagenioFetchWrapped) {
+  window.__spagenioFetchWrapped = true;
+  const originalFetch = window.fetch.bind(window);
+  window.__origFetch = originalFetch; // checkAuth 등에서 직접 호출
+  window.fetch = function (url, options = {}) {
+    const token = sessionStorage.getItem('auth_token');
+    if (token && typeof url === 'string' && !url.includes('/api/auth/')) {
+      options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
     }
-    // 5xx 에러 수집
-    if (res.status >= 500 && typeof url === 'string' && url.includes('/api/')) {
-      sendClientError({ event_type: 'FRONT_API_SERVER_ERROR', error_message: `${res.status} ${res.statusText} - ${url}` });
-    }
-    return res;
-  }).catch(err => {
-    // 네트워크 연결 실패
-    if (typeof url === 'string' && url.includes('/api/')) {
-      sendClientError({ event_type: 'FRONT_FETCH_ERROR', error_message: err.message, stack_trace: err.stack || '', extra: { fetchUrl: url } });
-    }
-    throw err;
-  });
-};
+    return originalFetch(url, options).then(res => {
+      if (res.status === 401 && typeof url === 'string' && url.includes('/api/') && !url.match(/localhost:\d+/)) {
+        sessionStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
+      if (res.status >= 500 && typeof url === 'string' && url.includes('/api/')) {
+        sendClientError({ event_type: 'FRONT_API_SERVER_ERROR', error_message: `${res.status} ${res.statusText} - ${url}` });
+      }
+      return res;
+    }).catch(err => {
+      if (typeof url === 'string' && url.includes('/api/')) {
+        sendClientError({ event_type: 'FRONT_FETCH_ERROR', error_message: err.message, stack_trace: err.stack || '', extra: { fetchUrl: url } });
+      }
+      throw err;
+    });
+  };
+}
 
-// JS 런타임 에러 수집
-window.onerror = function (message, source, lineno, colno, error) {
-  sendClientError({ event_type: 'FRONT_JS_ERROR', error_message: message, stack_trace: error?.stack || `${source}:${lineno}:${colno}` });
-};
+// JS 런타임 에러 수집 — addEventListener 로 다른 핸들러 보존 (이전엔 onerror 덮어써서 chain 끊김)
+window.addEventListener('error', function (e) {
+  sendClientError({
+    event_type: 'FRONT_JS_ERROR',
+    error_message: e.message || String(e),
+    stack_trace: e.error?.stack || `${e.filename}:${e.lineno}:${e.colno}`,
+  });
+});
 
 // 미처리 Promise rejection 수집
 window.addEventListener('unhandledrejection', function (e) {
@@ -433,16 +439,20 @@ function clearAlpacaMsg() {
 }
 
 // fetch에 Select된 계좌 ID 헤더 자동 추가 (alpaca-user, manual-trade 요청)
-const _origFetch2 = window.fetch;
-window.fetch = function (url, options = {}) {
-  if (typeof url === 'string' && (url.includes('/api/alpaca-user/') || url.includes('/api/manual-trade/'))) {
-    const accId = window.selectedAccountId || window.activeAccountId;
-    if (accId) {
-      options.headers = { ...options.headers, 'x-account-id': String(accId) };
+// idempotent 가드 — 다중 로드 시 wrapper 누적 방지
+if (!window.__spagenioAccIdHeaderWrapped) {
+  window.__spagenioAccIdHeaderWrapped = true;
+  const _origFetch2 = window.fetch;
+  window.fetch = function (url, options = {}) {
+    if (typeof url === 'string' && (url.includes('/api/alpaca-user/') || url.includes('/api/manual-trade/'))) {
+      const accId = window.selectedAccountId || window.activeAccountId;
+      if (accId) {
+        options.headers = { ...options.headers, 'x-account-id': String(accId) };
+      }
     }
-  }
-  return _origFetch2(url, options);
-};
+    return _origFetch2(url, options);
+  };
+}
 
 // ===== 퀀트 차트 팝업 =====
 // chartInstances → chart.js로 이동
@@ -455,8 +465,11 @@ async function checkAuth() {
     window.location.href = '/login';
     return false;
   }
+  // wrapper 우회를 위해 __origFetch 사용 (verify 가 401 받았을 때
+  // wrapper 의 자동 redirect 로직이 두 번 실행되지 않게)
+  const fetcher = window.__origFetch || window.fetch.bind(window);
   try {
-    res = await originalFetch('/api/auth/verify', {
+    const res = await fetcher('/api/auth/verify', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.status === 401) {
@@ -464,10 +477,11 @@ async function checkAuth() {
       window.location.href = '/login';
       return false;
     }
-    return true;
+    return res.ok;
   } catch (e) {
+    // 네트워크 실패 시 silent success 금지 — false 반환해서 호출처가 명시적 처리
     console.warn('Auth check failed:', e);
-    return true;
+    return false;
   }
 }
 

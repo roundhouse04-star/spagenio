@@ -1,6 +1,24 @@
 // ===== 뉴스 (RSS 실시간 조회 - DB 저장 없음) =====
 let currentCategory = 'all';
 
+// HTML 이스케이프 유틸 (RSS 외부 데이터 → innerHTML 에 넣기 전 필수)
+function _esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+// onclick 인라인용 attribute 이스케이프 (작은따옴표만)
+function _attrEsc(s) { return _esc(s).replaceAll("`", '&#96;'); }
+// http(s) URL 만 허용 (javascript: 등 차단)
+function _safeHttpUrl(u) {
+  const s = String(u || '').trim();
+  return /^https?:\/\//i.test(s) ? s : '';
+}
+
 async function loadNews() {
   await fetchNews(currentCategory);
 }
@@ -40,25 +58,42 @@ function renderNews(newsList) {
   const categoryLabels = { global: '🌍 글로벌', korea: '🇰🇷 한국', it: '💻 IT', economy: '💰 경제' };
 
   container.innerHTML = newsList.map(n => {
-    const safeUrl = (n.url || '').replace(/'/g, '%27');
+    // RSS 외부 데이터 — 모두 escape 필수 (XSS 차단)
+    const safeUrl = _safeHttpUrl(n.url);
+    const safeTitle = _esc(n.title || '제목 없음');
+    const safeSource = _esc(n.source || '');
+    const safeCat = _esc(categoryLabels[n.category] || n.category || '');
     const time = n.publishedAt
       ? new Date(n.publishedAt).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
       : '';
+    const safeTime = _esc(time);
+    // onclick 대신 data-url 로 이벤트 위임 (인라인 인터폴레이션 회피)
     return `
-    <div class="news-item" style="cursor:pointer;" onclick="window.open('${safeUrl}','_blank')">
+    <div class="news-item" style="cursor:pointer;" data-news-url="${_attrEsc(safeUrl)}">
       <div class="news-category">
-        ${categoryLabels[n.category] || n.category}
+        ${safeCat}
         <span class="news-history-badge" style="background:#f9fafb;color:#6b7280;border-color:#e5e7eb;">
-          📰 ${n.source}
+          📰 ${safeSource}
         </span>
       </div>
       <div class="news-title" style="font-weight:600;font-size:0.97rem;color:#111827;margin:6px 0 4px;line-height:1.5;">
-        ${n.title || '제목 없음'}
+        ${safeTitle}
         <span style="font-size:0.78rem;color:#6366f1;margin-left:6px;">↗ 원문</span>
       </div>
-      <div class="news-date" style="font-size:0.8rem;color:#9ca3af;">${time}</div>
+      <div class="news-date" style="font-size:0.8rem;color:#9ca3af;">${safeTime}</div>
     </div>`;
   }).join('');
+
+  // 이벤트 위임 (1회 등록)
+  if (!container._newsClickBound) {
+    container._newsClickBound = true;
+    container.addEventListener('click', (ev) => {
+      const item = ev.target.closest('.news-item');
+      if (!item) return;
+      const url = item.getAttribute('data-news-url');
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  }
 }
 
 // ===== RSS 소스 관리 =====
@@ -83,25 +118,47 @@ function renderRssSources(sources) {
     return;
   }
 
-  container.innerHTML = sources.map(s => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;">
+  container.innerHTML = sources.map(s => {
+    // admin 입력 데이터지만 외부 RSS 와 섞일 수 있어 escape
+    const safeName = _esc(s.name);
+    const safeUrl = _esc(s.url);
+    const safeCat = _esc(categoryLabels[s.category] || s.category || '');
+    const safeId = parseInt(s.id) || 0;
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6;" data-rss-id="${safeId}">
       <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;">
-        <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleRssSource(${s.id}, this.checked)"
+        <input type="checkbox" ${s.enabled ? 'checked' : ''} data-rss-toggle="${safeId}"
           style="opacity:0;width:0;height:0;position:absolute;">
         <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${s.enabled ? '#6366f1' : '#d1d5db'};border-radius:20px;transition:.3s;">
           <span style="position:absolute;content:'';height:14px;width:14px;left:${s.enabled ? '19px' : '3px'};bottom:3px;background:white;border-radius:50%;transition:.3s;"></span>
         </span>
       </label>
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:0.9rem;color:#111827;">${s.name}</div>
-        <div style="font-size:0.75rem;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.url}</div>
+        <div style="font-weight:600;font-size:0.9rem;color:#111827;">${safeName}</div>
+        <div style="font-size:0.75rem;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeUrl}</div>
       </div>
       <span style="font-size:0.75rem;padding:2px 8px;border-radius:99px;background:#eef2ff;color:#6366f1;flex-shrink:0;">
-        ${categoryLabels[s.category] || s.category}
+        ${safeCat}
       </span>
-      <button onclick="deleteRssSource(${s.id}, '${s.name}')" class="sp-btn sp-btn-red" style="padding:4px 10px;font-size:0.78rem;">삭제</button>
-    </div>
-  `).join('');
+      <button data-rss-delete="${safeId}" data-rss-name="${_attrEsc(safeName)}" class="sp-btn sp-btn-red" style="padding:4px 10px;font-size:0.78rem;">삭제</button>
+    </div>`;
+  }).join('');
+
+  // 이벤트 위임 (1회 등록)
+  if (!container._rssBound) {
+    container._rssBound = true;
+    container.addEventListener('change', (ev) => {
+      const id = ev.target.getAttribute && ev.target.getAttribute('data-rss-toggle');
+      if (id) toggleRssSource(parseInt(id), ev.target.checked);
+    });
+    container.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-rss-delete]');
+      if (!btn) return;
+      const id = parseInt(btn.getAttribute('data-rss-delete'));
+      const name = btn.getAttribute('data-rss-name') || '';
+      deleteRssSource(id, name);
+    });
+  }
 }
 
 async function toggleRssSource(id, enabled) {

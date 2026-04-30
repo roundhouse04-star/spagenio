@@ -860,6 +860,7 @@ def get_naver_top_stocks(market='kospi', limit=20):
                     'rank': int(rank),
                     'name': name,
                     'ticker': ticker,
+                    'market': market,  # 'kospi' or 'kosdaq' — ticker suffix 결정용
                     'price': price,
                     'volume': volume
                 })
@@ -885,6 +886,8 @@ def get_korea_market_analysis():
         print(f'네이버 금융 데이터: {len(items)}개 종목 수집')
 
         # 복합 점수 계산
+        # vol_score 분모를 실제 list 길이 기반으로 (이전: 하드코딩 20 → limit 변경 시 음수 가능)
+        denom = max(len(items), 1)
         results = []
         for idx, item in enumerate(items):
             ticker = item.get('ticker', '')
@@ -892,14 +895,17 @@ def get_korea_market_analysis():
             price = item.get('price', 0)
             volume = item.get('volume', 0)
 
-            # 거래량 순위 점수 (0~50)
-            vol_score = (20 - idx) / 20 * 50
+            # 거래량 순위 점수 (0~50, 1등이 50점)
+            vol_score = max(0, (denom - idx)) / denom * 50
 
             # RSI 보너스 (yfinance로 한국 주식)
+            # 시장(KOSPI/KOSDAQ)에 따라 정확한 suffix 사용
+            # (이전: 무조건 .KS → KOSDAQ 종목은 빈 응답으로 점수 0)
             rsi_score = 0
             try:
                 if ticker:
-                    kr_symbol = ticker + '.KS'
+                    suffix = '.KS' if item.get('market', 'kospi') == 'kospi' else '.KQ'
+                    kr_symbol = ticker + suffix
                     rsi_result = analyze_rsi(kr_symbol)
                     if rsi_result.get('signal') == 'buy':
                         rsi_score = 20
@@ -1013,7 +1019,7 @@ def sanitize_nan(response):
 @app.route('/api/quant/analyze', methods=['POST'])
 def analyze():
     """단일 종목 퀀트 분석"""
-    data = request.json
+    data = request.get_json(silent=True) or {}
     symbol = data.get('symbol', 'AAPL')
     strategy = data.get('strategy', 'combined')
 
@@ -1042,7 +1048,7 @@ def analyze():
 @app.route('/api/quant/analyze/batch', methods=['POST'])
 def analyze_batch():
     """여러 종목 동시 분석"""
-    data = request.json
+    data = request.get_json(silent=True) or {}
     symbols = data.get('symbols', ['AAPL', 'NVDA', 'MSFT'])
     strategy = data.get('strategy', 'combined')
 

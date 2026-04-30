@@ -592,7 +592,8 @@ def get_watchlist():
 
 @app.route('/api/stock/watchlist', methods=['POST'])
 def add_watchlist():
-    symbol = request.json.get('symbol', '').upper()
+    data = request.get_json(silent=True) or {}
+    symbol = (data.get('symbol') or '').upper()
     if not symbol:
         return jsonify({'error': 'symbol 필요'}), 400
     conn = get_db()
@@ -617,7 +618,8 @@ def remove_watchlist(symbol):
 # ── 초기 데이터 수집 API (최초 1회) ─────────────────────
 @app.route('/api/stock/init-history', methods=['POST'])
 def init_history():
-    symbols = request.json.get('symbols', ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'QQQ', 'SPY'])
+    data = request.get_json(silent=True) or {}
+    symbols = data.get('symbols') or ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'QQQ', 'SPY']
     def run():
         for s in symbols:
             fetch_and_save_history(s, period='2y')
