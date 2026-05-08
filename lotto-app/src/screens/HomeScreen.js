@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, RefreshControl,
-  ActivityIndicator,
+  ActivityIndicator, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -65,14 +65,15 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    const lr = await detectLatestRound();
+  const load = useCallback(async ({ force = false } = {}) => {
+    const lr = await detectLatestRound({ force });
     setRound(lr);
     const d = await fetchRound(lr);
     setData(d);
     const [purchases, picks] = await Promise.all([loadPurchases(), loadPicks()]);
     setPurchaseCount(purchases.length);
     setPickCount(picks.length);
+    return lr;
   }, []);
 
   useEffect(() => {
@@ -86,8 +87,19 @@ export default function HomeScreen({ navigation }) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try { await load(); } finally { setRefreshing(false); }
-  }, [load]);
+    const prevRound = round;
+    try {
+      const newRound = await load({ force: true });
+      // 사용자 피드백 — 갱신 결과 알림
+      if (newRound && prevRound && newRound > prevRound) {
+        Alert.alert('🎉 새 회차 도달', `${newRound}회 당첨번호로 갱신되었습니다.`);
+      }
+    } catch (e) {
+      Alert.alert('갱신 실패', '네트워크 연결을 확인해주세요.');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load, round]);
 
   const go = (target, params) => navigation.navigate(target, params);
 

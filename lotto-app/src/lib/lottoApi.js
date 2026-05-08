@@ -49,17 +49,21 @@ async function fetchOne(drwNo) {
 
 // 최신 회차 탐지
 // 우선순위: ① AsyncStorage 캐시(1h TTL) → ② 네트워크 probe → ③ 번들 최대값 → ④ 시간 기반 추정
-export async function detectLatestRound() {
-  try {
-    const cached = await AsyncStorage.getItem(LATEST_KEY);
-    if (cached) {
-      const { round, ts } = JSON.parse(cached);
-      if (Date.now() - ts < LATEST_TTL_MS) return round;
-    }
-  } catch (e) {}
+//   force=true 시 캐시 무시하고 항상 네트워크 probe (pull-to-refresh 용)
+export async function detectLatestRound({ force = false } = {}) {
+  if (!force) {
+    try {
+      const cached = await AsyncStorage.getItem(LATEST_KEY);
+      if (cached) {
+        const { round, ts } = JSON.parse(cached);
+        if (Date.now() - ts < LATEST_TTL_MS) return round;
+      }
+    } catch (e) {}
+  }
 
-  let probe = estimateLatestRound() + 1;
-  for (let i = 0; i < 4; i++) {
+  // 추정값 +2 부터 거꾸로 probe (추첨 직후 새 회차 빠르게 발견)
+  let probe = estimateLatestRound() + 2;
+  for (let i = 0; i < 6; i++) {
     const r = await fetchOne(probe);
     if (r) {
       try { await AsyncStorage.setItem(LATEST_KEY, JSON.stringify({ round: r.drwNo, ts: Date.now() })); } catch (e) {}
