@@ -521,8 +521,8 @@ export default function SettingsScreen({ navigation }) {
       <Text style={styles.sectionTitle}>데이터 백업</Text>
       <View style={styles.card}>
         <Text style={styles.dataInfo}>
-          📦 모든 데이터(추천번호, 구입번호, 알고리즘 가중치, 텔레그램 설정)는 디바이스의{' '}
-          <Text style={styles.bold}>로컬 SQLite DB</Text>에 안전하게 저장됩니다.
+          📦 모든 데이터(추천번호, 구입번호, 알고리즘 가중치, 텔레그램 설정)는{' '}
+          <Text style={styles.bold}>디바이스</Text>에 안전하게 저장됩니다.
         </Text>
         <Text style={styles.dataInfo}>
           ⚠️ 어플을 <Text style={styles.bold}>완전 삭제</Text>하면 디바이스 데이터도 함께 사라집니다. 안전을 위해 정기적으로 백업 파일을 내보내 보관하세요.
