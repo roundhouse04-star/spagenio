@@ -1,11 +1,14 @@
 name: 로또 회차 데이터 자동 갱신
 
-# 매주 토요일 추첨(KST 20:35) 직후 실행
-# - cron 은 UTC 기준이라 14:00 UTC = 23:00 KST
+# 매주 토요일 추첨(KST 20:35) 직후 두 번 시도 (lotto.oot.kr 미러 갱신 시점 변동 대비)
+#   1차: 12:05 UTC = 21:05 KST (추첨 후 30분, 보통 이때면 미러 갱신됨)
+#   2차: 12:35 UTC = 21:35 KST (1차 실패 시 백업)
+# - 변경분만 자동 commit 되므로 두 번 실행해도 중복 commit 없음
 # - workflow_dispatch 로 GitHub UI 에서 수동 실행도 가능
 on:
   schedule:
-    - cron: '0 14 * * 6'
+    - cron: '5 12 * * 6'
+    - cron: '35 12 * * 6'
   workflow_dispatch:
 
 permissions:
@@ -36,7 +39,7 @@ jobs:
           commit_message: |
             chore(lotto-app): 회차 데이터 자동 갱신
 
-            GitHub Actions 자동 실행 (매주 토요일 KST 23:00)
+            GitHub Actions 자동 실행 (토 KST 21:05 + 21:35 두 번 시도)
           file_pattern: lotto-app/assets/lotto-history.json
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
