@@ -67,8 +67,7 @@ export default function LegalScreen({ navigation }) {
 
       <Section title="🌐 외부 서비스">
         <P>본 앱은 아래 외부 서비스를 사용하며, 각 서비스는 자체 개인정보 처리방침을 따릅니다.</P>
-        <Bullet>동행복권 (dhlottery.co.kr) — 회차 정보 및 당첨 판매점 조회</Bullet>
-        <Bullet>lotto.oot.kr — 회차 데이터 미러링 (JSON API)</Bullet>
+        <Bullet>동행복권 (dhlottery.co.kr) — 당첨 판매점 조회</Bullet>
         <Bullet>Telegram Bot API — 사용자가 자발적으로 설정한 경우에만 추천번호 발송</Bullet>
         <Bullet>Google AdMob — 광고 노출 (광고 식별자 사용)</Bullet>
       </Section>
