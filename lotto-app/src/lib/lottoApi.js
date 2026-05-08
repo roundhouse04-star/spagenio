@@ -23,6 +23,55 @@ export function estimateLatestRound() {
   return Math.max(1, weeks + 1);
 }
 
+// 네이버 모바일 검색 결과에서 최신 회차 즉시 파싱 (SSR HTML)
+//   - lotto.oot.kr 미러보다 빠르게 갱신됨 (추첨 후 약 2~5분)
+//   - 동행복권 공식 데이터 그대로 (네이버가 1차 신뢰 소스)
+//   - 단점: HTML 구조 변경 시 파싱 깨질 수 있음 → fallback으로 lotto.oot.kr 유지
+async function fetchLatestFromNaver() {
+  try {
+    const res = await fetch(
+      'https://m.search.naver.com/search.naver?query=%EB%A1%9C%EB%98%90',
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        },
+      },
+    );
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // 본번호 6개
+    const winMatch = html.match(/<div class="winning_number">([\s\S]*?)<\/div>/);
+    if (!winMatch) return null;
+    const numbers = [...winMatch[1].matchAll(/>(\d+)</g)].map((m) => Number(m[1]));
+    if (numbers.length !== 6 || numbers.some((n) => isNaN(n) || n < 1 || n > 45)) return null;
+
+    // 보너스 1개
+    const bonusMatch = html.match(/<div class="bonus_number">([\s\S]*?)<\/div>/);
+    if (!bonusMatch) return null;
+    const bonusNum = Number((bonusMatch[1].match(/>(\d+)</) || [])[1]);
+    if (!bonusNum || bonusNum < 1 || bonusNum > 45) return null;
+
+    // 회차 + 날짜 ("1222회차 (2026.05.02.)" 패턴)
+    const drwMatch = html.match(/(\d{3,4})회차\s*\(([\d.]+)\)/);
+    if (!drwMatch) return null;
+    const drwNo = Number(drwMatch[1]);
+    if (!drwNo) return null;
+    const drwDate = drwMatch[2].replace(/\.$/, '').replace(/\./g, '-'); // 2026.05.02. → 2026-05-02
+
+    return {
+      drwNo,
+      drwDate,
+      numbers: numbers.sort((a, b) => a - b),
+      bonus: bonusNum,
+      // prizes는 lotto.oot.kr에서 보강 (네이버 HTML은 1등만 명시)
+      prizes: null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 async function fetchOne(drwNo) {
   try {
     const res = await fetch(ENDPOINT + drwNo);
@@ -48,8 +97,12 @@ async function fetchOne(drwNo) {
 }
 
 // 최신 회차 탐지
-// 우선순위: ① AsyncStorage 캐시(1h TTL) → ② 네트워크 probe → ③ 번들 최대값 → ④ 시간 기반 추정
-//   force=true 시 캐시 무시하고 항상 네트워크 probe (pull-to-refresh 용)
+// 우선순위:
+//   ① AsyncStorage 캐시(1h TTL, force=true 시 skip)
+//   ② 네이버 모바일 검색 SSR (가장 빠름, 추첨 후 2~5분)
+//   ③ lotto.oot.kr probe (네이버 실패 시 fallback)
+//   ④ 번들 최대값 (오프라인)
+//   ⑤ 시간 기반 추정
 export async function detectLatestRound({ force = false } = {}) {
   if (!force) {
     try {
@@ -61,7 +114,23 @@ export async function detectLatestRound({ force = false } = {}) {
     } catch (e) {}
   }
 
-  // 추정값 +2 부터 거꾸로 probe (추첨 직후 새 회차 빠르게 발견)
+  // ② 네이버 우선 시도 (가장 빠른 갱신)
+  const naverData = await fetchLatestFromNaver();
+  if (naverData) {
+    try {
+      await AsyncStorage.setItem(LATEST_KEY, JSON.stringify({ round: naverData.drwNo, ts: Date.now() }));
+      // 데이터까지 캐시 — fetchRound가 즉시 사용 가능
+      const cache = await loadCache();
+      // 기존에 lotto.oot.kr 데이터가 있으면 prizes 보존, 없으면 네이버 데이터 그대로
+      if (!cache[naverData.drwNo]) {
+        cache[naverData.drwNo] = naverData;
+        await saveCache(cache);
+      }
+    } catch (e) {}
+    return naverData.drwNo;
+  }
+
+  // ③ lotto.oot.kr probe (fallback)
   let probe = estimateLatestRound() + 2;
   for (let i = 0; i < 6; i++) {
     const r = await fetchOne(probe);
@@ -71,8 +140,9 @@ export async function detectLatestRound({ force = false } = {}) {
     }
     probe -= 1;
   }
-  // 네트워크 실패 시 번들된 최신 회차로 graceful fallback (오프라인 대응)
+  // ④ 번들 최대값 (오프라인)
   if (BUNDLED_LATEST > 0) return BUNDLED_LATEST;
+  // ⑤ 시간 기반 추정
   return estimateLatestRound();
 }
 
@@ -159,11 +229,16 @@ export async function fetchAllHistory(onProgress) {
 
 export async function fetchRound(drwNo) {
   const cache = await loadCache();
-  if (cache[drwNo]) return cache[drwNo];
+  const cached = cache[drwNo];
+  // 완전한 데이터(prizes 포함)면 그대로 반환
+  if (cached && cached.prizes) return cached;
+  // 부분 데이터(네이버에서 받은 prizes=null)면 lotto.oot.kr로 보강 시도
   const r = await fetchOne(drwNo);
   if (r) {
     cache[drwNo] = r;
     await saveCache(cache);
+    return r;
   }
-  return r;
+  // 네트워크 실패 시 캐시된 부분 데이터라도 반환
+  return cached || null;
 }
