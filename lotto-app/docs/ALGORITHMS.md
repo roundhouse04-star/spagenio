@@ -41,6 +41,7 @@
 | `anti-popular` | 비인기 번호 전략 | |
 | `statistical` | 통계 자연 분포 | ⭐ |
 | `mini-wheel` | 간이 휠링 | |
+| `carry-hedge` | 이월 헤지 | |
 | `null` (모두 OFF) | 순수 랜덤 | |
 
 저장 위치: `app_settings.auto_strategy` (SQLite)
@@ -130,7 +131,45 @@
 
 ---
 
-## ④ 순수 랜덤 (모든 strategy OFF)
+## ④ 이월 헤지 (`carry-hedge`)
+
+### 목적
+직전 회차 1+ 이월 발생 확률 60% / 0개 이월 40%인 통계적 사실을 활용해, **5게임을 60/40 비율로 두 시나리오에 분산** 헤지.
+
+### 알고리즘
+```
+1단계 — 직전 6번호의 역대 이월률 ranking
+  - 각 번호의 (역대 이월 횟수 / 역대 출현 횟수) 산출
+  - 이월률 내림차순 정렬
+
+2단계 — count의 60%는 carryover, 40%는 회피
+  · 60% 시나리오 (이월 발생 대비):
+      각 게임에 ranking 상위 N번째 번호 1개 carryover 포함
+  · 40% 시나리오 (0개 이월 대비):
+      직전 6번호 모두 회피, 저편향/고편향 번갈아
+
+3단계 — 모든 게임 자연 분포 + 인기 패턴 회피
+  - 합 110~170, 홀짝 2~4, 저고 2~4, 끝자리 4종+
+  - 3개 연속, 같은 자릿수 4개+ 회피
+
+count 기반 자동 분배:
+  - count=1:  1게임 (carryover 1)
+  - count=3:  2:1 (carryover 2 + 회피 1)
+  - count=5:  3:2 (carryover 3 + 회피 2)
+  - count=10: 6:4
+```
+
+### 백테스트 결과 (trials=200, 122,000게임)
+- 4등: 162회 (z = -0.70σ, 비유의)
+- **5등: 2778회 (z = +0.67σ, 4가지 strategy 중 가장 양호)**
+- 1등 1회 / 3등 2회 (참고)
+- 기대 가치: 180원/게임 (random 184원 대비 -1.9%)
+
+→ 통계적 우위 미검증. 다른 strategy와 비슷한 수준이나 분석 활용도가 가장 높음.
+
+---
+
+## ⑤ 순수 랜덤 (모든 strategy OFF)
 
 ### 알고리즘
 ```
@@ -331,7 +370,7 @@ generateGames({ algos, history, count = 5, carryoverNumbers? })
   → games[]
 
 // 설정 영속화
-loadAutoStrategy()  → 'anti-popular' | 'statistical' | 'mini-wheel' | null
+loadAutoStrategy()  → 'anti-popular' | 'statistical' | 'mini-wheel' | 'carry-hedge' | null
 saveAutoStrategy(strategyId)
 
 // 메타 정보 (UI 표시용)
@@ -339,6 +378,7 @@ AUTO_STRATEGIES = [
   { id: 'anti-popular', name: '비인기 번호 전략', desc: '...' },
   { id: 'statistical',  name: '통계 자연 분포',  desc: '...' },
   { id: 'mini-wheel',   name: '간이 휠링',       desc: '...' },
+  { id: 'carry-hedge',  name: '이월 헤지',       desc: '...' },
 ]
 
 DEFAULT_ALGOS = [

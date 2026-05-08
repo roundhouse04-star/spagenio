@@ -355,6 +355,81 @@ function generateMiniWheel(history, count) {
   return games;
 }
 
+// ④ 이월 헤지 (carry-hedge) — 60% 이월 시나리오 + 40% 비이월 시나리오 분산
+//   - 직전 6번호의 역대 이월률 계산해 ranking
+//   - count의 60%는 ranking 상위 번호 1개씩 carryover, 40%는 직전 6번호 모두 회피
+//   - 모든 게임 자연 분포 + 인기 패턴 회피
+function generateCarryHedge(history, count) {
+  if (history.length === 0) return generatePureRandom(count);
+
+  const recent = history[history.length - 1];
+
+  // 직전 6번호의 역대 이월률 계산
+  const carryRates = recent.map((n) => {
+    let totalAppear = 0, carryEvent = 0;
+    for (let i = 1; i < history.length; i++) {
+      if (history[i].includes(n)) {
+        totalAppear++;
+        if (history[i - 1].includes(n)) carryEvent++;
+      }
+    }
+    return { n, rate: totalAppear > 0 ? carryEvent / totalAppear : 0 };
+  });
+  carryRates.sort((a, b) => b.rate - a.rate);
+
+  // 60:40 비율 분배 (count 따라)
+  const carryGames = Math.max(1, Math.round(count * 0.6));
+  const noCarryGames = count - carryGames;
+  const recentSet = new Set(recent);
+
+  const games = [];
+  const seen = new Set();
+
+  function buildGame({ forceInclude = [], avoidRecent = false, lowBias = null }) {
+    for (let attempt = 0; attempt < 5000; attempt++) {
+      const picked = new Set(forceInclude);
+      let safety = 0;
+      while (picked.size < 6 && safety++ < 200) {
+        const r = 1 + Math.floor(Math.random() * 45);
+        if (avoidRecent && recentSet.has(r)) continue;
+        picked.add(r);
+      }
+      if (picked.size < 6) continue;
+      const numbers = [...picked].sort((a, b) => a - b);
+      if (!matchesNaturalDistribution(numbers)) continue;
+      if (hasPopularPattern(numbers)) continue;
+      const lowCnt = numbers.filter((x) => x <= 22).length;
+      if (lowBias === 'low' && lowCnt < 4) continue;
+      if (lowBias === 'high' && lowCnt > 2) continue;
+      const key = numbers.join('-');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      return { numbers, meta: makeMeta(numbers) };
+    }
+    return null;
+  }
+
+  // 60% 시나리오 — carryover 1개씩 포함
+  for (let i = 0; i < carryGames; i++) {
+    const carry = carryRates[i % carryRates.length].n;
+    const g = buildGame({ forceInclude: [carry] });
+    if (g) games.push(g);
+  }
+  // 40% 시나리오 — 직전 6번호 모두 회피, 저/고 편향 번갈아
+  for (let i = 0; i < noCarryGames; i++) {
+    const bias = i % 2 === 0 ? 'low' : 'high';
+    const g = buildGame({ avoidRecent: true, lowBias: bias });
+    if (g) games.push(g);
+  }
+  // 부족분 자유 자연 분포로 보충
+  while (games.length < count) {
+    const g = buildGame({});
+    if (!g) break;
+    games.push(g);
+  }
+  return games;
+}
+
 // 순수 랜덤 (모든 strategy OFF)
 function generatePureRandom(count) {
   const games = [];
@@ -379,6 +454,7 @@ export function generateAuto({ history = [], count = 5, strategy = 'statistical'
   switch (strategy) {
     case 'anti-popular': games = generateAntiPopular(history, count); break;
     case 'mini-wheel':   games = generateMiniWheel(history, count); break;
+    case 'carry-hedge':  games = generateCarryHedge(history, count); break;
     case null:
     case 'random':       games = generatePureRandom(count); break;
     case 'statistical':
@@ -406,6 +482,11 @@ export const AUTO_STRATEGIES = [
     id: 'mini-wheel',
     name: '간이 휠링',
     desc: '8개 핵심 번호로 5게임 균등 분배 — 작은 등수 보장 ↑',
+  },
+  {
+    id: 'carry-hedge',
+    name: '이월 헤지',
+    desc: '직전 6번호 이월률 분석 + 60/40 시나리오 분산 (참고용)',
   },
 ];
 
