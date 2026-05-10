@@ -234,14 +234,6 @@ app.use('/api/auth/register', authLimit);
 app.use('/api/auth/forgot-password', passwordResetLimit);
 app.use('/api/auth/send-email-code', passwordResetLimit);
 
-// m.spagenio.com → 모바일 페이지
-app.use((req, res, next) => {
-  const host = req.headers['x-forwarded-host'] || req.headers['host'] || '';
-  if (host.startsWith('m.') && !req.path.startsWith('/api') && !req.path.startsWith('/proxy')) {
-    return res.sendFile(path.join(__dirname, 'public', 'm.html'));
-  }
-  next();
-});
 // CORS: env 화이트리스트가 있으면 그것만 허용. 없으면 기존 동작(전체 허용) 유지 — 운영에선 .env 에 CORS_ORIGIN 설정 권장.
 // same-origin 트래픽(spagenio.com → spagenio.com)은 CORS 검사 자체가 안 도므로 영향 없음.
 const _corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -319,17 +311,8 @@ app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
 app.use('/', frontRoutes(frontDeps));
 
-app.get("/mobile", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "m.html"));
-});
-
 app.get("*", (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
-  // m.spagenio.com 접속 시 모바일 페이지로
-  const host = req.headers['x-forwarded-host'] || req.hostname || '';
-  if (host.startsWith('m.') && !req.path.startsWith('/api') && !req.path.startsWith('/proxy')) {
-    return res.sendFile(path.join(__dirname, 'public', 'm.html'));
-  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
