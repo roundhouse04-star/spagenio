@@ -1,7 +1,7 @@
 {
   "name": "ai-router-dashboard",
   "version": "1.0.0",
-  "description": "Local Mac-ready dashboard for choosing n8n/OpenClaw and GPT/Gemini/Claude, with hybrid routing.",
+  "description": "spagenio 대시보드 — 주식 자동매매(Alpaca) + 퀀트 분석 + 뉴스 + 회원/관리.",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,7 +9,6 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.79.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
     "cookie-parser": "^1.4.7",

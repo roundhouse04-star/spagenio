@@ -5,7 +5,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Anthropic from '@anthropic-ai/sdk';
 import { initDatabase } from './lib/db-schema.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -45,7 +44,6 @@ app.use((req, res, next) => {
 
 
 const port = Number(process.env.PORT || 3000);
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 
 // ============================================================
@@ -197,74 +195,8 @@ async function sendMail({ to, subject, html }) {
   catch (e) { saveErrorLog({ event_type: 'MAIL_ERROR', error_message: e.message, stack_trace: e.stack, meta: { to, subject } }); return false; }
 }
 
-// ============================================================
-// AI 설정
-// ============================================================
 const startedAt = Date.now();
-const requestStats = { total: 0, preview: 0, run: 0, errors: 0, lastError: null };
-
-const PRESETS = {
-  market_brief: { label: '시장 브리핑', userRequest: '오늘 미국 기술주와 반도체 관련 핵심 뉴스만 요약해서 핵심 포인트와 리스크를 정리해줘.', taskType: 'news', taskComplexity: 'medium', preferredEngine: 'hybrid', preferredModel: 'gemini', optimizationMode: 'balanced', autoMode: true, priorityMode: 'speed' },
-  daily_ops: { label: '반복 업무 자동화', userRequest: '매일 아침 받은 이메일을 요약하고 일정이 있으면 캘린더 후보를 만들어줘.', taskType: 'repeat', taskComplexity: 'medium', preferredEngine: 'n8n', preferredModel: 'gemini', optimizationMode: 'cost', autoMode: true, priorityMode: 'balanced' },
-  executive_report: { label: '중요 보고서', userRequest: '긴 문서와 메모를 합쳐 임원 보고용 1페이지 요약과 실행 항목을 작성해줘.', taskType: 'research', taskComplexity: 'high', preferredEngine: 'hybrid', preferredModel: 'claude', optimizationMode: 'document', autoMode: true, priorityMode: 'quality' },
-  desktop_agent: { label: '비서형 에이전트', userRequest: '복합 작업을 단계별로 계획하고 필요한 도구를 골라 실행 전략을 작성해줘.', taskType: 'desktop', taskComplexity: 'high', preferredEngine: 'openclaw', preferredModel: 'gpt', optimizationMode: 'balanced', autoMode: true, priorityMode: 'quality' }
-};
-
-const CONFIG = {
-  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
-  openclawWebhookUrl: process.env.OPENCLAW_WEBHOOK_URL || '',
-  requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS || 20000),
-  perfProfile: process.env.PERF_PROFILE || 'turbo-local',
-  hasKeys: { openai: Boolean(process.env.OPENAI_API_KEY), gemini: Boolean(process.env.GEMINI_API_KEY), anthropic: Boolean(process.env.ANTHROPIC_API_KEY) },
-  defaults: { engine: process.env.DEFAULT_ENGINE || 'hybrid', model: process.env.DEFAULT_MODEL || 'gemini', priorityMode: process.env.DEFAULT_PRIORITY_MODE || 'balanced' }
-};
-
-function summarizeProviders() {
-  return { n8n: CONFIG.n8nWebhookUrl ? 'connected' : 'simulation', openclaw: CONFIG.openclawWebhookUrl ? 'connected' : 'simulation', gpt: CONFIG.hasKeys.openai ? 'ready' : 'missing-key', gemini: CONFIG.hasKeys.gemini ? 'ready' : 'missing-key', claude: CONFIG.hasKeys.anthropic ? 'ready' : 'missing-key' };
-}
-
-function chooseEngine({ taskType, preferredEngine, autoMode, priorityMode }) {
-  if (!autoMode && preferredEngine !== 'hybrid') return { engine: preferredEngine, reason: '사용자가 직접 선택' };
-  if (priorityMode === 'speed' && taskType !== 'desktop') return { engine: 'n8n', reason: '속도 우선' };
-  if (preferredEngine === 'hybrid' || autoMode) {
-    if (new Set(['repeat', 'notify', 'email', 'news', 'sheet']).has(taskType)) return { engine: 'n8n', reason: '반복형 업무' };
-    if (new Set(['agent', 'research', 'multistep', 'desktop']).has(taskType)) return { engine: 'openclaw', reason: '복합 판단형' };
-  }
-  return { engine: preferredEngine === 'hybrid' ? 'n8n' : preferredEngine, reason: '기본 라우팅' };
-}
-
-function chooseModel({ taskComplexity, preferredModel, optimizationMode, priorityMode }) {
-  if (optimizationMode === 'manual') return { model: preferredModel, reason: '사용자가 직접 선택' };
-  if (optimizationMode === 'cost') return { model: 'gemini', reason: '비용 우선' };
-  if (optimizationMode === 'document') return { model: 'claude', reason: '문서형 작업' };
-  if (priorityMode === 'speed' && taskComplexity !== 'high') return { model: 'gemini', reason: '속도 우선' };
-  if (taskComplexity === 'high' && priorityMode === 'quality') return { model: preferredModel === 'claude' ? 'claude' : 'gpt', reason: '고난도+품질 우선' };
-  if (taskComplexity === 'high') return { model: 'gpt', reason: '복잡한 추론' };
-  return { model: preferredModel, reason: '기본 모델' };
-}
-
-function buildPayload(body) {
-  const normalized = { userRequest: String(body.userRequest || '').trim(), taskType: body.taskType || 'news', taskComplexity: body.taskComplexity || 'medium', preferredEngine: body.preferredEngine || CONFIG.defaults.engine, preferredModel: body.preferredModel || CONFIG.defaults.model, optimizationMode: body.optimizationMode || 'balanced', autoMode: Boolean(body.autoMode), priorityMode: body.priorityMode || CONFIG.defaults.priorityMode };
-  return { ...normalized, engineDecision: chooseEngine(normalized), modelDecision: chooseModel(normalized), providers: summarizeProviders(), requestedAt: new Date().toISOString() };
-}
-
-async function forwardToTarget(url, payload) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), CONFIG.requestTimeoutMs);
-  const started = Date.now();
-  try {
-    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
-    const ct = response.headers.get('content-type') || '';
-    return { durationMs: Date.now() - started, body: ct.includes('application/json') ? await response.json() : { raw: await response.text() } };
-  } finally { clearTimeout(timeout); }
-}
-
-async function callClaude(userRequest, taskType, taskComplexity) {
-  const started = Date.now();
-  const response = await anthropic.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, system: `당신은 유능한 AI 어시스턴트입니다.\n작업 유형: ${taskType}\n작업 복잡도: ${taskComplexity}\n한국어로 명확하고 구조적으로 답변해주세요.`, messages: [{ role: 'user', content: userRequest }] });
-  return { durationMs: Date.now() - started, body: { answer: response.content[0]?.text || '', model: response.model, usage: response.usage } };
-}
+const requestStats = { total: 0, errors: 0, lastError: null };
 
 function getUserAlpacaKeys(userId, accountId, accountType = null) {
   let row;
@@ -372,7 +304,7 @@ app.use((req, res, next) => { requestStats.total += 1; res.setHeader('Cache-Cont
 // 라우트 연결
 // ============================================================
 const deps = { db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, logger, saveAccessLog, saveErrorLog, errorLogDir, fs, logClients, __dirname };
-const frontDeps = { ...deps, anthropic, CONFIG, PRESETS, requestStats, startedAt, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus };
+const frontDeps = { ...deps, requestStats, startedAt, getUserAlpacaKeys, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, updateTradeLogStatus };
 
 app.use('/api/auth', authRoutes(deps));
 app.use('/', adminRoutes(deps));
@@ -1430,6 +1362,5 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`${C.bright}${C.magenta}  ║   🚀  spagenio  Dashboard        ║${C.reset}`);
   console.log(`${C.bright}${C.magenta}  ╚══════════════════════════════════╝${C.reset}`);
   console.log(`  ${C.cyan}포트${C.reset}     : ${C.white}${port}${C.reset}`);
-  console.log(`  ${C.cyan}Claude${C.reset}   : ${CONFIG.hasKeys.anthropic ? C.green + '✅ 연결됨' : C.red + '❌ API 키 없음'}${C.reset}`);
   console.log('');
 });

@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 300000);
 });
 
-// ===== 뉴스 필터/수집/검색 (ai-router.js에서 이동) =====
+// ===== 뉴스 필터/수집/검색 =====
 
 function toggleAdvancedFilter() {
   const panel = document.getElementById('advFilterPanel');

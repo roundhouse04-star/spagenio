@@ -31,13 +31,6 @@ echo "🔄 spagenio 서버 시작 중... (포트 3000)"
 node server.js &
 sleep 2
 
-# n8n 시작
-echo "🔄 n8n 시작 중... (포트 5678)"
-pkill -f "n8n" 2>/dev/null
-sleep 1
-n8n start &
-sleep 2
-
 # 자동 배포 감지
 echo "🔄 자동 배포 감지 시작..."
 bash "$PROJECT/auto-deploy.sh" &

@@ -17,13 +17,6 @@ npm rebuild better-sqlite3
 echo "🔄 PM2로 서버 시작 중..."
 pm2 start ecosystem.config.cjs
 
-# n8n 시작 (중복 방지)
-echo "🔄 n8n 시작 중... (포트 5678)"
-pkill -f "n8n" 2>/dev/null
-sleep 1
-n8n start &
-sleep 2
-
 # 자동 배포 감지 시작 (백그라운드)
 echo "🔄 자동 배포 감지 시작..."
 bash "$PROJECT/auto-deploy.sh" &

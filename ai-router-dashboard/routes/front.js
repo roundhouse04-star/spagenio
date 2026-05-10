@@ -101,7 +101,7 @@ async function fetchJson(url, options = {}) {
   return { response, data: safeJson(text) };
 }
 
-export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, buildPayload, forwardToTarget, callClaude, summarizeProviders, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname }) {
+export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog, encryptEmail, decryptEmail, getUserAlpacaKeys, runAutoTradeForUser, getNasdaqTop3, saveTradeLog, __dirname }) {
 
   // ── portfolio_performance 마이그레이션: broker_key_id 컬럼 추가 ──
   try {
@@ -120,54 +120,6 @@ export default function frontRoutes({ db, anthropic, CONFIG, PRESETS, requestSta
   router.get('/withdraw', (req, res) => res.sendFile(path.join(__dirname, 'public', 'withdraw.html')));
   router.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'public', 'forgot-password.html')));
   router.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
-
-  // ✅ 설정/상태 API
-  router.get('/api/config', (req, res) => res.json({ ...CONFIG, providers: summarizeProviders(), presets: PRESETS }));
-  router.get('/api/health', (req, res) => res.json({ ok: true, uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000), perfProfile: CONFIG.perfProfile, stats: requestStats, providers: summarizeProviders() }));
-  router.get('/api/presets', (req, res) => res.json(PRESETS));
-
-  // ✅ AI 라우팅
-  router.post('/api/route-decision', (req, res) => {
-    requestStats.preview += 1;
-    res.json(buildPayload(req.body));
-  });
-
-  router.post('/api/run', async (req, res) => {
-    requestStats.run += 1;
-    const payload = buildPayload(req.body);
-    const engine = payload.engineDecision.engine;
-    const model = payload.modelDecision.model;
-    try {
-      if (model === 'claude' && CONFIG.hasKeys.anthropic) {
-        const result = await callClaude(payload.userRequest, payload.taskType, payload.taskComplexity);
-        return res.json({ mode: 'live', target: 'claude', latencyMs: result.durationMs, payload, result: result.body });
-      }
-      if (engine === 'n8n' && CONFIG.n8nWebhookUrl) {
-        const result = await forwardToTarget(CONFIG.n8nWebhookUrl, payload);
-        return res.json({ mode: 'live', target: 'n8n', latencyMs: result.durationMs, payload, result: result.body });
-      }
-      if (engine === 'openclaw' && CONFIG.openclawWebhookUrl) {
-        const result = await forwardToTarget(CONFIG.openclawWebhookUrl, payload);
-        return res.json({ mode: 'live', target: 'openclaw', latencyMs: result.durationMs, payload, result: result.body });
-      }
-      return res.json({ mode: 'simulation', target: engine, latencyMs: 0, payload, result: { summary: `현재 ${engine} 실서버 URL이 비어 있어 시뮬레이션으로 응답했습니다.` } });
-    } catch (error) {
-      requestStats.errors += 1;
-      return res.status(500).json({ error: '실행 중 오류가 발생했습니다.', detail: error.message, payload });
-    }
-  });
-
-  router.post('/api/chat', async (req, res) => {
-    const { message, taskType = 'general', taskComplexity = 'medium' } = req.body;
-    if (!message) return res.status(400).json({ error: '메시지가 필요합니다.' });
-    if (!CONFIG.hasKeys.anthropic) return res.status(400).json({ error: 'Anthropic API 키가 설정되지 않았습니다.' });
-    try {
-      const result = await callClaude(message, taskType, taskComplexity);
-      return res.json({ mode: 'live', target: 'claude', latencyMs: result.durationMs, result: result.body });
-    } catch (error) {
-      return res.status(500).json({ error: 'Claude API 호출 중 오류가 발생했습니다.', detail: error.message });
-    }
-  });
 
   // ✅ Alpaca 키 관련
   router.post('/api/alpaca-test', async (req, res) => {

@@ -914,7 +914,7 @@
       color: #E5E7EB;
     }
 
-    /* 뉴스 탭만 라이트 배경 유지 */
+    /* 뉴스 탭 (legacy id="tab-ai") 라이트 배경 */
     #tab-ai {
       background: #f1f5f9;
       min-height: 100vh;
@@ -1921,22 +1921,10 @@
     <div id="tab-ai" class="tab-content" style="display:block;">
       <div class="sp-page">
 
-        <!-- hidden: JS 호환용 -->
+        <!-- hidden: 뉴스 필터 호환용 (news.js 가 참조) -->
         <div style="display:none;">
-          <select id="preferredModel"></select>
-          <select id="taskType">
-            <option value="news" selected></option>
-          </select>
-          <select id="taskComplexity">
-            <option value="medium" selected></option>
-          </select>
-          <select id="preferredEngine">
-            <option value="hybrid" selected></option>
-          </select>
           <select id="newsDateFilter"></select>
           <select id="newsTypeFilter"></select>
-          <input type="checkbox" id="claudeAnalysisToggle" />
-          <span id="claudeAnalysisStatus"></span>
         </div>
 
         <!-- 포트폴리오 요약 위젯 -->
@@ -4019,7 +4007,6 @@
   <script src="/js/stock/auto-saved.js?v=20260430a"></script>
   <script src="/js/stock/ui-misc.js?v=20260430a"></script>
   <script src="/js/common.js?v=20260402a"></script>
-  <script src="/js/ai-router.js?v=20260331c"></script>
   <script src="/js/news.js?v=20260331c"></script>
 
 </body>
