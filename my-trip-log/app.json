@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "My Trip Log",
+    "name": "Triplive",
     "slug": "my-trip-log",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "mytriplog",
+    "scheme": "triplive",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
@@ -17,11 +17,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.spagenio.mytriplog",
+      "bundleIdentifier": "com.triplive.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "여행 기록에 사진을 추가하기 위해 사진 라이브러리 접근이 필요합니다.",
+        "NSPhotoLibraryAddUsageDescription": "여행 회고를 사진앱에 저장하기 위해 사진 라이브러리 쓰기 권한이 필요합니다.",
         "NSCameraUsageDescription": "여행 기록에 사진을 촬영하기 위해 카메라 접근이 필요합니다.",
-        "NSLocationWhenInUseUsageDescription": "현재 위치를 여행 기록에 추가하기 위해 위치 접근이 필요합니다."
+        "NSLocationWhenInUseUsageDescription": "현재 위치를 여행 기록에 추가하기 위해 위치 접근이 필요합니다.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       }
     },
     "android": {
@@ -29,7 +33,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1E2A3A"
       },
-      "package": "com.spagenio.mytriplog",
+      "package": "com.triplive.app",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",

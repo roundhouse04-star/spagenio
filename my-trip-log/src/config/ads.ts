@@ -1,5 +1,5 @@
 /**
- * AdMob 광고 설정 (Spagenio)
+ * AdMob 광고 설정 (Triplive)
  *
  * ## 출시 단계 — 현재 ⚠️ 테스트 ID 사용 중
  *
@@ -22,7 +22,12 @@
  */
 
 // ⚠️ 출시 전 false → true 였음. 광고 활성화됨.
-export const ADS_ENABLED = true;
+//
+// __DEV__=true (Expo Go 또는 dev 빌드)에서는 강제로 false:
+//   - Expo Go 는 네이티브 모듈 미포함 → require 시 RNGoogleMobileAdsModule not found 크래시
+//   - 개발 중엔 광고가 필요 없으니 자동으로 플레이스홀더만 표시
+// production 빌드 (eas build --profile production) 에서만 실광고 노출
+export const ADS_ENABLED = !__DEV__;
 
 // 실광고 단위 ID — AdMob 콘솔에서 발급받은 값으로 교체
 // 현재 값은 Google 공식 테스트 ID (실광고 미노출)

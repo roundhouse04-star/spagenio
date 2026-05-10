@@ -82,7 +82,7 @@ export default function BackupScreen() {
   const cloudName = Platform.OS === 'ios' ? 'iCloud' : 'Google Drive';
   const settingsHint =
     Platform.OS === 'ios'
-      ? 'iPhone 설정 → 본인 이름 → iCloud → iCloud Drive 켜기 → 앱 목록에서 Spagenio 켜기'
+      ? 'iPhone 설정 → 본인 이름 → iCloud → iCloud Drive 켜기 → 앱 목록에서 Triplive 켜기'
       : 'Android 설정 → 시스템 → 백업 → Google One으로 백업 켜기';
 
   return (

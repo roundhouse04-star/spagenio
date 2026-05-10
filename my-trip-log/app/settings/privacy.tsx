@@ -24,7 +24,7 @@ export default function PrivacyScreen() {
         <Text style={styles.lastUpdated}>시행일: 2026년 4월 24일</Text>
 
         <Text style={styles.intro}>
-          Spagenio는 사용자의 개인정보를 소중히 여기며, 서비스 제공에 필요한 최소한의 정보만 수집합니다.
+          Triplive는 사용자의 개인정보를 소중히 여기며, 서비스 제공에 필요한 최소한의 정보만 수집합니다.
           모든 여행 데이터는 기본적으로 사용자 기기에만 저장되며, 외부로 전송되지 않습니다.
         </Text>
 
@@ -38,7 +38,7 @@ export default function PrivacyScreen() {
 
 [iCloud / Google Drive 자동 백업]
 • 사용자의 기기 설정에 따라 위 데이터가 OS 기본 백업에 포함될 수 있습니다.
-• Spagenio는 별도의 백업 서버를 운영하지 않습니다.
+• Triplive는 별도의 백업 서버를 운영하지 않습니다.
 
 [선택적 익명 통계 (동의 시에만)]
 • 익명 UUID (개인 식별 불가)
@@ -85,7 +85,7 @@ export default function PrivacyScreen() {
   - iOS: 설정 > 개인정보 보호 > 추적
   - Android: 설정 > Google > 광고 > 광고 ID 재설정 / 맞춤 광고 사용 안 함
 • Google 개인정보 처리방침: https://policies.google.com/privacy
-• Spagenio PRO 결제 시 광고가 표시되지 않습니다 (출시 예정).
+• Triplive PRO 결제 시 광고가 표시되지 않습니다 (출시 예정).
 
 [도시 이미지]
 • 탐색 화면의 도시 대표 사진은 Wikipedia REST API를 통해 위키미디어 커먼즈에서 제공받습니다.

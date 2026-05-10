@@ -13,7 +13,7 @@
  *   <Text style={{ fontWeight: '500' }}>미디엄</Text> → NotoSansKR Medium
  *
  *   영문 잡지 제목은 명시적으로:
- *   <Text style={{ fontFamily: Fonts.display }}>My Trip Log</Text>
+ *   <Text style={{ fontFamily: Fonts.display }}>Triplive</Text>
  */
 import { Text, TextInput } from 'react-native';
 import { Fonts } from '@/theme/theme';

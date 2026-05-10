@@ -22,12 +22,21 @@
     },
     "production": {
       "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "android": {
         "buildType": "app-bundle"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "roundhouse04@gmail.com",
+        "ascAppId": "PASTE_AFTER_APP_STORE_CONNECT_REGISTER",
+        "appleTeamId": "PASTE_FROM_DEVELOPER_PORTAL"
+      }
+    }
   }
 }

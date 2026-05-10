@@ -1,5 +1,5 @@
 /**
- * My Trip Log - Design System (with auto Dark Mode)
+ * Triplive - Design System (with auto Dark Mode)
  *
  * iOS/Android 시스템 다크모드 설정에 따라 자동으로 색상 전환
  * import 하는 쪽 코드 변경 불필요 - Colors 그대로 사용

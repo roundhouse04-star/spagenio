@@ -45,7 +45,7 @@ export async function exportData(): Promise<{ ok: boolean; message: string }> {
 
     const json = JSON.stringify(data, null, 2);
     const timestamp = new Date().toISOString().slice(0, 10);
-    const filename = `mytriplog-backup-${timestamp}.json`;
+    const filename = `triplive-backup-${timestamp}.json`;
     const fileUri = FileSystem.cacheDirectory + filename;
 
     await FileSystem.writeAsStringAsync(fileUri, json);
@@ -54,7 +54,7 @@ export async function exportData(): Promise<{ ok: boolean; message: string }> {
     if (canShare) {
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/json',
-        dialogTitle: 'My Trip Log 백업',
+        dialogTitle: 'Triplive 백업',
       });
     }
 

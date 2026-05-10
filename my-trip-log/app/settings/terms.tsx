@@ -24,11 +24,11 @@ export default function TermsScreen() {
         <Text style={styles.lastUpdated}>시행일: 2026년 4월 24일</Text>
 
         <Section title="제 1조 (목적)" styles={styles}>
-          {`본 약관은 Spagenio 앱(이하 "앱")을 이용하는 사용자와 개발자 간의 권리, 의무, 책임 및 서비스 이용 조건을 규정함을 목적으로 합니다.`}
+          {`본 약관은 Triplive 앱(이하 "앱")을 이용하는 사용자와 개발자 간의 권리, 의무, 책임 및 서비스 이용 조건을 규정함을 목적으로 합니다.`}
         </Section>
 
         <Section title="제 2조 (용어의 정의)" styles={styles}>
-          {`1. "앱"이란 Spagenio라는 이름으로 제공되는 모바일 애플리케이션을 말합니다.
+          {`1. "앱"이란 Triplive라는 이름으로 제공되는 모바일 애플리케이션을 말합니다.
 2. "사용자"란 본 앱을 설치하고 이용하는 자를 말합니다.
 3. "개발자"란 본 앱을 개발·운영하는 개인(이태호)을 말합니다.
 4. "콘텐츠"란 사용자가 앱에 입력하거나 생성한 여행 기록, 사진, 비용 정보, 체크리스트 등을 말합니다.`}
@@ -71,7 +71,7 @@ export default function TermsScreen() {
 • 광고 수익은 앱 운영·서버 비용 충당에 사용됩니다.
 • iOS 14.5 이상 사용자는 추적 권한 동의 시 맞춤 광고가 표시되며, 거부 시 일반 광고가 표시됩니다 (앱 사용에 제한 없음).
 • 광고 추적은 iOS 설정 > 개인정보 보호 > 추적, Android 설정 > Google > 광고에서 언제든 변경 가능합니다.
-• 향후 출시 예정인 Spagenio PRO 결제 시 광고 없이 사용 가능합니다.`}
+• 향후 출시 예정인 Triplive PRO 결제 시 광고 없이 사용 가능합니다.`}
         </Section>
 
         <Section title="제 7조 (사용자의 의무)" styles={styles}>

@@ -70,7 +70,7 @@ export default function TermsScreen() {
         <Text style={styles.eyebrow}>STEP 02 / 02</Text>
         <Text style={styles.title}>약관에{'\n'}동의해주세요</Text>
         <Text style={styles.subtitle}>
-          My Trip Log 사용을 위해 아래 약관을 확인해주세요
+          Triplive 사용을 위해 아래 약관을 확인해주세요
         </Text>
 
         <Pressable
@@ -96,7 +96,7 @@ export default function TermsScreen() {
             </Text>
           </Pressable>
           <Text style={styles.termBody}>
-            본 약관은 My Trip Log 앱의 사용 방법을 안내합니다.
+            본 약관은 Triplive 앱의 사용 방법을 안내합니다.
             앱은 사용자의 여행 정보를 기기 로컬 저장소에만 보관하며,
             동의한 경우에만 익명 통계가 외부로 전송됩니다.
           </Text>
@@ -187,7 +187,7 @@ export default function TermsScreen() {
             </Text>
           </Pressable>
           <Text style={styles.termBody}>
-            추후 spagenio 여행 SNS가 출시되면 알림을 받습니다.{'\n'}
+            추후 Triplive 여행 SNS가 출시되면 알림을 받습니다.{'\n'}
             기존 여행 기록을 SNS로 전환할 수 있는 기능이 제공될 예정입니다.{'\n'}
             언제든지 설정에서 변경할 수 있습니다.
           </Text>

@@ -8,7 +8,7 @@ const FEEDBACK_EMAIL = 'roundhouse04@gmail.com';
 
 export async function openFeedbackMail(): Promise<void> {
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
-  const subject = encodeURIComponent('[My Trip Log] 피드백');
+  const subject = encodeURIComponent('[Triplive] 피드백');
   const body = encodeURIComponent(
     `\n\n` +
     `─────────\n` +

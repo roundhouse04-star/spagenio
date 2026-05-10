@@ -23,8 +23,8 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>TRAVEL JOURNAL</Text>
-        <Text style={styles.brand}>Spagenio</Text>
-        <Text style={styles.productName}>My Trip Log</Text>
+        <Text style={styles.brand}>Triplive</Text>
+        <Text style={styles.productName}>여행 기록</Text>
         <View style={styles.divider} />
         <Text style={styles.subtitle}>
           모든 여행은{'\n'}한 권의 책이 됩니다
@@ -69,16 +69,16 @@ const styles = StyleSheet.create({
     letterSpacing: Typography.letterSpacingExtraWide,
     marginBottom: Spacing.lg,
   },
-  // Spagenio - 큰 브랜드명 (타이틀 포지션)
+  // Triplive - 큰 브랜드명 (타이틀 포지션)
   brand: {
     fontFamily: Fonts.display,             // Playfair Display Bold
-    fontSize: Typography.displayLarge + 12, // 48 (기존 My Trip Log 44보다 살짝 큼)
+    fontSize: Typography.displayLarge + 12, // 48
     color: Colors.textPrimary,
     letterSpacing: Typography.letterSpacingTight,
     marginBottom: Spacing.xs,
     textAlign: 'center',
   },
-  // My Trip Log - 작은 서브타이틀
+  // 여행 기록 - 작은 서브타이틀
   productName: {
     fontFamily: Fonts.bodyEnMedium,        // Inter Medium
     fontSize: Typography.titleMedium,      // 18

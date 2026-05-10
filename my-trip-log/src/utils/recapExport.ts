@@ -111,7 +111,7 @@ function buildHtml(d: RecapExportData): string {
         <div class="memo">${escapeHtml(d.memo).replace(/\n/g, '<br>')}</div>
       ` : ''}
 
-      <div class="footer">SPAGENIO · MY TRIP LOG</div>
+      <div class="footer">TRIPLIVE</div>
     </body>
     </html>
   `;

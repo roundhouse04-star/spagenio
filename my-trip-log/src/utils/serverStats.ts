@@ -3,7 +3,7 @@
  *
  * 컨셉:
  * - 모든 데이터는 로컬 SQLite에 보관
- * - 사용자가 동의한 경우에만 익명 통계를 spagenio 서버에 전송
+ * - 사용자가 동의한 경우에만 익명 통계를 통계 서버에 전송
  * - 네트워크 오류는 조용히 무시 (다음 실행 시 재시도)
  */
 import * as Application from 'expo-constants';

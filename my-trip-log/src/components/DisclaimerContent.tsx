@@ -16,7 +16,7 @@ export function DisclaimerContent() {
       <Text style={styles.lastUpdated}>시행일: 2026년 4월 28일</Text>
 
       <Text style={styles.intro}>
-        Spagenio · My Trip Log(이하 &ldquo;앱&rdquo;)을 사용하기 전에 아래 내용을 반드시 확인해 주세요.
+        Triplive(이하 &ldquo;앱&rdquo;)을 사용하기 전에 아래 내용을 반드시 확인해 주세요.
         본 앱은 개인이 운영하는 무료 도구로, 서비스 사용에 따른 책임 한계를 명확히 하기 위해 면책 조항을 둡니다.
       </Text>
 

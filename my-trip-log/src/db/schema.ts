@@ -1,5 +1,5 @@
 /**
- * My Trip Log - SQLite Database Schema
+ * Triplive - SQLite Database Schema
  *
  * 앱 설치 시 자동 생성되는 테이블들
  */

@@ -1,5 +1,5 @@
 /**
- * Spagenio - ThemeProvider (Step 2 안전판)
+ * Triplive - ThemeProvider (Step 2 안전판)
  *
  * 🛡️ 안전 설계:
  *   - SecureStore 로딩 중에도 LightColors로 즉시 children 렌더 (null 반환 X)

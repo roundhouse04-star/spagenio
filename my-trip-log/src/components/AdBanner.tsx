@@ -1,5 +1,5 @@
 /**
- * 광고 배너 컴포넌트 (Spagenio)
+ * 광고 배너 컴포넌트 (Triplive)
  *
  * 위치: 탭바 바로 위 (모든 탭 화면에서 동일)
  * 높이: 60pt (AdMob ANCHORED_ADAPTIVE_BANNER 사이즈와 유사)
@@ -26,6 +26,8 @@ import { ADS_ENABLED, AD_UNIT_IDS } from '@/config/ads';
 import { isProActive } from '@/utils/proStatus';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
+// ⚠️ ADS_ENABLED 가 false (= __DEV__) 면 require 자체를 시도하지 않음
+//    → Expo Go 에서도 안전 (RNGoogleMobileAdsModule TurboModule lookup 회피)
 let BannerAd: any = null;
 let BannerAdSize: any = null;
 let TestIds: any = null;
@@ -34,11 +36,11 @@ if (ADS_ENABLED) {
     // 광고 SDK는 EAS dev/prod 빌드에만 포함 — Expo Go에서는 미설치라 require로 옵셔널 로드
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const GMA = require('react-native-google-mobile-ads');
-    BannerAd = GMA.BannerAd;
-    BannerAdSize = GMA.BannerAdSize;
-    TestIds = GMA.TestIds;
-  } catch {
-    console.warn('[AdBanner] react-native-google-mobile-ads 없음, 플레이스홀더 fallback');
+    BannerAd = GMA?.BannerAd ?? null;
+    BannerAdSize = GMA?.BannerAdSize ?? null;
+    TestIds = GMA?.TestIds ?? null;
+  } catch (e) {
+    console.warn('[AdBanner] react-native-google-mobile-ads 없음, 플레이스홀더 fallback', e);
   }
 }
 
@@ -83,7 +85,7 @@ export function AdBanner({ onPress }: Props) {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>✨ Spagenio PRO 곧 출시!</Text>
+          <Text style={styles.title}>✨ Triplive PRO 곧 출시!</Text>
           <Text style={styles.sub}>광고 없이 깔끔하게 여행 기록하기</Text>
         </View>
         <View style={styles.badge}>
