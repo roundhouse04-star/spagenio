@@ -8,16 +8,19 @@ import bcrypt from 'bcryptjs';
 export function initDatabase(dbPath) {
   const db = new Database(dbPath);
 
-  
-  db.exec(`
-  
-  `);
-  
+  // 동시 read/write 안전성 + 멈춤 방지.
+  // WAL 은 DB 파일에 영구 저장되므로 한 번 켜두면 Python 서비스도 자동 적용.
+  // ⚠️ 백업 시 stock.db 외에 stock.db-wal, stock.db-shm 도 함께 복사 필요.
+  db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
+  db.pragma('synchronous = NORMAL');
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, created_type INTEGER DEFAULT 2, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME);
     -- created_type: 1=관리자생성(일반로그인 불가), 2=일반가입
     CREATE TABLE IF NOT EXISTS admin_roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role_name TEXT UNIQUE NOT NULL, description TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, email TEXT, role_id INTEGER, is_active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login DATETIME, FOREIGN KEY (role_id) REFERENCES admin_roles(id));
+    CREATE TABLE IF NOT EXISTS login_attempts (key TEXT PRIMARY KEY, count INTEGER DEFAULT 0, lock_until INTEGER DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS user_broker_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, account_name TEXT NOT NULL DEFAULT '기본 계좌', alpaca_api_key TEXT, alpaca_secret_key TEXT, alpaca_paper INTEGER DEFAULT 1, is_active INTEGER DEFAULT 0, account_type INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS terms_agreements (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, agree_terms INTEGER DEFAULT 0, agree_privacy INTEGER DEFAULT 0, agree_investment INTEGER DEFAULT 0, agree_marketing INTEGER DEFAULT 0, ip TEXT, agreed_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code TEXT NOT NULL, verified INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL);
@@ -37,49 +40,23 @@ export function initDatabase(dbPath) {
     CREATE TABLE IF NOT EXISTS menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, sort_order INTEGER DEFAULT 0, tab_key TEXT, sub_key TEXT, enabled INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS trade_setting_type2 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, broker_key_id INTEGER DEFAULT NULL, enabled INTEGER DEFAULT 0, symbol TEXT, qty REAL, buy_price REAL, order_id TEXT, status TEXT DEFAULT 'idle', balance_ratio REAL DEFAULT 0.3, take_profit REAL DEFAULT 0.05, stop_loss REAL DEFAULT 0.05, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, broker_key_id), FOREIGN KEY (user_id) REFERENCES users(id));
   `);
-  
-  // [레거시 제거] auto_trade_log ALTER 제거됨
-  
-  // ── trade_log 통합 테이블 ──
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS trade_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      trade_type INTEGER NOT NULL DEFAULT 1,
-      symbol TEXT NOT NULL,
-      action TEXT NOT NULL,
-      qty REAL,
-      price REAL,
-      reason TEXT,
-      order_id TEXT,
-      profit_pct REAL DEFAULT 0,
-      status TEXT DEFAULT 'active',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )`);
-  } catch (e) { }
-  
-  // ── 기존 데이터 마이그레이션 ──
-  // try {
-  //   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=4").get().c === 0) {
-  //     const rows = (function(){ try { return db.prepare("SELECT * FROM auto_trade_log").all(); } catch(e) { return []; } })();
-  //     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (id,user_id,trade_type,symbol,action,qty,price,reason,order_id,profit_pct,status,created_at) VALUES (?,?,4,?,?,?,?,?,?,?,?,?)");
-  //     rows.forEach(r => ins.run(r.id, r.user_id, r.symbol, r.action, r.qty, r.price, r.reason, r.order_id, r.profit_pct||0, r.status||'active', r.created_at));
-  //     console.log('[trade_log] 일반자동 마이그레이션:', rows.length, '건');
-  //   }
-  // } catch(e) {}
-  // try {
-  //   if (db.prepare("SELECT COUNT(*) as c FROM trade_log WHERE trade_type=2").get().c === 0) {
-  //     const rows = (function(){ try { return db.prepare("SELECT * FROM trade_setting_type2_log").all(); } catch(e) { return []; } })();
-  //     const ins = db.prepare("INSERT OR IGNORE INTO trade_log (user_id,trade_type,symbol,action,qty,price,profit_pct,reason,status,created_at) VALUES (?,2,?,?,?,?,?,?,?,?)");
-  //     rows.forEach(r => ins.run(r.user_id, r.symbol, r.action, r.qty, r.price, r.profit_pct||0, r.reason, r.action==='BUY'?'active':'closed', r.created_at));
-  //     console.log('[trade_log] 단순자동 마이그레이션:', rows.length, '건');
-  //   }
-  // ── 레거시 테이블 DROP (마이그레이션 완료 후 제거) ──
-  // try { db.exec('DROP TABLE IF EXISTS auto_trade_log'); console.log('[trade_log] auto_trade_log 테이블 삭제 완료'); } catch(e) {}
-  // try { db.exec('DROP TABLE IF EXISTS trade_setting_type2_log'); console.log('[trade_log] trade_setting_type2_log 테이블 삭제 완료'); } catch(e) {}
-  // } catch(e) {}
-  
+
+  db.exec(`CREATE TABLE IF NOT EXISTS trade_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    trade_type INTEGER NOT NULL DEFAULT 1,
+    symbol TEXT NOT NULL,
+    action TEXT NOT NULL,
+    qty REAL,
+    price REAL,
+    reason TEXT,
+    order_id TEXT,
+    profit_pct REAL DEFAULT 0,
+    status TEXT DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
   // ── saveTradeLog 헬퍼 ──
   function saveTradeLog({ user_id, trade_type, symbol, action, qty, price, reason, order_id, profit_pct, status, broker_key_id }) {
     order_id = order_id || '';

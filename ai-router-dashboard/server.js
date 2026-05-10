@@ -242,7 +242,12 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(cors());
+// CORS: env 화이트리스트가 있으면 그것만 허용. 없으면 기존 동작(전체 허용) 유지 — 운영에선 .env 에 CORS_ORIGIN 설정 권장.
+// same-origin 트래픽(spagenio.com → spagenio.com)은 CORS 검사 자체가 안 도므로 영향 없음.
+const _corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors(_corsOrigins.length > 0
+  ? { origin: _corsOrigins, credentials: true }
+  : {}));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
@@ -254,7 +259,11 @@ app.use((req, res, next) => {
     // ACCESS 파일 로그 제거 — DB(access_logs)에만 저장
     if (!req.path.match(/\.(js|css|ico|png|jpg|svg|woff)$/)) saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userId: req.user?.id, username: req.user?.username, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime });
     const suspiciousPatterns = ['/etc/passwd', '../', 'eval(', '<script', 'UNION SELECT', 'DROP TABLE', '/admin.php', '/wp-admin'];
-    if (suspiciousPatterns.some(p => req.path.toLowerCase().includes(p.toLowerCase()))) { logger.warn('SUSPICIOUS_REQUEST', { ip, method: req.method, path: req.path }); saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime, eventType: 'suspicious' }); }
+    // %2E%2E%2F 같은 URL 인코딩 우회 차단 — decode 후 검사. 잘못된 시퀀스는 raw path 로 fallback.
+    let pathForCheck;
+    try { pathForCheck = decodeURIComponent(req.path).toLowerCase(); }
+    catch { pathForCheck = req.path.toLowerCase(); }
+    if (suspiciousPatterns.some(p => pathForCheck.includes(p.toLowerCase()))) { logger.warn('SUSPICIOUS_REQUEST', { ip, method: req.method, path: req.path }); saveAccessLog({ ip, method: req.method, path: req.path, statusCode: res.statusCode, userAgent: req.headers['user-agent'] || '', referer: req.headers['referer'] || '', responseTime, eventType: 'suspicious' }); }
   });
   next();
 });

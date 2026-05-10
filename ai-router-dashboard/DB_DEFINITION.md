@@ -36,6 +36,7 @@
 28. [kr_recommendations](#28-kr_recommendations)
 29. [telegram_alert_log](#29-telegram_alert_log)
 30. [db_comments](#30-db_comments)
+31. [login_attempts](#31-login_attempts)
 
 ---
 
@@ -597,6 +598,20 @@ RSS 소스 목록
 | updated_at | DATETIME | |
 
 **UNIQUE:** (table_name, column_name)
+
+---
+
+## 31. login_attempts
+로그인 시도 영속화 — 재시작/cluster 환경에서도 락아웃 우회 차단
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| key | TEXT PK | `${ip}_${username}` 키 |
+| count | INTEGER | 누적 실패 횟수 |
+| lock_until | INTEGER | 락 해제 epoch ms (0=락 없음) |
+| updated_at | DATETIME | 갱신 시각 |
+
+5회 연속 실패 → 30초 락 ([routes/auth.js](routes/auth.js))
 
 ---
 

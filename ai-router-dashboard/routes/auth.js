@@ -3,14 +3,6 @@ const router = express.Router();
 
 export default function authRoutes({ db, bcrypt, jwt, JWT_SECRET, ADMIN_JWT_SECRET, JWT_EXPIRES, sendMail, encryptEmail, decryptEmail, verifyCodeStore, logger, saveAccessLog, saveErrorLog }) {
 
-  // 로그인 시도 영속화 — 재시작/cluster 에서 락아웃 우회 차단
-  db.exec(`CREATE TABLE IF NOT EXISTS login_attempts (
-    key TEXT PRIMARY KEY,
-    count INTEGER DEFAULT 0,
-    lock_until INTEGER DEFAULT 0,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
   function readAttempts(key) {
     const row = db.prepare('SELECT count, lock_until FROM login_attempts WHERE key=?').get(key);
     return row ? { count: row.count, lockUntil: row.lock_until } : { count: 0, lockUntil: 0 };

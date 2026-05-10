@@ -2,12 +2,15 @@ import express from 'express';
 import path from 'path';
 const router = express.Router();
 
+// Python stock_server.py 베이스 URL — 한 곳에서만 정의.
+// 운영에선 INTERNAL_API_TOKEN 헤더로 mutating 엔드포인트 보호.
+const STOCK_API = process.env.STOCK_API_URL || 'http://localhost:5001';
+
 // ============================================================
 // 거래량 급등 감지
 // ============================================================
 async function detectVolumeSurge(symbols, alpacaKeys = null) {
   // Alpaca Paper 계좌는 data.alpaca.markets 미지원 → yfinance proxy 사용
-  const STOCK_API = process.env.STOCK_API_URL || 'http://localhost:5001';
   const results = [];
   await Promise.allSettled(symbols.map(async (symbol) => {
     try {
@@ -328,7 +331,7 @@ export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog,
     try {
       const stockPath = req.path.replace('/proxy/stock', '');
       const query = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
-      const response = await fetch(`http://localhost:5001${stockPath}${query}`, {
+      const response = await fetch(`${STOCK_API}${stockPath}${query}`, {
         method: req.method,
         headers: { 'Content-Type': 'application/json', ..._internalHeaders() },
         body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
@@ -624,7 +627,7 @@ export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog,
       ];
       const results = await Promise.allSettled(KR_SYMBOLS.map(async (item) => {
         try {
-          const r = await fetch(`http://localhost:5001/api/stock/history?symbol=${item.symbol}&period=60`);
+          const r = await fetch(`${STOCK_API}/api/stock/history?symbol=${item.symbol}&period=60`);
           const text = await r.text();
           const d = safeJson(text);
           const closes = (d.data || []).map(x => x.close).filter(v => v !== null && !isNaN(v));
@@ -758,8 +761,7 @@ export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog,
           if (news) { score += 2; signals.push(`📰 뉴스 ${news.news_count}건`); }
 
           // 기술적 신호 점수
-          const STOCK_API2 = process.env.STOCK_API_URL || 'http://localhost:5001';
-          const resp = await fetch(`${STOCK_API2}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=3mo&interval=1d`);
+          const resp = await fetch(`${STOCK_API}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=3mo&interval=1d`);
           const json = await resp.json();
           const bars = json.data || json.bars || [];
           if (bars.length >= 35) {
@@ -855,8 +857,7 @@ export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog,
       // 현재가 조회 - stock_server.py(yfinance) 우선, 실패 시 Alpaca
       let price = 0;
       try {
-        const stockBase = process.env.STOCK_SERVER_URL || 'http://localhost:5001';
-        const priceRes = await fetch(`${stockBase}/api/stock/prices?symbols=${symbol}`);
+        const priceRes = await fetch(`${STOCK_API}/api/stock/prices?symbols=${symbol}`);
         const priceData = await priceRes.json();
         const stock = (priceData.stocks || [])[0];
         if (stock?.price) price = stock.price;
@@ -870,8 +871,7 @@ export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog,
             const headers = { 'APCA-API-KEY-ID': keys.api_key, 'APCA-API-SECRET-KEY': keys.secret_key };
             const end = new Date().toISOString().split('T')[0];
             const start = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const _sapi = process.env.STOCK_API_URL || 'http://localhost:5001';
-            const _sresp = await fetch(`${_sapi}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=5d&interval=1d`);
+            const _sresp = await fetch(`${STOCK_API}/api/stock/history?symbol=${encodeURIComponent(symbol)}&period=5d&interval=1d`);
             const _sdata = await _sresp.json();
             const bars = _sdata.data || _sdata.bars || [];
             if (bars.length) price = bars[bars.length - 1].c;
@@ -1277,7 +1277,7 @@ export default function frontRoutes({ db, requestStats, startedAt, saveErrorLog,
     if (!q) return res.json({ results: [] });
     try {
       const fetch = (await import('node-fetch')).default;
-      const r = await fetch(`http://localhost:5001/api/stock/search?q=${encodeURIComponent(q)}`);
+      const r = await fetch(`${STOCK_API}/api/stock/search?q=${encodeURIComponent(q)}`);
       const d = await r.json();
       return res.json(d);
     } catch (e) {
