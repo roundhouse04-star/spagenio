@@ -89,7 +89,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topRow}>
-          <Text style={styles.pageTitle}>✈️ Travel Diary</Text>
+          <Text style={styles.pageTitle}>✈️ Triplive</Text>
           <View style={styles.greetBlock}>
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.name}>{user?.nickname ?? '여행자'}님</Text>
