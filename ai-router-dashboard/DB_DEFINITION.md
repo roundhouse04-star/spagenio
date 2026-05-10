@@ -1,7 +1,7 @@
 # DB_DEFINITION.md — spagenio stock.db 테이블 정의
 
 > DB 파일: `stock.db` (better-sqlite3)  
-> 최종 업데이트: 2026-04-02
+> 최종 업데이트: 2026-05-10
 
 ---
 
@@ -35,17 +35,7 @@
 27. [quant_trade_log](#27-quant_trade_log)
 28. [kr_recommendations](#28-kr_recommendations)
 29. [telegram_alert_log](#29-telegram_alert_log)
-30. [lotto_picks](#30-lotto_picks)
-31. [lotto_history](#31-lotto_history)
-32. [lotto_schedule](#32-lotto_schedule)
-33. [lotto_schedule_log](#33-lotto_schedule_log)
-34. [lotto_weights](#34-lotto_weights)
-35. [lotto_algorithm_weights](#35-lotto_algorithm_weights)
-36. [lotto_algorithm_config](#36-lotto_algorithm_config)
-37. [lotto_predictions](#37-lotto_predictions)
-38. [lotto_auto_send_log](#38-lotto_auto_send_log)
-39. [user_algorithm_weights](#39-user_algorithm_weights)
-40. [db_comments](#40-db_comments)
+30. [db_comments](#30-db_comments)
 
 ---
 
@@ -59,7 +49,6 @@
 | password_hash | TEXT | bcrypt 해시 |
 | email | TEXT | 이메일 |
 | created_type | INTEGER | 가입 방식 (2=일반) |
-| lotto_auto_send | INTEGER | 로또 자동발송 여부 (0/1) |
 | created_at | DATETIME | 가입일 |
 | last_login | DATETIME | 최근 로그인 |
 
@@ -596,156 +585,7 @@ RSS 소스 목록
 
 ---
 
-## 30. lotto_picks
-로또 생성 번호 이력
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| user_id | INTEGER | users.id FK |
-| pick_date | TEXT | 생성 날짜 |
-| game_index | INTEGER | 게임 번호 |
-| numbers | TEXT | 번호 JSON |
-| algorithms | TEXT | 사용 알고리즘 |
-| drw_no | INTEGER | 회차 |
-| rank | INTEGER | 당첨 등수 |
-| matched_count | INTEGER | 일치 번호 수 |
-| bonus_match | INTEGER | 보너스 일치 여부 (0/1) |
-| created_at | DATETIME | |
-
----
-
-## 31. lotto_history
-로또 당첨 번호 이력
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| drw_no | INTEGER PK | 회차 |
-| numbers | TEXT | 당첨번호 JSON |
-| bonus | INTEGER | 보너스 번호 |
-| drw_date | TEXT | 추첨일 |
-| created_at | DATETIME | |
-
----
-
-## 32. lotto_schedule
-로또 자동 발송 스케줄
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| user_id | INTEGER UNIQUE | users.id FK |
-| enabled | INTEGER | 활성 여부 (0/1) |
-| days | TEXT | 요일 (1~7, 7=토) |
-| hour | INTEGER | 발송 시각 |
-| game_count | INTEGER | 게임 수 |
-| last_sent_at | DATETIME | 최근 발송 시각 |
-| updated_at | DATETIME | |
-
----
-
-## 33. lotto_schedule_log
-로또 스케줄 실행 로그
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| user_id | INTEGER | users.id FK |
-| days | TEXT | 요일 |
-| day | INTEGER | 요일 숫자 |
-| hour | INTEGER | 시각 |
-| game_count | INTEGER | 게임 수 |
-| drw_no | INTEGER | 회차 |
-| action | TEXT | 액션 종류 |
-| sent_at | DATETIME | |
-| created_at | DATETIME | |
-
----
-
-## 34. lotto_weights
-로또 번호별 가중치
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| num | INTEGER PK | 번호 (1~45) |
-| weight | REAL | 가중치 |
-| appear_count | INTEGER | 출현 횟수 |
-| hit_count | INTEGER | 당첨 횟수 |
-| updated_at | DATETIME | |
-
----
-
-## 35. lotto_algorithm_weights
-사용자별 알고리즘 가중치
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| user_id | INTEGER UNIQUE | users.id FK |
-| weights | TEXT | 가중치 JSON |
-| updated_at | DATETIME | |
-
----
-
-## 36. lotto_algorithm_config
-로또 알고리즘 설정 (전역)
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| key | TEXT PK | 설정 키 |
-| data | TEXT | 설정값 JSON |
-| updated_at | DATETIME | |
-
----
-
-## 37. lotto_predictions
-로또 AI 예측 번호
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| based_on_round | INTEGER | 기준 회차 |
-| predicted_for_round | INTEGER | 예측 대상 회차 |
-| picks | TEXT | 예측 번호 JSON |
-| hit_count | INTEGER | 맞은 번호 수 |
-| result_checked | INTEGER | 결과 확인 여부 (0/1) |
-| created_at | DATETIME | |
-
----
-
-## 38. lotto_auto_send_log
-로또 자동 발송 로그 (중복 방지)
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| week_key | TEXT UNIQUE | 주차 키 (YYYY-WW) |
-| sent_at | DATETIME | 발송 시각 |
-| round_no | INTEGER | 회차 |
-| picks | TEXT | 발송 번호 JSON |
-
----
-
-## 39. user_algorithm_weights
-사용자별 번호 알고리즘 가중치 (개별 항목)
-
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | INTEGER PK | |
-| user_id | INTEGER UNIQUE | users.id FK |
-| freq | INTEGER | 빈도 가중치 |
-| hot | INTEGER | 핫 번호 가중치 |
-| cold | INTEGER | 콜드 번호 가중치 |
-| balance | INTEGER | 밸런스 가중치 |
-| zone | INTEGER | 구간 가중치 |
-| ac | INTEGER | AC값 가중치 |
-| prime | INTEGER | 소수 가중치 |
-| delta | INTEGER | 델타 가중치 |
-| updated_at | DATETIME | |
-
----
-
-## 40. db_comments
+## 30. db_comments
 테이블/컬럼 설명 메모
 
 | 컬럼 | 타입 | 설명 |
