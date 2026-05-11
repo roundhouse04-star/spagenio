@@ -37,7 +37,9 @@
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "com.google.android.gms.permission.AD_ID"
       ]
     },
     "web": {
@@ -48,6 +50,20 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1",
+            "useFrameworks": "static"
+          },
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -117,13 +133,18 @@
             "3qcr597p9d.skadnetwork"
           ]
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "ocrSpaceApiKey": "helloworld"
+      "ocrSpaceApiKey": "helloworld",
+      "router": {},
+      "eas": {
+        "projectId": "b9c1e152-7e8b-454d-80f0-616d5401ecb6"
+      }
     }
   }
 }
