@@ -33,7 +33,10 @@ import { initializeAdMob } from '@/utils/admobInit';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-SplashScreen.preventAutoHideAsync();
+// Expo Go 등 splash screen 모듈이 등록되지 않은 환경에서 에러 방지
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // No native splash screen registered — Expo Go 환경에서 정상 분기
+});
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -95,7 +98,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (isReady && fontsLoaded) {
-      SplashScreen.hideAsync();
+      // Expo Go 등 splash screen 모듈이 없는 환경에서 에러 방지
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [isReady, fontsLoaded]);
 
