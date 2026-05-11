@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.triplive.app",
-      "buildNumber": "1",
+      "buildNumber": "6",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "여행 기록에 사진을 추가하기 위해 사진 라이브러리 접근이 필요합니다.",
         "NSPhotoLibraryAddUsageDescription": "여행 회고를 사진앱에 저장하기 위해 사진 라이브러리 쓰기 권한이 필요합니다.",

@@ -20,6 +20,7 @@ import { getAllTrips, createTrip } from '@/db/trips';
 import { createTripItem } from '@/db/items';
 import DatePickerModal from '@/components/DatePickerModal';
 import { Trip, TripItemCategory } from '@/types';
+import { parseAiItinerary, AiJsonParseError } from '@/utils/aiJsonParser';
 
 const TRIP_ITEM_CATEGORY_VALUES: readonly TripItemCategory[] = [
   'sightseeing', 'food', 'activity', 'accommodation', 'transport', 'shopping', 'other',
@@ -319,25 +320,9 @@ JSON 형식:
 
     setParsing(true);
     try {
-      // 마크다운 코드블록 제거
-      const cleaned = aiResponse
-        .replace(/```json/gi, '')
-        .replace(/```/g, '')
-        .trim();
-
-      // JSON 추출
-      const startIdx = cleaned.indexOf('{');
-      const endIdx = cleaned.lastIndexOf('}');
-      if (startIdx === -1 || endIdx === -1) {
-        throw new Error('JSON 형식을 찾을 수 없어요. AI에게 "JSON 형식으로만 답해줘" 다시 요청하세요.');
-      }
-
-      const jsonStr = cleaned.substring(startIdx, endIdx + 1);
-      const parsed = JSON.parse(jsonStr);
-
-      if (!parsed.items || !Array.isArray(parsed.items)) {
-        throw new Error('items 배열이 없어요');
-      }
+      // 견고한 AI JSON 파서 — trailing comma / 주석 / 키 alias / 스마트 따옴표 등
+      // 다양한 어긋난 형식을 자동 보정해서 처리.
+      const parsed = parseAiItinerary(aiResponse);
 
       // 대상 여행 결정
       let tripId: number;
@@ -345,7 +330,7 @@ JSON 형식:
         tripId = existingTripId;
       } else {
         const info = getTargetInfo();
-        if (!info) throw new Error('여행 정보가 없어요');
+        if (!info) throw new AiJsonParseError('여행 정보가 없어요');
         tripId = await createTrip({
           title: info.title,
           country: info.country,
@@ -358,23 +343,24 @@ JSON 형식:
         });
       }
 
-      // 일정 추가
+      // 일정 추가 — parser 가 이미 정규화한 값이라 안전하게 저장
       let addedCount = 0;
       for (const item of parsed.items) {
         try {
           await createTripItem({
             tripId,
-            day: Number(item.day) || 1,
-            startTime: String(item.startTime || ''),
-            title: String(item.title || '제목 없음'),
-            location: String(item.location || ''),
+            day: item.day,
+            startTime: item.startTime,
+            title: item.title,
+            location: item.location,
             category: normalizeTripItemCategory(item.category),
-            memo: String(item.memo || ''),
-            cost: Number(item.cost) || 0,
+            memo: item.memo,
+            cost: item.cost,
             currency: 'KRW',
           });
           addedCount++;
         } catch (err) {
+          // 개별 항목 저장 실패는 silent — 나머지 항목 계속 진행
           console.error('[일정 저장 실패]', err, item);
         }
       }
@@ -405,10 +391,12 @@ JSON 형식:
       );
     } catch (err) {
       console.error('[파싱 실패]', err);
-      Alert.alert(
-        '파싱 실패',
-        `답변 형식이 올바르지 않아요.\n\n${(err as Error).message}\n\nAI에게 "JSON 형식으로만 답해줘"라고 다시 요청해보세요.`
-      );
+      // AiJsonParseError 는 사용자 친화 메시지를 이미 포함하고 있음
+      const message =
+        err instanceof AiJsonParseError
+          ? err.message
+          : `답변 형식이 올바르지 않아요.\n\n${(err as Error).message}\n\nAI에게 "JSON 형식으로만 답해줘"라고 다시 요청해보세요.`;
+      Alert.alert('파싱 실패', message);
     } finally {
       setParsing(false);
     }
