@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -10,6 +10,16 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { getRates, refreshRates, getLastUpdated } from '@/utils/exchange';
 import { haptic } from '@/utils/haptics';
 import { getAlerts, addAlert, removeAlert, type RateAlert } from '@/utils/rateAlerts';
+import { getOfficialTransitInfo } from '@/data/transitOfficial';
+
+// 인앱 노선도 데이터(역·노선·환승) 가 충실히 들어있는 도시.
+// 그 외 도시는 클릭 시 운영사 공식 사이트로 외부 브라우저에서 안내한다.
+// (PRO 출시 또는 1.x 업데이트에서 더 많은 도시로 확대 예정)
+const INAPP_TRANSIT_CITIES = new Set([
+  'amsterdam', 'bangkok', 'barcelona', 'berlin', 'hongkong',
+  'london', 'newyork', 'osaka', 'paris', 'rome',
+  'seoul', 'singapore', 'tokyo',
+]);
 
 type Currency = { code: string; name: string; flag: string };
 
@@ -345,23 +355,46 @@ export default function ToolsScreen() {
             { cityId: 'amsterdam', icon: '🇳🇱', label: '암스테르담 메트로', desc: 'Amsterdam Metro' },
             { cityId: 'barcelona', icon: '🇪🇸', label: '바르셀로나 메트로', desc: 'Barcelona Metro' },
             { cityId: 'rome', icon: '🇮🇹', label: '로마 메트로', desc: 'Roma Metro' },
-          ].map((m) => (
-            <Pressable
-              key={m.cityId}
-              style={styles.linkCard}
-              onPress={() => {
-                haptic.tap();
-                router.push(`/transit/${m.cityId}`);
-              }}
-            >
-              <Text style={styles.linkIcon}>{m.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.linkLabel}>{m.label}</Text>
-                <Text style={styles.linkDesc}>{m.desc}</Text>
-              </View>
-              <Text style={styles.linkArrow}>›</Text>
-            </Pressable>
-          ))}
+          ].map((m) => {
+            const hasInappData = INAPP_TRANSIT_CITIES.has(m.cityId);
+            const officialInfo = getOfficialTransitInfo(m.cityId);
+            return (
+              <Pressable
+                key={m.cityId}
+                style={styles.linkCard}
+                onPress={async () => {
+                  haptic.tap();
+                  if (hasInappData) {
+                    // 인앱 노선도 데이터가 있는 도시 — 인앱 화면으로
+                    router.push(`/transit/${m.cityId}`);
+                    return;
+                  }
+                  // 인앱 데이터 미보강 도시 — 공식 사이트 외부 브라우저로
+                  if (officialInfo) {
+                    try {
+                      await Linking.openURL(officialInfo.url);
+                    } catch {
+                      Alert.alert('링크를 열 수 없어요', officialInfo.url);
+                    }
+                  } else {
+                    Alert.alert('아직 준비 중', '이 도시의 노선 정보는 아직 준비 중이에요.');
+                  }
+                }}
+              >
+                <Text style={styles.linkIcon}>{m.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkLabel}>
+                    {m.label}
+                    {!hasInappData && officialInfo ? (
+                      <Text style={styles.linkExternalBadge}>  ↗ 공식</Text>
+                    ) : null}
+                  </Text>
+                  <Text style={styles.linkDesc}>{m.desc}</Text>
+                </View>
+                <Text style={styles.linkArrow}>›</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -681,6 +714,11 @@ function createStyles(c: ColorPalette) {
   linkArrow: {
     fontSize: 20,
     color: c.textTertiary,
+  },
+  linkExternalBadge: {
+    fontSize: Typography.labelSmall,
+    color: c.accent,
+    fontWeight: '600',
   },
 });
 }
