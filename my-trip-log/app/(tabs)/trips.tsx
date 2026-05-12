@@ -32,12 +32,20 @@ export default function TripsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>내 여행</Text>
-        <Pressable
-          style={styles.addButton}
-          onPress={() => router.push('/trips/new')}
-        >
-          <Text style={styles.addButtonText}>+ 새 여행</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Pressable
+            style={styles.receiveButton}
+            onPress={() => router.push('/trip-import')}
+          >
+            <Text style={styles.receiveButtonText}>📥 받기</Text>
+          </Pressable>
+          <Pressable
+            style={styles.addButton}
+            onPress={() => router.push('/trips/new')}
+          >
+            <Text style={styles.addButtonText}>+ 새 여행</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.filterRow}>
@@ -171,6 +179,19 @@ function createStyles(c: ColorPalette) {
     },
     addButtonText: {
       color: c.textOnPrimary,
+      fontSize: Typography.labelLarge,
+      fontWeight: '600',
+    },
+    receiveButton: {
+      backgroundColor: c.surface,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: 999,
+      borderWidth: 1.5,
+      borderColor: c.accent,
+    },
+    receiveButtonText: {
+      color: c.accent,
       fontSize: Typography.labelLarge,
       fontWeight: '600',
     },

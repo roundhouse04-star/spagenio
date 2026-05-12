@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -112,6 +113,32 @@ export default function RootLayout() {
       // 닉네임만 입력하고 약관 단계에서 종료한 사용자 → 약관 화면으로 직진
       router.replace('/(onboarding)/terms');
     }
+  }, [isReady, fontsLoaded, hasUser, hasConsent]);
+
+  // Deep Link 처리 — triplive://import?d=...
+  // 사용자가 외부 메신저(카톡 등)에서 공유 링크를 탭하면 앱이 열리고
+  // 이 핸들러가 자동으로 trip-import 화면으로 이동시킴.
+  useEffect(() => {
+    if (!isReady || !fontsLoaded || !hasUser || !hasConsent) return;
+
+    const handleUrl = (url: string | null) => {
+      if (!url) return;
+      // triplive://import?d=XXX 형식 감지
+      if (url.includes('import') && url.includes('d=')) {
+        const idx = url.indexOf('d=');
+        const data = url.substring(idx + 2).split('&')[0];
+        if (data) {
+          router.push({ pathname: '/trip-import', params: { d: data } });
+        }
+      }
+    };
+
+    // 앱이 종료 상태에서 Deep Link 로 실행된 경우
+    Linking.getInitialURL().then(handleUrl).catch(() => {});
+
+    // 앱이 백그라운드 → 포그라운드로 올라온 경우
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => sub.remove();
   }, [isReady, fontsLoaded, hasUser, hasConsent]);
 
   if (!isReady || !fontsLoaded) {

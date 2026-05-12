@@ -71,6 +71,14 @@
           "cameraPermission": "앱이 카메라에 접근하려고 합니다."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "공유받은 일정 QR 코드를 스캔하기 위해 카메라 접근이 필요합니다.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-font",
       "expo-localization",
       "expo-secure-store",
