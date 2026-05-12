@@ -29,11 +29,12 @@ import { haptic } from '@/utils/haptics';
 import {
   exportTripForShare, buildShareLink, SHARED_PAYLOAD_MAX_LEN,
 } from '@/utils/tripShare';
+import { exportTripScheduleAsPdf } from '@/utils/tripPdfExport';
 import { getTripById } from '@/db/trips';
 import { getTripItems } from '@/db/items';
 import type { Trip, TripItem } from '@/types';
 
-type Mode = 'qr' | 'link';
+type Mode = 'qr' | 'link' | 'pdf';
 
 export default function TripShareScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -197,9 +198,27 @@ export default function TripShareScreen() {
               >
                 <Text style={styles.bigButtonIcon}>🔗</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.bigButtonTitle}>링크로 공유</Text>
-                  <Text style={styles.bigButtonDesc}>
-                    카톡 · 문자 · 이메일로 보내기
+                  <Text style={styles.bigButtonTitleSecondary}>링크로 공유</Text>
+                  <Text style={styles.bigButtonDescSecondary}>
+                    카톡 · 문자 · 이메일 (Triplive 사용자)
+                  </Text>
+                </View>
+              </Pressable>
+
+              <View style={{ height: Spacing.md }} />
+
+              <Pressable
+                style={[styles.bigButton, styles.bigButtonSecondary]}
+                onPress={() => {
+                  haptic.tap();
+                  setMode('pdf');
+                }}
+              >
+                <Text style={styles.bigButtonIcon}>📄</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.bigButtonTitleSecondary}>PDF로 공유</Text>
+                  <Text style={styles.bigButtonDescSecondary}>
+                    Triplive 없는 친구에게도 OK
                   </Text>
                 </View>
               </Pressable>
@@ -237,6 +256,52 @@ export default function TripShareScreen() {
                   </Text>
                 </View>
               )}
+              <Pressable
+                style={styles.changeModeBtn}
+                onPress={() => {
+                  haptic.tap();
+                  setMode(null);
+                }}
+              >
+                <Text style={styles.changeModeBtnText}>← 다른 방법 선택</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* PDF 모드 */}
+          {mode === 'pdf' && trip && (
+            <View style={styles.modeCard}>
+              <Text style={styles.pdfTitle}>📄 PDF 일정표</Text>
+              <Text style={styles.pdfDesc}>
+                Triplive 앱이 없는 친구에게도{'\n'}
+                카톡·이메일로 보낼 수 있는 PDF 파일을 만들어요
+              </Text>
+
+              <View style={styles.pdfIncluded}>
+                <Text style={styles.pdfIncludedLabel}>📦 포함되는 내용:</Text>
+                <Text style={styles.pdfIncludedItem}>• 여행 제목 · 날짜 · 도시</Text>
+                <Text style={styles.pdfIncludedItem}>• Day 별 일정 (시간 · 장소 · 메모)</Text>
+                <Text style={styles.pdfIncludedItem}>• 카테고리 (관광/식사/이동 등)</Text>
+                {includeCost && (
+                  <Text style={styles.pdfIncludedItem}>• 예상 비용 · 총 예산</Text>
+                )}
+              </View>
+
+              <Pressable
+                style={[styles.confirmBtn, loading && styles.confirmBtnDisabled]}
+                disabled={loading}
+                onPress={async () => {
+                  haptic.tap();
+                  try {
+                    await exportTripScheduleAsPdf(trip, items, { includeCost });
+                  } catch (err) {
+                    Alert.alert('PDF 만들기 실패', String(err));
+                  }
+                }}
+              >
+                <Text style={styles.confirmBtnText}>📄 PDF 만들기 + 공유하기</Text>
+              </Pressable>
+
               <Pressable
                 style={styles.changeModeBtn}
                 onPress={() => {
@@ -418,6 +483,59 @@ function createStyles(c: ColorPalette) {
       color: c.textOnPrimary,
       opacity: 0.85,
       marginTop: 2,
+    },
+    bigButtonTitleSecondary: {
+      fontSize: Typography.bodyLarge,
+      fontWeight: '700',
+      color: c.textPrimary,
+    },
+    bigButtonDescSecondary: {
+      fontSize: Typography.labelSmall,
+      color: c.textTertiary,
+      marginTop: 2,
+    },
+
+    // PDF 모드
+    pdfTitle: {
+      fontSize: Typography.titleMedium,
+      fontWeight: '700',
+      color: c.textPrimary,
+      marginBottom: Spacing.sm,
+    },
+    pdfDesc: {
+      fontSize: Typography.bodyMedium,
+      color: c.textSecondary,
+      lineHeight: Typography.bodyMedium * 1.5,
+      marginBottom: Spacing.lg,
+    },
+    pdfIncluded: {
+      backgroundColor: c.surfaceAlt,
+      padding: Spacing.md,
+      borderRadius: 8,
+      marginBottom: Spacing.lg,
+    },
+    pdfIncludedLabel: {
+      fontSize: Typography.bodyMedium,
+      fontWeight: '600',
+      color: c.textPrimary,
+      marginBottom: Spacing.xs,
+    },
+    pdfIncludedItem: {
+      fontSize: Typography.labelSmall,
+      color: c.textSecondary,
+      marginTop: 2,
+    },
+    confirmBtn: {
+      backgroundColor: c.primary,
+      padding: Spacing.lg,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    confirmBtnDisabled: { opacity: 0.6 },
+    confirmBtnText: {
+      fontSize: Typography.bodyLarge,
+      fontWeight: '700',
+      color: c.textOnPrimary,
     },
 
     modeCard: {
