@@ -19,7 +19,11 @@ async function main() {
     nameEn: 'Busan',
     country: 'KR',
     timezone: 'Asia/Seoul',
-    routeTypes: ['subway', 'light_rail'],
+    // 4호선은 OSM에서 'monorail' (반여 모노레일), BGL은 'light_rail'
+    routeTypes: ['subway', 'light_rail', 'monorail'],
+    // BGL 김해경전철 일부 역이 김해시 안 → 김해시 area 도 포함
+    extraAreas: ['김해시', 'Gimhae'],
+    stationMatchRadiusM: 400,
     linePrefix: 'busan',
     // 부산 공식 노선 색상
     defaultColors: {

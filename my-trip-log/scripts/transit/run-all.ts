@@ -10,7 +10,16 @@ import { spawnSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 
-const ALL_CITIES = ['busan', 'fukuoka', 'kyoto', 'taipei', 'shanghai', 'beijing'];
+const ALL_CITIES = [
+  // 1차 (2026-05-12)
+  'busan', 'fukuoka', 'kyoto', 'taipei', 'shanghai', 'beijing',
+  // 2차 (2026-05-13) — 한국인 인기 + 주요 메트로 도시
+  'sapporo', 'okinawa', 'qingdao',
+  'kualalumpur', 'manila', 'hochiminh',
+  'madrid', 'milan', 'prague', 'vienna',
+  'losangeles', 'sydney',
+  'dubai', 'istanbul', 'cairo', 'mecca',
+];
 
 async function main() {
   const args = process.argv.slice(2);

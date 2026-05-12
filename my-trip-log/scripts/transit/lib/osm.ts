@@ -1,7 +1,12 @@
 /**
  * OpenStreetMap Overpass API 클라이언트
  * 무료 공공 API, rate limit 있음 (분당 ~3 요청 권장)
+ *
+ * macOS + Node 22 의 happy-eyeballs 이슈로 fetch() 가 ETIMEDOUT 떨어지는 환경 대응:
+ *  - 1차: Node 내장 fetch 시도
+ *  - fetch 실패 시: curl 으로 자동 fallback (system curl 사용)
  */
+import { execSync } from 'node:child_process';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
@@ -36,16 +41,7 @@ export async function queryOverpass(query: string, retries = 3): Promise<Overpas
     for (const endpoint of OVERPASS_ENDPOINTS) {
       try {
         console.log(`[OSM] try ${endpoint} (attempt ${attempt + 1}/${retries})`);
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'data=' + encodeURIComponent(query),
-        });
-        if (!res.ok) {
-          console.warn(`[OSM] ${endpoint} returned ${res.status}`);
-          continue;
-        }
-        const json = (await res.json()) as OverpassResponse;
+        const json = await fetchViaCurl(endpoint, query);
         console.log(`[OSM] ✓ got ${json.elements?.length ?? 0} elements`);
         return json;
       } catch (e) {
@@ -61,6 +57,40 @@ export async function queryOverpass(query: string, retries = 3): Promise<Overpas
 
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * curl 을 사용해 Overpass 호출 (Node fetch 우회).
+ * macOS Sequoia + Node 22 환경에서 fetch ETIMEDOUT 회피용.
+ */
+function fetchViaCurl(endpoint: string, query: string): Promise<OverpassResponse> {
+  return new Promise((resolve, reject) => {
+    try {
+      // 임시 파일에 query 쓰기 (긴 쿼리는 ARG 길이 한계 회피)
+      const fs = require('node:fs') as typeof import('node:fs');
+      const os = require('node:os') as typeof import('node:os');
+      const path = require('node:path') as typeof import('node:path');
+      const tmpFile = path.join(os.tmpdir(), `overpass-${Date.now()}-${Math.random()}.txt`);
+      // form-urlencoded: data=<urlencoded>
+      const body = 'data=' + encodeURIComponent(query);
+      fs.writeFileSync(tmpFile, body);
+
+      try {
+        const out = execSync(
+          `curl -s -X POST -H 'Content-Type: application/x-www-form-urlencoded' ` +
+          `-H 'User-Agent: Triplive-Transit-Crawler/1.1' ` +
+          `--data-binary @${tmpFile} --max-time 120 '${endpoint}'`,
+          { encoding: 'utf-8', maxBuffer: 100 * 1024 * 1024 },  // 100MB OK
+        );
+        const json = JSON.parse(out) as OverpassResponse;
+        resolve(json);
+      } finally {
+        try { fs.unlinkSync(tmpFile); } catch {}
+      }
+    } catch (e) {
+      reject(e);
+    }
+  });
 }
 
 /**

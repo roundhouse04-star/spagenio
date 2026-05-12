@@ -85,7 +85,7 @@ function main() {
     const beforeLines = transit.lines.filter((l) => l.cityId === cid).length;
     const beforeStations = transit.stations.filter((s) => s.cityId === cid).length;
 
-    // 기존 데이터 제거
+    // 기존 데이터 제거 (connections 는 fromStationId / toStationId 둘 다 체크)
     transit.cities = transit.cities.filter((c) => c.id !== cid);
     transit.lines = transit.lines.filter((l) => l.cityId !== cid);
     const removedStationIds = new Set(
@@ -94,15 +94,44 @@ function main() {
     transit.stations = transit.stations.filter((s) => s.cityId !== cid);
     transit.stationLines = transit.stationLines.filter((sl) => !removedStationIds.has(sl.stationId));
     transit.connections = transit.connections.filter(
-      (c) => !removedStationIds.has(c.from) && !removedStationIds.has(c.to)
+      (c) => !removedStationIds.has(c.fromStationId ?? c.from) &&
+             !removedStationIds.has(c.toStationId ?? c.to)
     );
 
-    // 새 데이터 추가
+    // 새 데이터 추가 — transit.json 기존 스키마에 맞춰 필드 변환
     transit.cities.push(r.city);
     transit.lines.push(...r.lines);
-    transit.stations.push(...r.stations);
+
+    // Station: lat/lon/nameLocal 은 제외, x/y/isTransfer 기본값 보정
+    for (const s of r.stations) {
+      transit.stations.push({
+        id: s.id,
+        cityId: s.cityId,
+        nameKo: s.nameKo,
+        nameEn: s.nameEn,
+        x: s.x ?? 0,
+        y: s.y ?? 0,
+        isTransfer: s.isTransfer ?? 0,
+      });
+    }
+
     transit.stationLines.push(...r.stationLines);
-    transit.connections.push(...r.connections);
+
+    // Connection: from/to/duration(초) → fromStationId/toStationId/travelTime(분)
+    const startId = transit.connections.length > 0
+      ? Math.max(...transit.connections.map((c) => Number(c.id) || 0)) + 1
+      : 1;
+    let nextId = startId;
+    for (const c of r.connections as any[]) {
+      transit.connections.push({
+        id: nextId++,
+        fromStationId: c.fromStationId ?? c.from,
+        toStationId: c.toStationId ?? c.to,
+        lineId: c.lineId,
+        travelTime: Math.max(1, Math.round((c.travelTime ?? (c.duration ?? 90) / 60))),
+        isTransfer: 0,
+      });
+    }
 
     const action = beforeCity ? '교체' : '추가';
     console.log(

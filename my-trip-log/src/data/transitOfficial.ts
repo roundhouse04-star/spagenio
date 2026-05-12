@@ -33,6 +33,30 @@ export const OFFICIAL_TRANSIT_URLS: Record<string, { url: string; agency: string
   amsterdam: { url: 'https://en.gvb.nl/lijnenkaart-rapide', agency: 'GVB Amsterdam' },
   barcelona: { url: 'https://www.tmb.cat/en/barcelona/maps/metro', agency: 'TMB Barcelona' },
   rome: { url: 'https://www.atac.roma.it/page/maps/231/0', agency: 'ATAC Roma' },
+
+  // 1.1 추가 도시 (2026-05-13)
+  // 일본
+  sapporo: { url: 'https://www.city.sapporo.jp/st/subway-routemap.html', agency: '삿포로시 교통국' },
+  okinawa: { url: 'https://www.yui-rail.co.jp/route-map/', agency: '오키나와 도시 모노레일' },
+  // 중국
+  qingdao: { url: 'http://www.qd-metro.com/', agency: 'Qingdao Metro' },
+  // 동남아
+  kualalumpur: { url: 'https://www.myrapid.com.my/bus-train/routes-line-map/', agency: 'RapidKL' },
+  manila: { url: 'https://lrta.gov.ph/route-map/', agency: 'LRTA Manila' },
+  hochiminh: { url: 'https://hurc.com.vn/en', agency: 'HURC1 / HCMC Metro' },
+  // 유럽
+  madrid: { url: 'https://www.metromadrid.es/en/connections/metro-map', agency: 'Metro de Madrid' },
+  milan: { url: 'https://www.atm.it/en/ViaggiaConNoi/Pages/MappaReteMetro.aspx', agency: 'ATM Milano' },
+  prague: { url: 'https://pid.cz/en/maps/', agency: 'Prague Public Transit (DPP/PID)' },
+  vienna: { url: 'https://www.wienerlinien.at/web/wienerlinien-en/network-plans', agency: 'Wiener Linien' },
+  // 북미·호주
+  losangeles: { url: 'https://www.metro.net/riding/maps/', agency: 'LA Metro' },
+  sydney: { url: 'https://transportnsw.info/maps/download/sydney-and-surrounds-network-map', agency: 'Transport for NSW' },
+  // 중동·아프리카
+  dubai: { url: 'https://www.rta.ae/wps/portal/rta/ae/public-transport/dubai-metro/route-map', agency: 'Dubai RTA' },
+  istanbul: { url: 'https://www.metro.istanbul/en', agency: 'Metro Istanbul' },
+  cairo: { url: 'https://cairometro.gov.eg/en/map.aspx', agency: 'Cairo Metro' },
+  mecca: { url: 'https://www.sar.com.sa/en/Pages/Mashaer.aspx', agency: 'Mashaer Metro' },
 };
 
 export function getOfficialTransitInfo(cityId: string): { url: string; agency: string } | null {

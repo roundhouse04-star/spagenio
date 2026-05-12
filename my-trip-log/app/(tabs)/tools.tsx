@@ -14,11 +14,20 @@ import { getOfficialTransitInfo } from '@/data/transitOfficial';
 
 // 인앱 노선도 데이터(역·노선·환승) 가 충실히 들어있는 도시.
 // 그 외 도시는 클릭 시 운영사 공식 사이트로 외부 브라우저에서 안내한다.
-// (PRO 출시 또는 1.x 업데이트에서 더 많은 도시로 확대 예정)
+// 1.1 에서 OSM 크롤링으로 23개 도시 추가 — 총 36개 도시 인앱 지원
 const INAPP_TRANSIT_CITIES = new Set([
+  // 1.0 기존 (13)
   'amsterdam', 'bangkok', 'barcelona', 'berlin', 'hongkong',
   'london', 'newyork', 'osaka', 'paris', 'rome',
   'seoul', 'singapore', 'tokyo',
+  // 1.1 1차 (6) — 아시아
+  'beijing', 'busan', 'fukuoka', 'kyoto', 'shanghai', 'taipei',
+  // 1.1 2차 (17) — 한국인 인기 + 주요 메트로 도시
+  'sapporo', 'okinawa', 'qingdao',
+  'kualalumpur', 'manila', 'hochiminh',
+  'madrid', 'milan', 'prague', 'vienna',
+  'losangeles', 'sydney',
+  'dubai', 'istanbul', 'cairo', 'mecca',
 ]);
 
 type Currency = { code: string; name: string; flag: string };
@@ -336,25 +345,46 @@ export default function ToolsScreen() {
 
         <View style={styles.linkCards}>
           {[
+            // ── 한국·일본·중국·대만 ──
             { cityId: 'seoul', icon: '🇰🇷', label: '서울 지하철', desc: '1~9호선, 공항철도' },
             { cityId: 'busan', icon: '🇰🇷', label: '부산 지하철', desc: 'Busan Metro' },
             { cityId: 'tokyo', icon: '🇯🇵', label: '도쿄 지하철', desc: 'Tokyo Metro' },
             { cityId: 'osaka', icon: '🇯🇵', label: '오사카 지하철', desc: 'Osaka Metro' },
             { cityId: 'kyoto', icon: '🇯🇵', label: '교토 지하철', desc: 'Kyoto Subway' },
             { cityId: 'fukuoka', icon: '🇯🇵', label: '후쿠오카 지하철', desc: 'Fukuoka Subway' },
+            { cityId: 'sapporo', icon: '🇯🇵', label: '삿포로 지하철', desc: '남북·도자이·도호선' },
+            { cityId: 'okinawa', icon: '🇯🇵', label: '오키나와 유이레일', desc: 'Yui Rail (모노레일)' },
             { cityId: 'taipei', icon: '🇹🇼', label: '타이베이 MRT', desc: 'Taipei Metro' },
+            { cityId: 'shanghai', icon: '🇨🇳', label: '상하이 지하철', desc: 'Shanghai Metro' },
+            { cityId: 'beijing', icon: '🇨🇳', label: '베이징 지하철', desc: 'Beijing Subway' },
+            { cityId: 'qingdao', icon: '🇨🇳', label: '칭다오 지하철', desc: 'Qingdao Metro' },
+            // ── 동남아 ──
             { cityId: 'bangkok', icon: '🇹🇭', label: '방콕 BTS/MRT', desc: 'BTS, MRT' },
             { cityId: 'singapore', icon: '🇸🇬', label: '싱가포르 MRT', desc: 'Singapore MRT' },
             { cityId: 'hongkong', icon: '🇭🇰', label: '홍콩 MTR', desc: 'Hong Kong MTR' },
-            { cityId: 'shanghai', icon: '🇨🇳', label: '상하이 지하철', desc: 'Shanghai Metro' },
-            { cityId: 'beijing', icon: '🇨🇳', label: '베이징 지하철', desc: 'Beijing Subway' },
+            { cityId: 'kualalumpur', icon: '🇲🇾', label: '쿠알라룸푸르 MRT/LRT', desc: 'KL Transit' },
+            { cityId: 'manila', icon: '🇵🇭', label: '마닐라 LRT/MRT', desc: 'Manila Transit' },
+            { cityId: 'hochiminh', icon: '🇻🇳', label: '호치민 메트로', desc: 'HCMC Metro Line 1' },
+            // ── 미주 ──
             { cityId: 'newyork', icon: '🇺🇸', label: '뉴욕 지하철', desc: 'New York Subway' },
+            { cityId: 'losangeles', icon: '🇺🇸', label: 'LA 메트로', desc: 'LA Metro' },
+            // ── 유럽 ──
             { cityId: 'london', icon: '🇬🇧', label: '런던 지하철', desc: 'London Underground' },
             { cityId: 'paris', icon: '🇫🇷', label: '파리 메트로', desc: 'Paris Metro' },
             { cityId: 'berlin', icon: '🇩🇪', label: '베를린 지하철', desc: 'Berlin U-Bahn' },
             { cityId: 'amsterdam', icon: '🇳🇱', label: '암스테르담 메트로', desc: 'Amsterdam Metro' },
             { cityId: 'barcelona', icon: '🇪🇸', label: '바르셀로나 메트로', desc: 'Barcelona Metro' },
+            { cityId: 'madrid', icon: '🇪🇸', label: '마드리드 메트로', desc: 'Madrid Metro' },
             { cityId: 'rome', icon: '🇮🇹', label: '로마 메트로', desc: 'Roma Metro' },
+            { cityId: 'milan', icon: '🇮🇹', label: '밀라노 메트로', desc: 'Milano Metro (M1~M5)' },
+            { cityId: 'prague', icon: '🇨🇿', label: '프라하 메트로', desc: 'Prague Metro (A·B·C)' },
+            { cityId: 'vienna', icon: '🇦🇹', label: '비엔나 U-Bahn', desc: 'U1~U6' },
+            // ── 호주·중동·아프리카 ──
+            { cityId: 'sydney', icon: '🇦🇺', label: '시드니 트레인/메트로', desc: 'Sydney Trains' },
+            { cityId: 'dubai', icon: '🇦🇪', label: '두바이 메트로', desc: 'Red·Green Line' },
+            { cityId: 'istanbul', icon: '🇹🇷', label: '이스탄불 메트로', desc: 'Istanbul Metro' },
+            { cityId: 'cairo', icon: '🇪🇬', label: '카이로 메트로', desc: 'Cairo Metro' },
+            { cityId: 'mecca', icon: '🇸🇦', label: '메카 메트로', desc: 'Makkah Mashaer Metro' },
           ].map((m) => {
             const hasInappData = INAPP_TRANSIT_CITIES.has(m.cityId);
             const officialInfo = getOfficialTransitInfo(m.cityId);
