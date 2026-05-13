@@ -41,7 +41,9 @@ export interface ProProductInfo {
   description: string;
 }
 
-let iapModule: typeof import('react-native-iap') | null = null;
+// 패키지 미설치 환경(현재 1.1)에서도 빌드 통과하도록 any 로 caputure.
+// 1.2 에서 RevenueCat 도입 시 정식 타입 import 복원.
+let iapModule: any = null;
 let connectionReady = false;
 let listenersAttached = false;
 let purchaseUpdateSub: { remove: () => void } | null = null;
