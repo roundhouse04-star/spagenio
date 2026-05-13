@@ -8,9 +8,18 @@
  *
  * 받는 쪽 (사용자 B):
  *   parseSharedTrip(encoded)
- *   → SharedTripPayload 구조 반환
+ *   → SharedTripPayload 구조 반환 (v=1, v=2 모두 호환)
  *   importTripFromShare(payload, mode)
  *   → 새 여행으로 추가 또는 기존 여행에 일정 합치기
+ *
+ * ## 페이로드 버전
+ *
+ *  v=1 (1.1 출시 ~ 2026-05-12): 풀 키 이름 — `day, time, title, ...`
+ *        ← 일정 25개 정도까지만 QR 에 안전하게 담김 (2,300 자)
+ *
+ *  v=2 (2026-05-13 ~): 짧은 키 — `d, t, n, l, c, m, p`
+ *        ← 같은 일정 대비 30~40% 더 짧음, 일정 50~70개까지 QR 가능
+ *        ← 호환성: parseSharedTrip 가 v=1 / v=2 둘 다 읽음
  *
  * ## 프라이버시 원칙
  *  공유 데이터에 절대 포함되지 않는 것:
@@ -33,25 +42,73 @@ import { getTripById, createTrip } from '@/db/trips';
 import { getTripItems, createTripItem } from '@/db/items';
 import type { Trip, TripItem, TripItemCategory } from '@/types';
 
-/** 공유 페이로드 버전 — 미래 호환성을 위해 v 필드 보존. */
-const SHARED_PAYLOAD_VERSION = 1;
+/** 현재 보내는 페이로드 버전 (받는쪽은 v=1, v=2 둘 다 호환). */
+const SHARED_PAYLOAD_VERSION = 2;
 
 /** Deep Link 스키마. app.json 의 scheme 와 동일하게 유지. */
 export const TRIPLIVE_IMPORT_SCHEME = 'triplive://import';
 
 /**
- * QR 코드 1개에 안전하게 담을 수 있는 페이로드 최대 길이.
- * QR Version 40 (Error correction M) 기준 약 2,300자.
- * 한국어 일정 25개 + 비용 정보면 보통 1,500~2,000자.
+ * QR 코드 1개에 담을 수 있는 페이로드 최대 길이.
+ * QR Version 40 기준:
+ *   - ecl="L" (Low EC):    4,296 자
+ *   - ecl="M" (Medium EC): 2,953 자
+ *   - ecl="Q" (Quartile):  2,331 자
+ *   - ecl="H" (High EC):   1,852 자
+ * 우리 앱은 페이로드 크기에 따라 ecl 을 자동 선택 (qrEclForPayload).
+ *
+ * 4200 으로 두면 최악(ecl=L)인 경우까지 커버.
  */
-export const SHARED_PAYLOAD_MAX_LEN = 2300;
+export const SHARED_PAYLOAD_MAX_LEN = 4200;
+
+/** payload 크기에 따라 적절한 QR error-correction level 반환. */
+export function qrEclForPayload(payload: string): 'L' | 'M' {
+  if (payload.length > 2900) return 'L'; // 큰 페이로드는 EC 를 낮춰 용량 확보
+  return 'M';
+}
 
 const ALLOWED_CATEGORIES: TripItemCategory[] = [
   'sightseeing', 'food', 'activity', 'accommodation', 'transport', 'shopping', 'other',
 ];
 
+// 카테고리 → 정수 코드 (v=2 에서 더 짧게)
+const CAT_TO_CODE: Record<TripItemCategory, number> = {
+  sightseeing: 1, food: 2, activity: 3, accommodation: 4, transport: 5, shopping: 6, other: 7,
+};
+const CODE_TO_CAT: TripItemCategory[] = [
+  'other', 'sightseeing', 'food', 'activity', 'accommodation', 'transport', 'shopping', 'other',
+];
+
+/**
+ * 보내는 쪽 — 짧은 키로 직렬화하는 v=2 schema.
+ * 받는 쪽은 SharedTripPayload (internal full-key form) 으로 normalize.
+ */
+type WirePayloadV2 = {
+  v: 2;
+  t: {              // trip
+    ti: string;     //   title
+    co?: string;    //   country
+    ci?: string;    //   city
+    s?: string;     //   startDate
+    e?: string;     //   endDate
+    b?: number;     //   budget
+    cu?: string;    //   currency
+  };
+  i: Array<{        // items
+    d: number;      //   day
+    t?: string;     //   time (HH:MM)
+    n: string;      //   name (title)
+    l?: string;     //   location
+    c?: number;     //   category code (1-7)
+    m?: string;     //   memo
+    p?: number;     //   price (cost)
+  }>;
+  sa: string;       // sharedAt (ISO)
+};
+
+/** Internal full-key payload — DB 저장 / preview 용. v=1 호환. */
 export interface SharedTripPayload {
-  v: 1;
+  v: 1 | 2;
   trip: {
     title: string;
     country: string;
@@ -95,7 +152,7 @@ export interface SharedTripPreview {
 }
 
 /**
- * 여행 + 일정을 압축된 문자열로 직렬화.
+ * 여행 + 일정을 압축된 문자열로 직렬화 (현재는 v=2 schema 사용).
  * 결과를 QR 코드 또는 Deep Link URL 에 그대로 임베드 가능.
  */
 export async function exportTripForShare(
@@ -107,44 +164,46 @@ export async function exportTripForShare(
 
   const items = await getTripItems(tripId);
 
-  const payload: SharedTripPayload = {
-    v: SHARED_PAYLOAD_VERSION,
-    trip: {
-      title: trip.title ?? '여행',
-      country: trip.country ?? '',
-      city: trip.city ?? '',
-      startDate: trip.startDate ?? null,
-      endDate: trip.endDate ?? null,
-      budget: options.includeCost ? (trip.budget ?? null) : null,
-      currency: trip.currency ?? 'KRW',
+  const wire: WirePayloadV2 = {
+    v: 2,
+    t: {
+      ti: trip.title || '여행',
+      ...(trip.country ? { co: trip.country } : {}),
+      ...(trip.city ? { ci: trip.city } : {}),
+      ...(trip.startDate ? { s: trip.startDate } : {}),
+      ...(trip.endDate ? { e: trip.endDate } : {}),
+      ...(options.includeCost && trip.budget != null ? { b: trip.budget } : {}),
+      cu: trip.currency || 'KRW',
     },
-    items: items.map((it) => ({
-      day: Number(it.day) || 1,
-      time: it.startTime || undefined,
-      title: it.title || '제목 없음',
-      location: it.location || undefined,
-      category: it.category || undefined,
-      memo: it.memo || undefined,
-      cost: options.includeCost ? (it.cost ?? null) : null,
-    })),
-    meta: {
-      sharedAt: new Date().toISOString(),
-      schema: 'triplive-trip',
-    },
+    i: items.map((it) => {
+      const cat = it.category && (ALLOWED_CATEGORIES as string[]).includes(it.category)
+        ? CAT_TO_CODE[it.category as TripItemCategory]
+        : undefined;
+      return {
+        d: Number(it.day) || 1,
+        ...(it.startTime ? { t: it.startTime } : {}),
+        n: it.title || '제목 없음',
+        ...(it.location ? { l: it.location } : {}),
+        ...(cat ? { c: cat } : {}),
+        ...(it.memo ? { m: it.memo } : {}),
+        ...(options.includeCost && it.cost != null ? { p: Number(it.cost) } : {}),
+      };
+    }),
+    sa: new Date().toISOString(),
   };
 
-  const json = JSON.stringify(payload);
+  const json = JSON.stringify(wire);
   return compressToEncodedURIComponent(json);
 }
 
 /**
  * 공유받은 문자열을 검증 후 페이로드로 복원.
+ * v=1 / v=2 schema 모두 호환.
  * 손상되거나 형식이 다르면 null 반환.
  */
 export function parseSharedTrip(encoded: string): SharedTripPayload | null {
   if (!encoded || typeof encoded !== 'string') return null;
 
-  // Deep Link 전체가 들어왔을 경우 d=... 파라미터 추출
   const trimmed = extractDataParam(encoded);
 
   let json: string | null;
@@ -155,13 +214,62 @@ export function parseSharedTrip(encoded: string): SharedTripPayload | null {
   }
   if (!json) return null;
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(json) as unknown;
-    if (!isValidPayload(parsed)) return null;
-    return parsed;
+    parsed = JSON.parse(json);
   } catch {
     return null;
   }
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const obj = parsed as Record<string, unknown>;
+  if (obj.v === 1) return validateV1(obj);
+  if (obj.v === 2) return normalizeV2(obj);
+  return null;
+}
+
+function validateV1(obj: Record<string, unknown>): SharedTripPayload | null {
+  if (!obj.trip || typeof obj.trip !== 'object') return null;
+  if (!Array.isArray(obj.items)) return null;
+  const t = obj.trip as Record<string, unknown>;
+  if (typeof t.title !== 'string') return null;
+  return obj as unknown as SharedTripPayload;
+}
+
+function normalizeV2(obj: Record<string, unknown>): SharedTripPayload | null {
+  const t = obj.t;
+  const i = obj.i;
+  if (!t || typeof t !== 'object') return null;
+  if (!Array.isArray(i)) return null;
+
+  const wireT = t as WirePayloadV2['t'];
+  if (typeof wireT.ti !== 'string') return null;
+
+  return {
+    v: 2,
+    trip: {
+      title: wireT.ti,
+      country: wireT.co ?? '',
+      city: wireT.ci ?? '',
+      startDate: wireT.s ?? null,
+      endDate: wireT.e ?? null,
+      budget: wireT.b ?? null,
+      currency: wireT.cu ?? 'KRW',
+    },
+    items: (i as WirePayloadV2['i']).map((it) => ({
+      day: Number(it.d) || 1,
+      time: it.t,
+      title: it.n || '제목 없음',
+      location: it.l,
+      category: it.c ? CODE_TO_CAT[it.c] : undefined,
+      memo: it.m,
+      cost: it.p ?? null,
+    })),
+    meta: {
+      sharedAt: (obj.sa as string) || new Date().toISOString(),
+      schema: 'triplive-trip',
+    },
+  };
 }
 
 /** Deep Link URL 또는 raw payload 둘 다 받아서 payload 만 추출. */
@@ -170,21 +278,9 @@ function extractDataParam(input: string): string {
   const idx = input.indexOf('d=');
   if (idx === -1) return input.trim();
   let rest = input.substring(idx + 2);
-  // 뒤에 다른 query 가 붙어있으면 자르기
   const ampIdx = rest.indexOf('&');
   if (ampIdx !== -1) rest = rest.substring(0, ampIdx);
   return rest.trim();
-}
-
-function isValidPayload(p: unknown): p is SharedTripPayload {
-  if (!p || typeof p !== 'object') return false;
-  const obj = p as Record<string, unknown>;
-  if (obj.v !== 1) return false;
-  if (!obj.trip || typeof obj.trip !== 'object') return false;
-  if (!Array.isArray(obj.items)) return false;
-  const t = obj.trip as Record<string, unknown>;
-  if (typeof t.title !== 'string') return false;
-  return true;
 }
 
 /**
@@ -263,7 +359,6 @@ export async function importTripFromShare(
       });
       addedCount++;
     } catch (err) {
-      // 개별 항목 실패는 silent — 나머지 계속 진행
       console.error('[import 일정 저장 실패]', err, item);
     }
   }

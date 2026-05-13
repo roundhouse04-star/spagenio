@@ -27,7 +27,7 @@ import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import {
-  exportTripForShare, buildShareLink, SHARED_PAYLOAD_MAX_LEN,
+  exportTripForShare, buildShareLink, SHARED_PAYLOAD_MAX_LEN, qrEclForPayload,
 } from '@/utils/tripShare';
 import { exportTripScheduleAsPdf } from '@/utils/tripPdfExport';
 import { getTripById } from '@/db/trips';
@@ -82,8 +82,11 @@ export default function TripShareScreen() {
   }, [mode, includeCost, trip, tripId]);
 
   const link = encoded ? buildShareLink(encoded) : '';
-  const linkTooLong = link.length > 2000;
+  // 카톡/문자 등 일부 메신저는 URL 4,000자 이상이면 잘림
+  const linkTooLong = link.length > 3500;
   const qrTooLarge = encoded.length > SHARED_PAYLOAD_MAX_LEN;
+  // QR error-correction level 자동 — 페이로드 클 때 L (낮은 EC) 로 더 많이 담음
+  const qrEcl = encoded ? qrEclForPayload(encoded) : 'M';
 
   const onCopyLink = async () => {
     haptic.tap();
@@ -93,9 +96,28 @@ export default function TripShareScreen() {
 
   const onShareLink = async () => {
     haptic.tap();
+
+    // 카톡·문자 등 일부 메신저는 4,000자 이상 URL 을 잘라버림
+    // → 링크 깨져서 받는 쪽 import 실패. 사전 안내 후 PDF/QR 우회 권유.
+    if (link.length > 4000) {
+      Alert.alert(
+        '링크가 너무 길어요',
+        '일정이 많아 카톡·문자에서 링크가 잘릴 수 있어요.\n\nQR 코드 또는 PDF 공유를 권장합니다.',
+        [
+          { text: '그래도 공유', onPress: () => doShareLink() },
+          { text: '취소', style: 'cancel' },
+        ],
+      );
+      return;
+    }
+    await doShareLink();
+  };
+
+  const doShareLink = async () => {
     try {
+      // 메시지를 짧게 — 카톡이 link preview 만들 때 본문 길이가 짧을수록 안정적
       await Share.share({
-        message: `${trip?.title ?? '여행'} 일정을 공유해요\n\n${link}\n\n(Triplive 앱에서 자동으로 열려요)`,
+        message: `${trip?.title ?? '여행'} 일정\n${link}`,
       });
     } catch (err) {
       Alert.alert('공유 실패', String(err));
@@ -233,10 +255,13 @@ export default function TripShareScreen() {
               ) : qrTooLarge ? (
                 <View>
                   <Text style={styles.warningText}>
-                    ⚠️ 일정이 너무 많아 QR 코드로 담을 수 없어요.
+                    ⚠️ 일정이 많아 QR 코드 한 장으로는 담을 수 없어요
                   </Text>
                   <Text style={styles.warningSubText}>
-                    링크 공유 방식을 이용하거나, 비용 정보를 제외해보세요.
+                    아래 방법 중 하나로 보내주세요:{'\n'}
+                    • 📄 PDF 모드로 공유 (가장 안정적){'\n'}
+                    • 💰 비용 정보 토글 끄기 → 페이로드 감소{'\n'}
+                    • 일정 일부 삭제 후 다시 시도
                   </Text>
                 </View>
               ) : (
@@ -247,7 +272,7 @@ export default function TripShareScreen() {
                       size={240}
                       color={colors.textPrimary}
                       backgroundColor={colors.surface}
-                      ecl="M"
+                      ecl={qrEcl}
                     />
                   </View>
                   <Text style={styles.qrHint}>
@@ -324,10 +349,11 @@ export default function TripShareScreen() {
                   {linkTooLong && (
                     <View style={styles.warningBox}>
                       <Text style={styles.warningText}>
-                        ⚠️ 일정이 많아 링크가 매우 길어요
+                        ⚠️ 링크가 길어요 ({link.length.toLocaleString()}자)
                       </Text>
                       <Text style={styles.warningSubText}>
-                        일부 메신저에서 잘릴 수 있어요. QR 코드 사용을 권장합니다.
+                        카톡·문자는 보통 4,000자 이상 URL 을 자릅니다.{'\n'}
+                        QR 코드 또는 PDF 모드를 권장해요.
                       </Text>
                     </View>
                   )}
