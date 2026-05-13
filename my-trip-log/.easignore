@@ -1,0 +1,35 @@
+# EAS Build 업로드에서 제외할 파일들
+# (EAS 클라우드 빌더는 node_modules 를 자체 재설치하므로 업로드 안 해도 됨)
+
+# 의존성 (EAS 가 cloud 에서 재설치)
+node_modules/
+**/node_modules/
+
+# 빌드 산출물
+ios/build/
+ios/Pods/
+android/.gradle/
+android/build/
+android/app/build/
+**/build/
+
+# 캐시 / 임시
+.expo/
+.expo-shared/
+.cache/
+*.log
+
+# 크롤러 결과물 (소스만 있으면 됨, out/ 은 재생성)
+scripts/transit/out/
+scripts/transit/node_modules/
+
+# 백업 파일들
+src/data/transit.json.backup-*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
