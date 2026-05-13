@@ -124,22 +124,21 @@ export async function fetchProProduct(): Promise<ProProductInfo | null> {
   if (!canUseIap() || !iapModule) return null;
   await initIapConnection();
   try {
-    // react-native-iap 15.x: fetchProducts (이전 12.x 의 getProducts 대체)
-    const products: any = await iapModule.fetchProducts({
+    // react-native-iap 12.x: getProducts
+    const products: any[] = await (iapModule as any).getProducts({
       skus: [PRO_PRODUCT_ID],
-      type: 'in-app',
     });
-    const list: any[] = Array.isArray(products) ? products : [];
+    const list = Array.isArray(products) ? products : [];
     const p = list[0];
     if (!p) return null;
     return {
-      productId: p.productId || p.id || PRO_PRODUCT_ID,
-      price: p.displayPrice || p.localizedPrice || p.price || PRO_DISPLAY_PRICE,
-      title: p.title || p.displayName || 'Triplive PRO',
+      productId: p.productId || PRO_PRODUCT_ID,
+      price: p.localizedPrice || p.price || PRO_DISPLAY_PRICE,
+      title: p.title || 'Triplive PRO',
       description: p.description || '광고 없이 깔끔하게 여행 기록하기',
     };
   } catch (e) {
-    console.warn('[proStore] fetchProducts 실패:', e);
+    console.warn('[proStore] getProducts 실패:', e);
     return null;
   }
 }
@@ -154,14 +153,12 @@ export async function buyPro(): Promise<void> {
     throw new Error('이 빌드에서는 결제를 사용할 수 없어요.');
   }
   await initIapConnection();
-  // react-native-iap 15.x: 새 API — request 객체에 플랫폼별 prop
-  await iapModule.requestPurchase({
-    request: {
-      ios: { sku: PRO_PRODUCT_ID },
-      android: { skus: [PRO_PRODUCT_ID] },
-    },
-    type: 'in-app',
-  });
+  // react-native-iap 12.x: iOS 는 sku, Android 는 skus 배열
+  await (iapModule as any).requestPurchase(
+    Platform.OS === 'ios'
+      ? { sku: PRO_PRODUCT_ID }
+      : { skus: [PRO_PRODUCT_ID] },
+  );
 }
 
 /**
