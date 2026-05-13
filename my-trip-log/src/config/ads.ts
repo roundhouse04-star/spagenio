@@ -1,28 +1,49 @@
 /**
  * AdMob 광고 설정 (Triplive)
  *
- * ## 출시 단계 — ✅ 실제 ID 적용 완료 (2026-05)
+ * ┌─ 안전 장치 ───────────────────────────────────────────
+ * │ 본인이 실수로 실광고를 클릭하면 무효 트래픽으로 잡혀서
+ * │ AdMob 계정 정지 위험이 있음. 그래서 3단계로 분리:
+ * │
+ * │   1. Expo Go / dev 빌드      → 광고 자체 미노출 (placeholder)
+ * │   2. EAS production 빌드      → Google 데모(test) 광고
+ * │      (TestFlight, internal 빌드 모두 여기에 해당)
+ * │   3. EAS release 빌드         → 실광고
+ * │      (App Store 출시 전용 — 매뉴얼하게 명시적으로 선택)
+ * │
+ * │ 즉 평소 빌드(production)는 안전하게 테스트 광고만 나오고,
+ * │ "App Store 에 보낼 빌드" 만 release profile 로 따로 굽는다.
+ * └────────────────────────────────────────────────────────
  *
- * AdMob 콘솔 (https://admob.google.com) Publisher ID:
- *   pub-2473584153798184
+ * ## 빌드 명령
  *
- * ### __DEV__ 자동 처리
- * - 개발 빌드(__DEV__=true) 에서는 AdBanner 가 자동으로 TestIds 사용
- * - EAS production 빌드에서만 실광고 노출 (코드에 이미 처리됨)
+ *   # TestFlight 용 — 테스트 광고만 표시 (안전)
+ *   EAS_NO_VCS=1 eas build --platform ios --profile production \
+ *     --auto-submit --non-interactive --no-wait
  *
- * ### 출시 후 체크
- * - [ ] App Store / Play Store 실 출시 후 AdMob 콘솔에서 "스토어 추가" 클릭
- *       → "광고 게재가 제한됨" 상태 해제
- * - [ ] 첫 광고 노출까지 1~24시간 소요 (정상)
+ *   # App Store 출시 전용 — 실광고 활성화
+ *   EAS_NO_VCS=1 eas build --platform ios --profile release \
+ *     --auto-submit --non-interactive --no-wait
+ *
+ * ## EXPO_PUBLIC_ADS_LIVE 환경 변수
+ * - eas.json 의 release profile 에서만 "true" 로 설정됨.
+ * - 그 외 모든 빌드는 환경변수 없음 → 자동으로 테스트 광고.
+ * - Expo 가 빌드 시 EXPO_PUBLIC_* prefix 환경 변수를 JS bundle 에 inline.
+ *
+ * AdMob 콘솔 (https://admob.google.com) Publisher ID: pub-2473584153798184
  */
 
-// __DEV__=true (Expo Go 또는 dev 빌드)에서는 강제로 false:
-//   - Expo Go 는 네이티브 모듈 미포함 → require 시 RNGoogleMobileAdsModule not found 크래시
-//   - 개발 중엔 광고가 필요 없으니 자동으로 플레이스홀더만 표시
-// production 빌드 (eas build --profile production) 에서만 실광고 노출
+// 1) 광고 모듈 로드 가능 여부 (Expo Go 에선 native module 없음)
+//    __DEV__=true 면 native module 미포함 → require 자체를 차단
 export const ADS_ENABLED = !__DEV__;
 
-// 실광고 단위 ID — AdMob 콘솔에서 발급받은 값
+// 2) 실광고 vs 테스트 광고 선택
+//    EXPO_PUBLIC_ADS_LIVE="true" 일 때만 실 ID 사용
+//    이 값은 eas.json 의 "release" profile 에서만 set 됨
+//    → TestFlight (production profile) 에선 절대 실광고 안 나옴
+export const ADS_LIVE = process.env.EXPO_PUBLIC_ADS_LIVE === 'true';
+
+// 실광고 단위 ID — App Store 출시 빌드에만 사용됨
 export const AD_UNIT_IDS = {
   bannerIOS: 'ca-app-pub-2473584153798184/5107892024',
   bannerAndroid: 'ca-app-pub-2473584153798184/3804373045',

@@ -27,11 +27,27 @@
       },
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_ADS_LIVE": "false"
+      }
+    },
+    "release": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_ADS_LIVE": "true"
       }
     }
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "5ive111@hanmail.net",
+        "ascAppId": "6768194225",
+        "appleTeamId": "HQJC6CQ97T"
+      }
+    },
+    "release": {
       "ios": {
         "appleId": "5ive111@hanmail.net",
         "ascAppId": "6768194225",

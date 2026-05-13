@@ -22,7 +22,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Typography } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
-import { ADS_ENABLED, AD_UNIT_IDS } from '@/config/ads';
+import { ADS_ENABLED, ADS_LIVE, AD_UNIT_IDS } from '@/config/ads';
 import { isProActive } from '@/utils/proStatus';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
@@ -61,9 +61,12 @@ export function AdBanner({ onPress }: Props) {
   // PRO 사용자는 광고/플레이스홀더 모두 숨김
   if (pro) return null;
 
-  // 실광고 모드 (ADS_ENABLED + 패키지 설치됨)
+  // 실광고/테스트광고 모드 (ADS_ENABLED + 패키지 설치됨)
   if (ADS_ENABLED && BannerAd && BannerAdSize && TestIds) {
-    const unitId = __DEV__
+    // ADS_LIVE=true 인 release 빌드에서만 실광고 ID 사용
+    // 그 외 모든 production 빌드 (TestFlight 포함) 는 자동으로 데모 ID
+    // → 본인/테스터가 클릭해도 무효 트래픽으로 안 잡힘
+    const unitId = !ADS_LIVE
       ? TestIds.BANNER
       : Platform.OS === 'ios'
       ? AD_UNIT_IDS.bannerIOS
