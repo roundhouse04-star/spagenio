@@ -20,10 +20,12 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { router } from 'expo-router';
 import { Typography } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ADS_ENABLED, ADS_LIVE, AD_UNIT_IDS } from '@/config/ads';
 import { isProActive } from '@/utils/proStatus';
+import { haptic } from '@/utils/haptics';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
 // ⚠️ ADS_ENABLED 가 false (= __DEV__) 면 require 자체를 시도하지 않음
@@ -61,6 +63,18 @@ export function AdBanner({ onPress }: Props) {
   // PRO 사용자는 광고/플레이스홀더 모두 숨김
   if (pro) return null;
 
+  // 광고 영역 우측 상단의 "광고 제거" ✕ 버튼 — 누르면 PRO 결제 화면
+  const removeAdsBtn = (
+    <Pressable
+      onPress={() => { haptic.tap(); router.push('/pro' as any); }}
+      style={styles.removeAdsBtn}
+      hitSlop={8}
+    >
+      <Text style={styles.removeAdsText}>광고 제거</Text>
+      <Text style={styles.removeAdsX}>✕</Text>
+    </Pressable>
+  );
+
   // 실광고/테스트광고 모드 (ADS_ENABLED + 패키지 설치됨)
   if (ADS_ENABLED && BannerAd && BannerAdSize && TestIds) {
     // ADS_LIVE=true 인 release 빌드에서만 실광고 ID 사용
@@ -73,39 +87,47 @@ export function AdBanner({ onPress }: Props) {
       : AD_UNIT_IDS.bannerAndroid;
 
     return (
-      <View style={styles.adContainer}>
-        <BannerAd
-          unitId={unitId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-        />
+      <View style={styles.adWrap}>
+        <View style={styles.adContainer}>
+          <BannerAd
+            unitId={unitId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          />
+        </View>
+        {removeAdsBtn}
       </View>
     );
   }
 
-  // 플레이스홀더 모드 (PRO 홍보 배너)
+  // 플레이스홀더 모드 (PRO 홍보 배너 — Expo Go / 미빌드)
   const Inner = (
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>✨ Triplive PRO 곧 출시!</Text>
+          <Text style={styles.title}>✨ Triplive PRO</Text>
           <Text style={styles.sub}>광고 없이 깔끔하게 여행 기록하기</Text>
         </View>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>SOON</Text>
+          <Text style={styles.badgeText}>업그레이드</Text>
         </View>
       </View>
     </View>
   );
 
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} style={({ pressed }) => pressed && { opacity: 0.85 }}>
-        {Inner}
-      </Pressable>
-    );
-  }
-  return Inner;
+  // 플레이스홀더 자체를 누르면 PRO 화면으로
+  return (
+    <Pressable
+      onPress={() => {
+        haptic.tap();
+        if (onPress) onPress();
+        else router.push('/pro' as any);
+      }}
+      style={({ pressed }) => pressed && { opacity: 0.85 }}
+    >
+      {Inner}
+    </Pressable>
+  );
 }
 
 function createStyles(c: ColorPalette) {
@@ -118,6 +140,9 @@ function createStyles(c: ColorPalette) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderColor: 'rgba(0,0,0,0.08)',
     },
+    adWrap: {
+      position: 'relative',
+    },
     adContainer: {
       height: 60,
       backgroundColor: c.surface,
@@ -126,6 +151,29 @@ function createStyles(c: ColorPalette) {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderColor: c.border,
+    },
+    removeAdsBtn: {
+      position: 'absolute',
+      top: 2,
+      right: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      backgroundColor: 'rgba(30, 42, 58, 0.78)',
+      borderRadius: 999,
+    },
+    removeAdsText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+    },
+    removeAdsX: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '800',
     },
     content: {
       flex: 1,

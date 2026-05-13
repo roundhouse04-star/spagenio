@@ -142,7 +142,8 @@
           ]
         }
       ],
-      "expo-build-properties"
+      "expo-build-properties",
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true
