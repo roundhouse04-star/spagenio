@@ -208,32 +208,54 @@ export interface TimezoneCity {
 
 /** 시차 계산기용 주요 도시 (IANA timezone). */
 export const TIMEZONE_CITIES: TimezoneCity[] = [
+  // ── 한국 ──
   { id: 'seoul', flag: '🇰🇷', nameKo: '서울', tz: 'Asia/Seoul' },
+  { id: 'busan', flag: '🇰🇷', nameKo: '부산', tz: 'Asia/Seoul' },
+  // ── 일본 ──
   { id: 'tokyo', flag: '🇯🇵', nameKo: '도쿄', tz: 'Asia/Tokyo' },
   { id: 'osaka', flag: '🇯🇵', nameKo: '오사카', tz: 'Asia/Tokyo' },
+  { id: 'kyoto', flag: '🇯🇵', nameKo: '교토', tz: 'Asia/Tokyo' },
+  { id: 'fukuoka', flag: '🇯🇵', nameKo: '후쿠오카', tz: 'Asia/Tokyo' },
+  { id: 'sapporo', flag: '🇯🇵', nameKo: '삿포로', tz: 'Asia/Tokyo' },
+  { id: 'okinawa', flag: '🇯🇵', nameKo: '오키나와', tz: 'Asia/Tokyo' },
+  // ── 중화권 ──
   { id: 'beijing', flag: '🇨🇳', nameKo: '베이징', tz: 'Asia/Shanghai' },
   { id: 'shanghai', flag: '🇨🇳', nameKo: '상하이', tz: 'Asia/Shanghai' },
+  { id: 'qingdao', flag: '🇨🇳', nameKo: '칭다오', tz: 'Asia/Shanghai' },
   { id: 'hongkong', flag: '🇭🇰', nameKo: '홍콩', tz: 'Asia/Hong_Kong' },
   { id: 'taipei', flag: '🇹🇼', nameKo: '타이베이', tz: 'Asia/Taipei' },
+  // ── 동남아 ──
   { id: 'bangkok', flag: '🇹🇭', nameKo: '방콕', tz: 'Asia/Bangkok' },
   { id: 'hanoi', flag: '🇻🇳', nameKo: '하노이', tz: 'Asia/Ho_Chi_Minh' },
+  { id: 'hochiminh', flag: '🇻🇳', nameKo: '호치민', tz: 'Asia/Ho_Chi_Minh' },
   { id: 'manila', flag: '🇵🇭', nameKo: '마닐라', tz: 'Asia/Manila' },
   { id: 'singapore', flag: '🇸🇬', nameKo: '싱가포르', tz: 'Asia/Singapore' },
   { id: 'kualalumpur', flag: '🇲🇾', nameKo: '쿠알라룸푸르', tz: 'Asia/Kuala_Lumpur' },
   { id: 'jakarta', flag: '🇮🇩', nameKo: '자카르타', tz: 'Asia/Jakarta' },
   { id: 'denpasar', flag: '🇮🇩', nameKo: '발리(덴파사르)', tz: 'Asia/Makassar' },
+  // ── 중동 ──
   { id: 'dubai', flag: '🇦🇪', nameKo: '두바이', tz: 'Asia/Dubai' },
+  { id: 'mecca', flag: '🇸🇦', nameKo: '메카', tz: 'Asia/Riyadh' },
   { id: 'istanbul', flag: '🇹🇷', nameKo: '이스탄불', tz: 'Europe/Istanbul' },
-  { id: 'paris', flag: '🇫🇷', nameKo: '파리', tz: 'Europe/Paris' },
+  // ── 유럽 ──
   { id: 'london', flag: '🇬🇧', nameKo: '런던', tz: 'Europe/London' },
-  { id: 'rome', flag: '🇮🇹', nameKo: '로마', tz: 'Europe/Rome' },
+  { id: 'paris', flag: '🇫🇷', nameKo: '파리', tz: 'Europe/Paris' },
   { id: 'berlin', flag: '🇩🇪', nameKo: '베를린', tz: 'Europe/Berlin' },
+  { id: 'amsterdam', flag: '🇳🇱', nameKo: '암스테르담', tz: 'Europe/Amsterdam' },
+  { id: 'barcelona', flag: '🇪🇸', nameKo: '바르셀로나', tz: 'Europe/Madrid' },
+  { id: 'madrid', flag: '🇪🇸', nameKo: '마드리드', tz: 'Europe/Madrid' },
+  { id: 'rome', flag: '🇮🇹', nameKo: '로마', tz: 'Europe/Rome' },
+  { id: 'milan', flag: '🇮🇹', nameKo: '밀라노', tz: 'Europe/Rome' },
+  { id: 'prague', flag: '🇨🇿', nameKo: '프라하', tz: 'Europe/Prague' },
+  { id: 'vienna', flag: '🇦🇹', nameKo: '비엔나', tz: 'Europe/Vienna' },
+  // ── 북미 ──
   { id: 'newyork', flag: '🇺🇸', nameKo: '뉴욕', tz: 'America/New_York' },
   { id: 'losangeles', flag: '🇺🇸', nameKo: '로스앤젤레스', tz: 'America/Los_Angeles' },
   { id: 'lasvegas', flag: '🇺🇸', nameKo: '라스베가스', tz: 'America/Los_Angeles' },
   { id: 'honolulu', flag: '🇺🇸', nameKo: '호놀룰루', tz: 'Pacific/Honolulu' },
+  { id: 'cancun', flag: '🇲🇽', nameKo: '칸쿤', tz: 'America/Cancun' },
+  // ── 오세아니아·아프리카 ──
   { id: 'guam', flag: '🇬🇺', nameKo: '괌', tz: 'Pacific/Guam' },
   { id: 'sydney', flag: '🇦🇺', nameKo: '시드니', tz: 'Australia/Sydney' },
   { id: 'cairo', flag: '🇪🇬', nameKo: '카이로', tz: 'Africa/Cairo' },
-  { id: 'cancun', flag: '🇲🇽', nameKo: '칸쿤', tz: 'America/Cancun' },
 ];

@@ -14,8 +14,18 @@ import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { TIMEZONE_CITIES, type TimezoneCity } from '@/data/travelTools';
 
+/**
+ * 주어진 timezone 의 현재 시각·날짜·UTC offset(시간) 반환.
+ *
+ * 주의 — Hermes(iOS RN) 호환:
+ *  `new Date(now.toLocaleString('en-US', { timeZone: ... }))` 패턴은
+ *  Hermes 에서 invalid Date 가 자주 나옴 → offset 이 NaN.
+ *  대신 Intl.DateTimeFormat 으로 numeric 파트를 받아 Date.UTC 로 재조립한다.
+ */
 function nowInTimezone(tz: string): { time: string; date: string; offsetHours: number } {
   const now = new Date();
+
+  // 표시용 (한국어)
   const localized = new Intl.DateTimeFormat('ko-KR', {
     timeZone: tz,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -23,13 +33,38 @@ function nowInTimezone(tz: string): { time: string; date: string; offsetHours: n
     hour: '2-digit', minute: '2-digit', hour12: false,
   }).formatToParts(now);
   const get = (t: string) => localized.find((p) => p.type === t)?.value ?? '';
+  let hourStr = get('hour');
+  // Intl 가 24시 표기에서 '24' 를 줄 수 있음 → '00' 으로 정규화
+  if (hourStr === '24') hourStr = '00';
   const date = `${get('year')}-${get('month')}-${get('day')} (${get('weekday')})`;
-  const time = `${get('hour')}:${get('minute')}`;
+  const time = `${hourStr}:${get('minute')}`;
 
-  // offset 계산: ko-KR locale 안 거치고 UTC 기준 시간차
-  const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const tzDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  const offsetHours = Math.round((tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60));
+  // offset(시간) — en-US locale + numeric 파트만 사용해서 Hermes 호환
+  let offsetHours = 0;
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(now);
+    const num = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? '0');
+    let y = num('year');
+    const mo = num('month');
+    const d = num('day');
+    let h = num('hour');
+    if (h === 24) h = 0;
+    const mi = num('minute');
+    const s = num('second');
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) {
+      offsetHours = 0;
+    } else {
+      const tzAsUtcMs = Date.UTC(y, mo - 1, d, h, mi, s);
+      offsetHours = Math.round((tzAsUtcMs - now.getTime()) / (1000 * 60 * 60));
+    }
+  } catch {
+    offsetHours = 0;
+  }
 
   return { time, date, offsetHours };
 }
@@ -55,7 +90,8 @@ export default function TimezoneScreen() {
   const aInfo = useMemo(() => nowInTimezone(a.tz), [a, tick]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const bInfo = useMemo(() => nowInTimezone(b.tz), [b, tick]);
-  const diff = bInfo.offsetHours - aInfo.offsetHours;
+  const rawDiff = bInfo.offsetHours - aInfo.offsetHours;
+  const diff = Number.isFinite(rawDiff) ? rawDiff : 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
