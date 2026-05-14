@@ -82,6 +82,6 @@
 
 ## 제 13조 (문의)
 - 개발자: 이태호
-- 이메일: roundhouse04@gmail.com
+- 이메일: spagenio.official@gmail.com
 
 앱 사용 관련 문의, 버그 제보, 기능 제안 등은 위 이메일로 연락 주시기 바랍니다.

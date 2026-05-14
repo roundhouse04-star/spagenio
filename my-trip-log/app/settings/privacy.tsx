@@ -141,7 +141,7 @@ export default function PrivacyScreen() {
 
         <Section title="8. 개인정보 보호책임자" styles={styles}>
           {`• 개발자: 이태호
-• 연락처: roundhouse04@gmail.com
+• 연락처: spagenio.official@gmail.com
 
 개인정보 관련 문의, 데이터 삭제 요청, 광고 관련 문의 등은
 위 이메일로 연락 주시기 바랍니다.

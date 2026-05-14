@@ -25,7 +25,7 @@
 ### 필수 URL
 - **개인정보처리방침 URL**: 위 privacy.html 주소
 - **서비스 약관 URL**: 위 terms.html 주소 (선택)
-- **지원 URL**: `mailto:roundhouse04@gmail.com` 또는 메인 페이지 URL
+- **지원 URL**: `mailto:spagenio.official@gmail.com` 또는 메인 페이지 URL
 
 ### App Privacy 설문 답변 가이드
 
@@ -71,7 +71,7 @@
 - [x] 공개 URL 확보 (GitHub Pages)
 - [ ] 앱 내 화면 최신 반영 확인 (설정 → 개인정보처리방침 / 이용약관)
 - [ ] 시행일 날짜 확인 (실제 출시일로 수정 가능)
-- [ ] 연락 이메일 최종 확인 (`roundhouse04@gmail.com`)
+- [ ] 연락 이메일 최종 확인 (`spagenio.official@gmail.com`)
 - [ ] App Store Connect 에 URL 입력
 - [ ] Google Play Console 에 URL 입력
 

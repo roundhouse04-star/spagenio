@@ -183,4 +183,4 @@ export const PRO_PRODUCT_ID = 'com.triplive.app.pro';
 
 ---
 
-문의: roundhouse04@gmail.com
+문의: spagenio.official@gmail.com

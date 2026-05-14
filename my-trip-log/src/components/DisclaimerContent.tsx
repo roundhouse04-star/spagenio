@@ -86,7 +86,7 @@ export function DisclaimerContent() {
 
       <Section title="9. 문의" styles={styles}>
         {`• 개발자: 이태호
-• 이메일: roundhouse04@gmail.com
+• 이메일: spagenio.official@gmail.com
 
 본 면책 조항에 관한 문의는 위 이메일로 연락 주시기 바랍니다.`}
       </Section>

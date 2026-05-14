@@ -4,7 +4,7 @@
 import { Linking, Alert, Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const FEEDBACK_EMAIL = 'roundhouse04@gmail.com';
+const FEEDBACK_EMAIL = 'spagenio.official@gmail.com';
 
 export async function openFeedbackMail(): Promise<void> {
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
