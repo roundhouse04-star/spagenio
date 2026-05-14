@@ -123,9 +123,14 @@ export async function fetchProProduct(): Promise<ProProductInfo | null> {
   if (!canUseIap() || !purchasesModule) return null;
   await initIapConnection();
   try {
-    const list = await purchasesModule.getProducts([PRO_PRODUCT_ID]);
+    // ⚠️ type 'inapp' 명시 필수 — 안 주면 기본 'subs' (구독) 으로 간주해서 빈 배열 반환.
+    // 우리 PRO 는 비소모성 (non-consumable) 일회성이라 'inapp'.
+    const list = await purchasesModule.getProducts([PRO_PRODUCT_ID], 'inapp');
     const p = Array.isArray(list) ? list[0] : null;
-    if (!p) return null;
+    if (!p) {
+      console.warn('[proStore] getProducts 반환 0개 — RC sync / ASC 상품 상태 확인');
+      return null;
+    }
     return {
       productId: p.identifier || PRO_PRODUCT_ID,
       price: p.priceString || p.price_string || PRO_DISPLAY_PRICE,
