@@ -136,8 +136,6 @@ export default function ProScreen() {
               <View style={styles.benefitsCard}>
                 <Benefit icon="🚫" title="광고 완전 제거"
                   desc="배너 광고 없이 깔끔한 화면" styles={styles} />
-                <Benefit icon="📸" title="향상된 영수증 인식"
-                  desc="OCR 정확도 보강 (네트워크 폴백)" styles={styles} />
                 <Benefit icon="✨" title="향후 PRO 기능 우선"
                   desc="새 기능 우선 사용 + 추가 비용 없음" styles={styles} />
                 <Benefit icon="🌐" title="가족 공유 가능"

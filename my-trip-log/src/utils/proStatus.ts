@@ -1,23 +1,22 @@
 /**
  * Triplive PRO 결제 상태 관리
  *
- * ## 현재 단계 — 인프라만 준비 (미출시)
- *
- * PRO 결제 도입 시:
- *   1. expo-in-app-purchases 또는 react-native-iap 추가
- *   2. App Store Connect / Play Console에 IAP 상품 등록
- *   3. 본 모듈의 setProActive() 결제 성공 콜백에서 호출
- *   4. 광고 제거 + OCR 네트워크 폴백 활성 자동 적용
- *
- * ## PRO 가치 제안 (계획)
+ * ## PRO 가치 제안
  *  - 광고 제거 (AdBanner)
- *  - OCR.space 네트워크 폴백 활성 → 영수증 인식률 향상 (ML Kit 실패 시)
  *  - PDF 회고 워터마크 제거 (계획)
  *  - 미래 기능 우선 액세스
  *
- * ## 현재는 항상 false
- *  - 결제 시스템 미구현
- *  - 광고/OCR 동작은 ADS_ENABLED, NETWORK_OCR_ENABLED 플래그로 통제 중
+ * ## OCR 정책 (1.1 결정)
+ *  유료 OCR API (Google Vision / NAVER CLOVA 등) 도입하지 않음.
+ *  사용자 수 증가 시 비용이 매출을 초과해서 운영 모델이 안 맞음.
+ *  온디바이스 ML Kit OCR 만 사용 (비용 0, 정확도 ~80%).
+ *  정확도 보완은 사용자 수동 보정 UI 강화 방향.
+ *
+ * ## 결제 흐름
+ *   1. proStore.ts 의 buyPro() → Apple/Google 결제
+ *   2. RevenueCat 영수증 검증
+ *   3. setProActive() 로 로컬 PRO 상태 저장
+ *   4. 광고 자동 제거 (AdBanner 가 isProActive() 체크)
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
