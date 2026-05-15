@@ -345,9 +345,7 @@ export default function ReceiptGalleryScreen() {
                     <InfoRow
                       label="인식률"
                       value={`${Math.round((selected.receipt_confidence ?? 0) * 100)}% · ${
-                        selected.ocr_engine === 'mlkit' ? 'ML Kit' :
-                        selected.ocr_engine === 'ocrspace' ? 'OCR.space' :
-                        '수동'
+                        selected.ocr_engine === 'mlkit' ? 'ML Kit' : '수동'
                       }`} styles={styles} />
                   )}
                 </View>

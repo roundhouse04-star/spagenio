@@ -48,7 +48,7 @@ export default function ReceiptScanScreen() {
 
   const [trip, setTrip] = useState<any>(null);
   const [homeCurrency, setHomeCurrency] = useState('KRW');
-  const [ocrStatus, setOcrStatus] = useState<{ mlkit: boolean; ocrspace: boolean } | null>(null);
+  const [ocrStatus, setOcrStatus] = useState<{ mlkit: boolean } | null>(null);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -262,21 +262,15 @@ export default function ReceiptScanScreen() {
             <View style={styles.engineBox}>
               <Text style={styles.engineTitle}>🤖 OCR 엔진</Text>
               <View style={styles.engineRow}>
-                <Text style={styles.engineLabel}>ML Kit (빠름, 오프라인)</Text>
+                <Text style={styles.engineLabel}>ML Kit (온디바이스)</Text>
                 <Text style={[styles.engineStatus, ocrStatus.mlkit ? styles.engineOn : styles.engineOff]}>
                   {ocrStatus.mlkit ? '✅ 사용 가능' : '⚠️ 개발 빌드 필요'}
                 </Text>
               </View>
-              <View style={styles.engineRow}>
-                <Text style={styles.engineLabel}>OCR.space (80+ 언어)</Text>
-                <Text style={[styles.engineStatus, styles.engineOn]}>
-                  ✅ 사용 가능
-                </Text>
-              </View>
               <Text style={styles.engineHint}>
                 {ocrStatus.mlkit
-                  ? '자동으로 최적의 엔진을 선택해요'
-                  : '인터넷 연결 필요 (태국어 등 지원)'}
+                  ? '오프라인 인식 · 영수증 이미지가 외부로 전송되지 않아요'
+                  : '이 빌드에서는 OCR 사용 불가 (EAS 빌드 필요)'}
               </Text>
             </View>
           )}
@@ -341,8 +335,7 @@ export default function ReceiptScanScreen() {
                 {' '}({Math.round(parsed.confidence * 100)}%)
               </Text>
               <Text style={styles.engineText}>
-                엔진: {parsed.engine === 'mlkit' ? '📱 ML Kit (온디바이스)' :
-                       parsed.engine === 'ocrspace' ? '☁️ OCR.space (서버)' : '❌ 없음'}
+                엔진: {parsed.engine === 'mlkit' ? '📱 ML Kit (온디바이스)' : '❌ 없음'}
                 {' · '}{parsed.duration}ms
               </Text>
             </View>
