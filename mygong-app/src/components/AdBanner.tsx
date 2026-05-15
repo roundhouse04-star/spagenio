@@ -22,7 +22,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ImageSourcePropType } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Fonts, FontSizes } from '@/theme/theme';
-import { ADS_ENABLED, AD_UNIT_IDS } from '@/config/ads';
+import { ADS_ENABLED, ADS_LIVE, AD_UNIT_IDS } from '@/config/ads';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
 let BannerAd: any = null;
@@ -47,7 +47,9 @@ type Props = {
 export function AdBanner({ onPress }: Props) {
   // 실광고 모드 (ADS_ENABLED + 패키지 설치됨)
   if (ADS_ENABLED && BannerAd && BannerAdSize && TestIds) {
-    const unitId = __DEV__
+    // ADS_LIVE=true (eas.json release profile) 일 때만 실 ID 사용.
+    // 그 외 모든 빌드 (production / TestFlight / internal) 에선 테스트 광고.
+    const unitId = !ADS_LIVE
       ? TestIds.BANNER
       : Platform.OS === 'ios'
       ? AD_UNIT_IDS.bannerIOS

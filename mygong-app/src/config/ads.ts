@@ -1,37 +1,54 @@
 /**
- * AdMob 광고 설정
+ * AdMob 광고 설정 (내공연관리)
  *
- * 실제 출시 전에 아래 AD_UNIT_IDS 를 AdMob 콘솔에서 받은 값으로 교체하세요.
+ * ┌─ 안전 장치 ───────────────────────────────────────────
+ * │ 본인이 실수로 실광고를 클릭하면 무효 트래픽으로 잡혀서
+ * │ AdMob 계정 정지 위험이 있음. 그래서 3단계로 분리:
+ * │
+ * │   1. Expo Go / dev 빌드      → 광고 자체 미노출 (placeholder)
+ * │   2. EAS production 빌드      → Google 데모(test) 광고
+ * │      (TestFlight, internal 빌드 모두 여기에 해당)
+ * │   3. EAS release 빌드         → 실광고
+ * │      (App Store 출시 전용 — 매뉴얼하게 명시적으로 선택)
+ * │
+ * │ 즉 평소 빌드(production)는 안전하게 테스트 광고만 나오고,
+ * │ "App Store 에 보낼 빌드" 만 release profile 로 따로 굽는다.
+ * └────────────────────────────────────────────────────────
  *
- * ### 설정 방법
- * 1. https://admob.google.com 에서 앱 등록
- * 2. 광고 단위 생성 (배너 타입)
- * 3. 받은 광고 단위 ID를 아래에 입력
- * 4. app.json의 `react-native-google-mobile-ads` plugin 설정에
- *    AdMob 앱 ID도 입력
+ * ## 빌드 명령
  *
- * ### 플레이스홀더 ↔ 실광고 전환
- * `ADS_ENABLED = false` 로 두면 플레이스홀더(배너 자리에 PRO 홍보 배너)
- * `ADS_ENABLED = true` 로 바꾸면 실제 AdMob 광고 표시
+ *   # TestFlight 용 — 테스트 광고만 표시 (안전)
+ *   eas build --platform ios --profile production
  *
- * 개발 중에는 false 로 두는 것을 권장 (AdMob 정책 위반 방지)
- * 빌드 시 TestIds 가 자동으로 사용되어 안전
+ *   # App Store 출시 전용 — 실광고 활성화
+ *   eas build --platform ios --profile release
+ *
+ * ## EXPO_PUBLIC_ADS_LIVE 환경 변수
+ * - eas.json 의 release profile 에서만 "true" 로 설정됨.
+ * - 그 외 모든 빌드는 환경변수 없음 → 자동으로 테스트 광고.
+ * - Expo 가 빌드 시 EXPO_PUBLIC_* prefix 환경 변수를 JS bundle 에 inline.
+ *
+ * AdMob 콘솔 (https://admob.google.com) Publisher ID: pub-2473584153798184
  */
 
-// 광고 표시 여부 (출시 전에 true 로 변경)
-export const ADS_ENABLED = false;
+// 1) 광고 모듈 로드 가능 여부 (Expo Go 에선 native module 없음)
+//    __DEV__=true 면 native module 미포함 → require 자체를 차단
+export const ADS_ENABLED = !__DEV__;
 
-// 광고 단위 ID (AdMob 콘솔에서 받은 값으로 교체)
-// 개발 모드에서는 자동으로 TestIds 가 사용됩니다
+// 2) 실광고 vs 테스트 광고 선택
+//    EXPO_PUBLIC_ADS_LIVE="true" 일 때만 실 ID 사용
+//    이 값은 eas.json 의 "release" profile 에서만 set 됨
+//    → TestFlight (production profile) 에선 절대 실광고 안 나옴
+export const ADS_LIVE = process.env.EXPO_PUBLIC_ADS_LIVE === 'true';
+
+// 실광고 단위 ID — App Store 출시 빌드에만 사용됨
 export const AD_UNIT_IDS = {
-  // iOS 배너
-  bannerIOS: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-  // Android 배너
-  bannerAndroid: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+  bannerIOS: 'ca-app-pub-2473584153798184/6291075208',
+  bannerAndroid: 'ca-app-pub-2473584153798184/5660519814',
 };
 
-// AdMob 앱 ID (app.json 에도 같은 값 입력)
+// AdMob 앱 ID (app.json 의 plugin 설정과 동일한 값)
 export const ADMOB_APP_IDS = {
-  ios: 'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
-  android: 'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX',
+  ios: 'ca-app-pub-2473584153798184~4814342002',
+  android: 'ca-app-pub-2473584153798184~4646215805',
 };
