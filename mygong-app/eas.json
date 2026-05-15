@@ -40,7 +40,19 @@
     }
   },
   "submit": {
-    "production": {},
-    "release": {}
+    "production": {
+      "ios": {
+        "appleId": "5ive111@hanmail.net",
+        "ascAppId": "6769659523",
+        "appleTeamId": "HQJC6CQ97T"
+      }
+    },
+    "release": {
+      "ios": {
+        "appleId": "5ive111@hanmail.net",
+        "ascAppId": "6769659523",
+        "appleTeamId": "HQJC6CQ97T"
+      }
+    }
   }
 }
