@@ -80,9 +80,11 @@ export default function RootLayout() {
           }).catch(() => undefined);
           // 환율 목표가 알림 체크 (백그라운드, 도달 시 로컬 알림)
           setTimeout(() => { checkRateAlerts().catch(() => undefined); }, 2000);
-          // AdMob 초기화 + iOS ATT 다이얼로그 (광고 활성 상태일 때만 동작)
-          setTimeout(() => { initializeAdMob().catch(() => undefined); }, 1500);
         }
+        // AdMob 초기화 + iOS ATT 다이얼로그
+        // Apple 심사 정책: ATT 는 데이터 수집(닉네임/약관 등) 전에 무조건 표시돼야 함.
+        // → 온보딩 진입 전에 호출 (registered/consented 조건 무관)
+        setTimeout(() => { initializeAdMob().catch(() => undefined); }, 800);
       } catch (err) {
         console.error('App init error:', err);
       } finally {
