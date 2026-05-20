@@ -16,8 +16,9 @@ import {
   getNotificationEnabled, setNotificationEnabled,
   ThemeMode,
 } from '@/utils/settings';
-import { isProActive } from '@/utils/proStatus';
-import { restorePurchases } from '@/utils/proStore';
+// [1.1 보류 — 10월 이후 사업자등록 후 복원]
+// import { isProActive } from '@/utils/proStatus';
+// import { restorePurchases } from '@/utils/proStore';
 
 interface UserInfo {
   nickname: string;
@@ -78,34 +79,35 @@ export default function MeScreen() {
       // 알림 설정만 로드 (테마는 ThemeProvider가 관리)
       setNotifEnabled(await getNotificationEnabled());
 
-      // PRO 상태
-      setIsPro(await isProActive());
+      // [1.1 보류] PRO 상태 — 10월 사업자등록 후 복원
+      // setIsPro(await isProActive());
     } catch (err) {
       console.error(err);
     }
   }, []);
 
-  const handleRestorePurchases = async () => {
-    haptic.tap();
-    if (busy) return;
-    setBusy(true);
-    try {
-      const ok = await restorePurchases();
-      if (ok) {
-        setIsPro(true);
-        Alert.alert('복원 완료', 'Triplive PRO 가 활성화되었어요!');
-      } else {
-        Alert.alert(
-          '복원할 구매 없음',
-          '이 계정으로 결제한 PRO 구매를 찾지 못했어요.\n\n다른 Apple ID / Google 계정으로 구매하셨다면 해당 계정으로 로그인 후 다시 시도해주세요.',
-        );
-      }
-    } catch (err: any) {
-      Alert.alert('복원 실패', err?.message || '잠시 후 다시 시도해주세요.');
-    } finally {
-      setBusy(false);
-    }
-  };
+  // [1.1 보류 — 10월 사업자등록 후 복원]
+  // const handleRestorePurchases = async () => {
+  //   haptic.tap();
+  //   if (busy) return;
+  //   setBusy(true);
+  //   try {
+  //     const ok = await restorePurchases();
+  //     if (ok) {
+  //       setIsPro(true);
+  //       Alert.alert('복원 완료', 'Triplive PRO 가 활성화되었어요!');
+  //     } else {
+  //       Alert.alert(
+  //         '복원할 구매 없음',
+  //         '이 계정으로 결제한 PRO 구매를 찾지 못했어요.\n\n다른 Apple ID / Google 계정으로 구매하셨다면 해당 계정으로 로그인 후 다시 시도해주세요.',
+  //       );
+  //     }
+  //   } catch (err: any) {
+  //     Alert.alert('복원 실패', err?.message || '잠시 후 다시 시도해주세요.');
+  //   } finally {
+  //     setBusy(false);
+  //   }
+  // };
 
   useFocusEffect(
     useCallback(() => {
@@ -238,7 +240,8 @@ export default function MeScreen() {
           </View>
         </Pressable>
 
-        {/* Triplive PRO 섹션 */}
+        {/* [1.1 보류 — Triplive PRO 섹션, 10월 사업자등록 후 복원] */}
+        {/*
         <SectionTitle styles={styles}>Triplive PRO</SectionTitle>
         <View style={styles.menuCard}>
           {isPro ? (
@@ -267,6 +270,7 @@ export default function MeScreen() {
             styles={styles}
           />
         </View>
+        */}
 
         {/* 설정 섹션 */}
         <SectionTitle styles={styles}>설정</SectionTitle>
