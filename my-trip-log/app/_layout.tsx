@@ -107,12 +107,13 @@ export default function RootLayout() {
   // RevenueCat 초기화 — 앱 시작 1회.
   // configure 후 자동으로 RC 서버에서 현재 PRO entitlement 동기화.
   // (다른 기기에서 결제했어도 자동 복원, 환불됐으면 자동 해제)
-  useEffect(() => {
-    if (!isReady || !fontsLoaded) return;
-    import('@/utils/proStore')
-      .then((m) => m.initIapConnection())
-      .catch(() => {/* 실패는 silent — 결제 화면에서 다시 시도 */});
-  }, [isReady, fontsLoaded]);
+  // ⚠️ 사업자등록 완료 전까지 결제 비활성화 (연말 재활성화 예정)
+  // useEffect(() => {
+  //   if (!isReady || !fontsLoaded) return;
+  //   import('@/utils/proStore')
+  //     .then((m) => m.initIapConnection())
+  //     .catch(() => {/* 실패는 silent — 결제 화면에서 다시 시도 */});
+  // }, [isReady, fontsLoaded]);
 
   useEffect(() => {
     if (!isReady || !fontsLoaded) return;

@@ -18,14 +18,15 @@
  *
  * ※ Expo Go 에서는 광고 작동 안 함. 반드시 EAS 빌드 또는 dev-client 필요.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { router } from 'expo-router';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Typography } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ADS_ENABLED, ADS_LIVE, AD_UNIT_IDS } from '@/config/ads';
-import { isProActive } from '@/utils/proStatus';
-import { haptic } from '@/utils/haptics';
+// ⚠️ 사업자등록 완료 전까지 결제 비활성화 (연말 재활성화 예정)
+// import { router } from 'expo-router';
+// import { isProActive } from '@/utils/proStatus';
+// import { haptic } from '@/utils/haptics';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
 // ⚠️ ADS_ENABLED 가 false (= __DEV__) 면 require 자체를 시도하지 않음
@@ -51,29 +52,17 @@ type Props = {
   onPress?: () => void;
 };
 
-export function AdBanner({ onPress }: Props) {
+export function AdBanner(_props: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [pro, setPro] = useState(false);
 
-  useEffect(() => {
-    isProActive().then(setPro).catch(() => setPro(false));
-  }, []);
-
-  // PRO 사용자는 광고/플레이스홀더 모두 숨김
-  if (pro) return null;
-
-  // 광고 영역 우측 상단의 "광고 제거" ✕ 버튼 — 누르면 PRO 결제 화면
-  const removeAdsBtn = (
-    <Pressable
-      onPress={() => { haptic.tap(); router.push('/pro' as any); }}
-      style={styles.removeAdsBtn}
-      hitSlop={8}
-    >
-      <Text style={styles.removeAdsText}>광고 제거</Text>
-      <Text style={styles.removeAdsX}>✕</Text>
-    </Pressable>
-  );
+  // ⚠️ 사업자등록 완료 전까지 결제 비활성화 (연말 재활성화 예정)
+  // PRO 화면 진입 경로 모두 제거 — 광고 자체만 표시
+  // const [pro, setPro] = useState(false);
+  // useEffect(() => {
+  //   isProActive().then(setPro).catch(() => setPro(false));
+  // }, []);
+  // if (pro) return null;
 
   // 실광고/테스트광고 모드 (ADS_ENABLED + 패키지 설치됨)
   if (ADS_ENABLED && BannerAd && BannerAdSize && TestIds) {
@@ -95,38 +84,19 @@ export function AdBanner({ onPress }: Props) {
             requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           />
         </View>
-        {removeAdsBtn}
       </View>
     );
   }
 
-  // 플레이스홀더 모드 (PRO 홍보 배너 — Expo Go / 미빌드)
-  const Inner = (
+  // 플레이스홀더 모드 (Expo Go / 미빌드) — PRO 홍보 없이 빈 배너만 표시
+  return (
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>✨ Triplive PRO</Text>
-          <Text style={styles.sub}>광고 없이 깔끔하게 여행 기록하기</Text>
-        </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>업그레이드</Text>
+          <Text style={styles.title}>광고</Text>
         </View>
       </View>
     </View>
-  );
-
-  // 플레이스홀더 자체를 누르면 PRO 화면으로
-  return (
-    <Pressable
-      onPress={() => {
-        haptic.tap();
-        if (onPress) onPress();
-        else router.push('/pro' as any);
-      }}
-      style={({ pressed }) => pressed && { opacity: 0.85 }}
-    >
-      {Inner}
-    </Pressable>
   );
 }
 
