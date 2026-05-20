@@ -17,8 +17,10 @@ if (!isExpoGo) {
 }
 
 // ── 광고 단위 ID ──
-// 개발(__DEV__): Google 공식 테스트 ID (항상 테스트 광고 노출, 무효 클릭 안전)
-// 프로덕션: AdMob 콘솔에서 발급받은 실제 단위 ID (로또부스터)
+// 환경별 분기 (EAS 빌드 프로필의 EXPO_PUBLIC_ADS_MODE 환경변수로 결정):
+//   __DEV__ (Expo Go / 로컬 개발)   → 테스트 광고
+//   development / preview (TestFlight 내부 테스트) → 테스트 광고
+//   production (스토어 출시)        → 실제 광고
 const TEST_BANNER = AdsModule?.TestIds?.BANNER;
 
 const PROD_BANNER_ID = Platform.select({
@@ -26,7 +28,8 @@ const PROD_BANNER_ID = Platform.select({
   android: 'ca-app-pub-2473584153798184/7215916703', // Android Banner
 });
 
-const BANNER_UNIT_ID = __DEV__ ? TEST_BANNER : PROD_BANNER_ID;
+const isProductionAds = !__DEV__ && process.env.EXPO_PUBLIC_ADS_MODE === 'production';
+const BANNER_UNIT_ID = isProductionAds ? PROD_BANNER_ID : TEST_BANNER;
 
 export default function BannerAdSlot({ position = 'bottom' }) {
   // Expo Go 또는 모듈 없음 → placeholder
