@@ -28,6 +28,19 @@
         "buildType": "apk"
       }
     },
+    "testflight": {
+      "channel": "testflight",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_ADS_MODE": "test"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "production": {
       "channel": "production",
       "autoIncrement": true,
