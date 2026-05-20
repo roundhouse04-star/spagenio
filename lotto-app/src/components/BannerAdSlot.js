@@ -17,18 +17,16 @@ if (!isExpoGo) {
 }
 
 // ── 광고 단위 ID ──
-// 개발/Expo Go: Google 공식 테스트 ID (항상 테스트 광고 노출)
-// 프로덕션: AdMob 콘솔에서 발급받은 실제 단위 ID로 교체 (.env 또는 EAS Secret 권장)
+// 개발(__DEV__): Google 공식 테스트 ID (항상 테스트 광고 노출, 무효 클릭 안전)
+// 프로덕션: AdMob 콘솔에서 발급받은 실제 단위 ID (로또부스터)
 const TEST_BANNER = AdsModule?.TestIds?.BANNER;
 
 const PROD_BANNER_ID = Platform.select({
-  ios: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',     // TODO: 실제 iOS 배너 단위 ID
-  android: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ', // TODO: 실제 Android 배너 단위 ID
+  ios: 'ca-app-pub-2473584153798184/6094406727',     // iOS Banner
+  android: 'ca-app-pub-2473584153798184/7215916703', // Android Banner
 });
 
-const BANNER_UNIT_ID = __DEV__ || !PROD_BANNER_ID || PROD_BANNER_ID.includes('XXXXX')
-  ? TEST_BANNER
-  : PROD_BANNER_ID;
+const BANNER_UNIT_ID = __DEV__ ? TEST_BANNER : PROD_BANNER_ID;
 
 export default function BannerAdSlot({ position = 'bottom' }) {
   // Expo Go 또는 모듈 없음 → placeholder
