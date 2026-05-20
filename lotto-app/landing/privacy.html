@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>개인정보처리방침 — 로또부스터</title>
+<meta name="description" content="로또부스터 앱 개인정보처리방침">
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-tertiary: #94a3b8;
+    --primary: #6366f1;
+    --primary-soft: #eef2ff;
+    --border: #e5e7eb;
+    --gradient: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+    --warn-bg: #fffbeb;
+    --warn-border: #fde68a;
+    --warn-text: #92400e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Pretendard", "Helvetica Neue", "Arial", sans-serif;
+    color: var(--text-primary);
+    line-height: 1.7;
+    padding: 32px 16px;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    background: var(--surface);
+    padding: 48px 32px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06);
+  }
+  .header {
+    text-align: center; margin-bottom: 32px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px; letter-spacing: 3px; font-weight: 800;
+  }
+  h1 {
+    font-size: 28px; color: var(--text-primary);
+    margin: 8px 0 8px; letter-spacing: -0.5px;
+  }
+  .last-updated {
+    font-size: 13px; color: var(--text-tertiary);
+    margin-top: 8px; font-style: italic;
+  }
+  .intro {
+    background: var(--primary-soft); padding: 20px;
+    border-radius: 12px; margin-bottom: 32px;
+    font-size: 15px; color: var(--text-primary); font-weight: 500;
+    border-left: 4px solid var(--primary);
+  }
+  h2 {
+    font-size: 19px; color: var(--text-primary);
+    margin: 32px 0 12px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary);
+    display: inline-block;
+  }
+  .section-body {
+    color: var(--text-secondary); font-size: 15px; line-height: 1.8;
+  }
+  .section-body ul { padding-left: 22px; margin-top: 4px; }
+  .section-body li { margin-bottom: 6px; }
+  .section-body strong { color: var(--text-primary); }
+  .footer {
+    margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border);
+    text-align: center; color: var(--text-tertiary); font-size: 13px;
+  }
+  .footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  .footer-links { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+  @media (max-width: 480px) {
+    body { padding: 16px 8px; }
+    .container { padding: 32px 20px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="brand">로또부스터</div>
+    <h1>개인정보처리방침</h1>
+    <div class="last-updated">시행일: 2026년 4월 28일 (v1.1)</div>
+  </div>
+
+  <div class="intro">
+    본 앱은 사용자의 개인정보를 회사 서버로 전송하거나 수집하지 않습니다.
+    모든 데이터는 사용자 디바이스에만 저장되며, 외부로 전송되지 않습니다.
+  </div>
+
+  <h2>1. 수집하지 않는 정보</h2>
+  <div class="section-body">
+    본 앱은 다음 정보를 일절 수집하지 않습니다.
+    <ul>
+      <li>이름, 이메일, 전화번호 등 개인 식별 정보</li>
+      <li>회원가입 / 로그인 정보</li>
+      <li>위치 정보 (GPS)</li>
+      <li>연락처 / 캘린더</li>
+      <li>사용자 행동 통계 / 분석 이벤트</li>
+    </ul>
+  </div>
+
+  <h2>2. 디바이스에 저장되는 정보</h2>
+  <div class="section-body">
+    아래 정보는 <strong>사용자 디바이스에만 저장</strong>되며 외부로 전송되지 않습니다.
+    <ul>
+      <li>추천 번호 (자동/알고리즘 생성 결과)</li>
+      <li>구입번호 (사용자가 QR 스캔으로 등록한 복권)</li>
+      <li>알고리즘 가중치 설정</li>
+      <li>텔레그램 봇 토큰 / Chat ID (사용자가 직접 입력)</li>
+      <li>앱 설정 (자동발송 토글, 푸시 알림 등)</li>
+      <li>회차 데이터 캐시 (1~최신 회차 당첨번호)</li>
+    </ul>
+    앱을 삭제하면 모든 데이터가 운영체제에 의해 함께 제거됩니다.
+  </div>
+
+  <h2>3. 외부 서비스</h2>
+  <div class="section-body">
+    본 앱은 아래 외부 서비스를 제한적으로 이용합니다. 각 서비스는 자체 개인정보 처리방침을 따릅니다.
+    <ul>
+      <li><strong>동행복권 (dhlottery.co.kr)</strong> — 당첨 판매점 조회 시 공식 페이지를 앱 내에서 표시</li>
+      <li><strong>Telegram Bot</strong> — 사용자가 자발적으로 설정한 경우에만 추천번호 발송. 토큰/Chat ID는 디바이스에만 저장, 제3자에게 제공되지 않음</li>
+      <li><strong>Google AdMob</strong> — 광고 노출 (광고 식별자 사용)</li>
+    </ul>
+  </div>
+
+  <h2>4. 광고 식별자</h2>
+  <div class="section-body">
+    <ul>
+      <li>iOS의 IDFA / Android의 광고 ID(AAID)는 Google AdMob의 광고 노출 목적으로만 사용됩니다.</li>
+      <li>사용자는 디바이스 설정에서 언제든 추적을 비활성화할 수 있습니다.</li>
+      <li>iOS의 경우 앱 추적 투명성(ATT) 정책에 따라 사용자에게 추적 권한을 요청합니다.</li>
+    </ul>
+  </div>
+
+  <h2>5. 데이터 보관 및 파기</h2>
+  <div class="section-body">
+    <ul>
+      <li>모든 데이터는 사용자 디바이스에 저장되며, 본 앱이 운영하는 별도의 서버가 없습니다.</li>
+      <li>사용자가 앱을 삭제하면 운영체제가 데이터를 자동으로 파기합니다.</li>
+      <li>설정 → 데이터 백업 → 백업 파일은 사용자가 명시적으로 내보낸 파일이며, 파일 관리 책임은 사용자에게 있습니다.</li>
+    </ul>
+  </div>
+
+  <h2>6. 만 19세 미만 이용 제한</h2>
+  <div class="section-body">
+    본 앱은 만 19세 이상 성인을 대상으로 하며, 미성년자(만 19세 미만)는 사용할 수 없습니다.
+    「사행산업통합감독위원회법」에 따라 만 19세 미만은 복권 구입이 금지되어 있습니다.
+  </div>
+
+  <h2>7. 정책 변경</h2>
+  <div class="section-body">
+    본 처리방침은 법령 또는 서비스 변경에 따라 사전 통보 없이 갱신될 수 있습니다.
+    변경된 정책은 본 페이지 및 앱 내 [설정 → 약관 및 면책조항]에서 확인할 수 있습니다.
+  </div>
+
+  <h2>8. 문의</h2>
+  <div class="section-body">
+    개인정보 처리방침 관련 문의는 <a href="mailto:roundhouse04@gmail.com" style="color:var(--primary);font-weight:600">roundhouse04@gmail.com</a> 으로 보내주세요.
+  </div>
+
+  <div class="footer">
+    <div class="footer-links">
+      <a href="/">홈</a>
+      <a href="/terms.html">이용약관 및 면책조항</a>
+    </div>
+    © 2026 spagenio · 비공식 로또 분석 도구
+  </div>
+</div>
+</body>
+</html>

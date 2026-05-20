@@ -112,18 +112,37 @@ iosAppId: "ca-app-pub-3940256099942544~1458002511"      # 테스트
 
 ---
 
-## 5️⃣ 개인정보 처리방침 공개 URL
+## 5️⃣ 개인정보 처리방침 / 랜딩 페이지 — `lotto.spagenio.com`
 
-앱스토어 listing 필수 항목. **GitHub Pages로 무료 호스팅 가능.**
+앱스토어 listing 필수 항목. **Cloudflare Pages로 무료 호스팅** (권장).
 
-### 방법 (추천)
-1. `lotto-app/docs/privacy.html` 작성 (LegalScreen 내용을 정적 HTML로)
-2. spagenio repo → Settings → Pages → Source: main, /docs
-3. 공개 URL: `https://roundhouse04-star.github.io/spagenio/lotto-app/docs/privacy.html`
+### 준비된 파일
+`lotto-app/landing/` 폴더에 이미 작성되어 있음:
+- `index.html` — 메인 랜딩 (앱 소개 + 다운로드 링크)
+- `privacy.html` — 개인정보 처리방침
+- `terms.html` — 이용약관 및 면책조항
+- `CNAME` — lotto.spagenio.com
 
-### 또는 대안
-- Notion 공개 페이지
-- Google Docs 공유 링크 (단, 도메인이 google.com이라 일부 스토어가 거부할 수 있음)
+### 배포 절차 (Cloudflare Pages)
+1. https://dash.cloudflare.com/ → Workers & Pages → **Create application** → **Pages** → **Connect to Git**
+2. 저장소: `roundhouse04-star/spagenio`
+3. 설정:
+   - **Build output directory**: `lotto-app/landing`
+   - **Build command**: (비워둠 — 정적 파일이라 빌드 없음)
+   - **Production branch**: `main`
+4. **Save and Deploy** → 1~2분 후 임시 도메인으로 배포 완료
+5. **Custom domains** → `lotto.spagenio.com` 입력 → Cloudflare가 DNS CNAME 자동 추가
+6. 완료 후 접속: https://lotto.spagenio.com
+
+### 앱스토어 listing에 사용할 URL
+| 항목 | URL |
+|---|---|
+| 개인정보 처리방침 | `https://lotto.spagenio.com/privacy.html` |
+| 이용약관 | `https://lotto.spagenio.com/terms.html` |
+| 지원 URL (App Store) | `https://lotto.spagenio.com` |
+| 마케팅 URL | `https://lotto.spagenio.com` |
+
+자세한 호스팅 옵션은 `lotto-app/landing/README.md` 참조.
 
 ---
 

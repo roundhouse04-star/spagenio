@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로또부스터 — 로또 6/45 추천·당첨 확인</title>
+<meta name="description" content="과거 회차 데이터를 분석한 참고용 로또 번호 추천 및 QR 당첨 확인 앱">
+<meta property="og:title" content="로또부스터">
+<meta property="og:description" content="통계 분석 기반 번호 추천 + QR 당첨 확인">
+<meta property="og:url" content="https://lotto.spagenio.com">
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-tertiary: #94a3b8;
+    --primary: #6366f1;
+    --primary-soft: #eef2ff;
+    --border: #e5e7eb;
+    --gradient: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Pretendard", "Helvetica Neue", "Arial", sans-serif;
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 16px;
+  }
+  .container {
+    max-width: 720px; text-align: center;
+    background: var(--surface);
+    padding: 56px 32px;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(99, 102, 241, 0.08);
+  }
+  .logo {
+    font-size: 56px; margin-bottom: 16px;
+    line-height: 1; display: inline-block;
+  }
+  h1 {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 36px; font-weight: 900;
+    letter-spacing: -0.5px; margin-bottom: 10px;
+  }
+  .tagline {
+    color: var(--text-secondary); font-size: 16px;
+    margin-bottom: 36px;
+  }
+  .features {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 14px; text-align: left; margin-bottom: 36px;
+  }
+  .feature {
+    background: var(--primary-soft);
+    border: 1px solid #c7d2fe;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .feature-emoji { font-size: 22px; display: block; margin-bottom: 6px; }
+  .feature-title { font-weight: 800; color: var(--primary); font-size: 14px; margin-bottom: 4px; }
+  .feature-desc { color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
+  .stores {
+    display: flex; gap: 12px; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 28px;
+  }
+  .store-btn {
+    background: var(--gradient);
+    color: #fff; padding: 14px 24px;
+    border-radius: 12px; font-weight: 700;
+    text-decoration: none; font-size: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+    transition: transform 0.15s ease;
+  }
+  .store-btn:hover { transform: translateY(-2px); }
+  .store-btn.disabled {
+    background: var(--border); color: var(--text-tertiary);
+    box-shadow: none; cursor: not-allowed;
+  }
+  .store-btn.disabled:hover { transform: none; }
+
+  .links {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    display: flex; gap: 20px; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .links a {
+    color: var(--text-secondary); text-decoration: none;
+    font-size: 14px; font-weight: 600;
+  }
+  .links a:hover { color: var(--primary); }
+
+  .disclaimer {
+    margin-top: 28px;
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 10px; padding: 14px 16px;
+    color: #92400e; font-size: 12px; line-height: 1.6;
+  }
+
+  footer {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--text-tertiary); font-size: 12px;
+  }
+  footer a { color: var(--primary); text-decoration: none; }
+
+  @media (max-width: 480px) {
+    .container { padding: 40px 20px; }
+    h1 { font-size: 28px; }
+    .features { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div>
+<div class="container">
+  <div class="logo">🍀</div>
+  <h1>로또부스터</h1>
+  <p class="tagline">데이터로 분석하는 로또 6/45 추천 · 당첨 확인</p>
+
+  <div class="features">
+    <div class="feature">
+      <span class="feature-emoji">🎯</span>
+      <div class="feature-title">번호 추천</div>
+      <div class="feature-desc">4가지 자동 전략 + 사용자 가중치 알고리즘</div>
+    </div>
+    <div class="feature">
+      <span class="feature-emoji">📷</span>
+      <div class="feature-title">QR 당첨 확인</div>
+      <div class="feature-desc">카메라/갤러리로 복권 QR 즉시 스캔</div>
+    </div>
+    <div class="feature">
+      <span class="feature-emoji">📜</span>
+      <div class="feature-title">회차 정보</div>
+      <div class="feature-desc">1회 ~ 최신 회차 당첨번호 + 1~5등 당첨금</div>
+    </div>
+    <div class="feature">
+      <span class="feature-emoji">🔍</span>
+      <div class="feature-title">패턴분석표</div>
+      <div class="feature-desc">7×7 그리드로 당첨번호 시각화</div>
+    </div>
+    <div class="feature">
+      <span class="feature-emoji">📲</span>
+      <div class="feature-title">텔레그램 자동발송</div>
+      <div class="feature-desc">스케줄 시각에 추천번호 자동 전송 (선택)</div>
+    </div>
+    <div class="feature">
+      <span class="feature-emoji">💾</span>
+      <div class="feature-title">데이터 백업</div>
+      <div class="feature-desc">JSON 내보내기/복원 — 디바이스에만 저장</div>
+    </div>
+  </div>
+
+  <div class="stores">
+    <a class="store-btn disabled" href="#" onclick="alert('출시 준비 중입니다.'); return false;">
+      🍎 App Store
+    </a>
+    <a class="store-btn disabled" href="#" onclick="alert('출시 준비 중입니다.'); return false;">
+      🤖 Google Play
+    </a>
+  </div>
+
+  <div class="disclaimer">
+    ⚠️ 본 앱은 로또 번호 추천 서비스를 제공하며, 어떠한 형태의 당첨도 보장하지 않습니다.
+    추천 번호는 과거 회차 데이터를 참고하여 생성한 참고용 정보일 뿐, 미래의 당첨을 예측하지 않습니다.
+    만 19세 이상만 이용 가능하며, 도박 중독 의심 시 한국도박문제예방치유원(1336)에 도움을 요청하세요.
+  </div>
+
+  <div class="links">
+    <a href="/privacy.html">개인정보 처리방침</a>
+    <a href="/terms.html">이용약관 및 면책조항</a>
+    <a href="mailto:roundhouse04@gmail.com">문의하기</a>
+  </div>
+</div>
+
+<footer>
+  © 2026 spagenio · 비공식 로또 분석 도구<br>
+  로또 6/45는 (주)동행복권의 등록 상표이며, 본 앱은 동행복권과 무관합니다.
+</footer>
+</div>
+
+</body>
+</html>
