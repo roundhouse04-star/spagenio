@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triplive 다운로드 — App Store</title>
+<meta name="description" content="Triplive — AI 여행 일정, 가계부, 35개 도시 지하철, 영수증 자동 인식. App Store에서 다운로드하세요.">
+
+<!-- 메타 광고 공유 시 미리보기 (Open Graph) -->
+<meta property="og:title" content="Triplive — 여행의 처음부터 끝까지">
+<meta property="og:description" content="AI 일정 · 가계부 · 35개 도시 지하철 · 영수증 OCR. 한 앱으로 여행 전부.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://triplive.spagenio.com/download">
+<meta name="twitter:card" content="summary_large_image">
+
+<style>
+  :root {
+    --bg: #F5EFE4;
+    --surface: #ffffff;
+    --text-primary: #1E2A3A;
+    --text-secondary: #5a6573;
+    --accent: #c8a24e;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Helvetica Neue", "Arial", sans-serif;
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 16px;
+  }
+  .container {
+    max-width: 560px; width: 100%; text-align: center;
+    background: var(--surface); padding: 56px 32px;
+    border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .logo-box {
+    width: 104px; height: 104px; margin: 0 auto 20px;
+    background: var(--text-primary); border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(30,42,58,0.25);
+  }
+  .logo-t {
+    font-size: 68px; font-weight: 700;
+    color: var(--bg); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: -2px;
+  }
+  .brand-name {
+    font-size: 32px; font-weight: 700;
+    margin-bottom: 8px; letter-spacing: -1px;
+  }
+  .tagline {
+    font-size: 15px; color: var(--text-secondary); margin-bottom: 32px;
+  }
+
+  .features {
+    text-align: left; max-width: 440px; margin: 0 auto 32px;
+    background: var(--bg); padding: 22px 24px; border-radius: 12px;
+  }
+  .feature {
+    padding: 7px 0; color: var(--text-primary); font-size: 14.5px;
+  }
+
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--text-primary); color: var(--bg);
+    padding: 16px 32px; border-radius: 999px;
+    font-size: 16px; font-weight: 700;
+    text-decoration: none; transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(30,42,58,0.2);
+  }
+  .download-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(30,42,58,0.28); }
+  .download-btn .apple-logo { font-size: 20px; line-height: 1; }
+
+  .desktop-note {
+    margin-top: 20px; font-size: 13px; color: var(--text-secondary);
+    display: none;
+  }
+  .auto-redirect-note {
+    margin-top: 16px; font-size: 12px; color: var(--accent);
+    font-style: italic; display: none;
+  }
+
+  .footer {
+    margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary); font-size: 12.5px;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+  .footer-links { margin-top: 12px; display: flex; gap: 12px; justify-content: center; }
+  .footer-links a { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo-box"><span class="logo-t">T</span></div>
+  <h1 class="brand-name">Triplive</h1>
+  <p class="tagline">여행의 처음부터 끝까지, 한 앱으로</p>
+
+  <div class="features">
+    <div class="feature">🤖 AI 가 만드는 여행 일정</div>
+    <div class="feature">🚇 35개 도시 오프라인 지하철 노선도</div>
+    <div class="feature">🧾 영수증 자동 인식 + 가계부</div>
+    <div class="feature">💸 실시간 환율 + 카테고리별 지출</div>
+    <div class="feature">📤 친구와 QR로 일정 공유</div>
+    <div class="feature">📊 여행 요약 · PDF 내보내기</div>
+  </div>
+
+  <a id="download-link" class="download-btn"
+     href="https://apps.apple.com/kr/app/triplive/id6768194225">
+    <span class="apple-logo"></span>
+    <span>App Store에서 다운로드</span>
+  </a>
+
+  <p id="desktop-note" class="desktop-note">
+    📱 iPhone · iPad에서 다운로드 가능합니다
+  </p>
+  <p id="auto-redirect-note" class="auto-redirect-note">
+    잠시 후 App Store로 자동 이동합니다…
+  </p>
+
+  <div class="footer">
+    © 2026 Spagenio<br>
+    문의: <a href="mailto:spagenio.official@gmail.com">spagenio.official@gmail.com</a>
+    <div class="footer-links">
+      <a href="/">홈</a>
+      <a href="/privacy.html">개인정보처리방침</a>
+      <a href="/terms.html">이용약관</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 기기 감지 — iOS면 자동 이동, 그 외는 안내 메시지
+  (function () {
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPhone|iPad|iPod/.test(ua);
+    var dlLink = document.getElementById('download-link').href;
+
+    if (isIOS) {
+      // iOS: 1.5초 뒤 App Store 자동 이동
+      // (페이지 텅 비우고 즉시 redirect = 메타가 클로킹으로 간주할 수 있으니
+      //  앱 정보 잠깐 보여준 뒤 이동)
+      document.getElementById('auto-redirect-note').style.display = 'block';
+      setTimeout(function () { window.location.href = dlLink; }, 1500);
+    } else {
+      // 데스크톱·Android 등: 자동 이동 X, 안내 메시지만
+      document.getElementById('desktop-note').style.display = 'block';
+    }
+  })();
+</script>
+</body>
+</html>
