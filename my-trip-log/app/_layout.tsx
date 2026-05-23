@@ -32,6 +32,9 @@ import { incrementLaunchCount, maybePromptReview } from '@/utils/storeReview';
 import { checkRateAlerts } from '@/utils/rateAlerts';
 import { initializeAdMob } from '@/utils/admobInit';
 import { registerExpoPushToken, syncTripCountriesToServer } from '@/utils/pushToken';
+// 부수효과 import — defineTask 가 모듈 import 시 호출됨 (앱 꺼져있어도 OS 가 task 호출 가능하게)
+import { syncDangerRegions } from '@/utils/safety/geofencing';
+import { getDB } from '@/db/database';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -87,8 +90,19 @@ export default function RootLayout() {
             try {
               const token = await registerExpoPushToken();
               if (token) {
-                // 발급 직후 또는 권한만 있던 케이스 모두 한 번 sync 시도
                 await syncTripCountriesToServer();
+              }
+
+              // Geofencing — 진행중 트립이 있으면 그 국가의 위험 region 등록.
+              // 권한 없으면 syncDangerRegions 가 0 반환하고 끝남.
+              const db = await getDB();
+              const ongoing = await db.getAllAsync<{ country_code: string }>(
+                `SELECT DISTINCT country_code FROM trips
+                 WHERE status = 'ongoing' AND country_code IS NOT NULL AND country_code != ''`,
+              );
+              const codes = ongoing.map((r) => r.country_code);
+              if (codes.length > 0) {
+                await syncDangerRegions(codes);
               }
             } catch { /* silent */ }
           }, 2500);

@@ -15,6 +15,7 @@ import { CityAutocomplete } from '@/components/CityAutocomplete';
 import { findCityIdByName } from '@/data/cityHighlights';
 import { syncTripNotifications } from '@/utils/tripNotifications';
 import { syncTripCountriesToServer } from '@/utils/pushToken';
+import { syncDangerRegions, stopAllGeofencing } from '@/utils/safety/geofencing';
 import { getTripById } from '@/db/trips';
 
 export default function TripFormScreen() {
@@ -122,6 +123,7 @@ export default function TripFormScreen() {
         if (updated) syncTripNotifications(updated).catch(() => undefined);
         // 안전 알림 — 진행/계획 트립 국가 목록을 Worker 에 재동기화
         syncTripCountriesToServer().catch(() => undefined);
+        refreshGeofencing().catch(() => undefined);
         router.back();
       } else {
         // 신규 생성
@@ -149,6 +151,7 @@ export default function TripFormScreen() {
         if (created) syncTripNotifications(created).catch(() => undefined);
         // 안전 알림 — 진행/계획 트립 국가 목록을 Worker 에 재동기화
         syncTripCountriesToServer().catch(() => undefined);
+        refreshGeofencing().catch(() => undefined);
         router.replace(`/trip/${newId}`);
       }
     } catch (err) {
@@ -376,6 +379,28 @@ export default function TripFormScreen() {
       />
     </SafeAreaView>
   );
+}
+
+/**
+ * 트립 변경 후 — 진행중 트립 국가만 모아 위험 region geofence 재등록.
+ * ongoing 이 0개이면 모두 해제.
+ */
+async function refreshGeofencing(): Promise<void> {
+  try {
+    const db = await getDB();
+    const ongoing = await db.getAllAsync<{ country_code: string }>(
+      `SELECT DISTINCT country_code FROM trips
+       WHERE status = 'ongoing' AND country_code IS NOT NULL AND country_code != ''`,
+    );
+    const codes = ongoing.map((r) => r.country_code);
+    if (codes.length === 0) {
+      await stopAllGeofencing();
+    } else {
+      await syncDangerRegions(codes);
+    }
+  } catch (err) {
+    console.warn('[geofence] refresh failed:', err);
+  }
 }
 
 function createStyles(c: ColorPalette) {
