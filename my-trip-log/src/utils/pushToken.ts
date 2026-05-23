@@ -176,3 +176,98 @@ export async function needsServerSync(): Promise<boolean> {
   if (!row) return false; // 토큰 없으면 동기화 불가
   return !row.syncedToServer;
 }
+
+// ──────────────────────────────────────────────────────────
+// Cloudflare Workers (triplive-api) 동기화
+// ──────────────────────────────────────────────────────────
+
+const WORKER_URL = 'https://triplive-api.roundhouse04.workers.dev';
+
+export interface TripCountryRef {
+  code: string; // ISO 2자리
+  status: 'planning' | 'ongoing';
+}
+
+/**
+ * 디바이스 토큰 + 관심 국가를 Worker 에 등록 (UPSERT).
+ *
+ * 호출 시점:
+ *  - 앱 시작 후 (토큰 발급 직후)
+ *  - 트립 생성 / 수정 / 삭제 후 (국가 목록 변경)
+ *  - 사용자가 알림 옵션 토글 후
+ *
+ * 실패 시 토큰의 synced=0 유지 → 다음 기회에 재시도.
+ */
+export async function syncPushTokenToServer(countries: TripCountryRef[]): Promise<boolean> {
+  const stored = await getStoredPushToken();
+  if (!stored) return false;
+
+  try {
+    const res = await fetch(`${WORKER_URL}/push/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        expoToken: stored.expoToken,
+        platform: stored.platform,
+        locale: 'ko',
+        countries: countries
+          .filter((c) => /^[A-Z]{2}$/.test(c.code))
+          .map((c) => ({ code: c.code, status: c.status })),
+      }),
+    });
+    if (!res.ok) {
+      console.warn(`[push] sync HTTP ${res.status}`);
+      return false;
+    }
+    await markTokenSynced();
+    return true;
+  } catch (err) {
+    console.warn('[push] sync failed:', err);
+    return false;
+  }
+}
+
+/**
+ * 진행/계획 트립 국가만 모아서 Worker 에 sync.
+ * 완료 트립은 알림 대상 아님. 중복 국가는 ongoing 우선.
+ */
+export async function syncTripCountriesToServer(): Promise<boolean> {
+  try {
+    const db = await getDB();
+    const rows = await db.getAllAsync<{ country_code: string; status: string }>(
+      `SELECT country_code, status FROM trips
+       WHERE country_code IS NOT NULL AND country_code != ''
+         AND status IN ('planning', 'ongoing')`,
+    );
+    const dedup = new Map<string, TripCountryRef>();
+    for (const r of rows) {
+      const code = r.country_code.toUpperCase();
+      const status = r.status as 'planning' | 'ongoing';
+      const existing = dedup.get(code);
+      if (!existing || (existing.status === 'planning' && status === 'ongoing')) {
+        dedup.set(code, { code, status });
+      }
+    }
+    return await syncPushTokenToServer(Array.from(dedup.values()));
+  } catch (err) {
+    console.warn('[push] syncTripCountries failed:', err);
+    return false;
+  }
+}
+
+/** 사용자가 푸시 알림 끄기 — Worker 에 비활성 통보. */
+export async function unregisterFromServer(): Promise<boolean> {
+  const stored = await getStoredPushToken();
+  if (!stored) return true;
+  try {
+    const res = await fetch(`${WORKER_URL}/push/register`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ expoToken: stored.expoToken }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('[push] unregister failed:', err);
+    return false;
+  }
+}

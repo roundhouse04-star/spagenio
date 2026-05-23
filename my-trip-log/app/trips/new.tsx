@@ -14,6 +14,7 @@ import DatePickerModal from '@/components/DatePickerModal';
 import { CityAutocomplete } from '@/components/CityAutocomplete';
 import { findCityIdByName } from '@/data/cityHighlights';
 import { syncTripNotifications } from '@/utils/tripNotifications';
+import { syncTripCountriesToServer } from '@/utils/pushToken';
 import { getTripById } from '@/db/trips';
 
 export default function TripFormScreen() {
@@ -119,6 +120,8 @@ export default function TripFormScreen() {
         // D-day 알림 갱신
         const updated = await getTripById(tripId);
         if (updated) syncTripNotifications(updated).catch(() => undefined);
+        // 안전 알림 — 진행/계획 트립 국가 목록을 Worker 에 재동기화
+        syncTripCountriesToServer().catch(() => undefined);
         router.back();
       } else {
         // 신규 생성
@@ -144,6 +147,8 @@ export default function TripFormScreen() {
         // D-day 알림 등록
         const created = await getTripById(newId);
         if (created) syncTripNotifications(created).catch(() => undefined);
+        // 안전 알림 — 진행/계획 트립 국가 목록을 Worker 에 재동기화
+        syncTripCountriesToServer().catch(() => undefined);
         router.replace(`/trip/${newId}`);
       }
     } catch (err) {

@@ -1,82 +1,49 @@
 /**
- * 외교부 여행경보 API 클라이언트
+ * 외교부 여행경보 클라이언트 — Cloudflare Workers 캐시 경유
  *
- * 출처: data.go.kr 공공데이터
- *  - API 명: 외교부_국가・지역별 여행경보
- *  - End Point: https://apis.data.go.kr/1262000/TravelAlarmService2
- *  - Endpoint: /getTravelAlarmList2
- *  - 일일 트래픽: 10,000 (활용신청 기준)
+ * Phase 2 변경:
+ *  - 외교부 API 직접 호출 X (인증키 앱에 포함 안 함)
+ *  - Cloudflare Workers (triplive-api) 가 외교부 폴링 + 매 15분 캐싱
+ *  - 앱은 Workers 의 /advisories 엔드포인트만 호출
+ *  - region 별 데이터 집계 (전체 row > 광범위 remark > 일부 region) 는 Workers 가 처리
  *
- * ## 응답 형식 (예상, 외교부 기술문서 v1.4 기준)
- *  - JSON: { response: { body: { items: [...], totalCount, numOfRows, pageNo } } }
- *  - 각 item: { country_iso_alp2, country_nm, country_eng_nm, alarm_lvl, mapDownloadUrl, remark }
+ * 보안:
+ *  - 외교부 인증키는 Cloudflare Secret 에만 존재
+ *  - 앱 빌드에는 키 포함 안 됨 → 디컴파일 시에도 안전
  *
- * ## 캐싱 전략
- *  - 외교부 데이터는 자주 안 바뀜 (일/주 단위)
- *  - AsyncStorage 1시간 캐싱
- *  - 1.2 백엔드 도입 후엔 Cloudflare Workers 가 캐싱 (앱은 그 결과만)
- *
- * ## 보안
- *  - 인증키는 .env 또는 빌드 시 주입
- *  - 출시 빌드에서는 Cloudflare Workers 경유 권장 (키 노출 X)
+ * 캐싱 전략:
+ *  - AsyncStorage 1시간 캐싱 (오프라인 대응 + 호출 빈도 ↓)
+ *  - Workers 도 자체적으로 15분 캐시 → 사실상 이중 캐시
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TravelAdvisory, AdvisoryLevel } from '@/data/safety/types';
 
-const API_BASE = 'https://apis.data.go.kr/1262000/TravelAlarmService2';
-const ENDPOINT = '/getTravelAlarmList2';
+// Cloudflare Workers 백엔드 (triplive-api)
+const API_BASE = 'https://triplive-api.roundhouse04.workers.dev';
 
-/**
- * 인증키 — Phase 1 임시 (앱 빌드에 포함됨, Cloudflare 백엔드 도입 전까지)
- * Phase 2 부터는 백엔드가 키 관리 + 앱은 백엔드 URL 만 호출
- *
- * ⚠️ 보안: 이 키는 1.2 출시 직전 data.go.kr 에서 재발급 후
- *         Cloudflare Workers Secret 으로 옮길 것
- */
-const TEMP_SERVICE_KEY =
-  '339437c3bdb393b6de02e60c22d1b943918a4a42ec300726c2e957876d13fe39';
-
-const CACHE_KEY = 'mofa_travel_advisories_v1';
+const CACHE_KEY = 'mofa_travel_advisories_v2'; // v2 — Worker 응답 포맷으로 변경
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
 
 interface CachedData {
   advisories: TravelAdvisory[];
-  fetchedAt: number; // epoch ms
+  fetchedAt: number;
 }
 
-interface MofaApiItem {
-  country_iso_alp2: string;
-  country_nm: string;
-  country_eng_nm?: string;
-  alarm_lvl: string | number;
-  mapDownloadUrl?: string;
-  remark?: string;
-  written_dt?: string;
-}
-
-interface MofaApiResponse {
-  response?: {
-    header?: {
-      resultCode?: string;
-      resultMsg?: string;
-    };
-    body?: {
-      items?: MofaApiItem[];
-      totalCount?: number;
-      numOfRows?: number;
-      pageNo?: number;
-    };
-  };
+// Workers 응답 포맷 (worker.ts handleAdvisoriesList)
+interface WorkerAdvisoryRow {
+  country_code: string;
+  country_name: string;
+  level: number;
+  message: string | null;
+  updated_at: number; // unix ms
 }
 
 /**
- * 외교부 전체 여행경보 조회 (모든 국가)
+ * 전체 여행경보 조회 — Worker 캐시 → 로컬 캐시 → 빈 배열
  *
- * @param force true 면 캐시 무시하고 강제 fetch
- * @returns 전체 국가의 여행경보 목록
+ * @param force true 면 로컬 캐시 무시 + Worker 새로 호출
  */
 export async function fetchAllAdvisories(force = false): Promise<TravelAdvisory[]> {
-  // 1) 캐시 확인
   if (!force) {
     const cached = await loadCache();
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
@@ -84,53 +51,50 @@ export async function fetchAllAdvisories(force = false): Promise<TravelAdvisory[
     }
   }
 
-  // 2) 외교부 API 호출 (전체 = numOfRows 충분히 크게)
-  const url =
-    `${API_BASE}${ENDPOINT}` +
-    `?ServiceKey=${TEMP_SERVICE_KEY}` +
-    `&numOfRows=300` + // 전 세계 국가 약 200 < 300
-    `&pageNo=1` +
-    `&returnType=JSON`;
-
   try {
-    const res = await fetch(url);
+    const res = await fetch(`${API_BASE}/advisories`);
     if (!res.ok) {
-      console.warn(`[mofa] HTTP ${res.status} — using cache or empty`);
+      console.warn(`[mofa] worker HTTP ${res.status} — 로컬 캐시 fallback`);
       const cached = await loadCache();
       return cached?.advisories ?? [];
     }
-
-    const json = (await res.json()) as MofaApiResponse;
-    const items = json.response?.body?.items ?? [];
-    const advisories = items.map(mapApiItemToAdvisory);
-
-    // 3) 캐시 저장
+    const json = (await res.json()) as { advisories: WorkerAdvisoryRow[]; count: number };
+    const advisories = json.advisories.map(mapWorkerRowToAdvisory);
     await saveCache(advisories);
     return advisories;
   } catch (err) {
-    console.warn('[mofa] fetch failed:', err);
+    console.warn('[mofa] worker fetch failed:', err);
     const cached = await loadCache();
     return cached?.advisories ?? [];
   }
 }
 
-/**
- * 특정 국가의 여행경보 조회
- *
- * @param countryCode ISO 2자리 (예: 'JP', 'TH')
- */
+/** 특정 국가 advisory — Worker 의 /advisories/:cc 직접 호출 (개별 화면용) */
 export async function fetchAdvisoryByCountry(
   countryCode: string,
 ): Promise<TravelAdvisory | undefined> {
-  const all = await fetchAllAdvisories();
-  return all.find((a) => a.countryCode === countryCode.toUpperCase());
+  const code = countryCode.toUpperCase();
+
+  // 로컬 캐시에 있으면 그것 사용
+  const cached = await loadCache();
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    const hit = cached.advisories.find((a) => a.countryCode === code);
+    if (hit) return hit;
+  }
+
+  // 단일 조회는 Workers /advisories/:cc 호출 (가벼움)
+  try {
+    const res = await fetch(`${API_BASE}/advisories/${code}`);
+    if (res.status === 404) return undefined;
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { advisory: WorkerAdvisoryRow | null };
+    return json.advisory ? mapWorkerRowToAdvisory(json.advisory) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-/**
- * 위험 단계 N 이상인 국가만 필터
- *
- * @param minLevel 최소 경보 단계 (예: 2 면 황색·적색·흑색만)
- */
+/** 위험 단계 N 이상 — 메인 화면 "고위험 국가" 섹션용 */
 export async function fetchHighRiskCountries(
   minLevel: AdvisoryLevel = 2,
 ): Promise<TravelAdvisory[]> {
@@ -139,23 +103,31 @@ export async function fetchHighRiskCountries(
 }
 
 // ──────────────────────────────────────────────────────────
-// 내부 — 매핑 / 캐시
+// 내부
 // ──────────────────────────────────────────────────────────
 
-function mapApiItemToAdvisory(item: MofaApiItem): TravelAdvisory {
-  // alarm_lvl 은 외교부 API 에서 "0" ~ "4" 문자열로 옴
-  const lvlNum = parseInt(String(item.alarm_lvl), 10);
-  const level: AdvisoryLevel =
-    Number.isFinite(lvlNum) && lvlNum >= 0 && lvlNum <= 4 ? (lvlNum as AdvisoryLevel) : 0;
-
+function mapWorkerRowToAdvisory(row: WorkerAdvisoryRow): TravelAdvisory {
+  const lvl = Math.max(0, Math.min(4, row.level)) as AdvisoryLevel;
   return {
-    countryCode: item.country_iso_alp2,
-    countryName: item.country_nm,
-    level,
-    message: item.remark ?? '',
-    updatedAt: item.written_dt ?? new Date().toISOString(),
+    countryCode: row.country_code,
+    countryName: row.country_name,
+    level: lvl,
+    message: cleanHtmlEntities(row.message ?? ''),
+    updatedAt: new Date(row.updated_at).toISOString(),
     source: 'mofa.go.kr',
   };
+}
+
+/** 외교부 데이터에 섞인 HTML entity 정리 (&middot; 등) */
+function cleanHtmlEntities(s: string): string {
+  return s
+    .replace(/&middot;/g, '·')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
 }
 
 async function loadCache(): Promise<CachedData | null> {
@@ -170,27 +142,17 @@ async function loadCache(): Promise<CachedData | null> {
 
 async function saveCache(advisories: TravelAdvisory[]): Promise<void> {
   try {
-    const data: CachedData = {
-      advisories,
-      fetchedAt: Date.now(),
-    };
+    const data: CachedData = { advisories, fetchedAt: Date.now() };
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
   } catch (err) {
     console.warn('[mofa] cache save failed:', err);
   }
 }
 
-/**
- * 캐시 강제 삭제 (사용자가 "새로고침" 누를 때)
- */
 export async function clearAdvisoryCache(): Promise<void> {
   await AsyncStorage.removeItem(CACHE_KEY);
 }
 
-/**
- * 현재 캐시된 데이터의 fetched 시각 (UI 표시용)
- *  - "1시간 전 업데이트" 같은 표시
- */
 export async function getCacheAge(): Promise<{ ageMs: number; fetchedAt: number } | null> {
   const cached = await loadCache();
   if (!cached) return null;
