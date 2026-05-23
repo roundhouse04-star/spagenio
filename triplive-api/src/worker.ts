@@ -162,6 +162,16 @@ async function handleAlertsByCountry(env: Env, code: string): Promise<Response> 
   return jsonResponse({ alerts: results, count: results.length });
 }
 
+async function handleAlertsAll(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    `SELECT id, country_code, title, body, category, severity, published_at
+     FROM safety_alerts
+     ORDER BY published_at DESC
+     LIMIT 50`
+  ).all();
+  return jsonResponse({ alerts: results, count: results.length });
+}
+
 // ─── /health ────────────────────────────────────────────────────────────
 
 async function handleHealth(env: Env): Promise<Response> {
@@ -416,6 +426,152 @@ async function sendExpoPushBatch(
   return sentOk;
 }
 
+// ─── 외교부 안전공지 (인프라 완성, 정식 API 대기중) ──────────────────
+// 0404.go.kr HTML 스크래핑은 한국 정부 사이트의 외부 IP 차단(525 SSL handshake fail)으로 불가.
+// 1.3 에서 외교부 공공데이터 안전공지 API 추가 신청 후 endpoint 만 교체하면 즉시 활성.
+// 현재는 폴링 함수가 일시적으로 0 fetched 반환 → cron 은 영향 없음.
+
+const NOTICE_LIST_URL = 'https://www.0404.go.kr/bbs/safetyNtc/list';
+
+// 한글 국가명 → ISO 2자리 (안전공지 제목 매칭용, 점진 확장)
+const KO_COUNTRY_TO_ISO: Record<string, string> = {
+  과테말라: 'GT', 일본: 'JP', 미국: 'US', 중국: 'CN', 태국: 'TH', 베트남: 'VN',
+  필리핀: 'PH', 인도네시아: 'ID', 싱가포르: 'SG', 말레이시아: 'MY', 대만: 'TW',
+  홍콩: 'HK', 영국: 'GB', 프랑스: 'FR', 독일: 'DE', 이탈리아: 'IT', 스페인: 'ES',
+  네덜란드: 'NL', 호주: 'AU', 뉴질랜드: 'NZ', 캐나다: 'CA', 멕시코: 'MX',
+  브라질: 'BR', 아르헨티나: 'AR', 칠레: 'CL', 페루: 'PE', 베네수엘라: 'VE',
+  콜롬비아: 'CO', 우크라이나: 'UA', 러시아: 'RU', 튀르키예: 'TR', 터키: 'TR',
+  이스라엘: 'IL', 시리아: 'SY', 이라크: 'IQ', 이란: 'IR', 사우디: 'SA',
+  아랍에미리트: 'AE', UAE: 'AE', 이집트: 'EG', 모로코: 'MA', 남아공: 'ZA',
+  케냐: 'KE', 인도: 'IN', 파키스탄: 'PK', 방글라데시: 'BD', 네팔: 'NP',
+  미얀마: 'MM', 캄보디아: 'KH', 라오스: 'LA', 몽골: 'MN', 카자흐스탄: 'KZ',
+  우즈베키스탄: 'UZ', 그리스: 'GR', 포르투갈: 'PT', 스위스: 'CH', 오스트리아: 'AT',
+  체코: 'CZ', 헝가리: 'HU', 폴란드: 'PL', 스웨덴: 'SE', 노르웨이: 'NO',
+  덴마크: 'DK', 핀란드: 'FI', 아일랜드: 'IE', 벨기에: 'BE', 룩셈부르크: 'LU',
+  레바논: 'LB', 요르단: 'JO', 예멘: 'YE', 소말리아: 'SO', 리비아: 'LY',
+  아프가니스탄: 'AF',
+};
+
+interface ScrapedNotice {
+  id: string;            // ATC{N}
+  title: string;
+  category: string;      // '주의' / '긴급' / null
+  countryCode: string | null;
+  publishedAt: number;   // 추정 (현재 시각으로 충분 — 새 공지 위주)
+}
+
+function detectCountryFromTitle(title: string): string | null {
+  for (const [ko, iso] of Object.entries(KO_COUNTRY_TO_ISO)) {
+    if (title.includes(ko)) return iso;
+  }
+  return null;
+}
+
+async function scrapeSafetyNotices(): Promise<ScrapedNotice[]> {
+  const res = await fetch(NOTICE_LIST_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 Triplive/1.2 (+safety)' },
+  });
+  if (!res.ok) throw new Error(`0404 fetch failed: ${res.status}`);
+  const html = await res.text();
+
+  // <a href="/bbs/safetyNtc/ATCxxxx/detail" class="btn title"> ... [optional tag] ... title text </a>
+  const re = /<a href="\/bbs\/safetyNtc\/(ATC\d+)\/detail"[^>]*>([\s\S]*?)<\/a>/g;
+  const notices: ScrapedNotice[] = [];
+  const now = Date.now();
+  let match;
+  while ((match = re.exec(html))) {
+    const id = match[1];
+    const inner = match[2];
+
+    // 카테고리 추출 (<span class="box-tag-01">주의</span> 등)
+    const tagMatch = inner.match(/<span[^>]*class="box-tag[^"]*"[^>]*>([\s\S]*?)<\/span>/);
+    const category = tagMatch ? tagMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
+    // 제목 — 태그 제거 후 trim
+    const titleRaw = inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const title = titleRaw.replace(/^주의\s*|^긴급\s*|^신속\s*/, '').trim();
+    if (!title || title.length < 5) continue;
+
+    notices.push({
+      id,
+      title,
+      category,
+      countryCode: detectCountryFromTitle(title),
+      publishedAt: now,
+    });
+    if (notices.length >= 30) break; // 최근 30개만
+  }
+  return notices;
+}
+
+async function pollSafetyNotices(env: Env): Promise<{ fetched: number; newCount: number }> {
+  const notices = await scrapeSafetyNotices();
+  if (notices.length === 0) return { fetched: 0, newCount: 0 };
+
+  const now = Date.now();
+  const stmt = env.DB.prepare(
+    `INSERT OR IGNORE INTO safety_alerts
+     (id, country_code, title, body, category, severity, published_at, fetched_at, notified)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, 0)`
+  );
+  const batch = notices.map((n) =>
+    stmt.bind(
+      n.id,
+      n.countryCode,
+      n.title,
+      null,
+      n.category || '안전공지',
+      n.category === '긴급' ? 'critical' : n.category === '주의' ? 'warning' : 'info',
+      n.publishedAt
+    )
+  );
+  const results = await env.DB.batch(batch);
+  // INSERT OR IGNORE 의 changes 합산 = 실제 신규 row 수
+  const newCount = results.reduce((sum, r) => sum + ((r.meta as any)?.changes ?? 0), 0);
+  return { fetched: notices.length, newCount };
+}
+
+async function pushNoticeAlerts(env: Env): Promise<{ matched: number; sent: number }> {
+  // 아직 notified=0 이고 국가 매칭되는 공지만 처리
+  const { results: pending } = await env.DB.prepare(
+    `SELECT id, country_code, title, severity FROM safety_alerts
+     WHERE notified = 0 AND country_code IS NOT NULL
+     ORDER BY published_at DESC LIMIT 30`
+  ).all<{ id: string; country_code: string; title: string; severity: string }>();
+
+  if (pending.length === 0) return { matched: 0, sent: 0 };
+
+  let totalSent = 0;
+  for (const alert of pending) {
+    const { results: targets } = await env.DB.prepare(
+      `SELECT d.expo_token, d.locale
+       FROM device_countries dc
+       JOIN devices d ON d.expo_token = dc.expo_token
+       WHERE dc.country_code = ?1 AND d.push_enabled = 1`
+    )
+      .bind(alert.country_code)
+      .all<{ expo_token: string; locale: string }>();
+
+    if (targets.length > 0) {
+      const emoji = alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : '📢';
+      const messages = targets.map((t) => ({
+        to: t.expo_token,
+        title: `${emoji} ${alert.country_code} 안전공지`,
+        body: alert.title.slice(0, 200),
+        data: { type: 'safety_alert', alertId: alert.id, countryCode: alert.country_code },
+        sound: 'default',
+        priority: 'high' as const,
+      }));
+      totalSent += await sendExpoPushBatch(env, messages, { alertId: alert.id });
+    }
+    // 매칭 디바이스 유무 무관하게 notified=1 (반복 전송 방지)
+    await env.DB.prepare(`UPDATE safety_alerts SET notified = 1 WHERE id = ?1`)
+      .bind(alert.id)
+      .run();
+  }
+  return { matched: pending.length, sent: totalSent };
+}
+
 // ─── Cron Handler ──────────────────────────────────────────────────────
 
 async function runCronJob(env: Env): Promise<{ ok: boolean; details: any }> {
@@ -424,7 +580,18 @@ async function runCronJob(env: Env): Promise<{ ok: boolean; details: any }> {
     const since = started - 16 * 60 * 1000; // 마지막 16분 변경 분만
     const adv = await pollMofaAdvisories(env);
     const push = await pushAdvisoryChanges(env, since);
-    const details = { ...adv, ...push };
+
+    // 외교부 안전공지 (HTML 스크래핑)
+    let notice = { fetched: 0, newCount: 0 };
+    let noticePush = { matched: 0, sent: 0 };
+    try {
+      notice = await pollSafetyNotices(env);
+      noticePush = await pushNoticeAlerts(env);
+    } catch (err) {
+      console.warn('[notice] failed:', err instanceof Error ? err.message : String(err));
+    }
+
+    const details = { ...adv, ...push, notice, noticePush };
     await env.DB.prepare(
       `INSERT INTO cron_log (job, status, details, started_at, finished_at)
        VALUES ('mofa_poll', 'ok', ?1, ?2, ?3)`
@@ -463,6 +630,7 @@ export default {
       if (req.method === 'GET' && pathname === '/advisories') return handleAdvisoriesList(env);
       const advMatch = pathname.match(/^\/advisories\/([A-Za-z]{2})$/);
       if (req.method === 'GET' && advMatch) return handleAdvisoryByCountry(env, advMatch[1]);
+      if (req.method === 'GET' && pathname === '/alerts') return handleAlertsAll(env);
       const alertMatch = pathname.match(/^\/alerts\/([A-Za-z]{2})$/);
       if (req.method === 'GET' && alertMatch) return handleAlertsByCountry(env, alertMatch[1]);
       if (req.method === 'GET' && pathname === '/health') return handleHealth(env);
@@ -476,6 +644,7 @@ export default {
         const result = await runCronJob(env);
         return jsonResponse(result);
       }
+
 
       return jsonResponse({ error: 'not_found', path: pathname }, { status: 404 });
     } catch (err) {
