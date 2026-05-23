@@ -1,0 +1,38 @@
+# Triplive 안전 백엔드
+#
+# 환경:
+#  - DB 1개: triplive-safety (D1)
+#  - Cron: */15 * * * * — 외교부 안전공지 / 여행경보 폴링
+#  - Secret: MOFA_SERVICE_KEY (외교부 인증키, `wrangler secret put` 으로 입력)
+#
+# 무료 한도:
+#  - Workers Free: 100k req/일
+#  - D1 Free: 5GB storage, 5M reads/일, 100k writes/일
+#  - Cron: 무료
+
+name = "triplive-api"
+main = "src/worker.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 데이터베이스 바인딩
+[[d1_databases]]
+binding = "DB"
+database_name = "triplive-safety"
+database_id = "13f6bd42-5083-44dc-b421-216a88087df9"
+
+# Cron Trigger — 15분마다 외교부 폴링
+[triggers]
+crons = ["*/15 * * * *"]
+
+# 공개 변수 (안전, secret 아님)
+[vars]
+MOFA_BASE_URL = "https://apis.data.go.kr/1262000"
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+ENVIRONMENT = "production"
+
+# Secret 으로 등록할 항목 (직접 wrangler secret put 명령 사용):
+#  - MOFA_SERVICE_KEY: 외교부 공공데이터 인증키
+
+[observability]
+enabled = true

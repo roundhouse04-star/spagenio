@@ -1,0 +1,21 @@
+{
+  "name": "triplive-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Triplive 1.2 안전 — Cloudflare Workers 백엔드 (외교부 폴링 + Expo Push 전송)",
+  "main": "src/worker.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "d1:schema": "wrangler d1 execute triplive-safety --remote --file=./schema.sql",
+    "d1:schema:local": "wrangler d1 execute triplive-safety --local --file=./schema.sql",
+    "secret:mofa": "wrangler secret put MOFA_SERVICE_KEY",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240821.1",
+    "typescript": "^5.5.4",
+    "wrangler": "^4.85.0"
+  }
+}
