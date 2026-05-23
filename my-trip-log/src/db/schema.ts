@@ -4,7 +4,7 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
@@ -187,6 +187,18 @@ CREATE TABLE IF NOT EXISTS tickets (
 );
 CREATE INDEX IF NOT EXISTS idx_tickets_trip ON tickets(trip_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_use_date ON tickets(use_date);
+
+-- 1.2 안전 Phase 2: 푸시 알림용 디바이스 토큰
+-- 단일 row 유지 (PK=1) — 토큰 갱신 시 UPDATE
+CREATE TABLE IF NOT EXISTS push_tokens (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  expo_token TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  device_id TEXT,
+  synced_to_server INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 `;
 
 // 기존 사용자를 위한 마이그레이션 (신규 설치는 위 CREATE_TABLES_SQL로 처리됨)
@@ -244,6 +256,20 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
     version: 6,
     sql: `
       ALTER TABLE trips ADD COLUMN city_id TEXT;
+    `,
+  },
+  {
+    version: 7,
+    sql: `
+      CREATE TABLE IF NOT EXISTS push_tokens (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        expo_token TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        device_id TEXT,
+        synced_to_server INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
     `,
   },
 ];

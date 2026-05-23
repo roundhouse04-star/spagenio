@@ -186,6 +186,8 @@ export async function resetDatabase(): Promise<void> {
       DROP TABLE IF EXISTS exchange_rates_cache;
       DROP TABLE IF EXISTS bookmarks;
       DROP TABLE IF EXISTS app_meta;
+      DROP TABLE IF EXISTS tickets;
+      DROP TABLE IF EXISTS push_tokens;
     `);
   });
   await initializeDatabase();

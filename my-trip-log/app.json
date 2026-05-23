@@ -24,6 +24,9 @@
         "NSPhotoLibraryAddUsageDescription": "여행 회고를 사진앱에 저장하기 위해 사진 라이브러리 쓰기 권한이 필요합니다.",
         "NSCameraUsageDescription": "여행 기록에 사진을 촬영하기 위해 카메라 접근이 필요합니다.",
         "NSLocationWhenInUseUsageDescription": "현재 위치를 여행 기록에 추가하기 위해 위치 접근이 필요합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "여행 중 위험 지역 진입 시 안전 알림을 보내기 위해 백그라운드에서도 위치가 필요합니다. 거부해도 앱 사용에는 문제 없습니다.",
+        "NSLocationAlwaysUsageDescription": "여행 중 위험 지역 진입 시 안전 알림을 보내기 위해 백그라운드에서도 위치가 필요합니다.",
+        "UIBackgroundModes": ["location", "fetch", "remote-notification"],
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
       }
@@ -39,6 +42,10 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
         "com.google.android.gms.permission.AD_ID"
       ]
     },
@@ -77,6 +84,22 @@
           "cameraPermission": "공유받은 일정 QR 코드를 스캔하기 위해 카메라 접근이 필요합니다.",
           "microphonePermission": false,
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "여행 중 위험 지역 진입 시 안전 알림을 보내기 위해 백그라운드에서도 위치가 필요합니다. 거부해도 앱 사용에는 문제 없습니다.",
+          "locationWhenInUsePermission": "현재 위치를 여행 기록에 추가하기 위해 위치 접근이 필요합니다.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1E2A3A"
         }
       ],
       "expo-font",

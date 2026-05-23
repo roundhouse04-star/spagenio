@@ -31,6 +31,7 @@ import { setupGlobalFont } from '@/utils/globalFont';
 import { incrementLaunchCount, maybePromptReview } from '@/utils/storeReview';
 import { checkRateAlerts } from '@/utils/rateAlerts';
 import { initializeAdMob } from '@/utils/admobInit';
+import { registerExpoPushToken } from '@/utils/pushToken';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -80,6 +81,9 @@ export default function RootLayout() {
           }).catch(() => undefined);
           // 환율 목표가 알림 체크 (백그라운드, 도달 시 로컬 알림)
           setTimeout(() => { checkRateAlerts().catch(() => undefined); }, 2000);
+          // 1.2 안전 Phase 2: Expo Push Token 등록 (이미 알림 권한 있으면 prompt 없음).
+          // Cloudflare Workers 셋업 전이라도 토큰은 미리 받아두면 sync 즉시 가능.
+          setTimeout(() => { registerExpoPushToken().catch(() => undefined); }, 2500);
         }
         // AdMob 초기화 + iOS ATT 다이얼로그
         // Apple 심사 정책: ATT 는 데이터 수집(닉네임/약관 등) 전에 무조건 표시돼야 함.
