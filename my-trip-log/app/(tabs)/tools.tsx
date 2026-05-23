@@ -331,6 +331,17 @@ export default function ToolsScreen() {
             </View>
             <Text style={styles.linkArrow}>›</Text>
           </Pressable>
+          <Pressable
+            style={styles.linkCard}
+            onPress={() => { haptic.tap(); router.push('/safety' as any); }}
+          >
+            <Text style={styles.linkIcon}>🛡</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkLabel}>여행 안전</Text>
+              <Text style={styles.linkDesc}>외교부 경보 · 대사관 · 비상 가이드</Text>
+            </View>
+            <Text style={styles.linkArrow}>›</Text>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>🚇 지하철 노선도</Text>

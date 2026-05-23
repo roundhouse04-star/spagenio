@@ -307,6 +307,7 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: '#000' },
             }}
           />
+          <Stack.Screen name="safety/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/timezone" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/emergency" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/visa" options={{ animation: 'slide_from_right' }} />

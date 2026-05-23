@@ -41,6 +41,22 @@ export async function getTripById(id: number): Promise<Trip | null> {
   return row ? rowToTrip(row) : null;
 }
 
+/**
+ * 현재 진행 중인 여행 (status='ongoing') 1건 반환.
+ * 여러 개면 가장 최근 시작된 것.
+ *
+ * 1.2 여행 안전 기능에서 활용:
+ *  - 메인 화면 위험 알림 배너 (어느 국가 경보를 표시할지)
+ *  - 안전 메뉴 진입 시 자동으로 해당 국가 정보 노출
+ */
+export async function getActiveTrip(): Promise<Trip | null> {
+  const db = await getDB();
+  const row = await db.getFirstAsync<any>(
+    `SELECT * FROM trips WHERE status = 'ongoing' ORDER BY start_date DESC LIMIT 1`,
+  );
+  return row ? rowToTrip(row) : null;
+}
+
 export async function createTrip(data: Partial<Trip>): Promise<number> {
   const db = await getDB();
   const now = new Date().toISOString();
