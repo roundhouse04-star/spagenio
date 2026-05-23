@@ -193,6 +193,88 @@ interface MofaAdvisoryItem {
   alarm_lvl?: string;
   travel_warn?: string;
   txt_origin_cn?: string;
+  region_ty?: string; // '전체' | '일부'
+  remark?: string;
+}
+
+interface CountryAggregate {
+  code: string;
+  name: string;
+  baseLevel: number;
+  baseLabel: string | null;
+  message: string;
+}
+
+/**
+ * 외교부는 region 별로 여러 row 를 보냄 (예: 태국은 lvl 1/2/3 row 3개).
+ * 국가 단위로 집계하여 "기본 level + 위험 region 메시지" 형태로 변환.
+ *
+ * 알고리즘:
+ *  1. region_ty='전체' row 있으면 그게 국가 기본 level (1순위)
+ *  2. 없으면 remark 에 "제외 / 이외 / 외" 가 있는 광범위 row 가 기본 (태국 케이스)
+ *  3. 둘 다 없으면 → 국가 기본 lvl 0 (안전) + 메시지에 위험 region 정보 (일본 케이스)
+ */
+function aggregateByCountry(items: MofaAdvisoryItem[]): CountryAggregate[] {
+  const grouped = new Map<string, MofaAdvisoryItem[]>();
+  for (const it of items) {
+    if (!it.country_iso_alp2) continue;
+    const code = it.country_iso_alp2.toUpperCase();
+    const arr = grouped.get(code) ?? [];
+    arr.push(it);
+    grouped.set(code, arr);
+  }
+
+  const result: CountryAggregate[] = [];
+  for (const [code, rows] of grouped) {
+    const name = rows[0].country_nm ?? code;
+
+    // 1순위: 전체 row
+    const wholeRow = rows.find((r) => r.region_ty === '전체');
+    if (wholeRow) {
+      result.push({
+        code,
+        name,
+        baseLevel: parseLevel(wholeRow.alarm_lvl),
+        baseLabel: wholeRow.alarm_lvl ?? null,
+        message: wholeRow.remark ?? '',
+      });
+      continue;
+    }
+
+    // 2순위: "제외/이외/외" 패턴 (사실상 "기본") row
+    const broadRow = rows.find((r) => r.remark && /제외|이외|외\s*지역|및 외/.test(r.remark));
+    if (broadRow) {
+      // 같은 국가의 더 위험한 region 메시지 부착
+      const dangerousRegions = rows
+        .filter((r) => r !== broadRow && parseLevel(r.alarm_lvl) > parseLevel(broadRow.alarm_lvl))
+        .map((r) => `[${levelLabel(parseLevel(r.alarm_lvl))}] ${r.remark ?? ''}`)
+        .join(' · ');
+      const base = parseLevel(broadRow.alarm_lvl);
+      result.push({
+        code,
+        name,
+        baseLevel: base,
+        baseLabel: broadRow.alarm_lvl ?? null,
+        message: dangerousRegions
+          ? `${broadRow.remark}\n특별 위험 지역: ${dangerousRegions}`
+          : broadRow.remark ?? '',
+      });
+      continue;
+    }
+
+    // 3순위: 일부 region 만 있고 기본 row 없음 → 국가 자체는 lvl 0, region 메시지만
+    const partial = rows
+      .map((r) => `[${levelLabel(parseLevel(r.alarm_lvl))}] ${r.remark ?? ''}`)
+      .join(' · ');
+    result.push({
+      code,
+      name,
+      baseLevel: 0,
+      baseLabel: '0',
+      message: `일부 지역만 경보 — ${partial}`,
+    });
+  }
+  return result;
 }
 
 async function pollMofaAdvisories(env: Env): Promise<{ fetched: number; updated: number }> {
@@ -205,8 +287,8 @@ async function pollMofaAdvisories(env: Env): Promise<{ fetched: number; updated:
   const json = (await res.json()) as any;
   const items: MofaAdvisoryItem[] = json?.response?.body?.items?.item ?? json?.data ?? [];
 
+  const aggregated = aggregateByCountry(items);
   const now = Date.now();
-  let updated = 0;
   const stmt = env.DB.prepare(
     `INSERT INTO advisories (country_code, country_name, level, level_str, message, updated_at, fetched_at)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)
@@ -219,27 +301,13 @@ async function pollMofaAdvisories(env: Env): Promise<{ fetched: number; updated:
        fetched_at = excluded.fetched_at`
   );
 
-  const batch: D1PreparedStatement[] = [];
-  for (const it of items) {
-    if (!it.country_iso_alp2) continue;
-    const code = it.country_iso_alp2.toUpperCase();
-    const level = parseLevel(it.alarm_lvl ?? it.travel_warn);
-    batch.push(
-      stmt.bind(
-        code,
-        it.country_nm ?? code,
-        level,
-        it.alarm_lvl ?? it.travel_warn ?? null,
-        it.txt_origin_cn ?? null,
-        now
-      )
-    );
-    updated += 1;
-  }
+  const batch: D1PreparedStatement[] = aggregated.map((a) =>
+    stmt.bind(a.code, a.name, a.baseLevel, a.baseLabel, a.message, now)
+  );
   if (batch.length > 0) {
     await env.DB.batch(batch);
   }
-  return { fetched: items.length, updated };
+  return { fetched: items.length, updated: aggregated.length };
 }
 
 function parseLevel(raw: string | undefined | null): number {
