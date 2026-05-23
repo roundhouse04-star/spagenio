@@ -10,6 +10,7 @@ import { User, Trip } from '@/types';
 import { getSuggestions, type CitySuggestion } from '@/utils/tripSuggestions';
 import { getCityDisplayName, getCityFlag, getHighlightsByCity } from '@/data/cityHighlights';
 import { getCityImageUrl } from '@/utils/cityImages';
+import { SafetyBanner } from '@/components/safety/SafetyBanner';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -95,6 +96,14 @@ export default function HomeScreen() {
             <Text style={styles.name}>{user?.nickname ?? '여행자'}님</Text>
           </View>
         </View>
+
+        {/* 진행중 트립 안전 배너 — 2단계(여행자제) 이상일 때만 표시 */}
+        {ongoingTrip?.countryCode && (
+          <SafetyBanner
+            countryCode={ongoingTrip.countryCode}
+            tripTitle={ongoingTrip.title}
+          />
+        )}
 
         {/* 진행 중인 여행 */}
         {ongoingTrip && (

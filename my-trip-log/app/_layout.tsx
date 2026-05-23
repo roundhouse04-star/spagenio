@@ -308,6 +308,11 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="safety/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="safety/advisory" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="safety/alerts" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="safety/diseases" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="safety/embassies" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="safety/emergency" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/timezone" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/emergency" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="tools/visa" options={{ animation: 'slide_from_right' }} />
