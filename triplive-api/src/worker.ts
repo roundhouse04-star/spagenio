@@ -426,12 +426,13 @@ async function sendExpoPushBatch(
   return sentOk;
 }
 
-// ─── 외교부 안전공지 (인프라 완성, 정식 API 대기중) ──────────────────
-// 0404.go.kr HTML 스크래핑은 한국 정부 사이트의 외부 IP 차단(525 SSL handshake fail)으로 불가.
-// 1.3 에서 외교부 공공데이터 안전공지 API 추가 신청 후 endpoint 만 교체하면 즉시 활성.
-// 현재는 폴링 함수가 일시적으로 0 fetched 반환 → cron 은 영향 없음.
+// ─── 외교부 국가 안전공지 (CountryNoticeService) ───────────────────────
+// data.go.kr 외교부 안전공지 API. 사용자가 활용 신청 후 활성화 대기 중일 수 있음.
+// 403 Forbidden = endpoint 존재 + 키 권한 활성화 대기 → 1~24h 내 자동 활성화.
 
-const NOTICE_LIST_URL = 'https://www.0404.go.kr/bbs/safetyNtc/list';
+const COUNTRY_NOTICE_URL = (key: string) =>
+  `https://apis.data.go.kr/1262000/CountryNoticeService/getCountryNoticeList` +
+  `?serviceKey=${encodeURIComponent(key)}&returnType=JSON&numOfRows=50&pageNo=1`;
 
 // 한글 국가명 → ISO 2자리 (안전공지 제목 매칭용, 점진 확장)
 const KO_COUNTRY_TO_ISO: Record<string, string> = {
@@ -452,12 +453,35 @@ const KO_COUNTRY_TO_ISO: Record<string, string> = {
   아프가니스탄: 'AF',
 };
 
-interface ScrapedNotice {
-  id: string;            // ATC{N}
+interface NoticeItem {
+  id: string;            // 외교부 공지 ID (title_idx 또는 hash)
   title: string;
-  category: string;      // '주의' / '긴급' / null
+  body: string | null;
+  category: string;      // '주의' / '긴급' / '일반' 등
   countryCode: string | null;
-  publishedAt: number;   // 추정 (현재 시각으로 충분 — 새 공지 위주)
+  publishedAt: number;
+}
+
+// 외교부 CountryNoticeService 응답 (포맷 추정 — 활성화 후 검증 필요)
+interface MofaNoticeApiItem {
+  title?: string;
+  title_idx?: string | number;
+  country_iso_alp2?: string;
+  country_nm?: string;
+  txt_origin_cn?: string;   // 본문 (HTML 가능성)
+  written_dt?: string;      // YYYY-MM-DD HH:MM:SS
+  txt_emergency_step?: string; // 긴급도
+  url_alarm_inq?: string;   // 원문 URL
+}
+
+function parseNoticeDate(s: string | undefined): number {
+  if (!s) return Date.now();
+  // "2026-05-23 14:30:00" 또는 "20260523143000"
+  const iso = s.length === 14
+    ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(8, 10)}:${s.slice(10, 12)}:${s.slice(12, 14)}`
+    : s.replace(' ', 'T');
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : Date.now();
 }
 
 function detectCountryFromTitle(title: string): string | null {
@@ -467,62 +491,55 @@ function detectCountryFromTitle(title: string): string | null {
   return null;
 }
 
-async function scrapeSafetyNotices(): Promise<ScrapedNotice[]> {
-  const res = await fetch(NOTICE_LIST_URL, {
-    headers: { 'User-Agent': 'Mozilla/5.0 Triplive/1.2 (+safety)' },
-  });
-  if (!res.ok) throw new Error(`0404 fetch failed: ${res.status}`);
-  const html = await res.text();
-
-  // <a href="/bbs/safetyNtc/ATCxxxx/detail" class="btn title"> ... [optional tag] ... title text </a>
-  const re = /<a href="\/bbs\/safetyNtc\/(ATC\d+)\/detail"[^>]*>([\s\S]*?)<\/a>/g;
-  const notices: ScrapedNotice[] = [];
-  const now = Date.now();
-  let match;
-  while ((match = re.exec(html))) {
-    const id = match[1];
-    const inner = match[2];
-
-    // 카테고리 추출 (<span class="box-tag-01">주의</span> 등)
-    const tagMatch = inner.match(/<span[^>]*class="box-tag[^"]*"[^>]*>([\s\S]*?)<\/span>/);
-    const category = tagMatch ? tagMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-
-    // 제목 — 태그 제거 후 trim
-    const titleRaw = inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    const title = titleRaw.replace(/^주의\s*|^긴급\s*|^신속\s*/, '').trim();
-    if (!title || title.length < 5) continue;
-
-    notices.push({
-      id,
-      title,
-      category,
-      countryCode: detectCountryFromTitle(title),
-      publishedAt: now,
-    });
-    if (notices.length >= 30) break; // 최근 30개만
+async function fetchCountryNotices(env: Env): Promise<NoticeItem[]> {
+  const res = await fetch(COUNTRY_NOTICE_URL(env.MOFA_SERVICE_KEY));
+  if (!res.ok) throw new Error(`CountryNoticeService HTTP ${res.status}`);
+  const text = await res.text();
+  // 활성화 대기 중이면 "Forbidden" 같은 plain text 가 옴
+  if (!text.startsWith('{') && !text.startsWith('[')) {
+    throw new Error(`CountryNoticeService not JSON: ${text.slice(0, 80)}`);
   }
-  return notices;
+  const json = JSON.parse(text) as any;
+  const items: MofaNoticeApiItem[] = json?.response?.body?.items?.item ?? json?.data ?? [];
+
+  return items
+    .filter((it) => it.title && it.title.length > 5)
+    .map((it) => {
+      const isoFromField = it.country_iso_alp2?.toUpperCase();
+      const iso = isoFromField || detectCountryFromTitle(it.title ?? '');
+      const id = String(it.title_idx ?? `${it.country_iso_alp2 ?? ''}_${it.written_dt ?? ''}_${it.title?.slice(0, 30)}`);
+      return {
+        id,
+        title: it.title ?? '',
+        body: it.txt_origin_cn ?? null,
+        category: it.txt_emergency_step ?? '일반',
+        countryCode: iso ?? null,
+        publishedAt: parseNoticeDate(it.written_dt),
+      };
+    });
 }
 
 async function pollSafetyNotices(env: Env): Promise<{ fetched: number; newCount: number }> {
-  const notices = await scrapeSafetyNotices();
+  const notices = await fetchCountryNotices(env);
   if (notices.length === 0) return { fetched: 0, newCount: 0 };
 
   const now = Date.now();
   const stmt = env.DB.prepare(
     `INSERT OR IGNORE INTO safety_alerts
      (id, country_code, title, body, category, severity, published_at, fetched_at, notified)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, 0)`
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)`
   );
+  const fetchedAt = Date.now();
   const batch = notices.map((n) =>
     stmt.bind(
       n.id,
       n.countryCode,
       n.title,
-      null,
+      n.body,
       n.category || '안전공지',
-      n.category === '긴급' ? 'critical' : n.category === '주의' ? 'warning' : 'info',
-      n.publishedAt
+      n.category.includes('긴급') ? 'critical' : n.category.includes('주의') ? 'warning' : 'info',
+      n.publishedAt,
+      fetchedAt
     )
   );
   const results = await env.DB.batch(batch);
