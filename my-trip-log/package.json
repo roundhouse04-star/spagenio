@@ -8,9 +8,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "prebuild": "expo prebuild",
-    "build:ios": "eas build --platform ios",
-    "build:android": "eas build --platform android",
-    "build:all": "eas build --platform all",
+    "verify:transit": "node scripts/verify-transit.mjs",
+    "build:ios": "npm run verify:transit && eas build --platform ios",
+    "build:android": "npm run verify:transit && eas build --platform android",
+    "build:all": "npm run verify:transit && eas build --platform all",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
