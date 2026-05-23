@@ -4,7 +4,7 @@
  * 앱 설치 시 자동 생성되는 테이블들
  */
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const CREATE_TABLES_SQL = `
 -- 사용자 정보 (1명만)
@@ -270,6 +270,15 @@ export const MIGRATIONS: { version: number; sql: string }[] = [
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+    `,
+  },
+  {
+    version: 8,
+    // country_code 백필은 JS 에서 처리 (마이그레이션은 placeholder).
+    // app_meta 에 플래그 세팅 → _layout 에서 1회 backfillTripCountryCodes() 호출.
+    sql: `
+      INSERT OR REPLACE INTO app_meta (key, value, updated_at)
+      VALUES ('country_code_backfill_needed', '1', datetime('now'));
     `,
   },
 ];

@@ -16,6 +16,7 @@ import { findCityIdByName } from '@/data/cityHighlights';
 import { syncTripNotifications } from '@/utils/tripNotifications';
 import { syncTripCountriesToServer } from '@/utils/pushToken';
 import { syncDangerRegions, stopAllGeofencing } from '@/utils/safety/geofencing';
+import { inferCountryCode } from '@/utils/countryCodeLookup';
 import { getTripById } from '@/db/trips';
 
 export default function TripFormScreen() {
@@ -95,11 +96,18 @@ export default function TripFormScreen() {
       // 사용자가 자동완성에서 선택 안 했어도 입력 텍스트로 fuzzy 매칭 시도 (저장 시점)
       const finalCityId = cityId ?? findCityIdByName(city) ?? findCityIdByName(country) ?? null;
 
+      // 안전 기능 매칭의 핵심 — country_code (ISO 2자리) 자동 추론
+      const finalCountryCode = inferCountryCode({
+        cityId: finalCityId,
+        city: city.trim() || null,
+        country: country.trim() || null,
+      });
+
       if (isEdit && tripId) {
         // 수정
         await db.runAsync(
           `UPDATE trips SET
-            title = ?, country = ?, city = ?, city_id = ?,
+            title = ?, country = ?, country_code = ?, city = ?, city_id = ?,
             start_date = ?, end_date = ?,
             budget = ?, currency = ?, status = ?,
             updated_at = ?
@@ -107,6 +115,7 @@ export default function TripFormScreen() {
           [
             title.trim(),
             country.trim() || null,
+            finalCountryCode,
             city.trim() || null,
             finalCityId,
             startDate || null,
@@ -129,11 +138,12 @@ export default function TripFormScreen() {
         // 신규 생성
         const result = await db.runAsync(
           `INSERT INTO trips
-            (title, country, city, city_id, start_date, end_date, budget, currency, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (title, country, country_code, city, city_id, start_date, end_date, budget, currency, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             title.trim(),
             country.trim() || null,
+            finalCountryCode,
             city.trim() || null,
             finalCityId,
             startDate || null,

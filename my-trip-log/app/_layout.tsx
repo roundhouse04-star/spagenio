@@ -35,6 +35,7 @@ import { registerExpoPushToken, syncTripCountriesToServer } from '@/utils/pushTo
 // 부수효과 import — defineTask 가 모듈 import 시 호출됨 (앱 꺼져있어도 OS 가 task 호출 가능하게)
 import { syncDangerRegions } from '@/utils/safety/geofencing';
 import { getDB } from '@/db/database';
+import { maybeBackfillCountryCodes } from '@/utils/backfillCountryCodes';
 import { Colors } from '@/theme/theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -84,6 +85,9 @@ export default function RootLayout() {
           }).catch(() => undefined);
           // 환율 목표가 알림 체크 (백그라운드, 도달 시 로컬 알림)
           setTimeout(() => { checkRateAlerts().catch(() => undefined); }, 2000);
+          // 1.2 백필: 기존 트립의 country_code 자동 추론 (1회만)
+          maybeBackfillCountryCodes().catch(() => undefined);
+
           // 1.2 안전 Phase 2: Expo Push Token 등록 → Worker 동기화.
           // 토큰 발급 성공 시 진행/계획 트립 국가 목록을 같이 등록.
           setTimeout(async () => {
