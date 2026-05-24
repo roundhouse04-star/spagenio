@@ -426,13 +426,13 @@ async function sendExpoPushBatch(
   return sentOk;
 }
 
-// ─── 외교부 국가 안전공지 (CountryNoticeService) ───────────────────────
-// data.go.kr 외교부 안전공지 API. 사용자가 활용 신청 후 활성화 대기 중일 수 있음.
-// 403 Forbidden = endpoint 존재 + 키 권한 활성화 대기 → 1~24h 내 자동 활성화.
+// ─── 외교부 국가·지역별 안전공지 (CountrySafetyService, 데이터셋 15076239) ────
+// 사용자가 data.go.kr 에서 활용신청 완료. 자동승인이지만 키 권한 활성화에 시차 있음
+// (TravelAlarmService2 도 처음 24h 걸림). 403 Forbidden = 활성화 대기 중.
 
 const COUNTRY_NOTICE_URL = (key: string) =>
-  `https://apis.data.go.kr/1262000/CountryNoticeService/getCountryNoticeList` +
-  `?serviceKey=${encodeURIComponent(key)}&returnType=JSON&numOfRows=50&pageNo=1`;
+  `https://apis.data.go.kr/1262000/CountrySafetyService/getCountrySafetyList` +
+  `?ServiceKey=${encodeURIComponent(key)}&returnType=JSON&numOfRows=50&pageNo=1&country_nm=ALL`;
 
 // 한글 국가명 → ISO 2자리 (안전공지 제목 매칭용, 점진 확장)
 const KO_COUNTRY_TO_ISO: Record<string, string> = {
@@ -462,7 +462,7 @@ interface NoticeItem {
   publishedAt: number;
 }
 
-// 외교부 CountryNoticeService 응답 (포맷 추정 — 활성화 후 검증 필요)
+// 외교부 CountrySafetyService 응답 (포맷 추정 — 활성화 후 검증 필요)
 interface MofaNoticeApiItem {
   title?: string;
   title_idx?: string | number;
@@ -491,13 +491,13 @@ function detectCountryFromTitle(title: string): string | null {
   return null;
 }
 
-async function fetchCountryNotices(env: Env): Promise<NoticeItem[]> {
+async function fetchSafetyNotices(env: Env): Promise<NoticeItem[]> {
   const res = await fetch(COUNTRY_NOTICE_URL(env.MOFA_SERVICE_KEY));
-  if (!res.ok) throw new Error(`CountryNoticeService HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`CountrySafetyService HTTP ${res.status}`);
   const text = await res.text();
   // 활성화 대기 중이면 "Forbidden" 같은 plain text 가 옴
   if (!text.startsWith('{') && !text.startsWith('[')) {
-    throw new Error(`CountryNoticeService not JSON: ${text.slice(0, 80)}`);
+    throw new Error(`CountrySafetyService not JSON: ${text.slice(0, 80)}`);
   }
   const json = JSON.parse(text) as any;
   const items: MofaNoticeApiItem[] = json?.response?.body?.items?.item ?? json?.data ?? [];
@@ -520,7 +520,7 @@ async function fetchCountryNotices(env: Env): Promise<NoticeItem[]> {
 }
 
 async function pollSafetyNotices(env: Env): Promise<{ fetched: number; newCount: number }> {
-  const notices = await fetchCountryNotices(env);
+  const notices = await fetchSafetyNotices(env);
   if (notices.length === 0) return { fetched: 0, newCount: 0 };
 
   const now = Date.now();
