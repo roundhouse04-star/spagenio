@@ -71,7 +71,7 @@ export default function TermsScreen() {
 • 광고 수익은 앱 운영·서버 비용 충당에 사용됩니다.
 • iOS 14.5 이상 사용자는 추적 권한 동의 시 맞춤 광고가 표시되며, 거부 시 일반 광고가 표시됩니다 (앱 사용에 제한 없음).
 • 광고 추적은 iOS 설정 > 개인정보 보호 > 추적, Android 설정 > Google > 광고에서 언제든 변경 가능합니다.
-• 향후 출시 예정인 Triplive PRO 결제 시 광고 없이 사용 가능합니다.`}
+• Triplive PRO 결제 시 광고 없이 사용 가능합니다.`}
         </Section>
 
         <Section title="제 7조 (사용자의 의무)" styles={styles}>

@@ -85,7 +85,7 @@ export default function PrivacyScreen() {
   - iOS: 설정 > 개인정보 보호 > 추적
   - Android: 설정 > Google > 광고 > 광고 ID 재설정 / 맞춤 광고 사용 안 함
 • Google 개인정보 처리방침: https://policies.google.com/privacy
-• Triplive PRO 결제 시 광고가 표시되지 않습니다 (출시 예정).
+• Triplive PRO 결제 시 광고가 표시되지 않습니다.
 
 [도시 이미지]
 • 탐색 화면의 도시 대표 사진은 Wikipedia REST API를 통해 위키미디어 커먼즈에서 제공받습니다.
