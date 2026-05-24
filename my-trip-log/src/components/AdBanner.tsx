@@ -24,8 +24,7 @@ import { router } from 'expo-router';
 import { Typography } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { ADS_ENABLED, ADS_LIVE, AD_UNIT_IDS } from '@/config/ads';
-// [1.1 보류] PRO 체크 — 10월 사업자등록 후 복원
-// import { isProActive } from '@/utils/proStatus';
+import { isProActive } from '@/utils/proStatus';
 import { haptic } from '@/utils/haptics';
 
 // Conditional import — 패키지가 없어도 앱이 크래시 안 나게
@@ -55,25 +54,26 @@ type Props = {
 export function AdBanner({ onPress }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [pro, setPro] = useState(false);
 
-  // [1.1 보류] PRO 체크 — 10월 사업자등록 후 복원
-  // const [pro, setPro] = useState(false);
-  // useEffect(() => {
-  //   isProActive().then(setPro).catch(() => setPro(false));
-  // }, []);
-  // if (pro) return null;
+  useEffect(() => {
+    isProActive().then(setPro).catch(() => setPro(false));
+  }, []);
 
-  // [1.1 보류] "광고 제거" ✕ 버튼 — 10월 사업자등록 후 PRO 결제 화면으로 연결
-  // const removeAdsBtn = (
-  //   <Pressable
-  //     onPress={() => { haptic.tap(); router.push('/pro' as any); }}
-  //     style={styles.removeAdsBtn}
-  //     hitSlop={8}
-  //   >
-  //     <Text style={styles.removeAdsText}>광고 제거</Text>
-  //     <Text style={styles.removeAdsX}>✕</Text>
-  //   </Pressable>
-  // );
+  // PRO 사용자는 광고/플레이스홀더 모두 숨김
+  if (pro) return null;
+
+  // 광고 영역 우측 상단의 "광고 제거" ✕ 버튼 — 누르면 PRO 결제 화면
+  const removeAdsBtn = (
+    <Pressable
+      onPress={() => { haptic.tap(); router.push('/pro' as any); }}
+      style={styles.removeAdsBtn}
+      hitSlop={8}
+    >
+      <Text style={styles.removeAdsText}>광고 제거</Text>
+      <Text style={styles.removeAdsX}>✕</Text>
+    </Pressable>
+  );
 
   // 실광고/테스트광고 모드 (ADS_ENABLED + 패키지 설치됨)
   if (ADS_ENABLED && BannerAd && BannerAdSize && TestIds) {
@@ -95,17 +95,12 @@ export function AdBanner({ onPress }: Props) {
             requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           />
         </View>
-        {/* [1.1 보류] removeAdsBtn — PRO 결제 출시 후 복원 */}
+        {removeAdsBtn}
       </View>
     );
   }
 
-  // 플레이스홀더 모드 (Expo Go / 미빌드 환경 — 광고 SDK 없음)
-  // [1.1 보류] PRO 홍보 배너 → 빈 영역으로. 10월 후 복원.
-  // 정상 빌드 (production) 에서는 위 BannerAd 가 표시되므로 이 코드는 거의 도달 X.
-  return null;
-
-  /* [1.1 보류 — 10월 사업자등록 후 복원]
+  // 플레이스홀더 모드 (PRO 홍보 배너 — Expo Go / 미빌드)
   const Inner = (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -120,6 +115,7 @@ export function AdBanner({ onPress }: Props) {
     </View>
   );
 
+  // 플레이스홀더 자체를 누르면 PRO 화면으로
   return (
     <Pressable
       onPress={() => {
@@ -132,7 +128,6 @@ export function AdBanner({ onPress }: Props) {
       {Inner}
     </Pressable>
   );
-  */
 }
 
 function createStyles(c: ColorPalette) {
