@@ -78,7 +78,7 @@ export default function AdvisoryScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '국가별 여행경보', headerBackTitle: '안전' }} />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* 검색바 */}
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>🔍</Text>

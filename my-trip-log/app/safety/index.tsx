@@ -158,7 +158,7 @@ export default function SafetyHomeScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '여행 안전', headerBackTitle: '뒤로' }} />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* 헤더 */}
           <View style={styles.header}>

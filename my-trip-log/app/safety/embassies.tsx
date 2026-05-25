@@ -57,7 +57,7 @@ export default function EmbassiesScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '대사관 / 영사관', headerBackTitle: '안전' }} />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput

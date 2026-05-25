@@ -62,7 +62,7 @@ export default function DiseasesScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '감염병 / 백신 정보', headerBackTitle: '안전' }} />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput

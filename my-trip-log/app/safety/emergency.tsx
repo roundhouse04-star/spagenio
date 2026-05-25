@@ -26,7 +26,7 @@ export default function EmergencyGuideScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '비상 상황 가이드', headerBackTitle: '안전' }} />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.header}>
             <Text style={styles.subtitle}>해외에서 위급한 상황 발생 시 단계별 대처법</Text>

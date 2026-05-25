@@ -32,7 +32,7 @@ export default function AlertsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: '실시간 안전공지', headerBackTitle: '안전' }} />
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* Coming Soon 카드 */}
           <View style={styles.hero}>
