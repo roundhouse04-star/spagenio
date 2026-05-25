@@ -426,13 +426,13 @@ async function sendExpoPushBatch(
   return sentOk;
 }
 
-// ─── 외교부 국가·지역별 안전공지 (CountrySafetyService, 데이터셋 15076239) ────
-// 사용자가 data.go.kr 에서 활용신청 완료. 자동승인이지만 키 권한 활성화에 시차 있음
-// (TravelAlarmService2 도 처음 24h 걸림). 403 Forbidden = 활성화 대기 중.
+// ─── 외교부 국가·지역별 안전공지 (CountrySafetyService6, 데이터셋 15076239) ────
+// 정확한 endpoint = V6. JSON 응답에 sfty_notice_id / sfty_notice_lv / title /
+// txt_origin_cn / country_iso_alp2 / country_nm / ctgy_nm 포함.
 
 const COUNTRY_NOTICE_URL = (key: string) =>
-  `https://apis.data.go.kr/1262000/CountrySafetyService/getCountrySafetyList` +
-  `?ServiceKey=${encodeURIComponent(key)}&returnType=JSON&numOfRows=50&pageNo=1&country_nm=ALL`;
+  `https://apis.data.go.kr/1262000/CountrySafetyService6/getCountrySafetyList6` +
+  `?serviceKey=${encodeURIComponent(key)}&numOfRows=50&pageNo=1`;
 
 // 한글 국가명 → ISO 2자리 (안전공지 제목 매칭용, 점진 확장)
 const KO_COUNTRY_TO_ISO: Record<string, string> = {
@@ -454,34 +454,47 @@ const KO_COUNTRY_TO_ISO: Record<string, string> = {
 };
 
 interface NoticeItem {
-  id: string;            // 외교부 공지 ID (title_idx 또는 hash)
+  id: string;            // 외교부 sfty_notice_id (예: 'ATC0000000048519')
   title: string;
   body: string | null;
-  category: string;      // '주의' / '긴급' / '일반' 등
+  category: string;      // ctgy_nm 또는 '안전공지' (UI 표시용)
+  level: string;         // sfty_notice_lv ('0'..'4') — severity 매핑용
   countryCode: string | null;
   publishedAt: number;
 }
 
-// 외교부 CountrySafetyService 응답 (포맷 추정 — 활성화 후 검증 필요)
+// 외교부 CountrySafetyService6 실제 응답 포맷 (검증 완료)
 interface MofaNoticeApiItem {
+  sfty_notice_id?: string;       // 'ATC0000000048519' — primary id
+  sfty_notice_origin_id?: string;
+  sfty_notice_lv?: string;       // '0' / '1' / '2' ... 긴급도
   title?: string;
-  title_idx?: string | number;
+  txt_origin_cn?: string;        // 본문 (HTML entity 포함: &lt;p&gt; 등)
   country_iso_alp2?: string;
   country_nm?: string;
-  txt_origin_cn?: string;   // 본문 (HTML 가능성)
-  written_dt?: string;      // YYYY-MM-DD HH:MM:SS
-  txt_emergency_step?: string; // 긴급도
-  url_alarm_inq?: string;   // 원문 URL
+  country_eng_nm?: string;
+  ctgy_nm?: string | null;       // 카테고리명 (있으면)
+  continent_cd?: string;
+  continent_nm?: string;
+  file_download_url?: string | null;
+  file_path?: string | null;
+  other_country_cnt?: string;
+  other_country_iso_alp2?: string | null;
 }
 
-function parseNoticeDate(s: string | undefined): number {
-  if (!s) return Date.now();
-  // "2026-05-23 14:30:00" 또는 "20260523143000"
-  const iso = s.length === 14
-    ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(8, 10)}:${s.slice(10, 12)}:${s.slice(12, 14)}`
-    : s.replace(' ', 'T');
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? t : Date.now();
+// HTML entity 정리 (외교부 본문에 &lt; &gt; &amp; &#39; 등 들어있음)
+function cleanHtml(s: string): string {
+  return s
+    .replace(/&lt;\/?[a-zA-Z][^&]*?&gt;/g, '') // <p> </span> 같은 태그 제거
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&middot;/g, '·')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function detectCountryFromTitle(title: string): string | null {
@@ -491,30 +504,45 @@ function detectCountryFromTitle(title: string): string | null {
   return null;
 }
 
+// sfty_notice_lv 를 우리 severity (info/warning/critical) 로 매핑
+function mapNoticeSeverity(lv: string | undefined): 'info' | 'warning' | 'critical' {
+  if (!lv) return 'info';
+  const n = parseInt(lv, 10);
+  if (Number.isFinite(n)) {
+    if (n >= 3) return 'critical';
+    if (n >= 1) return 'warning';
+  }
+  return 'info';
+}
+
 async function fetchSafetyNotices(env: Env): Promise<NoticeItem[]> {
   const res = await fetch(COUNTRY_NOTICE_URL(env.MOFA_SERVICE_KEY));
-  if (!res.ok) throw new Error(`CountrySafetyService HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`CountrySafetyService6 HTTP ${res.status}`);
   const text = await res.text();
   // 활성화 대기 중이면 "Forbidden" 같은 plain text 가 옴
   if (!text.startsWith('{') && !text.startsWith('[')) {
-    throw new Error(`CountrySafetyService not JSON: ${text.slice(0, 80)}`);
+    throw new Error(`CountrySafetyService6 not JSON: ${text.slice(0, 80)}`);
   }
   const json = JSON.parse(text) as any;
   const items: MofaNoticeApiItem[] = json?.response?.body?.items?.item ?? json?.data ?? [];
+  const now = Date.now();
 
   return items
     .filter((it) => it.title && it.title.length > 5)
     .map((it) => {
       const isoFromField = it.country_iso_alp2?.toUpperCase();
       const iso = isoFromField || detectCountryFromTitle(it.title ?? '');
-      const id = String(it.title_idx ?? `${it.country_iso_alp2 ?? ''}_${it.written_dt ?? ''}_${it.title?.slice(0, 30)}`);
+      const id = it.sfty_notice_id ?? it.sfty_notice_origin_id ??
+        `${iso ?? 'XX'}_${(it.title ?? '').slice(0, 30)}`;
+      const cleanBody = it.txt_origin_cn ? cleanHtml(it.txt_origin_cn).slice(0, 1500) : null;
       return {
         id,
         title: it.title ?? '',
-        body: it.txt_origin_cn ?? null,
-        category: it.txt_emergency_step ?? '일반',
+        body: cleanBody,
+        category: it.ctgy_nm ?? '안전공지',
+        level: it.sfty_notice_lv ?? '0',
         countryCode: iso ?? null,
-        publishedAt: parseNoticeDate(it.written_dt),
+        publishedAt: now, // V6 응답에 publish 시각 필드 없음 → fetched_at 사용
       };
     });
 }
@@ -537,7 +565,7 @@ async function pollSafetyNotices(env: Env): Promise<{ fetched: number; newCount:
       n.title,
       n.body,
       n.category || '안전공지',
-      n.category.includes('긴급') ? 'critical' : n.category.includes('주의') ? 'warning' : 'info',
+      mapNoticeSeverity(n.level),
       n.publishedAt,
       fetchedAt
     )
