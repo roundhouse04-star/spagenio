@@ -19,16 +19,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import { VideoView, useVideoPlayer } from 'expo-video';
-
-// 1.3 alpha 데모 영상 — 실제 1.3 beta 에선 사용자 사진으로 ffmpeg 생성된 영상이 들어감
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const DEMO_VIDEO = require('../../../assets/videos/sample_video.mp4');
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
 import { getDB } from '@/db/database';
 import { getTripById } from '@/db/trips';
+import { isProActive } from '@/utils/proStatus';
+import { composeVideo, type VideoComposeResult } from '@/utils/video/composeVideo';
 import type { Trip } from '@/types';
 
 // ─── BGM 카테고리 (3개, 각 5곡 — alpha 에선 메타데이터만) ─────────────
@@ -71,6 +70,11 @@ export default function MakeVideoScreen() {
   const [bgm, setBgm] = useState<BgmCategory['id']>('upbeat');
   const [mode, setMode] = useState<Mode>('edit');
   const [loading, setLoading] = useState(true);
+  const [isPro, setIsPro] = useState(false);
+
+  // 영상 합성 결과
+  const [videoResult, setVideoResult] = useState<VideoComposeResult | null>(null);
+  const [progressStep, setProgressStep] = useState('영상 만드는 중...');
 
   // 자막 편집 모달 상태
   const [captionTarget, setCaptionTarget] = useState<{ dayIdx: number; photoIdx: number } | null>(null);
@@ -91,6 +95,15 @@ export default function MakeVideoScreen() {
       // 날짜별 사진 자동 임포트 (trip_logs 에서)
       const importedDays = await importPhotosByDay(tripId, t);
       setDays(importedDays);
+
+      // PRO 상태 확인
+      try {
+        const pro = await isProActive();
+        setIsPro(pro);
+      } catch {
+        setIsPro(false);
+      }
+
       setLoading(false);
     })();
   }, [tripId]);
@@ -151,67 +164,147 @@ export default function MakeVideoScreen() {
     setCaptionDraft('');
   }, []);
 
-  // ─── 액션: 영상 만들기 (stub) ────────────────────────────────────
+  // ─── 액션: 영상 만들기 (실제 ffmpeg 합성) ───────────────────────
   const makeVideo = useCallback(async () => {
-    const total = days.reduce((s, d) => s + d.photos.length, 0);
-    if (total < 2) {
+    if (!trip) return;
+    const allPhotos = days.flatMap((d) => d.photos);
+    if (allPhotos.length < 2) {
       Alert.alert('사진이 부족해요', '최소 2장 이상의 사진이 필요해요.');
       return;
     }
-    haptic.medium();
-    setMode('processing');
 
-    // 1.3 alpha: stub — 실제 ffmpeg 영상 생성은 beta 에서
-    // 3초 시뮬레이션 (실제로는 30초~1분)
-    setTimeout(() => {
-      haptic.heavy();
-      setMode('result');
-    }, 3000);
-  }, [days]);
+    // PRO 사용자 제한 안내
+    const maxPhotos = isPro ? 20 : 10;
+    if (allPhotos.length > maxPhotos && !isPro) {
+      Alert.alert(
+        'PRO 업그레이드',
+        `무료는 사진 10장까지 영상에 포함됩니다 (현재 ${allPhotos.length}장).\nPRO 에서는 20장 + HD 1080p + 60초까지 가능해요.`,
+        [
+          { text: '취소', style: 'cancel' },
+          { text: 'PRO 보기', onPress: () => router.push('/pro' as any) },
+          { text: '10장으로 진행', onPress: () => startCompose() },
+        ],
+      );
+      return;
+    }
+    startCompose();
 
-  // ─── 공유: 사진앱 저장 (stub, expo-sharing 사용) ──────────────────
-  const saveToPhotos = useCallback(() => {
+    async function startCompose() {
+      haptic.medium();
+      setMode('processing');
+      setProgressStep('사진 준비 중...');
+      setVideoResult(null);
+
+      // 작업 단계 시각화 (UX 용 — ffmpeg 실행 중)
+      const stepTimer = setInterval(() => {
+        setProgressStep((prev) => {
+          if (prev.includes('사진')) return 'BGM 매칭 중...';
+          if (prev.includes('BGM')) return '자막 추가 중...';
+          if (prev.includes('자막')) return '영상 인코딩 중...';
+          return '마무리 중...';
+        });
+      }, 4000);
+
+      try {
+        const result = await composeVideo({
+          tripId: trip!.id,
+          tripTitle: trip!.title,
+          photos: allPhotos,
+          bgmCategory: bgm,
+          isPro,
+          watermark: !isPro,
+        });
+        clearInterval(stepTimer);
+
+        if (result.ok) {
+          haptic.heavy();
+          setVideoResult(result);
+          setMode('result');
+        } else {
+          setMode('edit');
+          Alert.alert('영상 생성 실패', result.error ?? '잠시 후 다시 시도해주세요.');
+          console.warn('[make-video] compose failed:', result.error, result.logs);
+        }
+      } catch (err) {
+        clearInterval(stepTimer);
+        setMode('edit');
+        Alert.alert('영상 생성 실패', String(err));
+      }
+    }
+  }, [trip, days, bgm, isPro]);
+
+  // ─── 공유: 사진앱 저장 (expo-media-library) ─────────────────────
+  const saveToPhotos = useCallback(async () => {
+    if (!videoResult?.outputPath) return;
     haptic.tap();
-    Alert.alert(
-      '저장됨 (Demo)',
-      '실제 1.3 beta 에서 영상 파일이 사진앱에 저장됩니다.',
-    );
-  }, []);
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          '권한 필요',
+          '사진앱에 저장하려면 사진 접근 권한이 필요해요. 설정에서 허용해주세요.',
+        );
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(videoResult.outputPath);
+      Alert.alert('저장 완료', '사진앱에 영상이 저장됐어요.');
+    } catch (err) {
+      Alert.alert('저장 실패', String(err));
+    }
+  }, [videoResult]);
 
-  // ─── 공유: 카톡 ────────────────────────────────────────────────
+  // ─── 공유: 카톡 / iOS Share Sheet ────────────────────────────────
   const shareKakao = useCallback(async () => {
+    if (!videoResult?.outputPath) return;
     haptic.tap();
-    // 실제 1.3 beta: Kakao Sharing SDK
-    // 지금은 iOS Share Sheet 로 대체
     try {
       const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        Alert.alert(
-          '카톡 공유 (Demo)',
-          '실제 1.3 beta 에서 영상 파일이 카톡으로 공유됩니다.',
-        );
-      } else {
+      if (!canShare) {
         Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없어요.');
+        return;
       }
+      // iOS Share Sheet — 카톡 / 메시지 / 메일 등 사용자가 선택
+      await Sharing.shareAsync(videoResult.outputPath, {
+        mimeType: 'video/mp4',
+        dialogTitle: '여행 영상 공유',
+        UTI: 'public.mpeg-4',
+      });
     } catch (err) {
       Alert.alert('공유 실패', String(err));
     }
-  }, []);
+  }, [videoResult]);
 
-  // ─── 공유: 인스타 스토리 (deep link, alpha 에선 안내) ──────────
+  // ─── 공유: 인스타 스토리 (deep link 실제 동작) ──────────────────
   const shareInstagram = useCallback(async () => {
+    if (!videoResult?.outputPath) return;
     haptic.tap();
-    const url = 'instagram-stories://share?source_application=com.triplive.app';
-    const supported = await Linking.canOpenURL(url).catch(() => false);
-    if (supported) {
-      Alert.alert(
-        '인스타 스토리 공유 (Demo)',
-        '실제 1.3 beta 에서 영상이 인스타 스토리로 자동 전송됩니다.',
-      );
-    } else {
-      Alert.alert('인스타 미설치', '인스타그램 앱을 먼저 설치해주세요.');
+    try {
+      // 1) 인스타 deep link 가 동작하려면 영상이 사진앱에 먼저 저장돼있어야 함
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          '권한 필요',
+          '인스타 스토리 공유를 위해 사진 접근 권한이 필요해요.',
+        );
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(videoResult.outputPath);
+
+      // 2) 인스타 스토리 deep link
+      const url = 'instagram-stories://share?source_application=com.triplive.app';
+      const supported = await Linking.canOpenURL(url).catch(() => false);
+      if (!supported) {
+        Alert.alert(
+          '인스타 미설치',
+          '인스타그램 앱이 설치되어 있어야 스토리 공유가 가능해요.\n영상은 사진앱에 저장되었으니 직접 올릴 수 있어요.',
+        );
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert('공유 실패', String(err));
     }
-  }, []);
+  }, [videoResult]);
 
   // ─── 렌더 ─────────────────────────────────────────────────────
   if (loading) {
@@ -238,6 +331,7 @@ export default function MakeVideoScreen() {
             trip={trip}
             days={days}
             bgm={bgm}
+            isPro={isPro}
             onBgmChange={setBgm}
             onAddPhotos={addPhotos}
             onRemovePhoto={removePhoto}
@@ -247,16 +341,18 @@ export default function MakeVideoScreen() {
             colors={colors}
           />
         )}
-        {mode === 'processing' && <ProcessingMode styles={styles} colors={colors} />}
-        {mode === 'result' && (
+        {mode === 'processing' && <ProcessingMode progressStep={progressStep} styles={styles} colors={colors} />}
+        {mode === 'result' && videoResult?.outputPath && (
           <ResultMode
             trip={trip}
             days={days}
             bgm={bgm}
+            videoUri={videoResult.outputPath}
+            durationSec={videoResult.durationSec}
             onSaveToPhotos={saveToPhotos}
             onShareKakao={shareKakao}
             onShareInstagram={shareInstagram}
-            onRemake={() => setMode('edit')}
+            onRemake={() => { setVideoResult(null); setMode('edit'); }}
             styles={styles}
             colors={colors}
           />
@@ -315,11 +411,13 @@ export default function MakeVideoScreen() {
 
 // ─── 모드: 편집 ─────────────────────────────────────────────────
 function EditMode({
-  trip, days, bgm, onBgmChange, onAddPhotos, onRemovePhoto, onOpenCaption, onMakeVideo,
+  trip, days, bgm, isPro, onBgmChange, onAddPhotos, onRemovePhoto, onOpenCaption, onMakeVideo,
   styles, colors,
 }: any) {
   const totalPhotos = days.reduce((s: number, d: DayPhotos) => s + d.photos.length, 0);
   const canMake = totalPhotos >= 2;
+  const maxPhotos = isPro ? 20 : 10;
+  const overLimit = !isPro && totalPhotos > maxPhotos;
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
@@ -334,13 +432,38 @@ function EditMode({
         </Text>
       </View>
 
+      {/* PRO 안내 (무료 사용자만) */}
+      {!isPro && (
+        <Pressable
+          style={styles.proBanner}
+          onPress={() => { haptic.tap(); router.push('/pro' as any); }}
+        >
+          <Text style={styles.proIcon}>✨</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.proTitle}>Triplive PRO 로 더 멋진 영상</Text>
+            <Text style={styles.proDesc}>HD 1080p · 60초 · 사진 20장 · 워터마크 제거</Text>
+          </View>
+          <Text style={styles.proArrow}>›</Text>
+        </Pressable>
+      )}
+
       {/* 안내 */}
       <View style={styles.tipCard}>
         <Text style={styles.tipText}>
           📷 트립 기록의 사진들이 날짜별로 자동 추가됐어요.
-          {'\n'}원하는 사진은 빼거나 [+]로 더 추가하세요.
+          {'\n'}원하는 사진은 빼거나 [+]로 더 추가하세요. 사진을 탭하면 자막을 넣을 수 있어요.
         </Text>
       </View>
+
+      {/* 사진 수 제한 안내 */}
+      {overLimit && (
+        <View style={styles.limitCard}>
+          <Text style={styles.limitText}>
+            ⚠️ 무료는 {maxPhotos}장까지 영상에 포함됩니다 (현재 {totalPhotos}장).
+            나머지는 PRO 에서 가능해요.
+          </Text>
+        </View>
+      )}
 
       {/* 날짜별 사진 */}
       {days.map((day: DayPhotos, idx: number) => (
@@ -409,7 +532,7 @@ function EditMode({
       </View>
 
       <Text style={styles.note}>
-        💡 1.3 alpha — 영상 생성은 데모입니다. 실제 영상 생성은 다음 빌드에서!
+        💡 영상 생성에 1~2분 정도 걸려요. 사진이 많을수록 더 오래 걸립니다.
       </Text>
 
       {/* 만들기 버튼 */}
@@ -419,7 +542,7 @@ function EditMode({
         disabled={!canMake}
       >
         <Text style={styles.makeBtnText}>
-          {canMake ? `🎬 영상 만들기 (${totalPhotos}장)` : '사진 2장 이상 필요'}
+          {canMake ? `🎬 영상 만들기 (${Math.min(totalPhotos, maxPhotos)}장)` : '사진 2장 이상 필요'}
         </Text>
       </Pressable>
     </ScrollView>
@@ -427,36 +550,36 @@ function EditMode({
 }
 
 // ─── 모드: 처리 중 ─────────────────────────────────────────────
-function ProcessingMode({ styles, colors }: any) {
+function ProcessingMode({ progressStep, styles, colors }: any) {
   return (
     <View style={[styles.scroll, styles.center, { flex: 1 }]}>
       <Text style={styles.processingEmoji}>🎬</Text>
       <Text style={styles.processingTitle}>영상 만드는 중…</Text>
-      <Text style={styles.processingDesc}>잠시만 기다려주세요</Text>
+      <Text style={styles.processingDesc}>1~2분 정도 걸려요</Text>
       <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: Spacing.lg }} />
-      <Text style={styles.processingStep}>사진 합성 → BGM 매칭 → 자막 → 인코딩</Text>
+      <Text style={styles.processingStep}>{progressStep}</Text>
     </View>
   );
 }
 
 // ─── 모드: 결과 ────────────────────────────────────────────────
 function ResultMode({
-  trip, days, bgm,
+  trip, days, bgm, videoUri, durationSec,
   onSaveToPhotos, onShareKakao, onShareInstagram, onRemake,
   styles, colors,
 }: any) {
   const totalPhotos = days.reduce((s: number, d: DayPhotos) => s + d.photos.length, 0);
   const cat = BGM_CATEGORIES.find((c) => c.id === bgm);
 
-  // expo-video — 데모 샘플 영상 자동 재생 + 반복
-  const player = useVideoPlayer(DEMO_VIDEO, (p) => {
+  // expo-video — 사용자가 만든 영상 자동 재생 + 반복
+  const player = useVideoPlayer(videoUri, (p) => {
     p.loop = true;
     p.play();
   });
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      {/* 영상 재생기 (1.3 alpha — 데모 영상. beta 에선 사용자 사진으로 합성된 영상) */}
+      {/* 영상 재생기 (실제 합성된 영상) */}
       <View style={styles.previewBox}>
         <VideoView
           player={player}
@@ -468,12 +591,10 @@ function ResultMode({
 
       <View style={styles.resultMeta}>
         <Text style={styles.resultTitle}>🎬 {trip?.title}</Text>
-        <Text style={styles.resultStat}>{cat?.emoji} {cat?.label} · {totalPhotos}장</Text>
+        <Text style={styles.resultStat}>
+          {cat?.emoji} {cat?.label} · {totalPhotos}장 · {Math.round(durationSec)}초
+        </Text>
       </View>
-
-      <Text style={styles.note}>
-        💡 1.3 alpha — 위 영상은 샘플입니다. 실제 영상 생성은 다음 빌드에서!
-      </Text>
 
       {/* 공유 버튼 3개 */}
       <Pressable style={[styles.shareBtn, styles.shareSave]} onPress={onSaveToPhotos}>
@@ -575,6 +696,31 @@ function createStyles(c: ColorPalette) {
       borderLeftColor: c.accent,
     },
     tipText: { fontSize: Typography.labelMedium, color: c.textSecondary, lineHeight: 18 },
+
+    // PRO 안내 배너
+    proBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      backgroundColor: c.primary,
+      borderRadius: 14,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      ...Shadows.sm,
+    },
+    proIcon: { fontSize: 28 },
+    proTitle: { color: c.textOnPrimary, fontSize: Typography.bodyMedium, fontWeight: '800' },
+    proDesc:  { color: c.textOnPrimary, fontSize: Typography.labelSmall, opacity: 0.9, marginTop: 2 },
+    proArrow: { color: c.textOnPrimary, fontSize: 22, fontWeight: '800' },
+
+    // 사진 수 제한 경고
+    limitCard: {
+      backgroundColor: '#FEF3C7',
+      borderRadius: 10,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+    },
+    limitText: { color: '#92400E', fontSize: Typography.labelMedium, lineHeight: 18 },
 
     daySection: {
       backgroundColor: c.surface,
