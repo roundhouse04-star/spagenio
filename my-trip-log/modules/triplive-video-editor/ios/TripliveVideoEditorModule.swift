@@ -42,7 +42,6 @@ public class TripliveVideoEditorModule: Module {
   // MARK: - 핵심 영상 합성 로직
   private func composeVideoSync(input: VideoComposeInput) throws -> URL {
     let size = CGSize(width: input.width, height: input.height)
-    let perPhotoCM = CMTime(seconds: input.perPhotoSec, preferredTimescale: 600)
     let totalDurationCM = CMTime(seconds: Double(input.photos.count) * input.perPhotoSec, preferredTimescale: 600)
 
     // 1) 사진 UIImage 로드
@@ -70,7 +69,9 @@ public class TripliveVideoEditorModule: Module {
     // 검정 배경 영상 생성 (전체 길이)
     let blankUrl = try makeBlankVideo(size: size, duration: totalDurationCM)
     let blankAsset = AVURLAsset(url: blankUrl)
-    guard let blankVideoTrack = try? blankAsset.loadTracks(withMediaType: .video).first ?? blankAsset.tracks(withMediaType: .video).first else {
+    // iOS 16+ loadTracks 는 async — 동기 함수 안에서는 deprecated tracks() 사용
+    let blankTracks = blankAsset.tracks(withMediaType: .video)
+    guard let blankVideoTrack = blankTracks.first else {
       throw NSError(domain: "TripliveVideoEditor", code: -103, userInfo: [NSLocalizedDescriptionKey: "검정 배경 트랙 로드 실패"])
     }
     try videoTrack.insertTimeRange(
@@ -190,21 +191,22 @@ public class TripliveVideoEditorModule: Module {
     videoComposition.instructions = [instruction]
 
     // 7) BGM 오디오 트랙 (페이드 in/out)
+    // iOS 16+ loadTracks / load(.duration) 은 async — 동기 함수에선 deprecated API 사용
     let bgmPath = input.bgmPath.replacingOccurrences(of: "file://", with: "")
     if FileManager.default.fileExists(atPath: bgmPath) {
       let bgmAsset = AVURLAsset(url: URL(fileURLWithPath: bgmPath))
-      if let bgmAudioTrack = bgmAsset.tracks(withMediaType: .audio).first {
-        if let compAudioTrack = composition.addMutableTrack(
-          withMediaType: .audio,
-          preferredTrackID: kCMPersistentTrackID_Invalid
-        ) {
-          let bgmDuration = min(bgmAsset.duration, totalDurationCM)
-          try compAudioTrack.insertTimeRange(
-            CMTimeRange(start: .zero, duration: bgmDuration),
-            of: bgmAudioTrack,
-            at: .zero
-          )
-        }
+      let bgmTracks = bgmAsset.tracks(withMediaType: .audio)
+      if let bgmAudioTrack = bgmTracks.first,
+         let compAudioTrack = composition.addMutableTrack(
+           withMediaType: .audio,
+           preferredTrackID: kCMPersistentTrackID_Invalid
+         ) {
+        let bgmDuration = min(bgmAsset.duration, totalDurationCM)
+        try compAudioTrack.insertTimeRange(
+          CMTimeRange(start: .zero, duration: bgmDuration),
+          of: bgmAudioTrack,
+          at: .zero
+        )
       }
     }
 
