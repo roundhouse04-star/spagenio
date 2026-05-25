@@ -18,6 +18,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
+import { VideoView, useVideoPlayer } from 'expo-video';
+
+// 1.3 alpha 데모 영상 — 실제 1.3 beta 에선 사용자 사진으로 ffmpeg 생성된 영상이 들어감
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const DEMO_VIDEO = require('../../../assets/videos/sample_video.mp4');
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
 import { haptic } from '@/utils/haptics';
@@ -334,21 +339,22 @@ function ResultMode({
   const totalPhotos = days.reduce((s: number, d: DayPhotos) => s + d.photos.length, 0);
   const cat = BGM_CATEGORIES.find((c) => c.id === bgm);
 
+  // expo-video — 데모 샘플 영상 자동 재생 + 반복
+  const player = useVideoPlayer(DEMO_VIDEO, (p) => {
+    p.loop = true;
+    p.play();
+  });
+
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      {/* 미리보기 (alpha — 영상 대신 첫 사진 또는 placeholder) */}
+      {/* 영상 재생기 (1.3 alpha — 데모 영상. beta 에선 사용자 사진으로 합성된 영상) */}
       <View style={styles.previewBox}>
-        {days.find((d: DayPhotos) => d.photos.length > 0)?.photos[0] ? (
-          <Image
-            source={{ uri: days.find((d: DayPhotos) => d.photos.length > 0)!.photos[0] }}
-            style={styles.previewImg}
-          />
-        ) : (
-          <View style={[styles.previewImg, { backgroundColor: colors.surfaceAlt }]} />
-        )}
-        <View style={styles.previewOverlay}>
-          <Text style={styles.previewPlay}>▶</Text>
-        </View>
+        <VideoView
+          player={player}
+          style={styles.previewImg}
+          contentFit="cover"
+          nativeControls={true}
+        />
       </View>
 
       <View style={styles.resultMeta}>
@@ -357,7 +363,7 @@ function ResultMode({
       </View>
 
       <Text style={styles.note}>
-        💡 1.3 alpha — 영상 미리보기는 데모입니다. 실제 영상은 다음 빌드에서 생성됩니다.
+        💡 1.3 alpha — 위 영상은 샘플입니다. 실제 영상 생성은 다음 빌드에서!
       </Text>
 
       {/* 공유 버튼 3개 */}

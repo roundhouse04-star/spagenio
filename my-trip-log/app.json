@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.triplive.app",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "여행 기록에 사진을 추가하기 위해 사진 라이브러리 접근이 필요합니다.",
         "NSPhotoLibraryAddUsageDescription": "여행 회고를 사진앱에 저장하기 위해 사진 라이브러리 쓰기 권한이 필요합니다.",
@@ -26,7 +26,11 @@
         "NSLocationWhenInUseUsageDescription": "현재 위치를 여행 기록에 추가하기 위해 위치 접근이 필요합니다.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "여행 중 위험 지역 진입 시 안전 알림을 보내기 위해 백그라운드에서도 위치가 필요합니다. 거부해도 앱 사용에는 문제 없습니다.",
         "NSLocationAlwaysUsageDescription": "여행 중 위험 지역 진입 시 안전 알림을 보내기 위해 백그라운드에서도 위치가 필요합니다.",
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"],
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true
       }
@@ -165,7 +169,8 @@
           ]
         }
       ],
-      "expo-build-properties"
+      "expo-build-properties",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
