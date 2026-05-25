@@ -195,6 +195,25 @@ export default function TripDetailScreen() {
             )}
           </View>
 
+          {/* 1.3 — 완료된 트립일 때 "여행 영상 만들기" 버튼 */}
+          {trip.status === 'completed' && (
+            <Pressable
+              style={styles.makeVideoCard}
+              onPress={() => router.push(`/trip/${trip.id}/make-video`)}
+            >
+              <View style={styles.makeVideoIconBox}>
+                <Text style={styles.makeVideoIcon}>🎬</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.makeVideoTitle}>여행 영상 만들기</Text>
+                <Text style={styles.makeVideoDesc}>
+                  이 여행의 사진들로 짧은 영상을 만들어보세요
+                </Text>
+              </View>
+              <Text style={styles.makeVideoArrow}>›</Text>
+            </Pressable>
+          )}
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -348,6 +367,36 @@ function createStyles(c: ColorPalette) {
     fontWeight: '600',
   },
   spentText: { color: c.textOnPrimary, opacity: 0.7 },
+
+  // 1.3 — 여행 영상 만들기 버튼
+  makeVideoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: c.accent + '15',
+    borderRadius: 16,
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: c.accent,
+  },
+  makeVideoIconBox: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: c.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  makeVideoIcon: { fontSize: 24 },
+  makeVideoTitle: {
+    fontSize: Typography.bodyLarge, fontWeight: '800',
+    color: c.textPrimary, marginBottom: 2,
+  },
+  makeVideoDesc: {
+    fontSize: Typography.labelMedium, color: c.textSecondary,
+  },
+  makeVideoArrow: { fontSize: 22, color: c.accent, fontWeight: '700' },
+
   tabRow: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
