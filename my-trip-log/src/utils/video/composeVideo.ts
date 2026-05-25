@@ -25,7 +25,6 @@ export interface VideoComposeInput {
   tripId: number;
   tripTitle: string;
   photos: VideoPhoto[];
-  bgmCategory: 'upbeat' | 'calm' | 'cinematic';
   isPro: boolean;
   watermark?: boolean;
 }
@@ -94,11 +93,6 @@ export async function composeVideo(input: VideoComposeInput): Promise<VideoCompo
       processedPaths.push(p);
     }
 
-    // BGM 자산 → local file path
-    const bgmAsset = BGM_ASSET[input.bgmCategory];
-    const bgmLocalUri = await getAssetLocalUri(bgmAsset);
-    const bgmPath = normalizePath(bgmLocalUri);
-
     // 폰트
     const fontLocalUri = await getAssetLocalUri(FONT_ASSET);
     const fontPath = normalizePath(fontLocalUri);
@@ -114,10 +108,10 @@ export async function composeVideo(input: VideoComposeInput): Promise<VideoCompo
     );
     const outputPath = `${normalizePath(FileSystem.documentDirectory ?? '')}videos/trip_${input.tripId}_${Date.now()}.mp4`;
 
-    // Native module 호출
+    // Native module 호출 (BGM 없이 무음 영상)
     const native: NativeResult = await nativeComposeVideo({
       photos: photos.map((p, i) => ({ uri: processedPaths[i], caption: p.caption })),
-      bgmPath,
+      bgmPath: '',  // 무음
       outputPath,
       width,
       height,
@@ -163,12 +157,5 @@ export async function composeVideo(input: VideoComposeInput): Promise<VideoCompo
 // ─── 자산 매핑 ──────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const FONT_ASSET = require('../../../assets/fonts/Pretendard-Bold.ttf');
-
-const BGM_ASSET = {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  upbeat:    require('../../../assets/bgm/upbeat.mp3'),
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  calm:      require('../../../assets/bgm/calm.mp3'),
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  cinematic: require('../../../assets/bgm/cinematic.mp3'),
-};
+// BGM 은 1.3 에서 제거. 사용자가 "이상한 소리" 피드백 + 인스타에서 음악 추가 가능.
+// assets/bgm/*.mp3 파일은 남겨두지만 require X (번들 미포함).

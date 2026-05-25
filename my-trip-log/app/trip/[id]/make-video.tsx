@@ -20,6 +20,7 @@ import { Stack, useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Typography, Spacing, Shadows } from '@/theme/theme';
 import { useTheme, type ColorPalette } from '@/theme/ThemeProvider';
@@ -29,20 +30,6 @@ import { getTripById } from '@/db/trips';
 import { isProActive } from '@/utils/proStatus';
 import { composeVideo, type VideoComposeResult } from '@/utils/video/composeVideo';
 import type { Trip } from '@/types';
-
-// ─── BGM 카테고리 (3개, 각 5곡 — alpha 에선 메타데이터만) ─────────────
-interface BgmCategory {
-  id: 'upbeat' | 'calm' | 'cinematic';
-  label: string;
-  emoji: string;
-  desc: string;
-}
-
-const BGM_CATEGORIES: BgmCategory[] = [
-  { id: 'upbeat',    label: '경쾌',  emoji: '🎉', desc: '출국·도시·액티비티' },
-  { id: 'calm',      label: '잔잔',  emoji: '🌿', desc: '자연·풍경·휴양' },
-  { id: 'cinematic', label: '세련',  emoji: '✨', desc: '야경·음식·도시' },
-];
 
 // 사진 + 자막
 interface PhotoItem {
@@ -59,6 +46,9 @@ interface DayPhotos {
 
 type Mode = 'edit' | 'processing' | 'result';
 
+// AsyncStorage 키 (트립별 사진/자막 저장)
+const STORAGE_KEY = (tripId: number) => `make_video_v1_${tripId}`;
+
 export default function MakeVideoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = parseInt(id, 10);
@@ -67,7 +57,6 @@ export default function MakeVideoScreen() {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<DayPhotos[]>([]);
-  const [bgm, setBgm] = useState<BgmCategory['id']>('upbeat');
   const [mode, setMode] = useState<Mode>('edit');
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
@@ -80,7 +69,7 @@ export default function MakeVideoScreen() {
   const [captionTarget, setCaptionTarget] = useState<{ dayIdx: number; photoIdx: number } | null>(null);
   const [captionDraft, setCaptionDraft] = useState('');
 
-  // ─── 초기 로드: 트립 정보 + 사진 자동 임포트 ─────────────────────────
+  // ─── 초기 로드: 트립 정보 + 사진 자동 임포트 + 저장된 편집 복원 ────
   useEffect(() => {
     (async () => {
       if (!Number.isFinite(tripId)) return;
@@ -92,9 +81,23 @@ export default function MakeVideoScreen() {
       }
       setTrip(t);
 
-      // 날짜별 사진 자동 임포트 (trip_logs 에서)
-      const importedDays = await importPhotosByDay(tripId, t);
-      setDays(importedDays);
+      // 1) AsyncStorage 에 이전 편집 상태 있으면 복원
+      let resolvedDays: DayPhotos[] | null = null;
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY(tripId));
+        if (raw) {
+          const saved = JSON.parse(raw) as { days: DayPhotos[] };
+          if (saved.days && saved.days.length > 0) {
+            resolvedDays = saved.days;
+          }
+        }
+      } catch { /* 무시 — 자동 임포트로 fallback */ }
+
+      // 2) 저장 없으면 trip_logs 에서 자동 임포트
+      if (!resolvedDays) {
+        resolvedDays = await importPhotosByDay(tripId, t);
+      }
+      setDays(resolvedDays);
 
       // PRO 상태 확인
       try {
@@ -107,6 +110,12 @@ export default function MakeVideoScreen() {
       setLoading(false);
     })();
   }, [tripId]);
+
+  // ─── days 변경 시 자동 저장 (debounce 없이 즉시) ─────────────────
+  useEffect(() => {
+    if (loading || !Number.isFinite(tripId)) return;
+    AsyncStorage.setItem(STORAGE_KEY(tripId), JSON.stringify({ days })).catch(() => undefined);
+  }, [days, loading, tripId]);
 
   // ─── 액션: 사진 추가 ──────────────────────────────────────────────
   const addPhotos = useCallback(async (dayIdx: number) => {
@@ -210,7 +219,6 @@ export default function MakeVideoScreen() {
           tripId: trip!.id,
           tripTitle: trip!.title,
           photos: allPhotos,
-          bgmCategory: bgm,
           isPro,
           watermark: !isPro,
         });
@@ -231,7 +239,7 @@ export default function MakeVideoScreen() {
         Alert.alert('영상 생성 실패', String(err));
       }
     }
-  }, [trip, days, bgm, isPro]);
+  }, [trip, days, isPro]);
 
   // ─── 공유: 사진앱 저장 (expo-media-library) ─────────────────────
   const saveToPhotos = useCallback(async () => {
@@ -330,9 +338,7 @@ export default function MakeVideoScreen() {
           <EditMode
             trip={trip}
             days={days}
-            bgm={bgm}
             isPro={isPro}
-            onBgmChange={setBgm}
             onAddPhotos={addPhotos}
             onRemovePhoto={removePhoto}
             onOpenCaption={openCaptionEditor}
@@ -346,7 +352,6 @@ export default function MakeVideoScreen() {
           <ResultMode
             trip={trip}
             days={days}
-            bgm={bgm}
             videoUri={videoResult.outputPath}
             durationSec={videoResult.durationSec}
             onSaveToPhotos={saveToPhotos}
@@ -411,7 +416,7 @@ export default function MakeVideoScreen() {
 
 // ─── 모드: 편집 ─────────────────────────────────────────────────
 function EditMode({
-  trip, days, bgm, isPro, onBgmChange, onAddPhotos, onRemovePhoto, onOpenCaption, onMakeVideo,
+  trip, days, isPro, onAddPhotos, onRemovePhoto, onOpenCaption, onMakeVideo,
   styles, colors,
 }: any) {
   const totalPhotos = days.reduce((s: number, d: DayPhotos) => s + d.photos.length, 0);
@@ -511,28 +516,9 @@ function EditMode({
         </View>
       ))}
 
-      {/* BGM */}
-      <Text style={styles.sectionTitle}>🎵 BGM 분위기</Text>
-      <View style={styles.bgmRow}>
-        {BGM_CATEGORIES.map((c) => (
-          <Pressable
-            key={c.id}
-            style={[styles.bgmCard, bgm === c.id && styles.bgmCardActive]}
-            onPress={() => { haptic.select(); onBgmChange(c.id); }}
-          >
-            <Text style={styles.bgmEmoji}>{c.emoji}</Text>
-            <Text style={[styles.bgmLabel, bgm === c.id && { color: colors.textOnPrimary }]}>
-              {c.label}
-            </Text>
-            <Text style={[styles.bgmDesc, bgm === c.id && { color: colors.textOnPrimary, opacity: 0.85 }]}>
-              {c.desc}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
       <Text style={styles.note}>
-        💡 영상 생성에 1~2분 정도 걸려요. 사진이 많을수록 더 오래 걸립니다.
+        💡 영상은 무음으로 만들어져요. 인스타 스토리에 올릴 때 직접 음악을 추가할 수 있어요.
+        {'\n'}생성에 1~2분 정도 걸립니다.
       </Text>
 
       {/* 만들기 버튼 */}
@@ -564,12 +550,11 @@ function ProcessingMode({ progressStep, styles, colors }: any) {
 
 // ─── 모드: 결과 ────────────────────────────────────────────────
 function ResultMode({
-  trip, days, bgm, videoUri, durationSec,
+  trip, days, videoUri, durationSec,
   onSaveToPhotos, onShareKakao, onShareInstagram, onRemake,
   styles, colors,
 }: any) {
   const totalPhotos = days.reduce((s: number, d: DayPhotos) => s + d.photos.length, 0);
-  const cat = BGM_CATEGORIES.find((c) => c.id === bgm);
 
   // expo-video — 사용자가 만든 영상 자동 재생 + 반복
   const player = useVideoPlayer(videoUri, (p) => {
@@ -592,7 +577,7 @@ function ResultMode({
       <View style={styles.resultMeta}>
         <Text style={styles.resultTitle}>🎬 {trip?.title}</Text>
         <Text style={styles.resultStat}>
-          {cat?.emoji} {cat?.label} · {totalPhotos}장 · {Math.round(durationSec)}초
+          {totalPhotos}장 · {Math.round(durationSec)}초 · 무음
         </Text>
       </View>
 
