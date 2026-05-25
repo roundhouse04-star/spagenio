@@ -12,7 +12,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Image, Alert,
-  ActivityIndicator, Platform, Linking,
+  ActivityIndicator, Platform, Linking, Modal, TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
@@ -44,11 +45,17 @@ const BGM_CATEGORIES: BgmCategory[] = [
   { id: 'cinematic', label: '세련',  emoji: '✨', desc: '야경·음식·도시' },
 ];
 
+// 사진 + 자막
+interface PhotoItem {
+  uri: string;
+  caption: string;    // 영상에 자막으로 들어감 (빈 문자열이면 자막 없음)
+}
+
 // 날짜별 사진 그룹
 interface DayPhotos {
   day: number;        // 1, 2, 3, ...
   date: string;       // 'YYYY-MM-DD'
-  photos: string[];   // 이미지 URI 배열
+  photos: PhotoItem[];
 }
 
 type Mode = 'edit' | 'processing' | 'result';
@@ -64,6 +71,10 @@ export default function MakeVideoScreen() {
   const [bgm, setBgm] = useState<BgmCategory['id']>('upbeat');
   const [mode, setMode] = useState<Mode>('edit');
   const [loading, setLoading] = useState(true);
+
+  // 자막 편집 모달 상태
+  const [captionTarget, setCaptionTarget] = useState<{ dayIdx: number; photoIdx: number } | null>(null);
+  const [captionDraft, setCaptionDraft] = useState('');
 
   // ─── 초기 로드: 트립 정보 + 사진 자동 임포트 ─────────────────────────
   useEffect(() => {
@@ -94,8 +105,9 @@ export default function MakeVideoScreen() {
       quality: 0.85,
     });
     if (res.canceled || !res.assets?.length) return;
+    const newPhotos: PhotoItem[] = res.assets.map((a) => ({ uri: a.uri, caption: '' }));
     setDays((prev) => prev.map((d, i) =>
-      i === dayIdx ? { ...d, photos: [...d.photos, ...res.assets.map((a) => a.uri)] } : d,
+      i === dayIdx ? { ...d, photos: [...d.photos, ...newPhotos] } : d,
     ));
   }, []);
 
@@ -105,6 +117,38 @@ export default function MakeVideoScreen() {
     setDays((prev) => prev.map((d, i) =>
       i === dayIdx ? { ...d, photos: d.photos.filter((_, j) => j !== photoIdx) } : d,
     ));
+  }, []);
+
+  // ─── 액션: 자막 편집 시작 ─────────────────────────────────────────
+  const openCaptionEditor = useCallback((dayIdx: number, photoIdx: number) => {
+    haptic.tap();
+    const current = days[dayIdx]?.photos[photoIdx]?.caption ?? '';
+    setCaptionDraft(current);
+    setCaptionTarget({ dayIdx, photoIdx });
+  }, [days]);
+
+  // ─── 액션: 자막 저장 ────────────────────────────────────────────
+  const saveCaption = useCallback(() => {
+    if (!captionTarget) return;
+    haptic.medium();
+    const { dayIdx, photoIdx } = captionTarget;
+    setDays((prev) => prev.map((d, i) =>
+      i === dayIdx
+        ? {
+            ...d,
+            photos: d.photos.map((p, j) =>
+              j === photoIdx ? { ...p, caption: captionDraft.trim().slice(0, 40) } : p,
+            ),
+          }
+        : d,
+    ));
+    setCaptionTarget(null);
+    setCaptionDraft('');
+  }, [captionTarget, captionDraft]);
+
+  const cancelCaption = useCallback(() => {
+    setCaptionTarget(null);
+    setCaptionDraft('');
   }, []);
 
   // ─── 액션: 영상 만들기 (stub) ────────────────────────────────────
@@ -197,6 +241,7 @@ export default function MakeVideoScreen() {
             onBgmChange={setBgm}
             onAddPhotos={addPhotos}
             onRemovePhoto={removePhoto}
+            onOpenCaption={openCaptionEditor}
             onMakeVideo={makeVideo}
             styles={styles}
             colors={colors}
@@ -216,6 +261,53 @@ export default function MakeVideoScreen() {
             colors={colors}
           />
         )}
+
+        {/* 자막 편집 모달 */}
+        <Modal
+          visible={!!captionTarget}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelCaption}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalBg}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View style={styles.captionModal}>
+              {captionTarget && (
+                <Image
+                  source={{ uri: days[captionTarget.dayIdx]?.photos[captionTarget.photoIdx]?.uri }}
+                  style={styles.captionModalImg}
+                />
+              )}
+              <Text style={styles.captionModalTitle}>📝 사진 자막</Text>
+              <Text style={styles.captionModalDesc}>
+                영상에 자막으로 들어갑니다 (최대 40자)
+              </Text>
+              <TextInput
+                style={styles.captionInput}
+                value={captionDraft}
+                onChangeText={setCaptionDraft}
+                placeholder="예: 신주쿠 야경, 이치란 라멘…"
+                placeholderTextColor={colors.textTertiary}
+                maxLength={40}
+                autoFocus
+                multiline={false}
+                returnKeyType="done"
+                onSubmitEditing={saveCaption}
+              />
+              <Text style={styles.captionCount}>{captionDraft.length} / 40</Text>
+              <View style={styles.captionBtnRow}>
+                <Pressable style={[styles.captionBtn, styles.captionBtnCancel]} onPress={cancelCaption}>
+                  <Text style={styles.captionBtnTextCancel}>취소</Text>
+                </Pressable>
+                <Pressable style={[styles.captionBtn, styles.captionBtnSave]} onPress={saveCaption}>
+                  <Text style={styles.captionBtnTextSave}>저장</Text>
+                </Pressable>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </SafeAreaView>
     </>
   );
@@ -223,7 +315,7 @@ export default function MakeVideoScreen() {
 
 // ─── 모드: 편집 ─────────────────────────────────────────────────
 function EditMode({
-  trip, days, bgm, onBgmChange, onAddPhotos, onRemovePhoto, onMakeVideo,
+  trip, days, bgm, onBgmChange, onAddPhotos, onRemovePhoto, onOpenCaption, onMakeVideo,
   styles, colors,
 }: any) {
   const totalPhotos = days.reduce((s: number, d: DayPhotos) => s + d.photos.length, 0);
@@ -259,16 +351,33 @@ function EditMode({
             <Text style={styles.dayCount}>{day.photos.length}장</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
-            {day.photos.map((uri: string, pIdx: number) => (
-              <View key={`${uri}-${pIdx}`} style={styles.photoCard}>
-                <Image source={{ uri }} style={styles.photoImg} />
+            {day.photos.map((photo: PhotoItem, pIdx: number) => (
+              <View key={`${photo.uri}-${pIdx}`} style={styles.photoCardWrap}>
                 <Pressable
-                  style={styles.photoDelete}
-                  onPress={() => onRemovePhoto(idx, pIdx)}
-                  hitSlop={8}
+                  style={styles.photoCard}
+                  onPress={() => onOpenCaption(idx, pIdx)}
                 >
-                  <Text style={styles.photoDeleteX}>✕</Text>
+                  <Image source={{ uri: photo.uri }} style={styles.photoImg} />
+                  <Pressable
+                    style={styles.photoDelete}
+                    onPress={() => onRemovePhoto(idx, pIdx)}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.photoDeleteX}>✕</Text>
+                  </Pressable>
+                  {/* 자막 오버레이 (있을 때) */}
+                  {photo.caption.length > 0 && (
+                    <View style={styles.captionOverlay}>
+                      <Text style={styles.captionOverlayText} numberOfLines={2}>
+                        📝 {photo.caption}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
+                {/* 자막 힌트 (없을 때) */}
+                {photo.caption.length === 0 && (
+                  <Text style={styles.captionHint} numberOfLines={1}>탭하여 자막</Text>
+                )}
               </View>
             ))}
             <Pressable style={styles.photoAdd} onPress={() => onAddPhotos(idx)}>
@@ -420,12 +529,13 @@ async function importPhotosByDay(tripId: number, trip: Trip): Promise<DayPhotos[
       let imgs: string[] = [];
       try { imgs = JSON.parse(row.images); } catch { continue; }
       if (!Array.isArray(imgs) || imgs.length === 0) continue;
+      const items: PhotoItem[] = imgs.map((uri) => ({ uri, caption: '' }));
       const dayIdx = days.findIndex((d) => d.date === row.log_date);
       if (dayIdx >= 0) {
-        days[dayIdx].photos.push(...imgs);
+        days[dayIdx].photos.push(...items);
       } else {
         // 트립 일자 밖이면 마지막 날에 추가
-        days[days.length - 1].photos.push(...imgs);
+        days[days.length - 1].photos.push(...items);
       }
     }
   } catch (err) {
@@ -482,7 +592,8 @@ function createStyles(c: ColorPalette) {
       backgroundColor: c.primary, color: c.textOnPrimary, fontSize: 11, fontWeight: '700',
       paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, overflow: 'hidden',
     },
-    photoRow: { gap: Spacing.sm, paddingVertical: Spacing.xs },
+    photoRow: { gap: Spacing.sm, paddingVertical: Spacing.xs, alignItems: 'flex-start' },
+    photoCardWrap: { width: 96, alignItems: 'center' },
     photoCard: {
       width: 96, height: 96, borderRadius: 8, overflow: 'hidden', position: 'relative',
     },
@@ -492,6 +603,7 @@ function createStyles(c: ColorPalette) {
       width: 22, height: 22, borderRadius: 11,
       backgroundColor: 'rgba(0,0,0,0.7)',
       alignItems: 'center', justifyContent: 'center',
+      zIndex: 2,
     },
     photoDeleteX: { color: '#fff', fontSize: 13, fontWeight: '700' },
     photoAdd: {
@@ -502,6 +614,64 @@ function createStyles(c: ColorPalette) {
     },
     photoAddIcon: { fontSize: 28, color: c.textTertiary },
     photoAddText: { fontSize: 11, color: c.textTertiary, marginTop: 2 },
+
+    // 자막 (사진 카드 위 오버레이)
+    captionOverlay: {
+      position: 'absolute', left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      paddingHorizontal: 6, paddingVertical: 4,
+    },
+    captionOverlayText: {
+      color: '#fff', fontSize: 10, fontWeight: '700', lineHeight: 12,
+    },
+    captionHint: {
+      width: 96, fontSize: 10, color: c.accent,
+      marginTop: 4, textAlign: 'center', fontWeight: '600',
+    },
+
+    // 자막 편집 모달
+    modalBg: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+      alignItems: 'center', justifyContent: 'center',
+      padding: Spacing.lg,
+    },
+    captionModal: {
+      width: '100%', maxWidth: 380,
+      backgroundColor: c.surface, borderRadius: 20,
+      padding: Spacing.xl, alignItems: 'center',
+      ...Shadows.md,
+    },
+    captionModalImg: {
+      width: 160, height: 160, borderRadius: 12,
+      backgroundColor: c.surfaceAlt, marginBottom: Spacing.md,
+    },
+    captionModalTitle: {
+      fontSize: Typography.titleSmall, fontWeight: '800',
+      color: c.textPrimary, marginBottom: 4,
+    },
+    captionModalDesc: {
+      fontSize: Typography.labelMedium, color: c.textTertiary,
+      marginBottom: Spacing.md, textAlign: 'center',
+    },
+    captionInput: {
+      width: '100%', borderWidth: 1.5, borderColor: c.border,
+      borderRadius: 12, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md,
+      fontSize: Typography.bodyMedium, color: c.textPrimary,
+      backgroundColor: c.background,
+    },
+    captionCount: {
+      alignSelf: 'flex-end', fontSize: Typography.labelSmall,
+      color: c.textTertiary, marginTop: 4, marginBottom: Spacing.lg,
+    },
+    captionBtnRow: { flexDirection: 'row', gap: Spacing.md, width: '100%' },
+    captionBtn: {
+      flex: 1, paddingVertical: Spacing.md, borderRadius: 12,
+      alignItems: 'center',
+    },
+    captionBtnCancel: { backgroundColor: c.surfaceAlt },
+    captionBtnSave:   { backgroundColor: c.primary },
+    captionBtnTextCancel: { color: c.textSecondary, fontWeight: '700', fontSize: Typography.bodyMedium },
+    captionBtnTextSave:   { color: c.textOnPrimary, fontWeight: '800', fontSize: Typography.bodyMedium },
 
     sectionTitle: {
       fontSize: Typography.bodyMedium, fontWeight: '700',
