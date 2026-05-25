@@ -57,7 +57,6 @@
     "expo-task-manager": "~14.0.9",
     "expo-tracking-transparency": "~6.0.8",
     "expo-video": "~3.0.16",
-    "ffmpeg-kit-react-native": "^6.0.2",
     "lz-string": "^1.5.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",

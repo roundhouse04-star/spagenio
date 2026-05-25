@@ -171,8 +171,7 @@
         }
       ],
       "expo-build-properties",
-      "expo-video",
-      "./plugins/withFfmpegKit.js"
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
