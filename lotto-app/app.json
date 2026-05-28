@@ -2,7 +2,7 @@
   "expo": {
     "name": "로또부스터",
     "slug": "lotto-booster",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,7 +13,7 @@
       "backgroundColor": "#6366f1"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.spagenio.lotto",
       "infoPlist": {
         "NSCameraUsageDescription": "로또 복권 QR코드를 스캔하여 당첨여부를 확인합니다.",
