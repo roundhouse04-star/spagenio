@@ -13,7 +13,7 @@
       "backgroundColor": "#6366f1"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.spagenio.lotto",
       "infoPlist": {
         "NSCameraUsageDescription": "로또 복권 QR코드를 스캔하여 당첨여부를 확인합니다.",
