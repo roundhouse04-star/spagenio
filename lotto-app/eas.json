@@ -57,6 +57,11 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "roundhouse04@gmail.com",
+        "ascAppId": "6771387280",
+        "appleTeamId": "HQJC6CQ97T"
+      },
       "android": {
         "track": "internal"
       }
