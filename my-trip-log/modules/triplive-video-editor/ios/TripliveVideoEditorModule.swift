@@ -190,8 +190,6 @@ public class TripliveVideoEditorModule: Module {
     let videoComposition = AVMutableVideoComposition()
     videoComposition.renderSize = size
     videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
-    // 트랜지션 사이 빈 프레임 시 default(파란색) 대신 검정으로
-    videoComposition.backgroundColor = UIColor.black.cgColor
     videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(
       postProcessingAsVideoLayer: videoLayer,
       in: parentLayer
@@ -199,6 +197,7 @@ public class TripliveVideoEditorModule: Module {
 
     let instruction = AVMutableVideoCompositionInstruction()
     instruction.timeRange = CMTimeRange(start: .zero, duration: totalDurationCM)
+    // 트랜지션 사이 빈 프레임 시 default(파란색) 대신 검정으로
     instruction.backgroundColor = UIColor.black.cgColor
     let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
     instruction.layerInstructions = [layerInstruction]
