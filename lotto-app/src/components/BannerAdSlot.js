@@ -4,6 +4,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { theme } from '../lib/theme';
+import { isTestFlight } from '../../modules/ads-environment';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
@@ -17,10 +18,12 @@ if (!isExpoGo) {
 }
 
 // ── 광고 단위 ID ──
-// 환경별 분기 (EAS 빌드 프로필의 EXPO_PUBLIC_ADS_MODE 환경변수로 결정):
-//   __DEV__ (Expo Go / 로컬 개발)   → 테스트 광고
-//   development / preview (TestFlight 내부 테스트) → 테스트 광고
-//   production (스토어 출시)        → 실제 광고
+// 실제 광고는 아래 3가지를 "모두" 만족할 때만 노출:
+//   1) !__DEV__            → 로컬 개발/Expo Go 아님
+//   2) ADS_MODE=production → development/preview 내부 빌드 아님 (eas.json env)
+//   3) !isTestFlight       → TestFlight(샌드박스) 설치본 아님 ← 핵심
+// 같은 production 바이너리라도 TestFlight에선 (3)이 막아 테스트 광고를 노출하므로,
+// 출시 전 검수 중 실제 광고 클릭으로 인한 AdMob 정책 위반을 방지한다.
 const TEST_BANNER = AdsModule?.TestIds?.BANNER;
 
 const PROD_BANNER_ID = Platform.select({
@@ -28,7 +31,10 @@ const PROD_BANNER_ID = Platform.select({
   android: 'ca-app-pub-2473584153798184/7215916703', // Android Banner
 });
 
-const isProductionAds = !__DEV__ && process.env.EXPO_PUBLIC_ADS_MODE === 'production';
+const isProductionAds =
+  !__DEV__ &&
+  process.env.EXPO_PUBLIC_ADS_MODE === 'production' &&
+  !isTestFlight;
 const BANNER_UNIT_ID = isProductionAds ? PROD_BANNER_ID : TEST_BANNER;
 
 export default function BannerAdSlot({ position = 'bottom' }) {
