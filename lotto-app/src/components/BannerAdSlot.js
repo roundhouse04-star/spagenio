@@ -4,7 +4,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { theme } from '../lib/theme';
-import { isTestFlight } from '../../modules/ads-environment';
+import { ADS_LIVE, AD_UNIT_IDS } from '../config/ads';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
@@ -18,24 +18,17 @@ if (!isExpoGo) {
 }
 
 // ── 광고 단위 ID ──
-// 실제 광고는 아래 3가지를 "모두" 만족할 때만 노출:
-//   1) !__DEV__            → 로컬 개발/Expo Go 아님
-//   2) ADS_MODE=production → development/preview 내부 빌드 아님 (eas.json env)
-//   3) !isTestFlight       → TestFlight(샌드박스) 설치본 아님 ← 핵심
-// 같은 production 바이너리라도 TestFlight에선 (3)이 막아 테스트 광고를 노출하므로,
-// 출시 전 검수 중 실제 광고 클릭으로 인한 AdMob 정책 위반을 방지한다.
+// ADS_LIVE=true (release 프로필) 에서만 실광고 ID 사용.
+// 그 외 모든 빌드(production·TestFlight 포함)는 Google 데모(test) ID.
+// → 본인/테스터가 클릭해도 무효 트래픽으로 안 잡힘 (AdMob 정지 방지)
 const TEST_BANNER = AdsModule?.TestIds?.BANNER;
 
 const PROD_BANNER_ID = Platform.select({
-  ios: 'ca-app-pub-2473584153798184/6094406727',     // iOS Banner
-  android: 'ca-app-pub-2473584153798184/7215916703', // Android Banner
+  ios: AD_UNIT_IDS.bannerIOS,
+  android: AD_UNIT_IDS.bannerAndroid,
 });
 
-const isProductionAds =
-  !__DEV__ &&
-  process.env.EXPO_PUBLIC_ADS_MODE === 'production' &&
-  !isTestFlight;
-const BANNER_UNIT_ID = isProductionAds ? PROD_BANNER_ID : TEST_BANNER;
+const BANNER_UNIT_ID = ADS_LIVE ? PROD_BANNER_ID : TEST_BANNER;
 
 export default function BannerAdSlot({ position = 'bottom' }) {
   // Expo Go 또는 모듈 없음 → placeholder

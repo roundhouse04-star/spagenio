@@ -8,9 +8,6 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "env": {
-        "EXPO_PUBLIC_ADS_MODE": "test"
-      },
       "ios": {
         "simulator": true
       }
@@ -18,9 +15,6 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "env": {
-        "EXPO_PUBLIC_ADS_MODE": "test"
-      },
       "ios": {
         "simulator": false
       },
@@ -28,11 +22,11 @@
         "buildType": "apk"
       }
     },
-    "testflight": {
-      "channel": "testflight",
+    "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_ADS_MODE": "test"
+        "EXPO_PUBLIC_ADS_LIVE": "false"
       },
       "ios": {
         "resourceClass": "m-medium"
@@ -41,22 +35,25 @@
         "buildType": "app-bundle"
       }
     },
-    "production": {
-      "channel": "production",
-      "autoIncrement": true,
+    "release": {
+      "extends": "production",
       "env": {
-        "EXPO_PUBLIC_ADS_MODE": "production"
-      },
-      "ios": {
-        "resourceClass": "m-medium"
-      },
-      "android": {
-        "buildType": "app-bundle"
+        "EXPO_PUBLIC_ADS_LIVE": "true"
       }
     }
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "roundhouse04@gmail.com",
+        "ascAppId": "6771387280",
+        "appleTeamId": "HQJC6CQ97T"
+      },
+      "android": {
+        "track": "internal"
+      }
+    },
+    "release": {
       "ios": {
         "appleId": "roundhouse04@gmail.com",
         "ascAppId": "6771387280",
