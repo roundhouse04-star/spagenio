@@ -42,7 +42,11 @@ public class TripliveVideoEditorModule: Module {
   // MARK: - 핵심 영상 합성 로직
   private func composeVideoSync(input: VideoComposeInput) throws -> URL {
     let size = CGSize(width: input.width, height: input.height)
-    let totalDurationCM = CMTime(seconds: Double(input.photos.count) * input.perPhotoSec, preferredTimescale: 600)
+    // Cross-dissolve: 각 사진이 perPhoto 노출 + 다음 사진과 transition 동안 겹침
+    // 총 길이 = N*perPhoto - (N-1)*transition
+    let totalSec = Double(input.photos.count) * input.perPhotoSec
+                 - Double(max(input.photos.count - 1, 0)) * input.transitionSec
+    let totalDurationCM = CMTime(seconds: totalSec, preferredTimescale: 600)
 
     // 1) 사진 UIImage 로드
     let images: [UIImage] = try input.photos.map { p in
@@ -99,20 +103,25 @@ public class TripliveVideoEditorModule: Module {
       photoLayer.masksToBounds = true
       photoLayer.opacity = 0
 
-      let startTime = Double(i) * input.perPhotoSec
+      // Cross-dissolve 트랜지션 — 사진 i+1 의 fade-in 시점 = 사진 i 의 fade-out 시작 시점
+      // 첫 사진: 0초 ~ perPhoto 까지 noticeably 노출, 이후 fade out
+      // 두 번째부터: 이전 사진의 fade out 시작 시점 = 본인의 fade in 시작 시점 (겹침)
+      let isFirst = (i == 0)
+      let isLast  = (i == images.count - 1)
+      let startTime = Double(i) * (input.perPhotoSec - input.transitionSec)
 
       // 페이드 인
       let fadeIn = CABasicAnimation(keyPath: "opacity")
       fadeIn.fromValue = 0.0
       fadeIn.toValue = 1.0
-      fadeIn.beginTime = AVCoreAnimationBeginTimeAtZero + startTime
-      fadeIn.duration = input.transitionSec
+      fadeIn.beginTime = AVCoreAnimationBeginTimeAtZero + (isFirst ? 0 : startTime)
+      fadeIn.duration = isFirst ? 0.01 : input.transitionSec  // 첫 사진 즉시 노출
       fadeIn.fillMode = .forwards
       fadeIn.isRemovedOnCompletion = false
       photoLayer.add(fadeIn, forKey: "fadeIn")
 
       // 페이드 아웃 (마지막 사진 제외)
-      if i < images.count - 1 {
+      if !isLast {
         let fadeOut = CABasicAnimation(keyPath: "opacity")
         fadeOut.fromValue = 1.0
         fadeOut.toValue = 0.0
@@ -164,10 +173,12 @@ public class TripliveVideoEditorModule: Module {
     if input.watermark {
       let wmLayer = makeWatermarkLayer(text: input.watermarkText, size: size, fontPath: input.fontPath)
       wmLayer.opacity = 0
+      // 마지막 사진의 cross-dissolve startTime + 약간 지연
+      let lastStartTime = Double(images.count - 1) * (input.perPhotoSec - input.transitionSec)
       let wmIn = CABasicAnimation(keyPath: "opacity")
       wmIn.fromValue = 0.0
       wmIn.toValue = 0.8
-      wmIn.beginTime = AVCoreAnimationBeginTimeAtZero + Double(images.count - 1) * input.perPhotoSec + 0.3
+      wmIn.beginTime = AVCoreAnimationBeginTimeAtZero + lastStartTime + 0.3
       wmIn.duration = 0.5
       wmIn.fillMode = .forwards
       wmIn.isRemovedOnCompletion = false
@@ -179,6 +190,8 @@ public class TripliveVideoEditorModule: Module {
     let videoComposition = AVMutableVideoComposition()
     videoComposition.renderSize = size
     videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+    // 트랜지션 사이 빈 프레임 시 default(파란색) 대신 검정으로
+    videoComposition.backgroundColor = UIColor.black.cgColor
     videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(
       postProcessingAsVideoLayer: videoLayer,
       in: parentLayer
@@ -186,6 +199,7 @@ public class TripliveVideoEditorModule: Module {
 
     let instruction = AVMutableVideoCompositionInstruction()
     instruction.timeRange = CMTimeRange(start: .zero, duration: totalDurationCM)
+    instruction.backgroundColor = UIColor.black.cgColor
     let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
     instruction.layerInstructions = [layerInstruction]
     videoComposition.instructions = [instruction]
