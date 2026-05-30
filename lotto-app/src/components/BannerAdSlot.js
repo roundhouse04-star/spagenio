@@ -1,10 +1,10 @@
 // AdMob Banner — Expo Go에선 native module이 없으므로 placeholder 표시
 // 실기기 dev build / production에서만 실제 광고 노출
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
-import * as FileSystem from 'expo-file-system';
 import { theme } from '../lib/theme';
+import { getReceiptName, isAppStore } from '../../modules/ad-environment';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
@@ -18,12 +18,12 @@ if (!isExpoGo) {
 }
 
 // ── 광고 단위 ID ──
-// 환경별 분기 (EAS 빌드 프로필의 EXPO_PUBLIC_ADS_MODE 환경변수로 결정):
-//   __DEV__ (Expo Go / 로컬 개발)         → 테스트 광고
-//   development / preview / testflight    → 테스트 광고
-//   production 프로필 + iOS TestFlight    → 테스트 광고 (런타임 감지)
-//   production 프로필 + iOS App Store     → 실제 광고
-//   production 프로필 + Android           → 실제 광고
+// 환경별 분기:
+//   __DEV__ / Expo Go                          → 테스트 광고
+//   ADS_MODE != 'production' (dev/preview/testflight 프로필) → 테스트 광고
+//   ADS_MODE == 'production' + iOS TestFlight  → 테스트 광고 (네이티브 receipt 감지)
+//   ADS_MODE == 'production' + iOS App Store   → 실제 광고
+//   ADS_MODE == 'production' + Android         → 실제 광고
 const TEST_BANNER = AdsModule?.TestIds?.BANNER;
 
 const PROD_BANNER_ID = Platform.select({
@@ -33,46 +33,23 @@ const PROD_BANNER_ID = Platform.select({
 
 const wantsProductionAds = !__DEV__ && process.env.EXPO_PUBLIC_ADS_MODE === 'production';
 
-// iOS는 production 프로필이라도 TestFlight일 수 있으므로 receipt 파일로 환경 판별:
-//   <bundle>/StoreKit/sandboxReceipt → TestFlight (또는 Sandbox)
-//   <bundle>/StoreKit/receipt        → App Store
-async function detectIosEnvironment() {
-  try {
-    const bundle = FileSystem.bundleDirectory;
-    if (!bundle) return 'unknown';
-    const sandbox = await FileSystem.getInfoAsync(bundle + 'StoreKit/sandboxReceipt');
-    if (sandbox.exists) return 'testflight';
-    const prod = await FileSystem.getInfoAsync(bundle + 'StoreKit/receipt');
-    if (prod.exists) return 'appstore';
-    return 'unknown';
-  } catch (e) {
-    return 'error';
-  }
-}
-
-// Android: production 환경변수면 바로 실제 광고
-// iOS: App Store 확정될 때까지 안전하게 테스트 광고로 시작
-function initialBannerUnitId() {
+function resolveBannerUnitId() {
   if (!wantsProductionAds) return TEST_BANNER;
   if (Platform.OS === 'android') return PROD_BANNER_ID;
+
+  // iOS: Bundle.main.appStoreReceiptURL.lastPathComponent 로 판별
+  //   "receipt"        → App Store (실제 광고)
+  //   "sandboxReceipt" → TestFlight (테스트 광고)
+  //   그 외 / null     → 안전하게 테스트 광고
+  const receiptName = getReceiptName();
+  console.log('[Banner] iOS receiptName=', receiptName);
+  if (isAppStore()) return PROD_BANNER_ID;
   return TEST_BANNER;
 }
 
+const BANNER_UNIT_ID = resolveBannerUnitId();
+
 export default function BannerAdSlot({ position = 'bottom' }) {
-  const [unitId, setUnitId] = useState(initialBannerUnitId);
-
-  useEffect(() => {
-    if (!wantsProductionAds) return;
-    if (Platform.OS !== 'ios') return;
-    let cancelled = false;
-    detectIosEnvironment().then((env) => {
-      if (cancelled) return;
-      console.log('[Banner] iOS env:', env);
-      if (env === 'appstore') setUnitId(PROD_BANNER_ID);
-    });
-    return () => { cancelled = true; };
-  }, []);
-
   // Expo Go 또는 모듈 없음 → placeholder
   if (!AdsModule || !AdsModule.BannerAd) {
     return (
@@ -88,7 +65,7 @@ export default function BannerAdSlot({ position = 'bottom' }) {
   return (
     <View style={[styles.wrap, position === 'top' && styles.wrapTop]}>
       <BannerAd
-        unitId={unitId}
+        unitId={BANNER_UNIT_ID}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: false }}
         onAdFailedToLoad={(error) => console.log('[Banner] failed:', error?.message)}

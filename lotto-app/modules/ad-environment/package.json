@@ -1,0 +1,7 @@
+{
+  "name": "ad-environment",
+  "version": "1.0.0",
+  "description": "Detect iOS App Store / TestFlight environment via appStoreReceiptURL",
+  "main": "index.js",
+  "license": "MIT"
+}
