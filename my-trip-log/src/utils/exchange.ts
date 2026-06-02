@@ -105,7 +105,7 @@ export async function getRates(base: string = 'KRW'): Promise<RateMap> {
       return cached.rates;
     }
     // 캐시도 없으면 폴백
-    return FALLBACK_RATES[base] || FALLBACK_RATES.KRW;
+    return getFallbackRates(base);
   }
 }
 
@@ -152,5 +152,25 @@ const FALLBACK_RATES: Record<string, RateMap> = {
     TWD: 32.4, MYR: 4.68, PHP: 57.7, IDR: 15670,
   },
 };
+
+/**
+ * 임의의 base 통화에 대한 폴백 환율 반환.
+ * KRW/USD 는 직접 테이블 사용, 그 외 통화는 USD 피벗 테이블에서 교차환율로 유도.
+ *   base→target = (target per USD) / (base per USD)
+ * (이전엔 base 테이블이 없으면 무조건 KRW 표를 돌려줘 JPY 등에서 잘못된 환산값이 나왔음)
+ */
+function getFallbackRates(base: string): RateMap {
+  if (FALLBACK_RATES[base]) return FALLBACK_RATES[base];
+
+  const usd = FALLBACK_RATES.USD;
+  const basePerUsd = usd[base];
+  if (!basePerUsd) return FALLBACK_RATES.KRW; // 테이블에 없는 미지원 통화 — 최후 폴백
+
+  const map: RateMap = {};
+  for (const [target, targetPerUsd] of Object.entries(usd)) {
+    map[target] = targetPerUsd / basePerUsd;
+  }
+  return map;
+}
 
 export const SUPPORTED_CURRENCIES = SUPPORTED;

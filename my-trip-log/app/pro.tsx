@@ -54,7 +54,8 @@ export default function ProScreen() {
     })();
   }, []);
 
-  // 구매 후 PRO 상태 다시 체크 (purchaseUpdatedListener 가 setProActive 한 직후)
+  // 안전망: 다른 기기/백그라운드 복원 등으로 PRO 가 활성화되면 화면 반영.
+  // (buyPro 성공 시엔 onBuy 에서 즉시 setPro(true) 하므로 이 폴링에 의존하지 않음)
   useEffect(() => {
     const interval = setInterval(async () => {
       const active = await isProActive();
@@ -68,11 +69,13 @@ export default function ProScreen() {
     setBusy(true);
     try {
       await buyPro();
-      // 결제 시트가 뜸 → 사용자가 결제 완료하면 purchaseUpdatedListener 가
-      // setProActive 를 호출 → 위 interval 이 변화 감지하고 pro=true
-      // 사용자 취소나 즉시 실패는 catch 로
+      // buyPro 성공 → setProActive 완료. 실제 상태를 다시 읽어 즉시 반영
+      // (entitlement 미확인 등 엣지 케이스에서 잘못 PRO 표시되는 것 방지).
+      setPro(await isProActive());
     } catch (err: any) {
-      if (err?.code !== 'E_USER_CANCELLED') {
+      // RevenueCat 은 결제 시트 취소 시 err.userCancelled === true 로 알림.
+      // (react-native-iap 의 'E_USER_CANCELLED' 코드가 아님)
+      if (!err?.userCancelled) {
         Alert.alert('결제 실패', err?.message || '잠시 후 다시 시도해주세요.');
       }
     } finally {
