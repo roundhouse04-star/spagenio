@@ -9,9 +9,9 @@
  * ## 등록된 자원 (RevenueCat 대시보드)
  *   Project:       Triplive
  *   iOS App:       Triplive (App Store) — Bundle: com.triplive.app
- *   Product ID:    com.triplive.app.pro2 (App Store Connect 와 동일)
- *                  ※ 구 ID com.triplive.app.pro 는 삭제되어 Apple 이 영구 예약 →
- *                    재사용 불가. 2026-06-02 에 pro2 로 교체.
+ *   Product ID:    com.triplive.app.pro3 (App Store Connect 와 동일)
+ *                  ※ pro → pro2 → pro3 순서로 교체 (Apple 영구 예약으로 재사용 불가)
+ *                  ※ 2026-06-03 pro3 로 교체 (pro2 sandbox entitlement 자동부여 미확인)
  *   Entitlement:   "Triplive Pro" — PRO 사용자 권한 식별
  *
  * ## 흐름
@@ -33,7 +33,7 @@ import { setProActive, clearProStatus } from './proStatus';
 export const ENTITLEMENT_ID = 'Triplive Pro';
 
 /** 상품 ID — App Store Connect 와 동일. */
-export const PRO_PRODUCT_ID = 'com.triplive.app.pro2';
+export const PRO_PRODUCT_ID = 'com.triplive.app.pro3';
 
 /** UI fallback 가격 (RC 서버 응답 실패 시만 사용). */
 export const PRO_DISPLAY_PRICE = '₩7,700';
