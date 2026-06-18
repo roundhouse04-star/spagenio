@@ -38,22 +38,27 @@ while true; do
     echo "  변경 파일:"
     git diff --name-only HEAD origin/$BRANCH | sed 's/^/    - /'
 
-    # pull
-    git pull origin $BRANCH --quiet
+    # pull — 로컬 변경 자동 stash 후 rebase (더러운 트리/빌드 산출물에서도 안전)
+    if git -c rebase.autoStash=true pull --rebase origin $BRANCH --quiet; then
+      # node_modules 변경 시 npm install
+      if git diff --name-only HEAD@{1} HEAD | grep -q "package.json"; then
+        echo "  📦 package.json 변경 감지 → npm install 실행"
+        npm install --quiet
+      fi
 
-    # node_modules 변경 시 npm install
-    if git diff --name-only HEAD@{1} HEAD | grep -q "package.json"; then
-      echo "  📦 package.json 변경 감지 → npm install 실행"
-      npm install --quiet
+      # PM2 재시작
+      echo "  🔄 서버 재시작 중..."
+      pm2 restart spagenio --silent
+      sleep 2
+
+      LAST_COMMIT=$REMOTE_COMMIT   # 성공했을 때만 갱신
+      echo "  ✅ 배포 완료!"
+    else
+      # 실패 시 rebase 중단(autostash 자동 복원) — LAST_COMMIT 안 올려서 다음 주기 재시도
+      git rebase --abort 2>/dev/null || true
+      echo "  ⚠️ pull 실패 (로컬 변경/충돌). 이번 주기 건너뜀 — 다음 주기에 재시도."
+      echo "     확인: cd $PROJECT && git status"
     fi
-
-    # PM2 재시작
-    echo "  🔄 서버 재시작 중..."
-    pm2 restart spagenio --silent
-    sleep 2
-
-    LAST_COMMIT=$REMOTE_COMMIT
-    echo "  ✅ 배포 완료!"
     echo "============================================"
   fi
 
